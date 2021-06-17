@@ -409,7 +409,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                             <?php
                                 // onchange="this.form.submit()" 
                             //."_".$department->department
-                            $districts=Modules::run("Districts/getDistricts");
+                            $districts=Modules::run("districts/getDistricts");
                                foreach ($districts as $district){
                             ?>
                             <option value="<?php echo urlencode($district->district_id)."_".urlencode($district->district); ?>"><?php echo ucwords($district->district); ?></option>
