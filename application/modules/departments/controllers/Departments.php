@@ -168,9 +168,12 @@ class Departments extends MX_Controller{
       $_SESSION['department']=$depname->department;
 
       $division = $this->input->post('division');
+      $section = $this->input->post('section');
       $unit = $this->input->post('unit');
       $_SESSION['division']=$division;
+      $_SESSION['section']=$section;
       $_SESSION['unit']=$unit;
+      
 
       redirect($redirect);
     }

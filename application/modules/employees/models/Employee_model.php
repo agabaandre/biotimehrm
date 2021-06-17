@@ -4,115 +4,72 @@ Class Employee_model extends CI_Model
 {
    public  function __construct(){
         parent:: __construct();
-        $this->facility=$this->session->userdata['facility'];
-        $this->department=$this->session->userdata['department_id'];
+        $this->district_id=$this->session->userdata['district_id'];
+        $this->facility_id=$this->session->userdata['facility'];
+        $this->department_id=$this->session->userdata['department_id'];
         $this->division=$this->session->userdata['division'];
+        $this->section=$this->session->userdata['section'];
         $this->unit=$this->session->userdata['unit'];
-        $this->user=$this->session->get_userdata();
+
     }
 
 
-    // public function get_employees()
-    // {
-    //     $facility=$this->facility;
-
-    //     $department=$this->department;
-    //     $division=$this->division;
-    //     $unit=$this->unit;
-
-    //     if($department!==''){
-    //         $dep_filter="and ihrisdata.department_id='$department'";
-    //     }
-    //     else 
-    //     {
-    //         $dep_filter="";
-    //     }
-
-    //     if($department!==''){
-    //         $depr_filter="and duty_rosta.department_id='$department'";
-    //     }
-    //     else
-    //     {
-    //         $depr_filter="";
-    //     }
-
-
-    //     if($division!==''){
-    //         $div_filter="and ihrisdata.division='$division'";
-    //     }
-    //     else
-    //     {
-    //         $div_filter="";
-    //     }
-
-    //     if($unit!==''){
-    //         $funit="and ihrisdata.unit='$unit'";
-    //     }
-    //     else
-    //     {
-    //         $funit="";
-    //     }
-    
-    //   if($this->user['role']!=='sadmin'){
-    //     $query=$this->db->query("select distinct ihris_pid,surname,firstname,othername,job,telephone,mobile,department,facility,nin,ipps,facility_id from  ihrisdata where facility_id='$facility' $dep_filter $div_filter $funit");
-    //    }
-    //    else {
-    //     $query=$this->db->query("select distinct ihris_pid,surname,firstname,othername,job,telephone,mobile,department,facility,nin,ipps,facility_id from  ihrisdata where facility_id='$facility'");
-    //    }
-        
-    //     $result=$query->result();
-      
-    //     return $result;
-    // }
-    
     public function get_employees()
     {
-        $facility=$this->facility;
-
-        $department=$this->department;
+        $facility_id=$this->facility_id;
+        $district_id=$this->district_id;
+        $department_id=$this->department_id;
         $division=$this->division;
         $unit=$this->unit;
 
+        if(!empty($facility_id)){
+            $facility="and ihrisdata.facility_id='$facility_id'";
+        }
+        else{
+            $facility="";
+        }
+        if(!empty($district_id)){
+            $district="ihrisdata.district_id='$district_id'";
+        }
+        else{
+            $district="";
+        }
+        if(!empty($department_id)){
+            $department="and ihrisdata.department_id='$department_id'";
+        }
+        else{
+            $department="";
+        }
+        if(!empty($division)){
+            $division="and ihrisdata.division='$division'";
+        }
+        else{
+            $division="";
+        }
+        if(!empty($section)){
+            $section="and ihrisdata.division='$section'";
+        }
+        else{
+            $section="";
+        }
+
+        if(!empty($unit)){
+            $unit="and ihrisdata.unit='$unit'";
+        }
+        else{
+            $unit="";
+        }
+
+        $query=$this->db->query("select distinct ihris_pid,surname,firstname,othername,job,telephone,mobile,department,facility,nin,card_number, ipps,facility_id from  ihrisdata where $district $facility $department $division $unit");
+        
     
-      if(($this->user['role']!=='sadmin')||(!empty($department))||(!empty($division))||(!empty($unit))){
-
-
-                if(!empty($department)){
-                    $this->db->where('department_id',$department);
-                    
-                }
-               
-
-                if(!empty($division)){
-                    $this->db->where('division',$division);
-                    
-                }
-
-
-                if(!empty($unit)){
-                     $this->db->where('unit',$unit);
-                    
-                }
-                if(!empty($facility)){
-                    $this->db->where('facility_id',$facility);
-                   
-               }
-              
-                
-               
-        
-      }
-        $this->db->select('*');
-        $this->db->distinct('ihris_pid');
-        $this->db->from('ihrisdata');
-        $this->db->order_by("surname",'ASC');
-        $query=$this->db->get();
-        
         $result=$query->result();
+
+    
       
         return $result;
+    }
     
-}
 
     public function get_employee($id=FALSE) {
         $this->db->where('ihris_pid', $id);

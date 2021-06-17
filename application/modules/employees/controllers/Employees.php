@@ -10,18 +10,13 @@ class Employees extends MX_Controller{
         $this->user=$this->session->get_userdata();
         $this->load->library('pagination');
         $this->watermark=FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
-       // $this->watermark="https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Uganda.svg#/media/File:Coat_of_arms_of_Uganda.svg";
+     
 	}
 
 
    public function get_employees()
     {
-    	$employees=$this->empModel->get_employees();
-
-    	// $employees;
-
-    	return $employees;
-
+    return$employees=$this->empModel->get_employees();
     }
 
     public function getEmployee($id){
@@ -31,7 +26,7 @@ class Employees extends MX_Controller{
     }
 
 
-	public function staff(){
+	public function index(){
 
 		$data['title']="Staff";
 		$data['facilities']=Modules::run("facilities/getFacilities");
@@ -120,13 +115,7 @@ class Employees extends MX_Controller{
         return $st_No;
     }
 
-    public function tests(){
-      
-    
-        
-
-    	
-    }
+  
 
     public function viewTimeLogs(){
 
@@ -196,16 +185,9 @@ class Employees extends MX_Controller{
     $data['timelogs']=$this->empModel->getTimeLogs($config['per_page'],$page,$search_data);
     $data['links']=$this->pagination->create_links();
     $data['title']="Health Staff Time Logs";
-    //$data['facilities']=Modules::run("facilities/getFacilities");
     $data['view']='time_logs';
     $data['module']="employees";
     echo Modules::run("templates/main",$data);
-
-    
-    //redirect('employees/viewTimeLogs');
-   //return ($data);
-        
-
    
     }
 
