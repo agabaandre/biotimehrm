@@ -1,60 +1,10 @@
 Guzzle Upgrade Guide
 ====================
 
-6.0 to 7.0
-----------
-
-In order to take advantage of the new features of PHP, Guzzle dropped the support
-of PHP 5. The minimum supported PHP version is now PHP 7.2. Type hints and return
-types for functions and methods have been added wherever possible. 
-
-Please make sure:
-- You are calling a function or a method with the correct type.
-- If you extend a class of Guzzle; update all signatures on methods you override.
-
-#### Other backwards compatibility breaking changes
-
-- Class `GuzzleHttp\UriTemplate` is removed.
-- Class `GuzzleHttp\Exception\SeekException` is removed.
-- Classes `GuzzleHttp\Exception\BadResponseException`, `GuzzleHttp\Exception\ClientException`, 
-  `GuzzleHttp\Exception\ServerException` can no longer be initialized with an empty
-  Response as argument.
-- Class `GuzzleHttp\Exception\ConnectException` now extends `GuzzleHttp\Exception\TransferException`
-  instead of `GuzzleHttp\Exception\RequestException`.
-- Function `GuzzleHttp\Exception\ConnectException::getResponse()` is removed.
-- Function `GuzzleHttp\Exception\ConnectException::hasResponse()` is removed.
-- Constant `GuzzleHttp\ClientInterface::VERSION` is removed. Added `GuzzleHttp\ClientInterface::MAJOR_VERSION` instead.
-- Function `GuzzleHttp\Exception\RequestException::getResponseBodySummary` is removed.
-  Use `\GuzzleHttp\Psr7\get_message_body_summary` as an alternative.
-- Function `GuzzleHttp\Cookie\CookieJar::getCookieValue` is removed.
-- Request option `exception` is removed. Please use `http_errors`.
-- Request option `save_to` is removed. Please use `sink`.
-- Pool option `pool_size` is removed. Please use `concurrency`.
-- We now look for environment variables in the `$_SERVER` super global, due to thread safety issues with `getenv`. We continue to fallback to `getenv` in CLI environments, for maximum compatibility.
-- The `get`, `head`, `put`, `post`, `patch`, `delete`, `getAsync`, `headAsync`, `putAsync`, `postAsync`, `patchAsync`, and `deleteAsync` methods are now implemented as genuine methods on `GuzzleHttp\Client`, with strong typing. The original `__call` implementation remains unchanged for now, for maximum backwards compatibility, but won't be invoked under normal operation.
-- The `log` middleware will log the errors with level `error` instead of `notice` 
-- Support for international domain names (IDN) is now disabled by default, and enabling it requires installing ext-intl, linked against a modern version of the C library (ICU 4.6 or higher).
-
-#### Native functions calls
-
-All internal native functions calls of Guzzle are now prefixed with a slash. This
-change makes it impossible for method overloading by other libraries or applications.
-Example:
-
-```php
-// Before:
-curl_version();
-
-// After:
-\curl_version();
-```
-
-For the full diff you can check [here](https://github.com/guzzle/guzzle/compare/6.5.4..master).
-
 5.0 to 6.0
 ----------
 
-Guzzle now uses [PSR-7](https://www.php-fig.org/psr/psr-7/) for HTTP messages.
+Guzzle now uses [PSR-7](http://www.php-fig.org/psr/psr-7/) for HTTP messages.
 Due to the fact that these messages are immutable, this prompted a refactoring
 of Guzzle to use a middleware based system rather than an event system. Any
 HTTP message interaction (e.g., `GuzzleHttp\Message\Request`) need to be
@@ -120,7 +70,7 @@ functions that wrap handlers (or are injected into a
   - `GuzzleHttp\Subscriber\History` is now provided by
     `GuzzleHttp\Middleware::history`
   - `GuzzleHttp\Subscriber\Mock` is now provided by
-    `GuzzleHttp\Handler\MockHandler`
+    `GuzzleHttp\Middleware::mock`
   - `GuzzleHttp\Subscriber\Prepare` is now provided by
     `GuzzleHttp\PrepareBodyMiddleware`
   - `GuzzleHttp\Subscriber\Redirect` is now provided by
@@ -133,10 +83,6 @@ functions that wrap handlers (or are injected into a
 - `GuzzleHttp\ClientInterface::getDefaultOption` has been renamed to
   `GuzzleHttp\ClientInterface::getConfig`.
 - `GuzzleHttp\ClientInterface::setDefaultOption` has been removed.
-- The `json` and `xml` methods of response objects has been removed. With the
-  migration to strictly adhering to PSR-7 as the interface for Guzzle messages,
-  adding methods to message interfaces would actually require Guzzle messages
-  to extend from PSR-7 messages rather then work with them directly.
 
 ## Migrating to middleware
 
@@ -182,27 +128,10 @@ $handler = GuzzleHttp\HandlerStack::create();
 $handler->push(Middleware::mapRequest(function (RequestInterface $request) {
     // Notice that we have to return a request object
     return $request->withHeader('X-Foo', 'Bar');
-}));
+});
 // Inject the handler into the client
 $client = new GuzzleHttp\Client(['handler' => $handler]);
 ```
-
-## POST Requests
-
-This version added the [`form_params`](http://guzzle.readthedocs.org/en/latest/request-options.html#form_params)
-and `multipart` request options. `form_params` is an associative array of
-strings or array of strings and is used to serialize an
-`application/x-www-form-urlencoded` POST request. The
-[`multipart`](http://guzzle.readthedocs.org/en/latest/request-options.html#multipart)
-option is now used to send a multipart/form-data POST request.
-
-`GuzzleHttp\Post\PostFile` has been removed. Use the `multipart` option to add
-POST files to a multipart/form-data request.
-
-The `body` option no longer accepts an array to send POST requests. Please use
-`multipart` or `form_params` instead.
-
-The `base_url` option has been renamed to `base_uri`.
 
 4.x to 5.0
 ----------
@@ -217,7 +146,7 @@ passing a `GuzzleHttp\Adapter\AdapterInterface`, you must now pass a PHP
 
 ## Removed Fluent Interfaces
 
-[Fluent interfaces were removed](https://ocramius.github.io/blog/fluent-interfaces-are-evil/)
+[Fluent interfaces were removed](http://ocramius.github.io/blog/fluent-interfaces-are-evil)
 from the following classes:
 
 - `GuzzleHttp\Collection`
@@ -650,7 +579,7 @@ these if needed):
 The following plugins are not part of the core Guzzle package, but are provided
 in separate repositories:
 
-- `Guzzle\Http\Plugin\BackoffPlugin` has been rewritten to be much simpler
+- `Guzzle\Http\Plugin\BackoffPlugin` has been rewritten to be muchs simpler
   to build custom retry policies using simple functions rather than various
   chained classes. See: https://github.com/guzzle/retry-subscriber
 - `Guzzle\Http\Plugin\Cache\CachePlugin` has moved to
@@ -714,8 +643,8 @@ that contain additional metadata accessible via `getMetadata()`.
 
 The entire concept of the StreamRequestFactory has been removed. The way this
 was used in Guzzle 3 broke the actual interface of sending streaming requests
-(instead of getting back a Response, you got a StreamInterface). Streaming
-PHP requests are now implemented through the `GuzzleHttp\Adapter\StreamAdapter`.
+(instead of getting back a Response, you got a StreamInterface). Streeaming
+PHP requests are now implemented throught the `GuzzleHttp\Adapter\StreamAdapter`.
 
 3.6 to 3.7
 ----------
@@ -870,7 +799,7 @@ HeaderInterface (e.g. toArray(), getAll(), etc.).
 3.3 to 3.4
 ----------
 
-Base URLs of a client now follow the rules of https://tools.ietf.org/html/rfc3986#section-5.2.2 when merging URLs.
+Base URLs of a client now follow the rules of http://tools.ietf.org/html/rfc3986#section-5.2.2 when merging URLs.
 
 3.2 to 3.3
 ----------

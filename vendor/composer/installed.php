@@ -1,33 +1,33 @@
 <?php return array (
   'root' => 
   array (
-    'pretty_version' => '1.0.0+no-version-set',
-    'version' => '1.0.0.0',
+    'pretty_version' => 'dev-main',
+    'version' => 'dev-main',
     'aliases' => 
     array (
     ),
-    'reference' => NULL,
+    'reference' => '14f2a866e1642e0d85cf48a88b223baff82c8a57',
     'name' => '__root__',
   ),
   'versions' => 
   array (
     '__root__' => 
     array (
-      'pretty_version' => '1.0.0+no-version-set',
-      'version' => '1.0.0.0',
+      'pretty_version' => 'dev-main',
+      'version' => 'dev-main',
       'aliases' => 
       array (
       ),
-      'reference' => NULL,
+      'reference' => '14f2a866e1642e0d85cf48a88b223baff82c8a57',
     ),
     'guzzlehttp/guzzle' => 
     array (
-      'pretty_version' => '7.0.0',
-      'version' => '7.0.0.0',
+      'pretty_version' => '6.0.0',
+      'version' => '6.0.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '414c24961042f6616fb43e23fa69a785f9fc053e',
+      'reference' => 'df897ae757ad329d2affc38ffb5bbce782b2b510',
     ),
     'guzzlehttp/promises' => 
     array (
@@ -46,22 +46,6 @@
       array (
       ),
       'reference' => 'dc960a912984efb74d0a90222870c72c87f10c91',
-    ),
-    'psr/http-client' => 
-    array (
-      'pretty_version' => '1.0.1',
-      'version' => '1.0.1.0',
-      'aliases' => 
-      array (
-      ),
-      'reference' => '2dfb5f6c5eff0e91e20e913f8c5452ed95b86621',
-    ),
-    'psr/http-client-implementation' => 
-    array (
-      'provided' => 
-      array (
-        0 => '1.0',
-      ),
     ),
     'psr/http-message' => 
     array (

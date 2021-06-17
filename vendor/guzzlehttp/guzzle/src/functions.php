@@ -1,30 +1,77 @@
 <?php
-
 namespace GuzzleHttp;
+
+use GuzzleHttp\Handler\CurlHandler;
+use GuzzleHttp\Handler\CurlMultiHandler;
+use GuzzleHttp\Handler\Proxy;
+use GuzzleHttp\Handler\StreamHandler;
+
+/**
+ * Expands a URI template
+ *
+ * @param string $template  URI template
+ * @param array  $variables Template variables
+ *
+ * @return string
+ */
+function uri_template($template, array $variables)
+{
+    if (extension_loaded('uri_template')) {
+        // @codeCoverageIgnoreStart
+        return \uri_template($template, $variables);
+        // @codeCoverageIgnoreEnd
+    }
+
+    static $uriTemplate;
+    if (!$uriTemplate) {
+        $uriTemplate = new UriTemplate();
+    }
+
+    return $uriTemplate->expand($template, $variables);
+}
 
 /**
  * Debug function used to describe the provided value type and class.
  *
- * @param mixed $input Any type of variable to describe the type of. This
- *                     parameter misses a typehint because of that.
+ * @param mixed $input
  *
  * @return string Returns a string containing the type of the variable and
  *                if a class is provided, the class name.
  */
-function describe_type($input): string
+function describe_type($input)
 {
-    return Utils::describeType($input);
+    switch (gettype($input)) {
+        case 'object':
+            return 'object(' . get_class($input) . ')';
+        case 'array':
+            return 'array(' . count($input) . ')';
+        default:
+            ob_start();
+            var_dump($input);
+            // normalize float vs double
+            return str_replace('double(', 'float(', rtrim(ob_get_clean()));
+    }
 }
 
 /**
  * Parses an array of header lines into an associative array of headers.
  *
- * @param iterable $lines Header lines array of strings in the following
- *                        format: "Name: Value"
+ * @param array $lines Header lines array of strings in the following
+ *                     format: "Name: Value"
+ * @return array
  */
-function headers_from_lines(iterable $lines): array
+function headers_from_lines($lines)
 {
-    return Utils::headersFromLines($lines);
+    $headers = [];
+
+    foreach ($lines as $line) {
+        $parts = explode(':', $line, 2);
+        $headers[trim($parts[0])][] = isset($parts[1])
+            ? trim($parts[1])
+            : null;
+    }
+
+    return $headers;
 }
 
 /**
@@ -36,7 +83,13 @@ function headers_from_lines(iterable $lines): array
  */
 function debug_resource($value = null)
 {
-    return Utils::debugResource($value);
+    if (is_resource($value)) {
+        return $value;
+    } elseif (defined('STDOUT')) {
+        return STDOUT;
+    }
+
+    return fopen('php://output', 'w');
 }
 
 /**
@@ -45,20 +98,45 @@ function debug_resource($value = null)
  * The returned handler is not wrapped by any default middlewares.
  *
  * @throws \RuntimeException if no viable Handler is available.
- *
- * @return callable(\Psr\Http\Message\RequestInterface, array): \GuzzleHttp\Promise\PromiseInterface Returns the best handler for the given system.
+ * @return callable Returns the best handler for the given system.
  */
-function choose_handler(): callable
+function choose_handler()
 {
-    return Utils::chooseHandler();
+    $handler = null;
+    if (extension_loaded('curl')) {
+        $handler = Proxy::wrapSync(new CurlMultiHandler(), new CurlHandler());
+    }
+
+    if (ini_get('allow_url_fopen')) {
+        $handler = $handler
+            ? Proxy::wrapStreaming($handler, new StreamHandler())
+            : new StreamHandler();
+    } elseif (!$handler) {
+        throw new \RuntimeException('GuzzleHttp requires cURL, the '
+            . 'allow_url_fopen ini setting, or a custom HTTP handler.');
+    }
+
+    return $handler;
 }
 
 /**
- * Get the default User-Agent string to use with Guzzle.
+ * Get the default User-Agent string to use with Guzzle
+ *
+ * @return string
  */
-function default_user_agent(): string
+function default_user_agent()
 {
-    return Utils::defaultUserAgent();
+    static $defaultAgent = '';
+
+    if (!$defaultAgent) {
+        $defaultAgent = 'GuzzleHttp/' . Client::VERSION;
+        if (extension_loaded('curl')) {
+            $defaultAgent .= ' curl/' . \curl_version()['version'];
+        }
+        $defaultAgent .= ' PHP/' . PHP_VERSION;
+    }
+
+    return $defaultAgent;
 }
 
 /**
@@ -72,78 +150,57 @@ function default_user_agent(): string
  *
  * Note: the result of this function is cached for subsequent calls.
  *
+ * @return string
  * @throws \RuntimeException if no bundle can be found.
  */
-function default_ca_bundle(): string
+function default_ca_bundle()
 {
-    return Utils::defaultCaBundle();
-}
+    static $cached = null;
+    static $cafiles = [
+        // Red Hat, CentOS, Fedora (provided by the ca-certificates package)
+        '/etc/pki/tls/certs/ca-bundle.crt',
+        // Ubuntu, Debian (provided by the ca-certificates package)
+        '/etc/ssl/certs/ca-certificates.crt',
+        // FreeBSD (provided by the ca_root_nss package)
+        '/usr/local/share/certs/ca-root-nss.crt',
+        // OS X provided by homebrew (using the default path)
+        '/usr/local/etc/openssl/cert.pem',
+        // Windows?
+        'C:\\windows\\system32\\curl-ca-bundle.crt',
+        'C:\\windows\\curl-ca-bundle.crt',
+    ];
 
-/**
- * Creates an associative array of lowercase header names to the actual
- * header casing.
- */
-function normalize_header_keys(array $headers): array
-{
-    return Utils::normalizeHeaderKeys($headers);
-}
+    if ($cached) {
+        return $cached;
+    }
 
-/**
- * Returns true if the provided host matches any of the no proxy areas.
- *
- * This method will strip a port from the host if it is present. Each pattern
- * can be matched with an exact match (e.g., "foo.com" == "foo.com") or a
- * partial match: (e.g., "foo.com" == "baz.foo.com" and ".foo.com" ==
- * "baz.foo.com", but ".foo.com" != "foo.com").
- *
- * Areas are matched in the following cases:
- * 1. "*" (without quotes) always matches any hosts.
- * 2. An exact match.
- * 3. The area starts with "." and the area is the last part of the host. e.g.
- *    '.mit.edu' will match any host that ends with '.mit.edu'.
- *
- * @param string   $host         Host to check against the patterns.
- * @param string[] $noProxyArray An array of host patterns.
- *
- * @throws Exception\InvalidArgumentException
- */
-function is_host_in_noproxy(string $host, array $noProxyArray): bool
-{
-    return Utils::isHostInNoProxy($host, $noProxyArray);
-}
+    if ($ca = ini_get('openssl.cafile')) {
+        return $cached = $ca;
+    }
 
-/**
- * Wrapper for json_decode that throws when an error occurs.
- *
- * @param string $json    JSON data to parse
- * @param bool   $assoc   When true, returned objects will be converted
- *                        into associative arrays.
- * @param int    $depth   User specified recursion depth.
- * @param int    $options Bitmask of JSON decode options.
- *
- * @return object|array|string|int|float|bool|null
- *
- * @throws Exception\InvalidArgumentException if the JSON cannot be decoded.
- *
- * @link https://www.php.net/manual/en/function.json-decode.php
- */
-function json_decode(string $json, bool $assoc = false, int $depth = 512, int $options = 0)
-{
-    return Utils::jsonDecode($json, $assoc, $depth, $options);
-}
+    if ($ca = ini_get('curl.cainfo')) {
+        return $cached = $ca;
+    }
 
-/**
- * Wrapper for JSON encoding that throws when an error occurs.
- *
- * @param mixed $value   The value being encoded
- * @param int   $options JSON encode option bitmask
- * @param int   $depth   Set the maximum depth. Must be greater than zero.
- *
- * @throws Exception\InvalidArgumentException if the JSON cannot be encoded.
- *
- * @link https://www.php.net/manual/en/function.json-encode.php
- */
-function json_encode($value, int $options = 0, int $depth = 512): string
-{
-    return Utils::jsonEncode($value, $options, $depth);
+    foreach ($cafiles as $filename) {
+        if (file_exists($filename)) {
+            return $cached = $filename;
+        }
+    }
+
+    throw new \RuntimeException(<<< EOT
+No system CA bundle could be found in any of the the common system locations.
+PHP versions earlier than 5.6 are not properly configured to use the system's
+CA bundle by default. In order to verify peer certificates, you will need to
+supply the path on disk to a certificate bundle to the 'verify' request
+option: http://docs.guzzlephp.org/en/latest/clients.html#verify. If you do not
+need a specific certificate bundle, then Mozilla provides a commonly used CA
+bundle which can be downloaded here (provided by the maintainer of cURL):
+https://raw.githubusercontent.com/bagder/ca-bundle/master/ca-bundle.crt. Once
+you have a CA bundle available on disk, you can set the 'openssl.cafile' PHP
+ini setting to point to the path to the file, allowing you to omit the 'verify'
+request option. See http://curl.haxx.se/docs/sslcerts.html for more
+information.
+EOT
+    );
 }
