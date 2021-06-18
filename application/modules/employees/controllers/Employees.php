@@ -114,9 +114,9 @@ class Employees extends MX_Controller{
     }
 
     public function count_Staff(){
-        $st_No=$this->empModel->count_Staff();
+        $number=$this->empModel->count_Staff($this->filters);
 
-        return $st_No;
+     return $number;
     }
 
   

@@ -29,11 +29,14 @@ $userdata=$this->session->get_userdata();
   <link rel="stylesheet" href="<?php echo base_url()?>assets/css/responsive2.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/fontawesome-free/css/all.min.css">
    
-   <!-- fullCalendar -->
-   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar/main.min.css">
+  <!-- fullCalendar -->
+  
+  <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar/main.min.css">
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar-daygrid/main.min.css">
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar-timegrid/main.min.css">
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar-bootstrap/main.min.css">
+  <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/select2/css/select2.min.css">
+  <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
 
   
   <!-- Theme style -->
@@ -125,6 +128,7 @@ body::-webkit-scrollbar-thumb
 	border: 1px solid #555555 !important;
   border-radius:4px;
 }
+
 </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed">

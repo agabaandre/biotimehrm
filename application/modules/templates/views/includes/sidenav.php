@@ -62,18 +62,6 @@
 
           <?php if(in_array('14', $permissions)){ ?>
           <li class="nav-item">
-            <a href="<?php echo base_url(); ?>rosta/actuals" class="nav-link">
-              <i class="fa fa-clock"></i>
-              <p>
-                Attendance
-                
-              </p>
-            </a>
-          </li>
-
-          <?php } ?>
-          <?php if(in_array('14', $permissions)){ ?>
-          <li class="nav-item">
             <a href="<?php echo base_url(); ?>rosta/tabular" class="nav-link">
               <i class="fa fa-calendar"></i>
               <p>
@@ -95,6 +83,21 @@
           </li>
           <?php } ?>
 
+
+          <?php if(in_array('14', $permissions)){ ?>
+          <li class="nav-item">
+            <a href="<?php echo base_url(); ?>rosta/actuals" class="nav-link">
+              <i class="fa fa-clock"></i>
+              <p>
+                Attendance
+                
+              </p>
+            </a>
+          </li>
+
+          <?php } ?>
+        
+         
              <!--user perm 26-->
            <?php if(in_array('26', $permissions)){ ?>
             <li class="nav-item has-treeview ">

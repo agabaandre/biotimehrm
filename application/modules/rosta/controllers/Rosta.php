@@ -10,9 +10,9 @@ class Rosta extends MX_Controller {
 
         $this->load->model('rosta_model');
         $this->rostamodule="rosta";
-        //$this->departments=$this->rosta_model->getDepartments();
         $this->departments=Modules::run("departments/getDepartments");
         $this->watermark=FCPATH."assets/images/watermark.png";
+		$this->filters=Modules::run('filters/sessionfilters');
     }
 
 	public function attendance_calenderFormat()
@@ -23,56 +23,29 @@ class Rosta extends MX_Controller {
 		echo Modules::run('templates/main',$data);
 	}
 
-	/*Calendar view  */
 	Public function index(){
-		
-		//$data['checks']=$this->getChecks();
 		$data['module']=$this->rostamodule;
 		$data['view']="rosta";
 		echo Modules::run('templates/main',$data);
 	}
     
-    /*report tabs  */
-	// Public function reports_tabs(){
-		
-	// 	//$data['checks']=$this->getChecks();
-	// 	$data['module']=$this->rostamodule;
-	// 	$data['view']="report_tabs";
-	// 	echo Modules::run('templates/main',$data);
-	// }
-
-
     function getChecks(){
 
     	$checks=$this->checks=$this->rosta_model->checks();
 
     	return $checks;
 
-    	// print_r($checks);
 	}
 	function getleaveChecks(){
 
     	$checks=$this->checks=$this->rosta_model->leavechecks();
 
     	return $checks;
-
-    	// print_r($checks);
     }
-     public function LoadRotaUpload(){
-     	$data['view']="upload_rosta";
-     	$data['module']="rosta";
-     	echo Modules::run("templates/main",$data);
 
-     }
 
-	
 	  
 	 public function leaveRoster(){	
-
-		 
-
-
-		ini_set('memory_limit','128M');
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
 		$employee=$this->input->post('empid');
@@ -109,17 +82,6 @@ class Rosta extends MX_Controller {
 		}
 
 	   }
-	   $department=$this->departments=Modules::run("departments/getDepartments");
-
-	   //print_r($department);
-		if($department){
-
-			$data['depart']=$department;
-		}else{
-			$data['depart']="";
-			}
-
-
 		$this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/leaveRoster";
@@ -127,39 +89,29 @@ class Rosta extends MX_Controller {
 	    $config['per_page']=15; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
-	    $config['full_tag_open'] = "<ul class='pagination'>";
-        $config['full_tag_close'] = '</ul>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li class="active"><a href="#">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-        $config['first_tag_open'] = '<li>';
-        $config['first_tag_close'] = '</li>';
-        $config['last_tag_open'] = '<li>';
-        $config['last_tag_close'] = '</li>';
-    
-    
-    
-        $config['prev_link'] = '<i class="fa fa-angle-double-left"></i>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-    
-    
-        $config['next_link'] = '<i class="fa fa-angle-double-right"></i>';
-        $config['next_tag_open'] = '<li>';
-        $config['next_tag_close'] = '</li>';
+		$config['full_tag_open'] = '<ul class="pagination">';
+		$config['full_tag_close'] = '</ul>';
+		$config['attributes'] = ['class' => 'page-link'];
+		$config['first_link'] = false;
+		$config['last_link'] = false;
+		$config['first_tag_open'] = '<li class="page-item">';
+		$config['first_tag_close'] = '</li>';
+		$config['prev_link'] = '&laquo';
+		$config['prev_tag_open'] = '<li class="page-item">';
+		$config['prev_tag_close'] = '</li>';
+		$config['next_link'] = '&raquo';
+		$config['next_tag_open'] = '<li class="page-item">';
+		$config['next_tag_close'] = '</li>';
+		$config['last_tag_open'] = '<li class="page-item">';
+		$config['last_tag_close'] = '</li>';
+		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+		$config['num_tag_open'] = '<li class="page-item">';
+		$config['num_tag_close'] = '</li>';
         $config['use_page_numbers'] = true;
-        
 	    $this->pagination->initialize($config);
-	    
-	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
-	    
-	    
+	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
 	    $data['links']=$this->pagination->create_links();
-
-
 		$date=date('Y-m');
 		$data['schedules']=Modules::run("schedules/getleaveSchedules","r");
 		//print_r($data['schedules']);
@@ -170,7 +122,6 @@ class Rosta extends MX_Controller {
 		$data['duties']=$this->rosta_model->fetchleave_tabs($date,$config['per_page'],$page);
 		//print_r($data['duties']);
 
-		 $this->sdepartment=$this->session->userdata['department_id'];
 		//echo "My dep".$this->sdepartment;
 		$data['matches']=$this->rosta_model->leavematches();
 		//print_r($data['matches']);
@@ -190,8 +141,6 @@ class Rosta extends MX_Controller {
 
 	 public function tabular(){	
 
-
-		// ini_set('memory_limit','128M');
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
 		$employee=$this->input->post('empid');
@@ -228,74 +177,48 @@ class Rosta extends MX_Controller {
 		}
 
 	   }
-	   $department=$this->departments=Modules::run("departments/getDepartments");
-		if($department){
-
-			$data['depart']=$department;
-		}else{
-			$data['depart']="";
-			}
-
-
+	
 		$this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/tabular";
 	    $config['total_rows']=Modules::run('employees/count_Staff');
-	    $config['per_page']=15; //records per page
+	    $config['per_page']=10; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
-	    $config['full_tag_open'] = "<ul class='pagination'>";
-        $config['full_tag_close'] = '</ul>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li class="active"><a href="#">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-        $config['first_tag_open'] = '<li>';
-        $config['first_tag_close'] = '</li>';
-        $config['last_tag_open'] = '<li>';
-        $config['last_tag_close'] = '</li>';
-    
-    
-    
-        $config['prev_link'] = '<i class="fa fa-angle-double-left"></i>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-    
-    
-        $config['next_link'] = '<i class="fa fa-angle-double-right"></i>';
-        $config['next_tag_open'] = '<li>';
-        $config['next_tag_close'] = '</li>';
+		$config['full_tag_open'] = '<ul class="pagination">';
+		$config['full_tag_close'] = '</ul>';
+		$config['attributes'] = ['class' => 'page-link'];
+		$config['first_link'] = false;
+		$config['last_link'] = false;
+		$config['first_tag_open'] = '<li class="page-item">';
+		$config['first_tag_close'] = '</li>';
+		$config['prev_link'] = '&laquo';
+		$config['prev_tag_open'] = '<li class="page-item">';
+		$config['prev_tag_close'] = '</li>';
+		$config['next_link'] = '&raquo';
+		$config['next_tag_open'] = '<li class="page-item">';
+		$config['next_tag_close'] = '</li>';
+		$config['last_tag_open'] = '<li class="page-item">';
+		$config['last_tag_close'] = '</li>';
+		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+		$config['num_tag_open'] = '<li class="page-item">';
+		$config['num_tag_close'] = '</li>';
         $config['use_page_numbers'] = true;
-        
 	    $this->pagination->initialize($config);
-	    
 	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
-	    
-	    
 	    $data['links']=$this->pagination->create_links();
-
-
 		$date=date('Y-m');
 	    $data['schedules']=Modules::run("schedules/getSchedules","r");
 		$data['checks']=$this->getChecks();
 		$data['departments']=$this->departments;
-
-		$data['duties']=$this->rosta_model->fetch_tabs($date,$config['per_page'],$page,$employee);
-
+		$data['duties']=$this->rosta_model->fetch_tabs($date,$config['per_page'],$page,$employee,$this->filters);
 		$data['matches']=$this->rosta_model->matches();
-
-		 $data['tab_schedules']=$this->rosta_model->tab_matches();
-		
-		 $data['facilities']=Modules::run("facilities/getAll_Facilities");
-		
-		// $data['switches']=$this->switches();
-
-		$data['view']='tab_duty';
+		$data['tab_schedules']=$this->rosta_model->tab_matches();
+		$data['view']='duty_roster';
 		$data['module']=$this->rostamodule;
-
-
+		$data['uptitle']="Duty Roster";
+		$data['title']="Duty Roster";
 
 		//print_r($data);
 		
@@ -350,29 +273,25 @@ class Rosta extends MX_Controller {
 	    $config['per_page']=15; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
-	    $config['full_tag_open'] = "<ul class='pagination'>";
-        $config['full_tag_close'] = '</ul>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li class="active"><a href="#">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-        $config['first_tag_open'] = '<li>';
-        $config['first_tag_close'] = '</li>';
-        $config['last_tag_open'] = '<li>';
-        $config['last_tag_close'] = '</li>';
-    
-    
-    
-        $config['prev_link'] = '<i class="fa fa-angle-double-left"></i>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-    
-    
-        $config['next_link'] = '<i class="fa fa-angle-double-right"></i>';
-        $config['next_tag_open'] = '<li>';
-        $config['next_tag_close'] = '</li>';
+		$config['full_tag_open'] = '<ul class="pagination">';
+		$config['full_tag_close'] = '</ul>';
+		$config['attributes'] = ['class' => 'page-link'];
+		$config['first_link'] = false;
+		$config['last_link'] = false;
+		$config['first_tag_open'] = '<li class="page-item">';
+		$config['first_tag_close'] = '</li>';
+		$config['prev_link'] = '&laquo';
+		$config['prev_tag_open'] = '<li class="page-item">';
+		$config['prev_tag_close'] = '</li>';
+		$config['next_link'] = '&raquo';
+		$config['next_tag_open'] = '<li class="page-item">';
+		$config['next_tag_close'] = '</li>';
+		$config['last_tag_open'] = '<li class="page-item">';
+		$config['last_tag_close'] = '</li>';
+		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+		$config['num_tag_open'] = '<li class="page-item">';
+		$config['num_tag_close'] = '</li>';
         $config['use_page_numbers'] = true;
         
 	    $this->pagination->initialize($config);
@@ -484,29 +403,25 @@ class Rosta extends MX_Controller {
 	    $config['per_page']=10; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
-	    $config['full_tag_open'] = "<ul class='pagination pull-right'>";
-        $config['full_tag_close'] = '</ul>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li class="active"><a href="#">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-        $config['first_tag_open'] = '<li>';
-        $config['first_tag_close'] = '</li>';
-        $config['last_tag_open'] = '<li>';
-        $config['last_tag_close'] = '</li>';
-    
-    
-    
-        $config['prev_link'] = '<i class="fa fa-angle-double-left"></i>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-    
-    
-        $config['next_link'] = '<i class="fa fa-angle-double-right"></i>';
-        $config['next_tag_open'] = '<li>';
-        $config['next_tag_close'] = '</li>';
+	    $config['full_tag_open'] = '<ul class="pagination">';
+		$config['full_tag_close'] = '</ul>';
+		$config['attributes'] = ['class' => 'page-link'];
+		$config['first_link'] = false;
+		$config['last_link'] = false;
+		$config['first_tag_open'] = '<li class="page-item">';
+		$config['first_tag_close'] = '</li>';
+		$config['prev_link'] = '&laquo';
+		$config['prev_tag_open'] = '<li class="page-item">';
+		$config['prev_tag_close'] = '</li>';
+		$config['next_link'] = '&raquo';
+		$config['next_tag_open'] = '<li class="page-item">';
+		$config['next_tag_close'] = '</li>';
+		$config['last_tag_open'] = '<li class="page-item">';
+		$config['last_tag_close'] = '</li>';
+		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+		$config['num_tag_open'] = '<li class="page-item">';
+		$config['num_tag_close'] = '</li>';
         $config['use_page_numbers'] = true;
         
 	    $this->pagination->initialize($config);
@@ -791,29 +706,25 @@ class Rosta extends MX_Controller {
 	    $config['uri_segment']=3; //segment in url
 	    
 	    //pagination links styling
-	    $config['full_tag_open'] = "<ul class='pagination'>";
-        $config['full_tag_close'] = '</ul>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li class="active"><a href="#">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-        $config['first_tag_open'] = '<li>';
-        $config['first_tag_close'] = '</li>';
-        $config['last_tag_open'] = '<li>';
-        $config['last_tag_close'] = '</li>';
-    
-    
-    
-        $config['prev_link'] = '<i class="fa fa-angle-double-left"></i>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-    
-    
-        $config['next_link'] = '<i class="fa fa-angle-double-right"></i>';
-        $config['next_tag_open'] = '<li>';
-        $config['next_tag_close'] = '</li>';
+		$config['full_tag_open'] = '<ul class="pagination">';
+		$config['full_tag_close'] = '</ul>';
+		$config['attributes'] = ['class' => 'page-link'];
+		$config['first_link'] = false;
+		$config['last_link'] = false;
+		$config['first_tag_open'] = '<li class="page-item">';
+		$config['first_tag_close'] = '</li>';
+		$config['prev_link'] = '&laquo';
+		$config['prev_tag_open'] = '<li class="page-item">';
+		$config['prev_tag_close'] = '</li>';
+		$config['next_link'] = '&raquo';
+		$config['next_tag_open'] = '<li class="page-item">';
+		$config['next_tag_close'] = '</li>';
+		$config['last_tag_open'] = '<li class="page-item">';
+		$config['last_tag_close'] = '</li>';
+		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+		$config['num_tag_open'] = '<li class="page-item">';
+		$config['num_tag_close'] = '</li>';
         $config['use_page_numbers'] = true;
         
 	    $this->pagination->initialize($config);
@@ -975,29 +886,25 @@ class Rosta extends MX_Controller {
 	    $config['uri_segment']=3; //segment in url
 	    
 	    //pagination links styling
-	    $config['full_tag_open'] = "<ul class='pagination'>";
-        $config['full_tag_close'] = '</ul>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li class="active"><a href="#">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-        $config['first_tag_open'] = '<li>';
-        $config['first_tag_close'] = '</li>';
-        $config['last_tag_open'] = '<li>';
-        $config['last_tag_close'] = '</li>';
-    
-    
-    
-        $config['prev_link'] = '<i class="fa fa-angle-double-left"></i>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-    
-    
-        $config['next_link'] = '<i class="fa fa-angle-double-right"></i>';
-        $config['next_tag_open'] = '<li>';
-        $config['next_tag_close'] = '</li>';
+		$config['full_tag_open'] = '<ul class="pagination">';
+		$config['full_tag_close'] = '</ul>';
+		$config['attributes'] = ['class' => 'page-link'];
+		$config['first_link'] = false;
+		$config['last_link'] = false;
+		$config['first_tag_open'] = '<li class="page-item">';
+		$config['first_tag_close'] = '</li>';
+		$config['prev_link'] = '&laquo';
+		$config['prev_tag_open'] = '<li class="page-item">';
+		$config['prev_tag_close'] = '</li>';
+		$config['next_link'] = '&raquo';
+		$config['next_tag_open'] = '<li class="page-item">';
+		$config['next_tag_close'] = '</li>';
+		$config['last_tag_open'] = '<li class="page-item">';
+		$config['last_tag_close'] = '</li>';
+		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+		$config['num_tag_open'] = '<li class="page-item">';
+		$config['num_tag_close'] = '</li>';
         $config['use_page_numbers'] = true;
         
 	    $this->pagination->initialize($config);

@@ -611,44 +611,10 @@ Class Employee_model extends CI_Model
     return $ids;
     }
 
-    public function count_Staff()
+    public function count_Staff($filters)
     {
-        $facility=$this->facility;
-
-        $department=$this->department;
-        $division=$this->division;
-        $unit=$this->unit;
-
-    
-      if(($this->user['role']!=='sadmin')||(!empty($department))||(!empty($division))||(!empty($unit))){
-
-
-                if(!empty($department)){
-                    $this->db->where('department_id',$department);
-                    
-                }
-               
-
-                if(!empty($division)){
-                    $this->db->where('division',$division);
-                    
-                }
-
-
-                if(!empty($unit)){
-                     $this->db->where('unit',$unit);
-                    
-                }
-                if(!empty($facility)){
-                    $this->db->where('facility_id',$facility);
-                   
-               }
-              
-                
-               
         
-      }
-        $query=$this->db->get('ihrisdata');
+        $query=$this->db->query("SELECT * from ihrisdata where $filters");
 
         return $query->num_rows();
         
