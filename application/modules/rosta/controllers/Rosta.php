@@ -741,7 +741,9 @@ class Rosta extends MX_Controller {
 
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
-		$department=$this->input->post('department');
+		$data['uptitle']="Daily Attendance";
+		$data['title']="Daily Attendance";
+
 
 		//for a dynamic one
 

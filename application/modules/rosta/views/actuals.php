@@ -14,8 +14,7 @@
     
 </style>
 
-<!-- Contains page content -->
-<div class="dashtwo-order-area" style="padding-top: 10px;">
+
     <div class="container-fluid">
         <div class="row">
         	<div class="col-md-4">
@@ -58,9 +57,6 @@
             <div class="col-lg-12">
 
                 <div class="panel panel-default">
-                  <div class="panel-heading">
-                      <h4 class="panel-title">Daily Attendance<h4>
-                  </div>
                   <div class="panel-body" style="overflow-x: scroll;">
                     <span  style="margin-left:0.6em;">
 						<b class="" style="font-weight:bold;font:1.2em;">Legend</b>
@@ -76,6 +72,7 @@
 					<hr>
 					<div class="col-md-12" style="padding-bottom:0.5em;">
 						<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/actuals" method="post">
+						   <div class="row">
 							<div class="col-md-3">
 
 								<div class="control-group">
@@ -135,6 +132,7 @@
 									<input type="submit" name="" value="Load Month" class="btn btn-success">
 								</div>
 						    </div>
+						</div>
 						</form>
 					</div>
 
@@ -242,9 +240,9 @@ foreach($duties as $singleduty) {
 
 <div class="table-row tbrow">
     
-     <input type="radio" name="expand" class="fa fa-angle-double-down trigger">
-	<span class="cell tbprimary" style="cursor:pointer;" data-label=""><?php echo $no;?>
-	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $singleduty['fullname'];?></span></b>
+<input type="radio" name="expand" class="fa fa-angle-double-down trigger">
+<span class="cell tbprimary" style="cursor:pointer;" data-label=""><?php echo $no;?>
+<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $singleduty['fullname'];?></span></b>
 </span>
    <span class="cell" data-label="Name" style="text-align:left; padding-left:1em;" ><?php echo $singleduty['fullname'];?></span>
 	<span class="cell" data-label="Position" >
@@ -271,7 +269,7 @@ foreach($duties as $singleduty) {
 
 	$day="day".$i;  //changing day 
 ?>
-<span class="cell" data-label="Day<?php echo $i; ?>" >
+     <span class="cell" data-label="Day<?php echo $i; ?>" >
 
 		<?php if($singleduty[$day]!='')
 	{
@@ -310,7 +308,7 @@ foreach($duties as $singleduty) {
 
         </div>
     </div>
-</div>
+
 
 
 

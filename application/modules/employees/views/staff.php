@@ -8,15 +8,8 @@
        <div class="row">
          
          <section class="col-lg-12 ">
-           <!-- Custom tabs (Charts with tabs)-->
-           <div class="card">
-             <div class="card-header">
-             
-               <div class="card-tools">
-              
-               </div>
-             </div><!-- /.card-header -->
-          <div class="card-body">
+        
+        
           <?php $staffs=Modules::run('employees/get_employees'); 
           
             
@@ -58,7 +51,7 @@
                   
                   </tfoot>
                 </table>
-           </div>
+        
          
          
          </section>
