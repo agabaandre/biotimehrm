@@ -4,63 +4,16 @@ Class Employee_model extends CI_Model
 {
    public  function __construct(){
         parent:: __construct();
-        $this->district_id=$this->session->userdata['district_id'];
-        $this->facility_id=$this->session->userdata['facility'];
-        $this->department_id=$this->session->userdata['department_id'];
-        $this->division=$this->session->userdata['division'];
-        $this->section=$this->session->userdata['section'];
-        $this->unit=$this->session->userdata['unit'];
+      
 
     }
 
+   
 
-    public function get_employees()
+    public function get_employees($filters)
     {
-        $facility_id=$this->facility_id;
-        $district_id=$this->district_id;
-        $department_id=$this->department_id;
-        $division=$this->division;
-        $unit=$this->unit;
-
-        if(!empty($facility_id)){
-            $facility="and ihrisdata.facility_id='$facility_id'";
-        }
-        else{
-            $facility="";
-        }
-        if(!empty($district_id)){
-            $district="ihrisdata.district_id='$district_id'";
-        }
-        else{
-            $district="";
-        }
-        if(!empty($department_id)){
-            $department="and ihrisdata.department_id='$department_id'";
-        }
-        else{
-            $department="";
-        }
-        if(!empty($division)){
-            $division="and ihrisdata.division='$division'";
-        }
-        else{
-            $division="";
-        }
-        if(!empty($section)){
-            $section="and ihrisdata.division='$section'";
-        }
-        else{
-            $section="";
-        }
-
-        if(!empty($unit)){
-            $unit="and ihrisdata.unit='$unit'";
-        }
-        else{
-            $unit="";
-        }
-
-        $query=$this->db->query("select distinct ihris_pid,surname,firstname,othername,job,telephone,mobile,department,facility,nin,card_number, ipps,facility_id from  ihrisdata where $district $facility $department $division $unit");
+        
+        $query=$this->db->query("select distinct ihris_pid,surname,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number, ipps,facility_id from  ihrisdata where $filters");
         
     
         $result=$query->result();

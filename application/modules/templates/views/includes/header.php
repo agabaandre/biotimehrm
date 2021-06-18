@@ -28,7 +28,7 @@ $userdata=$this->session->get_userdata();
   <!-- Font Awesome -->
   <link rel="stylesheet" href="<?php echo base_url()?>assets/css/responsive2.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/fontawesome-free/css/all.min.css">
-
+   
    <!-- fullCalendar -->
    <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar/main.min.css">
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar-daygrid/main.min.css">
@@ -45,6 +45,11 @@ $userdata=$this->session->get_userdata();
   <script src="https://code.highcharts.com/modules/exporting.js"></script>
   <script src="https://code.highcharts.com/modules/export-data.js"></script>
   <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+  <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+  <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+  <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+  <!-- Theme style -->
 
   <link href="<?php echo base_url(); ?>assets/css/fullcalendar.css" rel="stylesheet">
   <style>

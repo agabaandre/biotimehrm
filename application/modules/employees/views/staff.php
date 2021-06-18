@@ -17,11 +17,47 @@
                </div>
              </div><!-- /.card-header -->
           <div class="card-body">
-          <?php $staff=Modules::run('employees/get_employees'); 
+          <?php $staffs=Modules::run('employees/get_employees'); 
           
-             print_r($staff);
+            
           ?>
-          
+                <table id="mytab2" class="table table-bordered table-striped">
+                  <thead>
+                  <tr>
+                      <th> Staff iHRIS ID</th>
+                      <th >Name</th>
+                      <th >Facility</th>
+                      <th >District</th>
+                      <th>Job</th>
+                      <th> Department</th>
+                      <th>NIN Card Number</th>
+                    
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <?php $i=1; foreach ($staffs as $staff) { 
+                                                     
+                                                     ?>
+                                            
+                                              <tr>
+                                             
+                                              <td data-label="Staff iHRIS ID"><?php echo str_replace('person|','',$staff->ihris_pid); ?></td>
+                                              <td data-label="NAME"><?php echo $staff->surname. " ". $staff->firstname." ".$staff->othername; ?> 
+                                              </td>
+                                              <td data-label="FACILITY"><?php echo $staff->facility; ?></td>
+                                              <td data-label="DISTRICT"><?php echo $staff->district; ?></td>
+                                              <td data-label="JOB"><?php echo $staff->job; ?></td>
+                                              <td data-label="DEPARTMENT"><?php echo $staff->department; ?></td>
+                                              <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
+                                             
+                                              </tr>
+                                              <?php   } ?>
+                  
+                  </tbody>
+                  <tfoot>
+                  
+                  </tfoot>
+                </table>
            </div>
          
          
@@ -31,6 +67,5 @@
      </div><!-- /.container-fluid -->
    </section>
    <!-- /.content -->
-
 
    

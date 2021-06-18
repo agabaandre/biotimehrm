@@ -10,13 +10,17 @@ class Employees extends MX_Controller{
         $this->user=$this->session->get_userdata();
         $this->load->library('pagination');
         $this->watermark=FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
+        $this->filters=Modules::run('filters/sessionfilters');
      
 	}
+    public function filters(){
 
+    print_r ($this->filters);
+    }
 
    public function get_employees()
     {
-    return$employees=$this->empModel->get_employees();
+    return$employees=$this->empModel->get_employees($this->filters);
     }
 
     public function getEmployee($id){

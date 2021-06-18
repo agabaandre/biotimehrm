@@ -113,6 +113,36 @@ class Departments extends MX_Controller{
         }
 
     }
+    public function get_sections(){
+
+
+      if(!empty($_GET['division_data'])){
+ 
+           $division = $_GET["division_data"]; 
+ 
+        
+          
+          
+           $sql = "SELECT DISTINCT section FROM ihrisdata WHERE section LIKE '$division' and division!='' ORDER BY division ASC";
+ 
+             $divisions = $this->db->query($sql)->result();
+         
+             $opt = "<option value=''>Select division</option>";
+ 
+             if(!empty($divisions)){
+ 
+                foreach($divisions as $division) {
+                $opt .= "<option value='".$division->division."'>".ucwords($division->division)."</option>";
+              
+               }
+           
+ 
+             }
+        
+           echo $opt;
+         }
+ 
+     }
 
     public function get_units(){
       

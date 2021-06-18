@@ -21,9 +21,6 @@
 
 <!-- jQuery -->
 <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
-<script src="<?php echo base_url(); ?>assets/plugins/jquery/jquery.min.js"></script>
-<!-- jQuery UI 1.11.4 -->
-<script src="<?php echo base_url(); ?>assets/plugins/jquery-ui/jquery-ui.min.js"></script>
 
 <!-- Bootstrap 4 -->
 <script src="<?php echo base_url(); ?>assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
@@ -44,8 +41,52 @@
 <script src="<?php echo base_url()?>assets/plugins/fullcalendar-interaction/main.min.js"></script>
 <script src="<?php echo base_url()?>assets/plugins/fullcalendar-bootstrap/main.min.js"></script>
 
-<script src="<?php echo base_url(); ?>assets/js/main.js"></script>
+
  <script src="<?php echo base_url(); ?>assets/js/notify.min.js"></script>
+ <script>
+    $(function () {
+//     $("#mytab2").DataTable({
+//       "responsive": true, "lengthChange": false, "autoWidth": false,
+//       "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
+//     }).buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');
+//   });
+  // $(function () {
+    
+  
+    $('#mytab2').DataTable({
+      "paging": true,
+      "lengthChange": true,
+      "searching": true,
+      "ordering": true,
+      "info": true,
+      "autoWidth": false,
+      "responsive": true,
+      "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
+    }).buttons().container().appendTo('#buttons .col-md-6:eq(0)');
+  });
+</script>
+   <script src="<?php echo base_url(); ?>assets/plugins/jquery/jquery.min.js"></script>
+<!-- jQuery UI 1.11.4 -->
+<script src="<?php echo base_url(); ?>assets/plugins/jquery-ui/jquery-ui.min.js"></script>
+
+<!-- DataTables  & Plugins -->
+<script src="<?php echo base_url(); ?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/jszip/jszip.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+ 
+
+
+
 <!-- Page specific script -->
 
   <!-- <script type="text/javascript">
@@ -442,7 +483,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
             <input type="hidden" name="direct" value="<?php echo $linkquery; ?>" >
            
 
-            <div class="col-md-6">
+            <div class="col-md-6" style="display:none;">
                 <div class="form-group">
                     <label>Division</label>
                     <select id="division" class="form-control" onChange="getUnits($(this).val());" name="division">
@@ -452,7 +493,16 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
            </div>
   </div>
 
-  <div class="row">
+  <div class="row" style="display:none;">
+  <div class="col-md-6">
+                <!-- < needs fixing> -->
+                <div class="form-group">
+                    <label>Section</label>
+                    <select id="section" class="form-control" onChange="getUnits($(this).val());" name="section">
+                    <option value="">All</option>
+                    </select>
+              </div>
+           </div>
 
           
 
