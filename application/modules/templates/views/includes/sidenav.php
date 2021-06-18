@@ -65,7 +65,7 @@
             <a href="<?php echo base_url(); ?>rosta/actuals" class="nav-link">
               <i class="fa fa-clock"></i>
               <p>
-                Attendance to Duty Form
+                Attendance
                 
               </p>
             </a>
@@ -77,7 +77,7 @@
             <a href="<?php echo base_url(); ?>rosta/tabular" class="nav-link">
               <i class="fa fa-calendar"></i>
               <p>
-                Duty Roster Form
+                Duty Roster
                 
               </p>
             </a>
@@ -88,7 +88,7 @@
             <a href="<?php echo base_url(); ?>rosta/leaveRoster" class="nav-link">
               <i class="fas fa-sleigh"></i>
               <p>
-                Leave Roster Form
+                Leave Roster
                 
               </p>
             </a>
