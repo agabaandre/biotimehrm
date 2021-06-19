@@ -153,28 +153,31 @@ if(count($duties)>0)
 		<?php  }?>
 </div>
 </div>
-					<style>
-                    .btnkey{
+				<style>
+                      .btnkey{
                       width:15%;
                       color:#fff;
                       margin:2px;
 					  font-size: 11px;
 					  overflow:hidden;
                               }
+					.tabtable {
+					zoom: 85%;
+					}
                     @media only screen and (max-width: 600px) {
-                         .btnkey{
-                      
-                      width:100%;
+                       .btnkey{
+                       width:100%;
                               }
-                    }
-                  </style>
+                              }
+
+                </style>
 
 							<?php 
 							?>
 						    
 						<div  class="pagination row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div> 
 
-						<div id="table" style="max-width: 100%;">   
+						<div id="table" class="tabtable" style="max-width: 100%;">   
 
 							<div class="header-row tbrow">
 							    <span class="cell tbprimary"># <b id="name"></b></span>

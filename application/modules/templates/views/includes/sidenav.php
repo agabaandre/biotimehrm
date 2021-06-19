@@ -71,7 +71,7 @@
             </a>
           </li>
           <?php } ?>
-          <?php if(in_array('14', $permissions)){ ?>
+          <!-- <?php if(in_array('14', $permissions)){ ?>
           <li class="nav-item">
             <a href="<?php echo base_url(); ?>rosta/leaveRoster" class="nav-link">
               <i class="fas fa-sleigh"></i>
@@ -81,7 +81,7 @@
               </p>
             </a>
           </li>
-          <?php } ?>
+          <?php } ?> -->
 
 
           <?php if(in_array('14', $permissions)){ ?>
