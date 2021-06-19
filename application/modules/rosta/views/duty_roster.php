@@ -112,7 +112,11 @@ if(count($duties)>0)
 								<div class="control-group">
 							  
 
-								<?php $employees=Modules::run("employees/get_employees"); ?>
+								<?php 
+								
+								$facility=$this->session->userdata['facility'];
+								//print_r($facility);
+								$employees=Modules::run("employees/get_employees"); ?>
 								<select class="form-control" name="empid" select2>
 											<option value="" selected disabled>Select Employee</option>
 
@@ -215,39 +219,12 @@ if(count($duties)>0)
 							<?php 
 
 							// if beyond tenth disable editing or for other month for non system admins
-							$today=date("d");
-
-							$thisyear=date("Y");
-
-							$thismonth=date("m");
-							$nextmonth=date("m")+1;
-
-							if($nextmonth==13){
-							    $nextmonth=01;
-							}
-
-							else{
-							    
-							    $nextmonth=$nextmonth;
-							}
-
-							// or  or ($today>$startdate  && $month==$thismonth)
-
-
-							// if((($today<$startdate && $today>$deadline && $month<$nextmonth or $month>$nextmonth or $month<$thismonth) or ( (($month==$thismonth or $month>$nextmonth) and ($today<$startdate && $today>$deadline))  or $year>=$thisyear+1 or $year<$thisyear) or ($today>$startdate && $month==$thismonth))  && $_SESSION['role']!=='sadmin'){
-							    
-							    
-							    
-							  
-							
-							    
-							    $state="";
 							
 
 							$no=0;
 
 							foreach($duties as $singleduty) { 
-
+                           // print_r($singleduty);
 								
 								$no++;
 
@@ -280,7 +257,8 @@ if(count($duties)>0)
 									?>
 
 								<span class="cell" data-label="Day<?php echo $i; ?>" >
-									<?php if($singleduty['day'.$i]!='')
+									<?php 
+									if(!empty($singleduty['day'.$i]))
 								{
 
 									$d=$i;

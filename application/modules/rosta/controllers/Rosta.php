@@ -145,15 +145,8 @@ class Rosta extends MX_Controller {
 		$year=$this->input->post('year');
 		$employee=$this->input->post('empid');
 
-		if($this->uri->segment(3) && !$this->input->post()){
 
-			$data['month']=$_SESSION['month'];
-			$data['year']=$_SESSION['year'];
-
-		}
-
-		else{
-
+		
 		if($month!=""){
 
 			$data['month']=$month;
@@ -176,7 +169,6 @@ class Rosta extends MX_Controller {
 
 		}
 
-	   }
 	
 		$this->load->library('pagination');
 		$config=array();
@@ -662,14 +654,7 @@ class Rosta extends MX_Controller {
 
 		//for a dynamic one
 
-		if($this->uri->segment(3) && !$this->input->post()){
-
-			$data['month']=$_SESSION['month'];
-			$data['year']=$_SESSION['year'];
-
-		}
-
-		else{
+		
 
 		if($month!=""){
 
@@ -693,7 +678,7 @@ class Rosta extends MX_Controller {
 
 		}
 
-	   }
+	   
 
 		$date=$data['year']."-".$data['month'];
 
@@ -732,17 +717,15 @@ class Rosta extends MX_Controller {
 	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
 	    $data['links']=$this->pagination->create_links();
 
-
-		$data['departments']=$this->departments;
 		$empid=$this->input->post('empid');
 
-		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$empid);
+		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$empid,$this->filters);
 
 		$nonworkables=$this->rosta_model->nonworkables();
 		$data['facilities']=Modules::run('facilities/getFacilities');	
 		//$data['facilities']=$this->attendance_model->get_facility();
 
-		$actualrows=$this->rosta_model->getActuals();
+		$actualrows=$this->rosta_model->getActuals($date);
 		
 		$actuals=array();
 		
@@ -756,7 +739,9 @@ class Rosta extends MX_Controller {
 		$data['actuals']=$actuals;
 		//	$data['switches']=$this->switches();
 		$data['view']='actuals';
+		
 		$data['module']=$this->rostamodule;
+		//print_r($actualrows);
 		echo Modules::run('templates/main',$data);
 	}
 	

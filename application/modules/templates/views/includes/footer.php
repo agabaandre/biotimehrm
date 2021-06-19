@@ -44,7 +44,7 @@
 <script src="<?php echo base_url()?>assets/plugins/fullcalendar-bootstrap/main.min.js"></script>
 
 
- <script src="<?php echo base_url(); ?>assets/js/notify.min.js"></script>
+ 
  <script>
     $(function () {
     
@@ -64,6 +64,7 @@
    <script src="<?php echo base_url(); ?>assets/plugins/jquery/jquery.min.js"></script>
 <!-- jQuery UI 1.11.4 -->
 <script src="<?php echo base_url(); ?>assets/plugins/jquery-ui/jquery-ui.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/js/notify.min.js"></script>
 
 <!-- DataTables  & Plugins -->
 <script src="<?php echo base_url(); ?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
