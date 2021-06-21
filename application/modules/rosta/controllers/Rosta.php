@@ -356,124 +356,162 @@ class Rosta extends MX_Controller {
 	
 	
 
-	Public function summary(){	
+	// Public function summary(){	
 	    
-		$month=$this->input->post('month');
-		$year=$this->input->post('year');
-		$department=$this->input->post('department');
+	// 	$month=$this->input->post('month');
+	// 	$year=$this->input->post('year');
+	// 	$department=$this->input->post('department');
+
+	// 	//for a dynamic one
+	// 	if($month!="")
+	// 	{
+
+	// 		$data['month']=$month;
+
+	// 		$data['year']=$year;
+	// 	}
+
+	// 	else{
+
+	// 		$data['month']=date('m');
+
+	// 		$data['year']=date('Y');
+	// 	}
+
+	// 	if($department){
+
+	// 		$data['depart']=$department;
+	// 	}
+
+	// 	$date=$data['year']."-".$data['month'];
+			    
+	// 	$data['departments']=$this->departments;
+	// 	//$data['username']=$this->username;
+	// 	$data['dates']=$this->$date;
+	// 	$this->load->library('pagination');
+	// 	$config=array();
+	//     $config['base_url']=base_url()."rosta/summary";
+	//     $config['total_rows']=$this->rosta_model->countrosta_summary($date);
+	//     $config['per_page']=10; //records per page
+	//     $config['uri_segment']=3; //segment in url  
+	//     //pagination links styling
+	//     $config['full_tag_open'] = '<ul class="pagination">';
+	// 	$config['full_tag_close'] = '</ul>';
+	// 	$config['attributes'] = ['class' => 'page-link'];
+	// 	$config['first_link'] = false;
+	// 	$config['last_link'] = false;
+	// 	$config['first_tag_open'] = '<li class="page-item">';
+	// 	$config['first_tag_close'] = '</li>';
+	// 	$config['prev_link'] = '&laquo';
+	// 	$config['prev_tag_open'] = '<li class="page-item">';
+	// 	$config['prev_tag_close'] = '</li>';
+	// 	$config['next_link'] = '&raquo';
+	// 	$config['next_tag_open'] = '<li class="page-item">';
+	// 	$config['next_tag_close'] = '</li>';
+	// 	$config['last_tag_open'] = '<li class="page-item">';
+	// 	$config['last_tag_close'] = '</li>';
+	// 	$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+	// 	$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+	// 	$config['num_tag_open'] = '<li class="page-item">';
+	// 	$config['num_tag_close'] = '</li>';
+    //     $config['use_page_numbers'] = true;
+        
+	//     $this->pagination->initialize($config);
+	    
+	//     $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
+	//     $data['links']=$this->pagination->create_links();
+
+	// 	   //$data['facilities']=$this->attendance_model->get_facility();
+	// 	$data['facilities']=Modules::run("facilities/getFacilities");
+	// 	$data['sums']=$this->rosta_model->getRealSummary($date,$config['per_page'],$page);
+	// 	$data['view']='summary_report';
+	// 	$data['module']=$this->rostamodule;
+	// 	//print_r($data);
+	// 	echo Modules::run("templates/main",$data);
+	// 	//$this->load->view('summary_report',$data);
+	// }
+	
+	public function summary()
+	{
+
+
+		$month = $this->input->post('month');
+		$year = $this->input->post('year');
+		$department = $this->input->post('department');
+
+
 
 		//for a dynamic one
-		if($month!="")
-		{
 
-			$data['month']=$month;
+		if ($month != "") {
 
-			$data['year']=$year;
+			$data['month'] = $month;
+
+			$data['year'] = $year;
+		} else {
+
+			$data['month'] = date('m');
+
+			$data['year'] = date('Y');
 		}
 
-		else{
+		if ($department) {
 
-			$data['month']=date('m');
-
-			$data['year']=date('Y');
+			$data['depart'] = $department;
 		}
 
-		if($department){
+		$date = $data['year'] . "-" . $data['month'];
+		$data['dates'] = $this->$date;
+		//$data['facilities'] = $this->attendance_model->get_facility();
+		$data['sums'] = $this->rosta_model->fetch_summary($date);
 
-			$data['depart']=$department;
-		}
-
-		$date=$data['year']."-".$data['month'];
-			    
-		$data['departments']=$this->departments;
-		//$data['username']=$this->username;
-		$data['dates']=$this->$date;
-		$this->load->library('pagination');
-		$config=array();
-	    $config['base_url']=base_url()."rosta/summary";
-	    $config['total_rows']=$this->rosta_model->countrosta_summary($date);
-	    $config['per_page']=10; //records per page
-	    $config['uri_segment']=3; //segment in url  
-	    //pagination links styling
-	    $config['full_tag_open'] = '<ul class="pagination">';
-		$config['full_tag_close'] = '</ul>';
-		$config['attributes'] = ['class' => 'page-link'];
-		$config['first_link'] = false;
-		$config['last_link'] = false;
-		$config['first_tag_open'] = '<li class="page-item">';
-		$config['first_tag_close'] = '</li>';
-		$config['prev_link'] = '&laquo';
-		$config['prev_tag_open'] = '<li class="page-item">';
-		$config['prev_tag_close'] = '</li>';
-		$config['next_link'] = '&raquo';
-		$config['next_tag_open'] = '<li class="page-item">';
-		$config['next_tag_close'] = '</li>';
-		$config['last_tag_open'] = '<li class="page-item">';
-		$config['last_tag_close'] = '</li>';
-		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-		$config['num_tag_open'] = '<li class="page-item">';
-		$config['num_tag_close'] = '</li>';
-        $config['use_page_numbers'] = true;
-        
-	    $this->pagination->initialize($config);
-	    
-	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
-	    $data['links']=$this->pagination->create_links();
-
-		   //$data['facilities']=$this->attendance_model->get_facility();
-		$data['facilities']=Modules::run("facilities/getFacilities");
-		$data['sums']=$this->rosta_model->getRealSummary($date,$config['per_page'],$page);
-		$data['view']='summary_report';
+		$data['view']='roster_summary';
 		$data['module']=$this->rostamodule;
+		$data['title'] ="Duty Roster Summary";
+		$data['uptitle'] ="Duty Roster Summary";
 		//print_r($data);
 		echo Modules::run("templates/main",$data);
 		//$this->load->view('summary_report',$data);
 	}
-	
-
 
    
 
 
-	public function bundleCsv($valid_range){
-		    
-		$sums=$this->rosta_model->getPrintableRealSummary($valid_range);
+	//rosta summary csv
+	public function bundleCsv($valid_range)
+	{
+
+		$sums = $this->rosta_model->fetch_summary($valid_range);
 
 		//$fp = fopen(FCPATH.'uploads/summary.csv', 'w');
 
-		$fp = fopen('php://memory', 'w'); 
+		$fp = fopen('php://memory', 'w');
 
 		//add heading to data
-		$heading=array('person' =>"Names" ,'D'=>"Day Duty", 'O' =>"Off Duty", 'A' => "Annual Leave", 'S' => "Study Leave", 'M' => "Maternity Leave", 'Z' =>"Other Leave");
+		$heading = array('person' => "Names", 'D' => "Day Duty", 'facility' => ' ', 'E' => "Evening", 'N' => "Night", 'O' => "Off Duty", 'A' => "Annual Leave", 'S' => "Study Leave", 'M' => "Maternity Leave", 'Z' => "Other Leave", 'H' => "");
 
-		array_unshift($sums,$heading);
+		array_unshift($sums, $heading);
 
-		//print_r($sums);
+		foreach ($sums as $sum) {
 
-		foreach ($sums as $sumrow) {
-		    
-		   fputcsv($fp, $sumrow);
-		    
+			fputcsv($fp, $sum);
 		}
 
 
-		$filename=$valid_range."_summary_report.csv";
+		$filename = $valid_range . "_summary_report.csv";
 
 		// reset the file pointer to the start of the file
-	    fseek($fp, 0);
-	    // tell the browser it's going to be a csv file
-	    header('Content-Type: application/csv');
-	    // tell the browser we want to save it instead of displaying it
-	    header('Content-Disposition: attachment; filename="'.$filename.'";');
-	    // make php send the generated csv lines to the browser
-	    fpassthru($fp);
+		fseek($fp, 0);
+		// tell the browser it's going to be a csv file
+		header('Content-Type: application/csv');
+		// tell the browser we want to save it instead of displaying it
+		header('Content-Disposition: attachment; filename="' . $filename . '";');
+		// make php send the generated csv lines to the browser
+		fpassthru($fp);
+
 
 		fclose($fp);
-
 	}
-
-
 	Public function presence(){	
 
 		$month=$this->input->post('month');
