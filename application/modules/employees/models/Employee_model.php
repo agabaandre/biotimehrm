@@ -4,6 +4,7 @@ Class Employee_model extends CI_Model
 {
    public  function __construct(){
         parent:: __construct();
+        $this->facility=$this->session->userdata['facility'];
       
 
     }
@@ -13,7 +14,7 @@ Class Employee_model extends CI_Model
     public function get_employees($filters)
     {
         
-        $query=$this->db->query("select distinct ihris_pid,surname,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number, ipps,facility_id from  ihrisdata where $filters");
+        $query=$this->db->query("select distinct ihris_pid,surname,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number, ihris_pid,facility_id from  ihrisdata where $filters");
         
     
         $result=$query->result();
@@ -34,7 +35,7 @@ Class Employee_model extends CI_Model
 
     public function get_employee_clock($facility, $staffId) {
         $this->db->select('status');
-        $this->db->from('time_log');
+        $this->db->from('clk_log');
         $this->db->where('facility_id', urldecode($facility));
         $this->db->where('ihris_pid', urldecode($staffId));
         $this->db->where('date', date("Y-m-d"));
@@ -371,9 +372,9 @@ Class Employee_model extends CI_Model
             'date'=>$userdata->date
         );
 
-        $query = $this->db->insert('time_log', $data);
+        $query = $this->db->insert('clk_log', $data);
         if($query) {
-                $query2 = $this->db->insert('time_log_history', array(
+                $query2 = $this->db->insert('clk_log_history', array(
                 'ihris_pid'=>$userdata->ihris_pid,
                 'facility_id'=>$userdata->facility_id,
                 'entry_id'=> $userdata->date . $userdata->ihris_pid,
@@ -401,9 +402,9 @@ Class Employee_model extends CI_Model
             $this->db->where('department_id',$this->department);
         }
         $this->db->where('entry_id',$entry_id);
-        $query = $this->db->update('time_log');
+        $query = $this->db->update('clk_log');
         if($query) {
-            $query2 = $this->db->insert('time_log_history', array(
+            $query2 = $this->db->insert('clk_log_history', array(
                 'ihris_pid'=>$userdata->ihris_pid,
                 'facility_id'=>$userdata->facility_id,
                 'entry_id'=>$entry_id, 
@@ -518,7 +519,7 @@ Class Employee_model extends CI_Model
     } 
    
     public function count_timelogs(){
-		$query=$this->db->get('time_log');
+		$query=$this->db->get('clk_log');
 		return $query->num_rows();
 		
 	}
@@ -543,7 +544,7 @@ Class Employee_model extends CI_Model
               
               if(count($ids)>0){
               
-              $this->db->where_in('time_log.ipps',$ids);
+              $this->db->where_in('clk_log.ihris_pid',$ids);
               }
           }
           
@@ -589,15 +590,15 @@ Class Employee_model extends CI_Model
          $facility=$this->facility;
         //  $this->db->query->order_by ('date', 'asc');
     
-	 $this->db->join("ihrisdata","ihrisdata.ipps=time_log.ipps");
-	    $query=$this->db->get("time_log");
+	 $this->db->join("ihrisdata","ihrisdata.ihris_pid=clk_log.ihris_pid");
+	    $query=$this->db->get("clk_log");
 	    return $query->result();
 	}
 
 	public function getIds($name){
 
 	$facility=$this->facility; //current facility
-	$this->db->select('ipps');
+	$this->db->select('ihris_pid');
     $this->db->where("firstname like '%$name%'");
     $this->db->or_where("surname like '%$name' ");
     $query=$this->db->get('ihrisdata');
@@ -605,7 +606,7 @@ Class Employee_model extends CI_Model
     $ids=array();
     foreach($result as $row){
         
-        array_push($ids,$row->ipps);
+        array_push($ids,$row->ihris_pid);
     }
     
     return $ids;
@@ -623,53 +624,16 @@ Class Employee_model extends CI_Model
 
     public function get_printableTimeLogs(){
 
-        //$this->db->join('ihrisdata', 'ihrisdata.ihris_pid = time_log.ihris_pid');
+        //$this->db->join('ihrisdata', 'ihrisdata.ihris_pid = clk_log.ihris_pid');
 
-        $query = $this->db->get('time_log');
+        $query = $this->db->get('clk_log');
         return $query->result();
     }
 
-   public function countTimesheet($valid_range){
+   public function countTimesheet($valid_range,$filters){
 
     $facility=$this->facility;
-
-    $department=$this->department;
-    $division=$this->division;
-    $unit=$this->unit;
-
-
-  if(($this->user['role']!=='sadmin')||(!empty($department))||(!empty($division))||(!empty($unit))){
-
-
-            if(!empty($department)){
-                $this->db->where('department_id',$department);
-                
-            }
-           
-
-            if(!empty($division)){
-                $this->db->where('ihrisdata.division',$division);
-                
-            }
-
-
-            if(!empty($unit)){
-                 $this->db->where('ihrisdata.unit',$unit);
-                
-            }
-            if(!empty($facility)){
-                $this->db->where('ihrisdata.facility_id',$facility);
-               
-           }
-          
-            
-           
-    
-  }
-    $this->db->like('time_sheet.date',$valid_range,'after');
-    $this->db->join('ihrisdata','ihrisdata.ipps=time_sheet.ipps');
-    $query=$this->db->get('time_sheet');
-
+    $query=$this->db->query("SELECT ihris_pid from time_sheet where time_sheet.date like'$valid_range-%' and time_sheet.facility_id='$facility'");
     return $query->num_rows();
     
 }
@@ -677,12 +641,7 @@ Class Employee_model extends CI_Model
      
 
 
-    Public function fetch_TimeSheet($date_range=NULL,$start=NULL,$limit=NULL,$employee=NULL){    
-
-        $facility=$this->session->userdata['facility'];
-        $department=$this->department;
-        $division=$this->division;
-        $unit=$this->unit;
+    Public function fetch_TimeSheet($date_range=NULL,$start=NULL,$limit=NULL,$employee=NULL,$filter){    
 
         $month=$this->input->post('month');
         $year=$this->input->post('year');
@@ -700,53 +659,24 @@ Class Employee_model extends CI_Model
 
             $valid_range=$date_range;
         }
-        if(($this->user['role']!=='sadmin')||(!empty($department))||(!empty($division))||(!empty($unit))){
-
-            if(!empty($facility)){
-                $this->db->where('ihrisdata.facility_id',$facility);
-               
-           }
-            if(!empty($department)){
-                $this->db->where('ihrisdata.department_id',$department);
-                
-            }
-           
-
-            if(!empty($division)){
-                $this->db->where('ihrisdata.division',$division);
-                
-            }
-
-
-            if(!empty($unit)){
-                 $this->db->where('ihrisdata.unit',$unit);
-                
-            }        
-    
-  }
-
-        $search="";
+        
+      $search="";
 
 		if(!empty($employee)){
             $search="and hr.ihris_pid='".$employee."'";
-			//$this->db->where('ihris_pid',$employee);
 		 }
 
-        $this->db->select();
-        $this->db->distinct('ipps');
-        $this->db->from('ihrisdata');
-        $all=$this->db->get();
+        $all=$this->db->query("SELECT distinct(ihris_pid) from ihrisdata where $filter $search");
 
-       
 
         $rows=$all->result_array();
 
         foreach($rows as $row){
 
-            $id= $row['ipps'];
+            $id= $row['ihris_pid'];
 
                 $query=$this->db->query("select  
-                t.date, t.ipps,
+                t.date, t.ihris_pid,
                 max(t.day1) as day1,
                 max(t.day2)as day2,
                 max(t.day3)as day3,
@@ -779,13 +709,11 @@ Class Employee_model extends CI_Model
                 max(t.day30)as day30,
                 max(t.day31)as day31,
                 concat(hr.surname,' ',hr.firstname) as fullname from time_sheet t,
-  ihrisdata hr where hr.ipps=t.ipps and t.ipps='$id' and  t.date like '$valid_range-%' $search LIMIT $limit, $start");
-
-          
+  ihrisdata hr where hr.ihris_pid=t.ihris_pid and t.ihris_pid='$id' and  t.date like '$valid_range-%' $search");
 
             $rowdata=$query->result_array();
 
-            if(!empty($rowdata[0]['ipps'])){
+            if(!empty($rowdata[0]['ihris_pid'])){
 
             $data[]=$rowdata[0];
            }
@@ -796,15 +724,15 @@ Class Employee_model extends CI_Model
             return  $data;
 
 }
-public function count_employeeTimelogs($ipps){
+public function count_employeeTimelogs($ihris_pid,$date=NULL){
 
-    $this->db->where('ipps',$ipps);
-    $query=$this->db->get('time_log');
+
+    $query=$this->db->query("SELECT ihris_pid from clk_log where ihris_pid='$ihris_pid' and date like'$date-%'");
     return $query->num_rows();
     
 }
 
-Public function getEmployeeTimeLogs($ipps,$limit=false,$start=FALSE,$search_data=FALSE,$search_data2=FALSE){
+Public function getEmployeeTimeLogs($ihris_pid,$limit=false,$start=FALSE,$search_data=FALSE,$search_data2=FALSE){
     
            
     if($search_data){
@@ -822,20 +750,19 @@ Public function getEmployeeTimeLogs($ipps,$limit=false,$start=FALSE,$search_data
         $date_from=date('Y-m-d', strtotime($date_from));
         $date_to=date('Y-m-d', strtotime($date_to));
     
-        
         $this->db->where("date >= '$date_from' AND date <= '$date_to'");
         }
 
-       $this->db->where("time_log.ipps",$ipps);
+       $this->db->where("clk_log.ihris_pid",$ihris_pid);
   
        $this->db->limit($limit,$start);
 
-       $query=$this->db->get("time_log");
+       $query=$this->db->get("clk_log");
        $data['timelogs']=$query->result();
 
        //======userdata====
 
-       $this->db->where('ipps',$ipps);
+       $this->db->where('ihris_pid',$ihris_pid);
        $qry=$this->db->get('ihrisdata');
        $data['employee']=$qry->row();
 

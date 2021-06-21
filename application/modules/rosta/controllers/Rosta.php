@@ -296,7 +296,7 @@ class Rosta extends MX_Controller {
 		//$data['username']=$this->username;
 		$data['departments']=$this->departments;
        
-		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page);
+		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$employee=NULL,$this->filters);
 
 		$data['matches']=$this->rosta_model->matches();
 		$data['checks']=$this->getChecks();
@@ -902,8 +902,8 @@ class Rosta extends MX_Controller {
 
 		$data['facilities']=Modules::run("facilities/getFacilities");
 
-		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page);
-		$actualrows=$this->rosta_model->getActuals();
+		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$empid=NULL,$this->filters);
+		$actualrows=$this->rosta_model->getActuals($date,$this->filters);
 		$actuals=array();
 		
 
