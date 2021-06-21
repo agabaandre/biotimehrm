@@ -13,10 +13,7 @@
                        <div class="panel-heading">
                            <h3 class="panel-title">
 
-                                   Staff List for -
-                                       <?php echo $_SESSION['department']; ?> <b><span style="color: green">/</span></b>
-                                       <?php echo $_SESSION['division']; ?> <b><span style="color: green">/</span></b>
-                                       <?php echo $_SESSION['unit']; ?>
+                                   Staff List
                     
                            </h3>
                        </div>
@@ -50,8 +47,8 @@
                                        <tr>
                                            <th data-field="ipps">No</th>
 
-                                           <th data-field="ipps">IPPS</th>
-                                           <!-- <th data-field="name" data-editable="false">IHRIS ID</th> -->
+                                           <th data-field="Card Number">Card Number</th>
+                                           <th> Staff iHRIS ID</th>
                                            <th data-field="name">Name</th>
 
                                            <th data-field="job">Job</th>
@@ -67,14 +64,14 @@
                                    <tbody>
                                        <tr>
                                            <td><?php echo $i++; ?></td>
-                                           <td><?php echo $staff->ipps; ?></td>
-                                           <!-- <td><?php $staff->ihris_pid; ?></td> -->
+                                           <td><?php echo $staff->card_number; ?></td>
+                                           <td data-label="Staff iHRIS ID"><?php echo str_replace('person|','',$staff->ihris_pid); ?></td>
                                            <td><?php echo $staff->surname . " " . $staff->firstname . " " . $staff->othername; ?>
                                            </td>
                                            <td><?php echo $staff->job; ?></td>
                                            <td><?php echo $staff->department; ?></td>
                                            <td><a class="btn btn-sm btn-default btn-outline"
-                                                   href="<?php echo base_url(); ?>employees/employeeTimeLogs/<?php echo $staff->ipps; ?>">Attendance
+                                                   href="<?php echo base_url(); ?>employees/employeeTimeLogs/<?php echo urlencode($staff->ihris_pid); ?>">Attendance
                                                    Report</a></td>
 
 

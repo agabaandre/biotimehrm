@@ -647,8 +647,7 @@ fclose($fp);
 	    
 	    $data['timelogs']=$this->attendance_model->fetchTimeLogs($config['per_page'],$page,$search_data);
 	    
-	   	$data['username']=$this->username;
-		$data['facilities']=$this->attendance_model->get_facility();
+	   
 		
 	
 		

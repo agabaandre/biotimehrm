@@ -366,7 +366,7 @@ class Employees extends MX_Controller{
 
          print_r($data['duties']);
     }
-    public function employeeTimeLogs($ipps=false,$print=false,$from=false,$to=false){
+    public function employeeTimeLogs($ihris_pid=false,$print=false,$from=false,$to=false){
 
         
         $post=$this->input->post();
@@ -391,7 +391,7 @@ class Employees extends MX_Controller{
         
     
        
-        $dbresult=$this->empModel->getEmployeeTimeLogs(trim($ipps),10000,0,$search_data);
+        $dbresult=$this->empModel->getEmployeeTimeLogs(urldecode($ihris_pid),10000,0,$search_data);
     
     
         
@@ -411,7 +411,7 @@ class Employees extends MX_Controller{
        
         }
     
-        public function printindividualTimeLogs($ipps,$from=false,$to=false,$flag){
+        public function printindividualTimeLogs($ihris_pid,$from=false,$to=false,$flag){
 
                 
           if($from){
@@ -434,7 +434,7 @@ class Employees extends MX_Controller{
             $this->load->library('M_pdf');
             $filename="individual_timelogs_report_"."pdf";
             ini_set('max_execution_time',0);
-            $dbresult=$this->empModel->getEmployeeTimeLogs(trim($ipps),100000,0,$search_data=NULL,$search_data2);
+            $dbresult=$this->empModel->getEmployeeTimeLogs(urldecode($ihris_pid),100000,0,$search_data=NULL,$search_data2);
             $data['timelogs']=$dbresult['timelogs'];
             $data['employee']=$dbresult['employee'];
             $data['leaves']=$dbresult['leaves'];

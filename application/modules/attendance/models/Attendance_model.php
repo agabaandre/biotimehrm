@@ -288,7 +288,7 @@ class 	Attendance_model extends CI_Model {
 		ini_set('max_execution_time', 0);
 		// Get employee data from the csv file from HRIS and upload it to the HRIS records table.
 		   
-		$import=$this->db->insert('time_log',$importdata);
+		$import=$this->db->insert('clk_log',$importdata);
 		
 		if($import){
 		    
@@ -308,7 +308,7 @@ class 	Attendance_model extends CI_Model {
 	//get total rows to use in pagination of timelogs 
 	public function count_timelogs(){
 	    
-	   return  $this->db->count_all('time_log');
+	   return  $this->db->count_all('clk_log');
 	}
   
 
@@ -316,7 +316,7 @@ class 	Attendance_model extends CI_Model {
 	public function fetchTimeLogs($limit,$start,$search_data=FALSE){
       
         $facility=$this->facility; //current facility
-        $department=$this->department;
+    
 
       	if($search_data){
 
@@ -330,20 +330,23 @@ class 	Attendance_model extends CI_Model {
 	          
 	          	if(count($ids)>0){
 	          
-					$this->db->where_in('time_log.ihris_pid',$ids);
+					$person="and  clk_log.ihris_pid in ($ids)";
 
 	          	}
+				  else{
+					  $person="";
+				  }
 
 	      	}    
 
-		$this->db->where("date >= '$date_from' AND date <= '$date_to'");
+			  $filter=" and date between $date_from AND $date_to";
 
       	}
-      
-	    $this->db->limit($limit,$start);
-	    //$this->db->where('time_log.facility_id',$facility);
-	    $this->db->join("ihrisdata","ihrisdata.ihris_pid=time_log.ihris_pid");
-	    $query=$this->db->get("time_log");
+		else{
+
+		}
+       $query= $this->db->query("SELECT * from clk_log, ihrisdata where ihrisdata.ihris_pid=clk_log.ihris_pid  and clk_log.facility_id='$facility' $filter $person limit $limit,$start");
+	    
 	    return $query->result();
 	}
 
@@ -371,7 +374,7 @@ class 	Attendance_model extends CI_Model {
 	    $facility=$this->facility; //current facility
 	    $department=$this->department;
 
-	    $this->db->select("concat(ihrisdata.firstname,' ',ihrisdata.surname) as names,ihrisdata.facility,time_log.time_in,time_log.time_out,TIMEDIFF(time_log.time_out,time_log.time_in) as hours,time_log.date");
+	    $this->db->select("concat(ihrisdata.firstname,' ',ihrisdata.surname) as names,ihrisdata.facility,clk_log.time_in,clk_log.time_out,TIMEDIFF(clk_log.time_out,clk_log.time_in) as hours,clk_log.date");
 	  
 	  	if($date_from){
 
@@ -379,8 +382,8 @@ class 	Attendance_model extends CI_Model {
 
 	  	}
 	  
-	    $this->db->join("ihrisdata","ihrisdata.ihris_pid=time_log.ihris_pid");
-	    $query=$this->db->get("time_log");
+	    $this->db->join("ihrisdata","ihrisdata.ihris_pid=clk_log.ihris_pid");
+	    $query=$this->db->get("clk_log");
 	    $rows=$query->result();
 	   
 	    return $rows;

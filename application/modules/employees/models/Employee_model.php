@@ -550,6 +550,10 @@ Class Employee_model extends CI_Model
           
           $this->db->where("date >= '$date_from' AND date <= '$date_to'");
           }
+          else{
+            $date=date('Y-m-');
+            $this->db->like("date", "$date", "after"); 
+          }
           $facility=$this->facility;
 
           $department=$this->department;
