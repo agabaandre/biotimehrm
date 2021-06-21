@@ -389,7 +389,7 @@ public function __Construct(){
 		else{  // if there are schedules
 
 			
-		$all=$this->db->query("select distinct ihrisdata.ihris_pid from ihrisdata,dutyreport where $filters $search LIMIT $limit,$start");
+			$all=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from schedules,ihrisdata where $filters $search  LIMIT $limit,$start");
 		
 
 		$rows=$all->result_array();

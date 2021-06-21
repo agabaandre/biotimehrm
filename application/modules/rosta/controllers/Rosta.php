@@ -174,7 +174,7 @@ class Rosta extends MX_Controller {
 		$config=array();
 	    $config['base_url']=base_url()."rosta/tabular";
 	    $config['total_rows']=Modules::run('employees/count_Staff');
-	    $config['per_page']=10; //records per page
+	    $config['per_page']=100; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
 		$config['full_tag_open'] = '<ul class="pagination">';
@@ -202,8 +202,8 @@ class Rosta extends MX_Controller {
 	    $data['links']=$this->pagination->create_links();
 		$date=date('Y-m');
 	    $data['schedules']=Modules::run("schedules/getSchedules","r");
-		$data['checks']=$this->getChecks();
-		$data['departments']=$this->departments;
+		//$data['checks']=$this->getChecks();
+		//$data['departments']=$this->departments;
 		$data['duties']=$this->rosta_model->fetch_tabs($date,$config['per_page'],$page,$employee,$this->filters);
 		$data['matches']=$this->rosta_model->matches();
 		$data['tab_schedules']=$this->rosta_model->tab_matches();

@@ -45,12 +45,14 @@ $reasons_opt="";
 
                   <div class="form-group">
                       <label>From:</label>
-                         <div class="input-group date" data-provide="datepicker">
-                                             <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-                                             <input type="text" class="form-control" name="dateFrom" value="<?php echo date('m/d/Y'); ?>" required>
+                         <div class="input-group date">
+                                       <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                            <input type="text" class="form-control" name="dateFrom" value="<?php echo date('m/d/Y'); ?>" id="datepicker" required>
                      </div>
                   </div>
+
                 </div>
+                
 
                 <div class="col-md-3">
                   <div class="form-group">

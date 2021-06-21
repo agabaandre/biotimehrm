@@ -33,8 +33,8 @@ $rowsnow++;
 if($count>1):
  $person_id= $machineData[0];
  $newihris=$person_id;
-$this->db->select('ihris_pid,ipps,facility_id');
-$this->db->where('ipps', $person_id);
+$this->db->select('ihris_pid,ihris_pid,facility_id');
+$this->db->where('ihris_pid', $person_id);
 $id=$this->db->get('ihrisdata');
 $dataids=$id->result();
 foreach($dataids as $dataid){
@@ -94,13 +94,13 @@ $now=date('Y-m-d h:i:sa');
 
 $entryid=$date.$ihris_pid;
          
-$excel_data=array('ipps'=>$person_id,'time_in'=>$clockin, 'time_out'=>$clockout ,'date'=>$date , 'facility_id'=>$facility_id, 'lastup'=>$now);
+$excel_data=array('ihris_pid'=>$person_id,'time_in'=>$clockin, 'time_out'=>$clockout ,'date'=>$date , 'facility_id'=>$facility_id, 'lastup'=>$now);
  
  array_push($allData,$excel_data);
 
 endif;
 }
- $insert=$this->db->insert_batch('time_log',$allData);
+ $insert=$this->db->insert_batch('clk_log',$allData);
  
   if($insert){
          echo  $msg="<font color='green'> ".($rowsnow-1). "  records Imported successfully</font><br>";
@@ -118,13 +118,53 @@ endif;
     
   }
 }
+
+public function biotimeClockin(){
+  $query=$this->db->query("REPLACE INTO clk_log (
+    entry_id,
+    ihris_pid,
+    facility_id,
+    time_in,
+    date,
+    location,
+    source,
+    facility)
+    SELECT
+    
+    concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
+    ihrisdata.ihris_pid,
+    facility_id, 
+    punch_time,
+    DATE(biotime_data.punch_time) as date,
+    area_alias,
+    'BIO-TIME',
+    ihrisdata.facility
+    from  biotime_data, ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND punch_state=0;");
+echo "Checkin " .$this->db->affected_rows();
+}
+public function biotimeClockout(){
+
+ $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND punch_state!=0 and concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT entry_id from clk_log) ");
+ $entry_id=$query->result();
+
+ foreach($entry_id as $entry){
+
+$this->db->set('time_out', $entry->punch_time);
+$this->db->where('entry_id', $entry->entry_id);
+$query=$this->db->update('clk_log');
+
+}
+echo $this->db->affected_rows();
+  
+}
+
 public function markAttendance(){
 
 //poplulate actuals
 $query=$this->db->query("INSERT INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color,
- actuals.date, actuals.end ) SELECT DISTINCT CONCAT( time_log.date, ihrisdata.ihris_pid ) AS entry_id, ihrisdata.facility_id, 
- ihrisdata.department_id, ihrisdata.ihris_pid, schedules.schedule_id, schedules.color, time_log.date, DATE_ADD(date, INTERVAL 01 DAY) FROM ihrisdata, 
- time_log, schedules WHERE ihrisdata.ipps = time_log.ipps AND schedules.schedule_id =22 AND CONCAT( time_log.date, ihrisdata.ihris_pid )
+ actuals.date, actuals.end ) SELECT DISTINCT CONCAT( clk_log.date, ihrisdata.ihris_pid ) AS entry_id, ihrisdata.facility_id, 
+ ihrisdata.department_id, ihrisdata.ihris_pid, schedules.schedule_id, schedules.color, clk_log.date, DATE_ADD(date, INTERVAL 01 DAY) FROM ihrisdata, 
+ clk_log, schedules WHERE ihrisdata.ihris_pid = clk_log.ihris_pid AND schedules.schedule_id =22 AND CONCAT( clk_log.date, ihrisdata.ihris_pid )
   NOT IN (SELECT entry_id from actuals)");        
   
   $rowsnow=$this->db->affected_rows();
