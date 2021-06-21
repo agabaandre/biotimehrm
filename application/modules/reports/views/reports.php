@@ -50,8 +50,7 @@
             <ol>
                       <li><a href="<?php echo base_url()?>rosta/fetch_report">Monthly Duty Roster Report</a></p>-Monthly Health Worker Schedule Sheet</li>
                       <li><a href="<?php echo base_url()?>rosta/summary">Duty Roster Summary</a><p> - Summarised duty roster report</p></li>
-                      <li><a href="<?php echo base_url()?>rosta/fetch_leave_report">Leave Roster</a><p> - Printable Leave Roster Report</p></li>
-                      
+                       
                       
 					 
                      			
