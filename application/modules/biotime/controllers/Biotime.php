@@ -31,6 +31,7 @@ class Biotime extends MX_Controller{
         'area_name' =>$terminal->area_name,
         'last_activity'=>$terminal->last_activity);
         $message=$this->biotime_mdl->addMachines($insert);
+         }
         $this->session->set_flashdata('message', $message);
          $data['view']='biotime_devices';
          $data['uptitle']="Bio Time Devices";
@@ -38,8 +39,8 @@ class Biotime extends MX_Controller{
 		 $data['module']="biotime";
        
 		 echo Modules::run("templates/main",$data);
-        //  print_r($terminal);
-         }
+      
+         
 
        
        
