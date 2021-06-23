@@ -32,6 +32,7 @@ defined('DIR_READ_MODE')   OR define('DIR_READ_MODE', 0755);
 defined('DIR_WRITE_MODE')  OR define('DIR_WRITE_MODE', 0755);
 
 defined('BIO_URL')  OR define('BIO_URL', 'http://172.27.1.101:8095/');
+//defined('BIO_URL')  OR define('BIO_URL', 'http://attendance.health.go.ug/:8095/');
 
 /*
 |--------------------------------------------------------------------------
