@@ -225,6 +225,9 @@ else{
 	<span class="cell stcell ">Off Duty</span>
 	<span class="cell stcell ">Official Request</span>
 	<span class="cell stcell ">Leave</span>
+	<span class="cell stcell ">Summary</span>
+
+	
 
 	
 
@@ -247,6 +250,8 @@ foreach($sums as $sum) {?>
     <span class="cell stcell " data-label="O"><?php echo $sum['O'];?></span>
 	<span class="cell stcell " data-label="R"><?php echo $sum['R'];?></span>
 	<span class="cell stcell " data-label="L"><?php echo $sum['L'];?></span>
+
+	<span class="cell stcell " data-label="L"><?php echo $sum['P'];?>/ Scheduled %Present</span>
 
 
 
