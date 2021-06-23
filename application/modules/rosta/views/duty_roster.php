@@ -68,7 +68,7 @@ if(count($duties)>0)
 
 									<input type="hidden" id="month" value="<?php echo $month; ?>">
 
-									<select class="form-control" name="month"  onchange="this.form.submit()">
+									<select class="form-control select2" name="month"  onchange="this.form.submit()">
 
 										<option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
 										
@@ -96,7 +96,7 @@ if(count($duties)>0)
 
 									<input type="hidden" id="year" value="<?php echo $year; ?>">
 
-									<select class="form-control" name="year" onchange="this.form.submit()">
+									<select class="form-control select2" name="year" onchange="this.form.submit()">
 											<option><?php echo $year; ?></option>
 
 											<?php for($i=-5;$i<=25;$i++){  ?>
@@ -117,7 +117,7 @@ if(count($duties)>0)
 								$facility=$this->session->userdata['facility'];
 								//print_r($facility);
 								$employees=Modules::run("employees/get_employees"); ?>
-								<select class="form-control" name="empid" select2>
+								<select class="form-control select2" name="empid" select2>
 											<option value="" selected disabled>Select Employee</option>
 
 											<?php foreach($employees as $employee){  ?>
