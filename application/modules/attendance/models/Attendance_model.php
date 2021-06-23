@@ -119,7 +119,7 @@ class 	Attendance_model extends CI_Model {
 	public function attendanceSchedules(){
 	    
 	    $this->db->where('purpose','a');
-	    $query=$this->db->get(schedules);
+	    $query=$this->db->get('schedules');
 	    
 	    $rows=$query->result_array();
 	    
@@ -390,7 +390,6 @@ class 	Attendance_model extends CI_Model {
 	}
 
     
-
 	Public function attendance_summary($valid_range){
 		$department=$this->department;
 		$facility=$this->session->userdata['facility'];
@@ -492,12 +491,28 @@ class 	Attendance_model extends CI_Model {
 
 		return $data;
 	}//summary
-	  
+	   
+	
+	Public function attrosta($valid_range,$person){	
+
+		$day=$this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=14 and duty_date like'$valid_range-%' and ihris_pid='$person'")->result();
+		$evening=$this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=15 and duty_date like'$valid_range-%' and ihris_pid='$person'")->result();
+		$night=$this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=16 and duty_date like'$valid_range-%' and ihris_pid='$person'")->result();
+		
+		$data['Day']=$day;
+		$data['Evening']=$evening;
+		$data['Night'] =$night;
+
+
+		
+
+		return $data;
+	}
     
 
 	Public function fetch_summary($valid_range){	
 	
-		//$facility=$this->session->userdata['facility'];
+		$facility=$this->session->userdata['facility'];
 
 		$department=$this->input->post('department');
 

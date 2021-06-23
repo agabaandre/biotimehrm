@@ -14,8 +14,13 @@ class Attendance extends MX_Controller {
 		$this->attendModule="attendance";
 		
 	}
-
+	public function attrosta($date_range,$person){
+		$per=urldecode($person);
+		$data=$this->attendance_model->attrosta($date_range,$per);
 		
+	return $data;
+	}
+			
    public function getWidgetData(){
 
 		$widgets=$this->attendance_model->widget_data();
@@ -119,7 +124,7 @@ fclose($fp);
 
 		$html=$this->load->view('att_summary',$data,true);
 
-		//$fac=$_SESSION['facility'];
+		$fac=$_SESSION['facility'];
 
 		$filename=$fac."att_summary_report_".$date.".pdf";
 
@@ -195,7 +200,7 @@ fclose($fp);
 	    }
 	
 	
-		$file_name="Biometric_Users_".$day."_".$date.".csv";
+		$file_name="Biometric_Users_".$day."_".$year.".csv";
 
 	
 		$this->load->library('excel');
@@ -205,7 +210,7 @@ fclose($fp);
 		$objReader=PHPExcel_IOFactory::createReader($type);     //For excel 2003 
 		
           //Set to read only
-        $objReader->setReadDataOnly(true); 		  
+        // $objReader->setReadDataOnly(true); 		  
         //Load excel file
 		$objPHPExcel=$objReader->load(strip_tags(FCPATH.'uploads/'.$file_name));	
 		
@@ -390,7 +395,7 @@ fclose($fp);
 			$objReader=PHPExcel_IOFactory::createReader($type);     //For excel 2003 
 			
 	          //Set to read only
-	        $objReader->setReadDataOnly(true); 		  
+	        // $objReader->setReadDataOnly(true); 		  
 	        //Load excel file
 			$objPHPExcel=$objReader->load(FCPATH.'uploads/'.$file_name);	
 			 
@@ -521,7 +526,7 @@ fclose($fp);
 			$objReader=PHPExcel_IOFactory::createReader($type);     //For excel 2003 
 			
 	          //Set to read only
-	        $objReader->setReadDataOnly(true); 		  
+	        //$objReader->setReadDataOnly(true); 		  
 	        //Load excel file
 			$objPHPExcel=$objReader->load(strip_tags(FCPATH.'uploads/'.$file_name));	
 			

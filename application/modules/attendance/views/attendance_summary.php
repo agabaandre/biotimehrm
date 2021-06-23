@@ -225,18 +225,24 @@ else{
 	<span class="cell stcell ">Off Duty</span>
 	<span class="cell stcell ">Official Request</span>
 	<span class="cell stcell ">Leave</span>
-	<span class="cell stcell ">Summary</span>
+	<span class="cell stcell ">Day Schedule</span>
+	<span class="cell stcell ">Evening Schedule</span>
+	<span class="cell stcell ">Night Schedule</span>
+	<span class="cell stcell ">% Present</span>
 
 	
 
 	
 
 </div>
+<?php  $mydate=$year."-".$month ?>
 
 
 <?php 
 
 $no=1;
+
+
 
 foreach($sums as $sum) {?>
 
@@ -246,12 +252,15 @@ foreach($sums as $sum) {?>
 	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['person'];?></span></b>
 </span>
     <span class="cell stcell  cname" data-label="Name"><?php echo $sum['person'];?></span>
-    <span class="cell stcell " data-label="P"><?php echo $sum['P'];?></span>
+    <span class="cell stcell " data-label="P"><?php echo $present=$sum['P'];?></span>
     <span class="cell stcell " data-label="O"><?php echo $sum['O'];?></span>
 	<span class="cell stcell " data-label="R"><?php echo $sum['R'];?></span>
 	<span class="cell stcell " data-label="L"><?php echo $sum['L'];?></span>
-
-	<span class="cell stcell " data-label="L"><?php echo $sum['P'];?>/ Scheduled %Present</span>
+	<span class="cell stcell " data-label="D"><?php $roster=Modules::run('attendance/attrosta',$mydate,urlencode($sum['person_id'])); ?><?php echo $day=$roster['Day'][0]->days; ?></span>
+	<span class="cell stcell " data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></span>
+	<span class="cell stcell " data-label="N"><?php echo $night=$roster['Night'][0]->days;?></span>
+    
+	<span class="cell stcell " data-label="Percentage Pr"><?php $per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } ?> % </span>
 
 
 
