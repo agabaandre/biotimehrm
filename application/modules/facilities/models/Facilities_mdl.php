@@ -56,6 +56,7 @@ class Facilities_mdl extends CI_Model {
 	//THIS gets All facilities from the facility table
 	public function getAll_Facilities(){
       
+		   $this->db->order_by('facility','ASC');
       $qry=$this->db->get($this->table);
 
       return $qry->result();

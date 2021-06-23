@@ -36,6 +36,7 @@ $userdata=$this->session->get_userdata();
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar-timegrid/main.min.css">
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar-bootstrap/main.min.css">
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/select2/css/select2.min.css">
+  
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
 
   
@@ -64,6 +65,13 @@ $userdata=$this->session->get_userdata();
   </style>
 
 <style>
+
+.select2-close-mask{
+    z-index: 2099;
+}
+.select2-dropdown{
+    z-index: 3051;
+}
 
 .dash-icon{
 color:#37989d;

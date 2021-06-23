@@ -61,14 +61,16 @@
     }).buttons().container().appendTo('#buttons .col-md-6:eq(0)');
   });
 </script>
-   <script src="<?php echo base_url(); ?>assets/plugins/jquery/jquery.min.js"></script>
+<script src="<?php echo base_url(); ?>/assets/plugins/jquery/jquery.min.js"></script>
 <!-- jQuery UI 1.11.4 -->
-<script src="<?php echo base_url(); ?>assets/plugins/jquery-ui/jquery-ui.min.js"></script>
+<script src="<?php echo base_url(); ?>/assets/plugins/jquery-ui/jquery-ui.min.js"></script>
+<script src="<?php echo base_url(); ?>/assets/plugins/select2/js/select2.full.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/js/notify.min.js"></script>
 
 <!-- DataTables  & Plugins -->
 <script src="<?php echo base_url(); ?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
@@ -83,7 +85,9 @@
 <script>
 
 $('#datepicker').datepicker();
+
 </script>
+
 
 <!-- Page specific script -->
 
@@ -439,11 +443,11 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
       <div class="modal-body">
       <form class="form form-horizontal" action="<?php echo base_url(); ?>departments/switchDepartment" method="post">
       <div class="row">
-      <div class="col-md-6">
-                <div class="form-group" >
+      <div class="col-md-12">
+                
                     <label>District</label>
                     
-                    <select id="district" name="district" onChange="getFacs($(this).val());" class="form-control">
+                    <select class="form-control select2dist" id="district" name="district" onChange="getFacs($(this).val());">
                     <option value="" >SELECT District</option>
                             <?php
                                 // onchange="this.form.submit()" 
@@ -456,12 +460,12 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
                     </select>
                 </div>
-            </div>
+
        
-      <div class="col-md-6">
+      <div class="col-md-12">
                 <div class="form-group" >
                     <label>Facility</label>
-                    <select id="facility" name="facility" onChange="getDeps($(this).val());" class="form-control">
+                    <select id="facility" name="facility" onChange="getDeps($(this).val());" class="form-control select2dist">
                     <option value="">All</option>
     
                     </select>
@@ -470,10 +474,10 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     </div>
     <div class="row">
      
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <div class="form-group" >
                     <label>Department</label>
-                    <select id="depart" name="department" onChange="getDivisions($(this).val());" class="form-control">
+                    <select id="depart" name="department" onChange="getDivisions($(this).val());" class="form-control select2dist">
                     <option value="">All</option>
                     </select>
                 </div>
@@ -481,10 +485,10 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
             <input type="hidden" name="direct" value="<?php echo $linkquery; ?>" >
            
 
-            <div class="col-md-6" style="display:none;">
+            <div class="col-md-12" style="display:none;">
                 <div class="form-group">
                     <label>Division</label>
-                    <select id="division" class="form-control" onChange="getUnits($(this).val());" name="division">
+                    <select id="division" class="form-control select2dist" onChange="getUnits($(this).val());" name="division">
                     <option value="">All</option>
                     </select>
               </div>
@@ -496,7 +500,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                 <!-- < needs fixing> -->
                 <div class="form-group">
                     <label>Section</label>
-                    <select id="section" class="form-control" onChange="getUnits($(this).val());" name="section">
+                    <select id="section" class="form-control select2dist" onChange="getUnits($(this).val());" name="section">
                     <option value="">All</option>
                     </select>
               </div>
@@ -507,7 +511,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
             <div class="col-md-6">
                   <div class="form-group">
                           <label>Unit</label>
-                    <select id="unit" name="unit" onchange="this.form.submit()" class="form-control form-control">
+                    <select id="unit" name="unit" onchange="this.form.submit()" class="form-control select2dist">
                     <option value="">All</option>
                          
                     </select>
@@ -567,6 +571,8 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
               <!--change password--modal for first logins (as a MUST)-->
 
     <div class="modal" id="changepass" data-backdrop="true">
+
+    
                 <div class="modal-dialog">
                     <div class="modal-content" >
                         <form method="post" action="<?php echo base_url(); ?>auth/changePass">
@@ -603,5 +609,14 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
 </body>
 </html>
+<script>
 
+$(function () {
+    $('.select2').select2()
+    $('.select2dist').select2({ dropdownParent: "#switch" });
+    $('.select2bs4').select2({
+      theme: 'bootstrap4'
+    })
+});
+</script>
 

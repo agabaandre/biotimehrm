@@ -17,6 +17,7 @@ class Districts_mdl extends CI_Model {
 
 		$this->db->select('distinct(district_id),district');
 	//	$this->db->where("district_id!=''");
+	           $this->db->order_by('district', 'ASC');
 		$query=$this->db->get('ihrisdata');
 
 		return $query->result();
