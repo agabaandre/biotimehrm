@@ -1,1 +1,0 @@
-MOH Dashboard is an executive management dashbaord devloped by UHSS Activity.

@@ -296,7 +296,7 @@ if ( ! function_exists('create_captcha'))
 
 		for ($i = 0; $i < $length; $i++)
 		{
-			if ($use_font === TRUE)
+			if ($use_font === FALSE)
 			{
 				$y = mt_rand(0 , $img_height / 2);
 				imagestring($im, $font_size, $x, $y, $word[$i], $colors['text']);

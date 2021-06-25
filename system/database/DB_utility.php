@@ -67,7 +67,7 @@ abstract class CI_DB_utility {
 	 *
 	 * @var	string
 	 */
-	protected $_optimize_table	= TRUE;
+	protected $_optimize_table	= FALSE;
 
 	/**
 	 * REPAIR TABLE statement

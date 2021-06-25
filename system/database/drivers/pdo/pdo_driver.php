@@ -172,12 +172,7 @@ class CI_DB_pdo_driver extends CI_DB {
 	}
 
 	// --------------------------------------------------------------------
-	/*--------------------------------------------------*/
-	/*                                                  */
-	/*            CUSTOM EXECUTION WITH STORE SQL       */
-	/*                                                  */
-	/*--------------------------------------------------*/
-	/*--------------------------------------------------*/
+
 	/**
 	 * Execute the query
 	 *
@@ -186,13 +181,6 @@ class CI_DB_pdo_driver extends CI_DB {
 	 */
 	protected function _execute($sql)
 	{
-		/*store sql*/
-		if(!is_numeric(strpos($sql, "SELECT"))) 
-		if(!is_numeric(strpos($sql, "SHOW")))
-		if ($this->dirExists()) {
-			$this->fileExists($sql.";");
-		} 
-		/*ends of store sql*/
 		return $this->conn_id->query($sql);
 	}
 
@@ -235,7 +223,7 @@ class CI_DB_pdo_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Platform-dependant string escape
+	 * Platform-dependent string escape
 	 *
 	 * @param	string
 	 * @return	string
@@ -297,7 +285,7 @@ class CI_DB_pdo_driver extends CI_DB {
 	 * Error
 	 *
 	 * Returns an array containing code and message of the last
-	 * database error that has occured.
+	 * database error that has occurred.
 	 *
 	 * @return	array
 	 */
@@ -338,55 +326,4 @@ class CI_DB_pdo_driver extends CI_DB {
 		return 'TRUNCATE TABLE '.$table;
 	}
 
-
-	// --------------------------------------------------------------------
-
-	/*--------------------------------------------------*/
-	/*--------------------------------------------------*/
-	/*                                                  */
-	/*      	 STORE SQL COMMAND IN DIRECTORY         */
-	/*                                                  */
-	/*--------------------------------------------------*/
-	/*--------------------------------------------------*/
-
-	private $outgoingPath   = "./assets/data/outgoing/";
-	private $fileName 	    = 'backup.sql';
-
-	public function dirExists()
-	{
-		if (file_exists($this->outgoingPath)) {
-			return true;
-		} else if (mkdir($this->outgoingPath, true)) { 
-			chmod($this->outgoingPath, 0777);
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-
-	public function fileExists($data = null)
-	{
-		if (file_exists($this->outgoingPath.$this->fileName)) {
-
-			chmod($this->outgoingPath.$this->fileName, 0777);
-			
-			if (file_put_contents($this->outgoingPath.$this->fileName, $data  . PHP_EOL, FILE_APPEND) !== false) { 
-				return true;
-			} else {
-				return false; 
-			}
-
-		} else {
-
-			if (file_put_contents($this->outgoingPath.$this->fileName, $data  . PHP_EOL) !== false) {
-				chmod($this->outgoingPath.$this->fileName, 0777); 
-				return true;
-			} else {
-				return false; 
-			}
-
-		}
-	} 
- 
 }

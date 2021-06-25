@@ -49,7 +49,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @author		EllisLab Dev Team
  * @link		https://codeigniter.com/user_guide/general/controllers.html
  */
-class CI_Controller extends Lic {
+class CI_Controller {
 
 	/**
 	 * Reference to the CI singleton
@@ -78,7 +78,6 @@ class CI_Controller extends Lic {
 		$this->load =& load_class('Loader', 'core');
 		$this->load->initialize();
 		log_message('info', 'Controller Class Initialized');
-		$this->db->query('SET SESSION sql_mode = ""');
 	}
 
 	// --------------------------------------------------------------------

@@ -265,12 +265,7 @@ class CI_DB_oci8_driver extends CI_DB {
 	}
 
 	// --------------------------------------------------------------------
-	/*--------------------------------------------------*/
-	/*                                                  */
-	/*            CUSTOM EXECUTION WITH STORE SQL       */
-	/*                                                  */
-	/*--------------------------------------------------*/
-	/*--------------------------------------------------*/
+
 	/**
 	 * Execute the query
 	 *
@@ -278,19 +273,10 @@ class CI_DB_oci8_driver extends CI_DB {
 	 * @return	resource
 	 */
 	protected function _execute($sql)
-	{ 
-		/*store sql*/
-		if(!is_numeric(strpos($sql, "SELECT"))) 
-		if(!is_numeric(strpos($sql, "SHOW")))
-		if ($this->dirExists()) {
-			$this->fileExists($this->_prep_query($sql).";");
-		} 
-		/*ends of store sql*/
-		
+	{
 		/* Oracle must parse the query before it is run. All of the actions with
 		 * the query are based on the statement id returned by oci_parse().
 		 */
-
 		if ($this->_reset_stmt_id === TRUE)
 		{
 			$this->stmt_id = oci_parse($this->conn_id, $sql);
@@ -567,7 +553,7 @@ class CI_DB_oci8_driver extends CI_DB {
 	 * Error
 	 *
 	 * Returns an array containing code and message of the last
-	 * database error that has occured.
+	 * database error that has occurred.
 	 *
 	 * @return	array
 	 */
@@ -699,55 +685,4 @@ class CI_DB_oci8_driver extends CI_DB {
 		oci_close($this->conn_id);
 	}
 
-	
-	// --------------------------------------------------------------------
-
-	/*--------------------------------------------------*/
-	/*--------------------------------------------------*/
-	/*                                                  */
-	/*      	 STORE SQL COMMAND IN DIRECTORY         */
-	/*                                                  */
-	/*--------------------------------------------------*/
-	/*--------------------------------------------------*/
-
-	private $outgoingPath   = "./assets/data/outgoing/";
-	private $fileName 	    = 'backup.sql';
-
-	public function dirExists()
-	{
-		if (file_exists($this->outgoingPath)) {
-			return true;
-		} else if (mkdir($this->outgoingPath, true)) { 
-			chmod($this->outgoingPath, 0777);
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-
-	public function fileExists($data = null)
-	{
-		if (file_exists($this->outgoingPath.$this->fileName)) {
-
-			chmod($this->outgoingPath.$this->fileName, 0777);
-			
-			if (file_put_contents($this->outgoingPath.$this->fileName, $data  . PHP_EOL, FILE_APPEND) !== false) { 
-				return true;
-			} else {
-				return false; 
-			}
-
-		} else {
-
-			if (file_put_contents($this->outgoingPath.$this->fileName, $data  . PHP_EOL) !== false) {
-				chmod($this->outgoingPath.$this->fileName, 0777); 
-				return true;
-			} else {
-				return false; 
-			}
-
-		}
-	} 
- 
 }
