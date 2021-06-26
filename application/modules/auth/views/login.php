@@ -142,7 +142,8 @@ Login Box
 .box-login-tab {
 	width: 100%;
   height: 50px;
-  background: rgb(123, 159, 14);
+  background:linear-gradient( 90deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
+  color:inherit; text-align:center;
   color: #FFFFFF !important;
 	position: relative;
 	float: left;

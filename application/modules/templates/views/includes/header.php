@@ -109,7 +109,7 @@ body::-webkit-scrollbar
 
 body::-webkit-scrollbar-thumb
 {
-	background-color: #7b9f0e; 
+	background-color: #d2d4dc; 
   height:70%;
 	border: 1px solid #555555;
   border-radius:4px;
@@ -132,7 +132,7 @@ body::-webkit-scrollbar-thumb
 
 .sido::-webkit-scrollbar-thumb
 {
-	background-color: #7b9f0e; 
+	background-color: #d2d4dc; 
 	border: 1px solid #555555 !important;
   border-radius:4px;
 }

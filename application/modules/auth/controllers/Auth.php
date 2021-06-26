@@ -184,7 +184,7 @@ class Auth extends MX_Controller {
 
     //  }
 
-    public function getAll(){
+    public function users(){
 
       $searchkey=$this->input->post('search_key');
       if(empty($searchkey)){

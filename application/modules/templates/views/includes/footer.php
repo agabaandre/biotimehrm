@@ -1,7 +1,8 @@
 </div>
   <!-- /.content-wrapper -->
 
-  <footer class="main-footer" style="text-align:center; color:#FFFFFF; background-color: rgb(123, 159, 14);" >
+  <footer class="main-footer" style="background: linear-gradient( 135deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
+    color: #FFFFFF; text-align:center;" >
                 <div class="col-lg-12">
                     <div class="footer-copy-right">
                     <!-- <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/USAID-Identity.svg" style="width:180px; height:50px;">

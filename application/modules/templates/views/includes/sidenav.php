@@ -4,7 +4,8 @@
  
  <aside class="main-sidebar sidebar-dark-primary elevation-4" >
     <!-- Brand Logo -->
-    <a href="<?php echo base_url();?>" class="brand-link" style="text-align:center;     background-color: rgb(123, 159, 14);">
+    <a href="<?php echo base_url();?>" class="brand-link" style="background: linear-gradient( 135deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
+    color: #FFFFFF; text-align:center;">
       <!-- <img src="../../dist/img/AdminLTELogo.png"
            alt="AdminLTE Logo"
            class="brand-image img-circle elevation-3"
@@ -16,9 +17,9 @@
     <div class="sidebar  sido">
       <!-- Sidebar user (optional) -->
       
-      <div class="user-panel mt-3 pb-3 mb-3" style="text-align:center;">
+      <div class="user-panel mt-3 pb-3 mb-3" style="text-align:center; line-height:0.2cm;">
 
-      <p style="color:#FEFFFF;">
+      <p style="color:#FEFFFF; font-size: 11px; font-weight:bold;">
 
       <?php $userdata=$this->session->get_userdata(); 
 
@@ -188,7 +189,7 @@
                 <li class="nav-item">
 
    
-                <a href="<?php echo base_url();?>admin/groups" class="nav-link">
+                <a href="<?php echo base_url();?>auth/users" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Manage User</p>
                 </a>
