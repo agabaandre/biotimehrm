@@ -179,7 +179,28 @@ if(count($duties)>0)
 							<?php 
 							?>
 						    
-						<div  class="pagination row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div> 
+<div class="row">
+            
+			<div class="col-md-12">
+			 	<img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px" style="float:left;">
+			</div>
+
+			<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0; margin:0 auto;">
+			<p style="text-align:center; font-weight:bold; font-size:20px;">
+	
+		          MONTHLY DUTY ROSTER FOR 
+
+					<?php
+					 echo " - ".$_SESSION['facility_name'];
+
+					echo "              ".date('F, Y',strtotime($year."-".$month));
+
+                    ?></p>
+</div>
+
+	<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div> 
+
+</div>
 
 						<div id="table" class="tabtable" style="max-width: 100%;">   
 

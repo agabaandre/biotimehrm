@@ -155,7 +155,7 @@
 				else{
 
 				?>
-						MONTHLY ATTENDANCE FORM FOR HEALTH PERSONNEL
+						MONTHLY ATTENDANCE FOR 
 
 					<?php
 					 echo " - ".$duties[0]['facility']."<br>"; 

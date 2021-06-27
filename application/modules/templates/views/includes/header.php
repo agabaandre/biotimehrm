@@ -56,15 +56,24 @@ $userdata=$this->session->get_userdata();
   <!-- Theme style -->
 
   <link href="<?php echo base_url(); ?>assets/css/fullcalendar.css" rel="stylesheet">
-  <style>
-      @media (max-width: 767px) {
-        .hidden-mobile {
-          display: none;
-        }
-      }
-  </style>
-
 <style>
+ @media (max-width: 767px) {
+    .hidden-mobile {
+      display: none;
+    }
+  }
+ body {
+    font-family:  'Optima', 'Cambria', 'Helvetica Neue', 'Source Sans Pro' ,'Helvetica', 'sans-serif';
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+  
+  page-item.active .page-link {
+    z-index: 3;
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+ 
 
 .select2-close-mask{
     z-index: 2099;

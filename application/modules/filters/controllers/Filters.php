@@ -60,6 +60,55 @@ class Filters extends MX_Controller{
 return $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
     }
 
+    public function districtfilters()
+    {
+        $facility_id=$this->facility_id;
+        $department_id=$this->department_id;
+        $division=$this->division;
+        $unit=$this->unit;
+        $section=$this->section;
+        if(!empty($this->district_id)){
+            $district="ihrisdata.facility_id='$this->district_id'";
+        }
+        else{
+            $district="";
+        }
+
+        if(!empty($facility_id)){
+            $facility="and ihrisdata.facility_id='$facility_id'";
+        }
+        else{
+            $facility="";
+        }
+        
+        if(!empty($department_id)){
+            $department="and ihrisdata.department_id='$department_id'";
+        }
+        else{
+            $department="";
+        }
+        if(!empty($division)){
+            $division="and ihrisdata.division='$division'";
+        }
+        else{
+            $division="";
+        }
+        if(!empty($section)){
+            $section="and ihrisdata.division='$section'";
+        }
+        else{
+            $section="";
+        }
+
+        if(!empty($unit)){
+            $unit="and ihrisdata.unit='$unit'";
+        }
+        else{
+            $unit="";
+        }
+return $district.' '.$facility.' '.$department.' '.$division.' '.$section.' '.$unit;
+    }
+
 
 
 
