@@ -63,7 +63,7 @@ $userdata=$this->session->get_userdata();
     }
   }
  body {
-    font-family:  'Optima', 'Cambria', 'Helvetica Neue', 'Source Sans Pro' ,'Helvetica', 'sans-serif';
+    font-family:  'Cambria', 'Helvetica Neue', 'Source Sans Pro' ,'Helvetica', 'sans-serif';
     overflow-x: hidden;
     overflow-y: auto;
 }
