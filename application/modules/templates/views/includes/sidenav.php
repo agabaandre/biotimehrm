@@ -19,7 +19,7 @@
       
       <div class="user-panel mt-3 pb-3 mb-3" style="text-align:center; line-height:0.2cm;">
 
-      <p style="color:#FEFFFF; font-size: 11px; font-weight:bold;">
+      <p class="brand-image elevation-2" style="color:#FEFFFF; font-size: 11px; height:20px; font-weight:bold; margin-top:2px; opacity: .8;">
 
       <?php $userdata=$this->session->get_userdata(); 
 
@@ -30,7 +30,7 @@
 
       </p>
         <div class="image">
-          <p ><img src="<?php echo base_url(); ?>assets/img/user.jpg" class="img-circle elevation-2" alt="User Image" style="width:45px; height:45px;"></p>
+          <p ><img src="<?php echo base_url(); ?>assets/img/user.jpg" class="img-circle elevation-2" alt="User Image" style="width:35px; height:35px;"></p>
         </div>
       
     </div>
