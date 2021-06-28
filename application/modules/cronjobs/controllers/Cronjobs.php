@@ -139,12 +139,12 @@ public function biotimeClockin(){
     area_alias,
     'BIO-TIME',
     ihrisdata.facility
-    from  biotime_data, ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND punch_state=0;");
+    from  biotime_data, ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state=0 OR punch_state='Check In');");
 echo "Checkin " .$this->db->affected_rows();
 }
 public function biotimeClockout(){
 
- $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND punch_state!=0 and concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT entry_id from clk_log) ");
+ $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state!=0 OR puch_state='Check Out') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT entry_id from clk_log) ");
  $entry_id=$query->result();
 
  foreach($entry_id as $entry){
