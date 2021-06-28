@@ -36,7 +36,8 @@ html {
 }
 
 body {
-  background: rgb(123, 159, 14);
+  background: linear-gradient( 90deg
+, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
   background-image: url('<?php echo base_url()?>assets/img/background.jpg');
   background-repeat: no-repeat;
   background-size: cover;
