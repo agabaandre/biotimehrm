@@ -49,7 +49,6 @@
  <script>
     $(function () {
     
-  
     $('#mytab2').DataTable({
       "paging": true,
       "lengthChange": true,

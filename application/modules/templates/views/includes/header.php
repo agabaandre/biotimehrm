@@ -73,7 +73,7 @@ $userdata=$this->session->get_userdata();
     color: #fff;
     background-color: #007bff;
     border-color: #007bff;
- 
+  }
 
 .select2-close-mask{
     z-index: 2099;
