@@ -50,47 +50,6 @@
       </li>
       <?php }?>
 
-    
-      <!-- 
-      
-      <li class="nav-item" style="margin-right:2px;">
-         <a class="nav-link btn btn-sm btn-primary"  target="_blank" href="http://hris.health.go.ug/districts" style="color:#FFF;">
-         <i class="fas fa-flag"></i><b class="hidden-mobile"> National Manage</b>
-        </a> 
-      </li>
-      <li class="nav-item" style="margin-right:2px;">
-         <a class="nav-link btn btn-sm btn-primary"  target="_blank" href="http://hris.health.go.ug/hrattendance" style="color:#FFF;">
-         <i class="fas fa-clock"></i><b class="hidden-mobile"> Duty Roster</b>
-        </a> 
-      </li>
-    
-      <li class="nav-item dropdown">
-        <a class="nav-link btn btn-sm btn-primary" data-toggle="dropdown" href="#" style="color:#FFF;">
-        <i class="fas fa-globe"></i><b class="hidden-mobile">IHRIS Demos</b>
-        </a>
-        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-          <div class="dropdown-divider"></div>
-          <a href="http://hris.health.go.ug/demo_manage" target="_blank" class="dropdown-item">
-            <i class="fas fa-globe"></i>iHRIS Manage Demo
-          </a>
-          <div class="dropdown-divider"></div>
-          <a href="http://hris.health.go.ug/train_demo/login" target="_blank" class="dropdown-item">
-            <i class="fas fa-globe"></i> iHRIS Train
-          </a>
-          <div class="dropdown-divider"></div>
-          <a href="http://hris.health.go.ug/iHRIS/releases/4.1/DES_demo/login" target="_blank" class="dropdown-item">
-            <i class="fas fa-globe"></i> DES Demo
-          </a>
-          <div class="dropdown-divider"></div>
-          <a href="//hris.health.go.ug/iHRIS/dev/demo-chwr" target="_blank" class="dropdown-item">
-            <i class="fas fa-globe"></i> CHWR Demo
-          </a>
-          <div class="dropdown-divider"></div>
-          <a href="http://hris.health.go.ug/dutyrosterdemo" target="_blank" class="dropdown-item">
-            <i class="fas fa-globe"></i> Duty Roster/ Attend
-          </a>
-         
-      </li> -->
       <li class="nav-item sidebar-header">
                                 <a href="#" data-toggle="dropdown" role="button" aria-expanded="false" class="nav-link dropdown-toggle">
                                     <span style="clear:both; color:#FFFFFF !important;">
@@ -110,12 +69,11 @@
                                  <ul role="menu" class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
 
                                    <div class="dropdown-divider"></div>
-                                    <li><a href="#" data-toggle="modal" data-target="#profile"><span class="dropdown-item"></span><i class="fa fa-user"></i> My Profile</a>
-                                    </li>
+                                     <a href="#" data-toggle="modal" data-target="#profile"><span class="dropdown-item"></span><i class="fa fa-user"></i> My Profile</a>
                                     
                                     <div class="dropdown-divider"></div>
-                                    <li><a href="<?php echo base_url(); ?>auth/logout"><span class="dropdown-item"></span><i class="fa fa-sign-out"></i> Log Out</a>
-                                    </li>
+                                        <a href="<?php echo base_url(); ?>auth/logout"><span class="dropdown-item"></span><i class="fa fa-sign-out"></i> Log Out</a>
+                                   
                                 </ul>
                             </li>  
      
