@@ -14,7 +14,7 @@
     </a>
 
     <!-- Sidebar -->
-    <div class="sidebar  sido">
+    <div class="sidebar  sido" style="width:100% !important;">
       <!-- Sidebar user (optional) -->
       
       <div class="user-panel mt-3 pb-3 mb-3" style="text-align:center; line-height:0.2cm;">
