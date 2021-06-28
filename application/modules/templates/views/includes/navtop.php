@@ -50,8 +50,8 @@
       </li>
       <?php }?>
 
-      <li class="nav-item sidebar-header">
-                                <a href="#" data-toggle="dropdown" role="button" aria-expanded="false" class="nav-link dropdown-toggle">
+      <li class="nav-item dropdown show" style="margin-right:20px; margin-left:20px;">
+      <a href="#" data-toggle="dropdown" role="button" aria-expanded="false" class="nav-link dropdown-toggle">
                                     <span style="clear:both; color:#FFFFFF !important;">
 
                                     <?php $userdata=$this->session->get_userdata(); 
@@ -65,23 +65,18 @@
                                    </span>
                                     <span>
                                     <img src="<?php echo base_url(); ?>assets/img/user.jpg" alt="" class="img-circle elevation-2" style="max-width:20px;"/></span>
-                                 </a>
-                                 <ul role="menu" class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-
-                                   <div class="dropdown-divider"></div>
-                                     <a href="#" data-toggle="modal" data-target="#profile"><span class="dropdown-item"></span><i class="fa fa-user"></i> My Profile</a>
-                                    
-                                    <div class="dropdown-divider"></div>
-                                        <a href="<?php echo base_url(); ?>auth/logout"><span class="dropdown-item"></span><i class="fa fa-sign-out"></i> Log Out</a>
-                                   
-                                </ul>
-                            </li>  
+          </a>
+        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right show" style="left: inherit; right: 0px;">
+                    
+    <div class="dropdown-divider"></div>
+         <a href="#" class="dropdown-item" data-toggle="modal" data-target="#profile"><i class="fa fa-user"></i> Profile</a>  
      
-      <!-- <li class="nav-item">
-        <a class="nav-link" data-widget="control-sidebar" data-slide="true" href="#" role="button">
-          <i class="fas fa-th-large"></i>
-        </a>
-      </li> -->
+               <div class="dropdown-divider"></div>
+          <a href="<?php echo base_url(); ?>auth/logout" class="dropdown-item"><i class="fa fa-arrow-left"></i> Logout</a>
+     
+    </div></li>
+     
+   
       
     </ul>
   </nav>
