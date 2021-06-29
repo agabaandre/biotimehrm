@@ -344,12 +344,12 @@ class Employees extends MX_Controller{
 		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
 		$config['num_tag_open'] = '<li class="page-item">';
 		$config['num_tag_close'] = '</li>';
-        $config['use_page_numbers'] = true;
+        $config['use_page_numbers'] = false;
 	    $this->pagination->initialize($config);
 	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
 	    $data['links']=$this->pagination->create_links();
 
-        $data['view']='actualTimeSheet';
+        $data['view']='timesheet';
         $data['module']='employees';
         $employee=$this->input->post('empid');
        
