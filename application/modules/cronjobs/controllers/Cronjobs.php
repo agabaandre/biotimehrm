@@ -120,7 +120,9 @@ endif;
 }
 
 public function biotimeClockin(){
-  $query=$this->db->query("REPLACE INTO clk_log (
+  $areas=$this->db->get('biotime_devices')->result();
+  foreach($areas as $area){
+  $query=$this->db->query("INSERT INTO clk_log (
     entry_id,
     ihris_pid,
     facility_id,
@@ -131,7 +133,7 @@ public function biotimeClockin(){
     facility)
     SELECT
     
-    concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
+   DISTINCT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
     ihrisdata.ihris_pid,
     facility_id, 
     punch_time,
@@ -139,12 +141,14 @@ public function biotimeClockin(){
     area_alias,
     'BIO-TIME',
     ihrisdata.facility
-    from  biotime_data, ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state=0 OR punch_state='Check In');");
-echo "Checkin " .$this->db->affected_rows();
+    from  biotime_data, ihrisdata where biotime_data.area_alias='$area->area_name' AND (biotime_data.emp_code=ihrisdata.card_number OR biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='Check In' OR punch_state='0') ");
+   
+echo $area->area_name. " Checkin " .$this->db->affected_rows();
+  }
 }
 public function biotimeClockout(){
 
- $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state!=0 OR puch_state='Check Out') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT entry_id from clk_log) ");
+ $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state!=0 OR punch_state='Check Out') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT entry_id from clk_log) ");
  $entry_id=$query->result();
 
  foreach($entry_id as $entry){
@@ -391,7 +395,7 @@ public function autoFillRosta(){
   
    );
   
-    $this->db->insert('duty_rosta',$data);
+    $this->db->replace('duty_rosta',$data);
   
   }//
   

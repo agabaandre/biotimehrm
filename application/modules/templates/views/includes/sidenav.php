@@ -19,7 +19,7 @@
       
       <div class="user-panel mt-3 pb-3 mb-3" style="text-align:center; line-height:0.2cm;">
 
-      <p class="brand-image elevation-2" style="color:#FEFFFF; font-size: 11px; height:20px; font-weight:bold; margin-top:2px; opacity: .8;">
+      <p class="brand-image img-circle elevation-2" style="color:#FEFFFF; font-size: 11px; height:20px; font-weight:bold; margin-top:2px; opacity: .8;">
 
       <?php $userdata=$this->session->get_userdata(); 
 
