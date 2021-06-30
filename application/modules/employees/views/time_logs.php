@@ -1,9 +1,4 @@
-<script>
-$('.datepicker').datepicker({
-    format: 'mm/dd/yyyy',
-    startDate: '-3d'
-});
-</script>
+
 
 <?php 
 //  $timelogs=Modules::run('employees/getTimeLogs');
@@ -11,76 +6,70 @@ $('.datepicker').datepicker({
 
 
 
-<!-- Contains page content -->
-<div class="dashtwo-order-area" style="padding-top: 10px;">
-  <div class="container-fluid">
-      <div class="row">
-          <script>
-            $('#timelogs').DataTable( {
-                responsive: true
-            } );
-          </script>  
-          <div class="col-lg-12">
-              <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Time Logs <h3>
-                      
-                </div>
-                <div class="panel-body">
+<section class="col-lg-12">
+            <!-- Custom tabs (Charts with tabs)-->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+               
+                <div class="card-tools">
+                
+                  <form class="form-horizontal" action="<?php echo base_url() ?>employees/viewTimeLogs" method="post">
+                
+                  <div class="row">
+                    <div class="form-group col-md-2">
+                    <label>Date From:</label>
 
-                   <div>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                        </div>
+                        <input type="text"  name="dateFrom" class="form-control datepicker" autocomplete="off">
+                    </div>
+                    <!-- /.input group -->
+                    </div>
+                    <div class="form-group col-md-2">
+                    <label>Date To:</label>
 
-                      <form class="form-horizontal" method="post" action="<?php echo base_url(); ?>employees/viewTimeLogs" style="margin-left:0.5em;">
-                      <div class="form-group col-md-2" style="margin-left:0.8em; margin-right:0.5em;">
-                      <div class="form-group">
-           
-                      <div class="input-group date" data-provide="datepicker">
-                                             <span class="input-group-addon"><i class="fa fa-calendar" ></i></span>
-                                             <input type="text" class="form-control" value="<?php echo date('m').'/'.'01'.'/'.date('Y');?>" name="date_from" class="form-control" required>
-                                          
-                                           </div>
-                      <label>Date (from)</label>
-                      </div>
-                              
-                      </div>
-                          
-                           <div class="form-group col-md-2" style="margin-left:0.8em; margin-right:0.5em;"> <div class="form-group">
-                      <div class="input-group date" data-provide="datepicker">
-                                             <span class="input-group-addon"><i class="fa fa-calendar" ></i></span>
-                                             <input type="text" class="form-control" value="<?php echo date('m/d/Y');?>" name="date_to" class="form-control" required>
-                                          
-                                           </div>
-                                           <label>Date (to)</label>
-                      </div>
-                              
-                              
-                          </div>
-                          
-                            <div class="form-group col-md-3" style="margin-left:0.5em; margin-top:0.3em;">
-                                <div class="form-group">
-                              <div class='input-group userin'>
-                               <input type="text" name="name" class="name form-control" placeholder="Search By Name" value="<?php echo $name; ?>">
-                                 <span class="input-group-addon">
-                                  <span class="fa fa-user"></span>
-                               </span>
-                              </div>
-                              </div>
-                          
-                          <label>Name</label>
-                          </div>
-                          
-                           <div class="form-group col-md-2" style="margin-left:0.5em; margin-top:0.3em;">
-                              <button type="submit" class="btn btn-success"><i class="fa fa-search"></i>Search</button>
-                          </div>
-                          
-                          <div class="form-group col-md-2" style="margin-left:0.5em; margin-top:0.3em;">
-                              <!-- <input type="button" class="btn btn-success csvbtn" value="Get CSV" /> -->
-                          </div>
-                      </form>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                        </div>
+                        <input type="text"  name="dateTo" class="form-control datepicker "  autocomplete="off">
+                    </div>
+                    <!-- /.input group -->
+                    </div>
+                            
                      
-                              <!-- <a class="btn btn-success fa fa-print btn-sm" style="margin-left: 87%" href="<?php echo base_url(); ?>employees/print_timelogs">Print</a>
-            -->
-                          </div>
+     
+     
+                  <div class="form-group col-md-6">
+                       
+                       <label for="aw_description">
+                         Name </label>
+                        
+                    <input class="form-control" type="text" name="name" placeholder="Name">
+                     
+                    </div>
+                        
+    
+                <div class="form-group col-md-2">
+            
+                <button type="submit" class="btn bt-md bg-gray-dark color-pale" style="margin-top:24px;">Apply</button>
+             
+              </div>
+            
+               </form>
+                        
+              </div><!-- /.card-header -->
+              </div>
+              </div>
+              <div class="card-body">
+
                           <table class="table table-striped thistbl" id="timelogs">
                             <thead>
                               <tr>
@@ -144,16 +133,10 @@ $('.datepicker').datepicker({
                             </tbody>
                           </table>
 
-                          <p class="pull-right"><?php  echo $links; ?></p>
-                        </div>
-
-              </div>
-          </div>
-      </div>
-    </div>
-</div>
-
-
+                          </div><!-- /.card-body -->
+            </div>
+            <!-- /.card -->
+    </section>
 <script type="text/javascript">
 
   $(document).ready(function(){

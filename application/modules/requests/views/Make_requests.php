@@ -19,35 +19,38 @@ $reasons_opt="";
 
  ?>
 
-<!-- Contains page content -->
-<div class="dashtwo-order-area" style="padding-top: 10px; min-height: 35em;">
-<div class="container-fluid">
-   <div class="row">
-       <div class="col-lg-12">
-           <div class="panel panel-default">
-             <div class="panel-heading">
-                 <h3 class="panel-title"><?php echo $title; ?><h3>
                    
-             </div>
-             <div class="panel-body">
-               <div>
-                   <a class="btn btn-default  btn-sm " style="float:right; margin-right:10px;" href="<?php echo base_url(); ?>requests/viewMySubmittedRequests">My Requests</a>
-               </div>
-               <p style="padding: 5px; text-align:center; font-weight:bold;">
-                   <span class="text-center text-danger">
-                     <?php echo $this->session->flashdata('msg'); ?></span>
-               </p>
-                
+
+                     
+
+<section class="col-lg-12">
+            <!-- Custom tabs (Charts with tabs)-->
+            <div class="card">
+              <div class="card-header">
+
+                <h4><?php echo (!empty($title)?$title:null) ?></h4>
+              
+              <div class="card-tools">
+              </div><!-- /.card-header -->
+              </div>
+              </div>
+              <div class="card-body">
+              <div class="row">
+              <p><?php if(!empty($_SESSION['msg'])) echo $this->session->flashdata('msg'); ?></p>
+               
                <form method="post" class="requestForm" action="<?php echo base_url(); ?>requests/saveRequest"  enctype="multipart/form-data" autocomplete="off">
    
-                <div class="col-md-3">
+                <div class="col-md-12">
        
 
                   <div class="form-group">
                       <label>From:</label>
-                         <div class="input-group date">
-                                       <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-                            <input type="text" class="form-control" name="dateFrom" value="<?php echo date('m/d/Y'); ?>" id="datepicker" required>
+                      <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                
+                            <input type="text" class="form-control datepicker" name="dateFrom" value="<?php echo date('Y-m-d'); ?>"  required>
                      </div>
                   </div>
 
@@ -56,28 +59,22 @@ $reasons_opt="";
                 
                 
 
-                <div class="col-md-3">
+                <div class="col-md-12">
                   <div class="form-group">
                       <label>To:</label>
-                      <div class="input-group date" data-provide="datepicker">
-                                             <span class="input-group-addon"><i class="fa fa-calendar" ></i></span>
-                                             <input type="text" class="form-control" value="<?php echo date('m/d/Y');?>" name="dateTo" class="form-control" required>
-                                          
-                                           </div>
+                      <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                      
+                           <input type="text" class="form-control datepicker" value="<?php echo date('Y-m-d');?>" name="dateTo" class="form-control" required>            
+                          </div>
                                         
 
                   </div>
                 </div>
-                <div class="col-md-3">
-                   <!-- <div class="form-group">
-                      <label>Location(For Workshops/O. Requests):</label>
-                       <select name="reason_id" class="form-control" required>
-                        <option value="" disabled selected>Select District</option>
-                           <?php echo $district_opt; ?>
-                       </select>
-                  </div> -->
-                 </div>
-                <div class="col-md-3">
+              
+                <div class="col-md-12">
                    <div class="form-group">
                       <label>Reason:</label>
                        <select name="reason_id" class="form-control" required>
@@ -88,26 +85,28 @@ $reasons_opt="";
                  </div>
 
                  <div class="col-md-12">
-                    <div class="form-group col-md-8">
+                    <div class="form-group col-md-12">
                         <label>Remarks</label>
                         <textarea name="remarks" rows="5" class="form-control pull-left" required></textarea>
                     </div>
 
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-12">
                         <label>Attach Supporting Files</label>
                         <input type="file" name="files" class="form-control">
                     </div>
                  </div>
                <div class="form-group">
-                    <button class="btn btn-success pull-right" type="submit" style="margin-top:1.7em;">Submit</button>
+                    <button class="btn bg-gray-dark color-pale pull-right" type="submit" style="margin-top:1.7em;">Submit</button>
                 </div>
 
             </form>
-           </div>
-       </div>
-   </div>
- </div>
-</div>
+          </div>
+
+          </div><!-- /.card-body -->
+          </div>
+            <!-- /.card -->
+</section>
+           
 
 
 

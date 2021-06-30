@@ -43,34 +43,20 @@
 <script src="<?php echo base_url()?>assets/plugins/fullcalendar-timegrid/main.min.js"></script>
 <script src="<?php echo base_url()?>assets/plugins/fullcalendar-interaction/main.min.js"></script>
 <script src="<?php echo base_url()?>assets/plugins/fullcalendar-bootstrap/main.min.js"></script>
-
-
- 
- <script>
-    $(function () {
-    
-    $('#mytab2').DataTable({
-      "paging": true,
-      "lengthChange": true,
-      "searching": true,
-      "ordering": true,
-      "info": true,
-      "autoWidth": false,
-      "responsive": true,
-      "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
-    }).buttons().container().appendTo('#buttons .col-md-6:eq(0)');
-  });
-</script>
 <script src="<?php echo base_url(); ?>/assets/plugins/jquery/jquery.min.js"></script>
+
 <!-- jQuery UI 1.11.4 -->
 <script src="<?php echo base_url(); ?>/assets/plugins/jquery-ui/jquery-ui.min.js"></script>
+<!-- date-range-picker -->
+<script src="<?php echo base_url() ?>assets/plugins/daterangepicker/daterangepicker.js"></script>
+<script src="<?php echo base_url() ?>assets/plugins/summernote/summernote-bs4.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/bootstrap-datepicker/js/bootstrap-datepicker.min.js"></script>
 <script src="<?php echo base_url(); ?>/assets/plugins/select2/js/select2.full.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/js/notify.min.js"></script>
 
 <!-- DataTables  & Plugins -->
 <script src="<?php echo base_url(); ?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
-
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
@@ -82,51 +68,21 @@
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
-<script>
-
-$('#datepicker').datepicker();
-
-</script>
-
-
-<!-- Page specific script -->
-
-  <!-- <script type="text/javascript">
-      $(document).ready(
-       function(){
-       var base_url='<?php echo base_url();?>'
-       var events = base_url+'calendar/getattEvents';
-       var date = new Date()
-       var d    = date.getDate(),
-           m    = date.getMonth(),
-           y    = date.getFullYear()
-          
-      $('#attcalendar').fullCalendar({
-        header    : {
-        left  : 'prev,next today',
-        center: 'title',
-        right : 'month,agendaWeek,agendaDay'
-        },
-        buttonText: {
-        today: 'Today',
-        month: 'Month',
-        week : 'Week',
-        day  : 'Day'
-        },
-        events    : events
-      })});
-    
-</script> -->
-
- <!-- Control Sidebar -->
- 
-  <!-- /.control-sidebar -->
-  <!-- Add the sidebar's background. This div must be placed
-       immediately after the control sidebar -->
-       <div class="control-sidebar-bg"></div>
+<div class="control-sidebar-bg"></div>
 </div>
 <script>
+$( document ).ready(function() {
+  $.fn.datepicker.defaults.format = "yyyy-mm-dd";
+    $('.datepicker').datepicker({
+        todayHighlight: true,
+        autoclose: true,
+   
+    });
+  });
+</script>
+<script>
 // Radialize the colors
+$( document ).ready(function() {
 Highcharts.setOptions({
     colors: Highcharts.map(Highcharts.getOptions().colors, function (color) {
         return {
@@ -141,6 +97,7 @@ Highcharts.setOptions({
             ]
         };
     })
+});
 });
 
 // Build the chart
@@ -385,6 +342,27 @@ if (!chart.renderer.forExport) {
 );
 
 
+</script>
+<script>
+ $(document).ready(function() {
+    $('.mytable').DataTable( {
+        dom: 'Bfrtip',
+        "paging": true,
+        "lengthChange": true,
+        "searching": true,
+        "ordering": true,
+        "info": true,
+        "autoWidth": false,
+        "responsive": true,
+        buttons: [
+            'copyHtml5',
+            'excelHtml5',
+            'csvHtml5',
+            
+            
+        ]
+    } );
+});
 </script>
 
 

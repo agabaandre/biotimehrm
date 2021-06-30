@@ -1,7 +1,7 @@
 
 
 <style>
-
+  
     @media only screen and (max-width: 980px)  {
     .field{
         
@@ -62,10 +62,10 @@
 						<b class="" style="font-weight:bold;font:1.2em;">Legend</b>
 						<p class="legend" style="margin:4px;">
 					
-						<b class="ltab">P=Present </b> 
-						<b class="ltab"> O=Off Duty </b>
-						<b class="ltab"> R=Official Request </b>
-						<b class="ltab"> L=Leave </b>
+						<b class="ltab bg-gray-dark">P=Present </b> 
+						<b class="ltab bg-gray-dark"> O=Off Duty </b>
+						<b class="ltab bg-gray-dark"> R=Official Request </b>
+						<b class="ltab bg-gray-dark"> L=Leave </b>
 					
 						</p>
 					</span>
@@ -129,7 +129,7 @@
 							</div>
 							<div class="col-md-3">
 								<div class="control-group">
-									<input type="submit" name="" value="Load Month" class="btn btn-success">
+									<input type="submit" name="" value="Load Month" class="btn bg-gray-dark color-pale">
 								</div>
 						    </div>
 						</div>

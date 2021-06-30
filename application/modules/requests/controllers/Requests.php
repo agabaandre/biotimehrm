@@ -17,7 +17,8 @@ class Requests extends MX_Controller {
 	public function newRequest(){
 
 		//$data['requests']=$this->requests;
-		$data['title']='Submit a Request';
+		$data['title']='Make Request';
+		$data['uptitle']='Request';
 		$data['view']='Make_requests';
 		$data['module']="requests";
 		echo Modules::run('templates/main', $data);

@@ -14,7 +14,7 @@
           
             
           ?>
-                <table id="mytab2" class="table table-bordered table-striped">
+                <table id="mytab2" class="table table-bordered table-striped mytable">
                   <thead>
                   <tr>
                       <th> Staff iHRIS ID</th>

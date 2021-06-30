@@ -16,7 +16,7 @@
 <div class="dashtwo-order-area" style="padding-top: 10px;">
     <div class="container-fluid">
         <div class="row">
-        	<div class="col-md-4">
+        	<div class="col-md-12">
 				<?php
 
 					function isWeekend($date) {
@@ -52,83 +52,111 @@
             <div class="col-lg-12">
 
                 <div class="panel panel-default">
-                  <div class="panel-heading">
-                      <h4 class="panel-title">	MONTHLY TIMESHEET 	
-
-						<?php
-						echo " - ".$duties[0]['facility']."<br>"; 
-
-						echo "              ".date('F, Y',strtotime($year."-".$month));
-
-
-		//echo json_encode($actuals); ?>
-						<h4>
-                  </div>
+                 
+                   
+                  
                   <div class="panel-body" style="overflow-x: scroll;">
                    
 					<div class="col-md-12" style="padding-bottom:0.5em;">
 					
-						<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>employees/actualTimeLogs" method="post">
-							<div class="col-md-3">
+					<div class="callout callout-success">
+             
 
-								<div class="control-group">
-									<input type="hidden" id="month" value="<?php echo $month; ?>">
-									<select class="form-control js-example-basic-single" name="month" onchange="this.form.submit()" >
-										
-										<option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
-										
-										<option value="01">JANUARY</option>
-										<option value="02">FEBRUARY</option>
-										<option value="03">MARCH</option>
-										<option value="04">APRIL</option>
-										<option value="05">MAY</option>
-										<option value="06">JUNE</option>
-										<option value="07">JULY</option>
-										<option value="08">AUGUST</option>
-										<option value="09">SEPTEMBER</option>
-										<option value="10">OCTOBER</option>
-										<option value="11">NOVEMBER</option>
-										<option value="12">DECEMBER</option>
-									</select>
-								</div>
-							</div>
-							<div class="col-md-3">
-								<div class="control-group">
+			 <form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>employees/timesheet" method="post">
+			 <div class="row">
+					 <div class="col-md-3">
 
-								<?php $employees=Modules::run("employees/get_employees"); ?>
-									<select class="form-control" name="empid" select2>
-											<option value="NULL" selected disabled>Select Employee</option>
+						 <div class="control-group">
 
-											<?php foreach($employees as $employee){  ?>
+							 <input type="hidden" id="month" value="<?php echo $month; ?>">
 
-											<option value="<?php echo $employee->ihris_pid ?>"><?php echo $employee->surname.' '.$employee->firstname.' '.$employee->othername;?></option>
+							 <select class="form-control select2" name="month"  onchange="this.form.submit()">
 
-											<?php }  ?>
-									</select>
-				       
-								</div>
-							</div>
-							<div class="col-md-3">
-								<div class="control-group">
-									<input type="hidden" id="year" value="<?php echo $year; ?>">
-									<select class="form-control" name="year" onchange="this.form.submit()">
-										<option><?php echo $year; ?></option>
+								 <option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
+								 
+								 <option value="01">JANUARY</option>
+								 <option value="02">FEBRUARY</option>
+								 <option value="03">MARCH</option>
+								 <option value="04">APRIL</option>
+								 <option value="05">MAY</option>
+								 <option value="06">JUNE</option>
+								 <option value="07">JULY</option>
+								 <option value="08">AUGUST</option>
+								 <option value="09">SEPTEMBER</option>
+								 <option value="10">OCTOBER</option>
+								 <option value="11">NOVEMBER</option>
+								 <option value="12">DECEMBER</option>
+							 </select>
 
-											<?php for($i=-5;$i<=25;$i++){  ?>
+						 </div>
 
-										<option><?php echo 2017+$i; ?></option>
+					 </div>
 
-												<?php }  ?>
-									</select>
-								</div>
-							</div>
-							<div class="col-md-3">
-								<div class="control-group">
-									<input type="submit" name="" value="Load Month" class="btn btn-success">
-								</div>
-						    </div>
-						</form>
+
+					 <div class="col-md-3">
+						 <div class="control-group">
+
+							 <input type="hidden" id="year" value="<?php echo $year; ?>">
+
+							 <select class="form-control select2" name="year" onchange="this.form.submit()">
+									 <option><?php echo $year; ?></option>
+
+									 <?php for($i=-5;$i<=25;$i++){  ?>
+
+									 <option><?php echo 2017+$i; ?></option>
+
+									 <?php }  ?>
+							 </select>
+				
+						 </div>
+					 </div>
+					 <div class="col-md-3">
+						 <div class="control-group">
+					   
+
+						 <?php 
+						 
+						 $facility=$this->session->userdata['facility'];
+						 //print_r($facility);
+						 $employees=Modules::run("employees/get_employees"); ?>
+						 <select class="form-control select2" name="empid" select2>
+									 <option value="" selected disabled>Select Employee</option>
+
+									 <?php foreach($employees as $employee){  ?>
+
+									 <option value="<?php echo $employee->ihris_pid ?>"><?php echo $employee->surname.' '.$employee->firstname.' '.$employee->othername;?></option>
+
+									 <?php }  ?>
+							 </select>
+				
+						 </div>
+					 </div>
+
+					 <div class="col-md-3">
+
+						 <div class="control-group">
+
+							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
+
+						 </div>
+
+					 </div>
+			 </div>
+				 </form>
+
+	  </div>
 					</div>
+
+					
+<h4 class="panel-title">	MONTHLY TIMESHEET 	
+
+<?php
+echo " - ".$_SESSION['facility_name']." "; 
+
+echo "              ".date('F, Y',strtotime($year."-".$month));
+
+?>
+</h4>
 				<?php if(count($workinghours)>0){ ?> 
 
 <?php //print_r($workinghours['0']); ?>

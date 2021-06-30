@@ -667,10 +667,10 @@ Class Employee_model extends CI_Model
       $search="";
 
 		if(!empty($employee)){
-            $search="and hr.ihris_pid='".$employee."'";
+            $search="and ihrisdata.ihris_pid='".$employee."'";
 		 }
 
-        $all=$this->db->query("SELECT distinct(ihris_pid) from ihrisdata where $filter $search");
+        $all=$this->db->query("SELECT distinct(ihris_pid) from ihrisdata where $filter $search order by surname ASC LIMIT $limit,$start");
 
 
         $rows=$all->result_array();
@@ -713,7 +713,7 @@ Class Employee_model extends CI_Model
                 max(t.day30)as day30,
                 max(t.day31)as day31,
                 concat(hr.surname,' ',hr.firstname) as fullname from time_sheet t,
-  ihrisdata hr where hr.ihris_pid=t.ihris_pid and t.ihris_pid='$id' and  t.date like '$valid_range-%' $search");
+  ihrisdata hr where hr.ihris_pid=t.ihris_pid and t.ihris_pid='$id' and  t.date like '$valid_range-%'");
 
             $rowdata=$query->result_array();
 

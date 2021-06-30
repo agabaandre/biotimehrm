@@ -138,8 +138,8 @@ class Employees extends MX_Controller{
 	    
         if($search_data){
             
-    $data['from']=$search_data['date_from'];
-    $data['to']=$search_data['date_to'];
+    $data['from']=$search_data['dateFrom'];
+    $data['to']=$search_data['dateTo'];
     $data['name']=$search_data['name'];
     }
     
@@ -188,7 +188,8 @@ class Employees extends MX_Controller{
     
     $data['timelogs']=$this->empModel->getTimeLogs($config['per_page'],$page,$search_data);
     $data['links']=$this->pagination->create_links();
-    $data['title']="Health Staff Time Logs";
+    $data['title']="Staff Time Log Report";
+    $data['uptitle']="Staff Time Log Report";
     $data['view']='time_logs';
     $data['module']="employees";
     echo Modules::run("templates/main",$data);
@@ -321,7 +322,7 @@ class Employees extends MX_Controller{
         $config=array();
         $config['base_url']=base_url()."employees/timesheet";
         $config['total_rows']=$this->empModel->countTimesheet($date,$this->filters);
-        $config['per_page']=15; //records per page
+        $config['per_page']=20; //records per page
         $config['uri_segment']=3; //segment in url
         
          //pagination links styling
@@ -348,12 +349,13 @@ class Employees extends MX_Controller{
 	    $this->pagination->initialize($config);
 	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
 	    $data['links']=$this->pagination->create_links();
-
+        $data['title']='Timesheet';
+        $data['uptitle']='Monthly Timesheet Report';
         $data['view']='timesheet';
         $data['module']='employees';
         $employee=$this->input->post('empid');
        
-        $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$config['per_page'],$page,$employee=NULL,$this->filters);
+        $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$config['per_page'],$page,$employee,$this->filters);
         echo Modules::run('templates/main',$data);
 
        // print_r($data);
