@@ -532,12 +532,16 @@ Class Employee_model extends CI_Model
               $date_to=date('Y-m-d');
 
           }
+          else{
+            $date_from=$search_data['date_from'];
+            $date_to=$search_data['date_to'];
+
+          }
           if(!empty($search_data['name'])){  
               $ids=$this->getIds( $search_data['name']);
               $emps="'" . implode("','", $ids) ."'";
               $namesearch="and ihrisdata.ihris_pid in ($emps)";
-              $date_from=$search_data['date_from'];
-              $date_to=$search_data['date_to'];
+              
               
           }
           else{
@@ -579,13 +583,22 @@ Class Employee_model extends CI_Model
     }
 
 
-    public function get_printableTimeLogs(){
+    public function timelogscsv($date_from, $date_to,$name,$filter){
+      
+        if(!empty($name)){
+            $sname="AND (firstname like'$name%' OR surname like '$name%') ";
+           }
+           else{
+            $sname="";   
+        }
+      $query=$this->db->query("SELECT surname,firstname,othername,department,job,ihrisdata.ihris_pid as pid,ihrisdata.facility_id as facid, ihrisdata.facility as fac, time_in ,  time_out,clk_log.date as date  from clk_log, ihrisdata WHERE ihrisdata.ihris_pid=clk_log.ihris_pid and clk_log.date BETWEEN '$date_from' AND '$date_to'  AND $filter $sname order by surname"); 
+  
+      $data=$query->result();
+      
+      return $data;
+  }
 
-        //$this->db->join('ihrisdata', 'ihrisdata.ihris_pid = clk_log.ihris_pid');
 
-        $query = $this->db->get('clk_log');
-        return $query->result();
-    }
 
    public function countTimesheet($valid_range,$filters){
 

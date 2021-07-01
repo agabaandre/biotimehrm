@@ -119,83 +119,60 @@ class Employees extends MX_Controller{
      return $number;
     }
 
-    public function machineCsv($from,$to,$ihris_pid){
-		$this->load->library('excel');
+    public function attCsv($datef,$datet,$person)
+    
+	{
+      
+    $datas=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),$this->filters);
 
-	    $this->excel->setActiveSheetIndex(0);
+    $csv_file = "Attend_TimeLogs" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
+	header("Content-Type: text/csv");
+	header("Content-Disposition: attachment; filename=\"$csv_file\"");	
+	$fh = fopen( 'php://output', 'w' );
+    $records=array();//output each row of the data, format line as csv and write to file pointer
+    
+     foreach($datas as $data){
+        $time_in= $data->time_in;
+        $time_out=$data->time_out;
+        $initial_time = strtotime($time_in)/ 3600;
+        $final_time = strtotime($time_out)/ 3600;
 
-	    //name the worksheet
+      if(($initial_time)==0 || ($final_time)==0){ 
+        $hours_worked=0; 
+      } 
+      elseif($initial_time==$final_time){ 
+        $hours_worked=0; 
+      } 
 
-	    $this->excel->getActiveSheet()->setTitle('MachineCsv');
-		//set cell A1 content with some text
+      else { 
+        $hours_worked = round(($final_time - $initial_time), 1);   
+      } 
 
-		$this->excel->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
-		$this->excel->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
-		$this->excel->getActiveSheet()->getColumnDimension('C')->setAutoSize(true);
-		$this->excel->getActiveSheet()->getColumnDimension('D')->setAutoSize(true);
-		$this->excel->getActiveSheet()->getColumnDimension('E')->setAutoSize(true);
-		$this->excel->getActiveSheet()->getColumnDimension('F')->setAutoSize(true);
+      if ($hours_worked<0){ 
+        $hours = ($hours_worked*-1) .'hr(s)'; 
+      } 
+      else { 
+        $hours = $hours_worked.'hr(s)'; 
+      } 
 
-
-		//bold header
-		$this->excel->getActiveSheet()->getStyle("A1:H1")->applyFromArray(array("font" => array("bold" => true)));
-
-		$this->excel->getActiveSheet()->setCellValue('A1', 'NAME');
-
-		$this->excel->getActiveSheet()->setCellValue('B1', 'FACILITY');
-        $this->excel->getActiveSheet()->setCellValue('C1', 'FACILITY');
-
-		$this->excel->getActiveSheet()->setCellValue('D1', 'TIME IN');
-
-		$this->excel->getActiveSheet()->setCellValue('E1', 'TIME OUT');
-
-		$this->excel->getActiveSheet()->setCellValue('F1', 'HOURS WORKED');
-
-		$this->excel->getActiveSheet()->setCellValue('H1', 'DATE');
-
-		$rs = $this->empModel->getMachineCsvData($from,$to,$ihris_pid);
-		                
-		                
-		if(count($rs)<1){
-	        //no data from db
-	        echo "<h1 style='margin-top:20%; color:red;'><center> NO DATA IN THIS RANGE</center></h1>";
-		                
-		}
-			                
-		else{ //we have some excel data from db
-
-			$exceldata="";
-
-	        foreach ($rs as $row){
-
-	            $exceldata[] = $row;
-
-	        }
+        $days =array("NAME"=>$data->surname." ".$data->firstname." ". $data->othername,"JOB"=>$data->job, "FACILITY"=>$data->fac,"DEPARTMENT"=>$data->department, "DATE"=>$data->date, "TIME IN"=>$data->time_in,"TIME OUT"=>$data->time_out,"HOURS WORKED"=>$hours);
+        array_push($records,$days);
+    }
+    $is_coloumn = true;
+	if(!empty($records)) {
+	  foreach($records as $record) {
+		if($is_coloumn) {		  	  
+		  fputcsv($fh, array_keys($record));
+		  $is_coloumn = false;
+		}		
+		fputcsv($fh, array_values($record));
+	  }
+	   fclose($fh);
+	}
+	exit;  
+    
 
 
-			//print_r( $rs);
-			                //Fill data
-
-			$this->excel->getActiveSheet()->fromArray($exceldata, null,"A2");
-			 
-
-		    $filename='Biometric_report_data.csv'; //save our workbook as this file name
-
-		    header('Content-Type: text/csv'); //mime type
-		    header('Content-Disposition: attachment;filename="'.$filename.'"'); //tell browser what's the file name
-
-		    header('Cache-Control: max-age=0'); //no cache
-
-		    //if you want to save it as .XLSX Excel 2007 format
-
-		    $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'CSV'); 
-
-		    //force user to download the Excel file without writing it to server's HD
-
-		    $objWriter->save('php://output');
-			                
-		}
-	    
 	}
 
     public function viewTimeLogs(){
