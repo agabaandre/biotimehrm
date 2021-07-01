@@ -26,7 +26,7 @@ class Filters extends MX_Controller{
         $section=$this->section;
 
         if(!empty($facility_id)){
-            $facility="ihrisdata.facility_id='$facility_id'";
+            $facility=" ihrisdata.facility_id='$facility_id'";
         }
         else{
             $facility="";
@@ -67,12 +67,6 @@ return $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
         $division=$this->division;
         $unit=$this->unit;
         $section=$this->section;
-        if(!empty($this->district_id)){
-            $district="ihrisdata.facility_id='$this->district_id'";
-        }
-        else{
-            $district="";
-        }
 
         if(!empty($facility_id)){
             $facility="and ihrisdata.facility_id='$facility_id'";
@@ -106,7 +100,7 @@ return $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
         else{
             $unit="";
         }
-return $district.' '.$facility.' '.$department.' '.$division.' '.$section.' '.$unit;
+return $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
     }
 
 

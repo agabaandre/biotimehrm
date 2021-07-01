@@ -119,82 +119,134 @@ class Employees extends MX_Controller{
      return $number;
     }
 
-  
+    public function machineCsv($from,$to,$ihris_pid){
+		$this->load->library('excel');
+
+	    $this->excel->setActiveSheetIndex(0);
+
+	    //name the worksheet
+
+	    $this->excel->getActiveSheet()->setTitle('MachineCsv');
+		//set cell A1 content with some text
+
+		$this->excel->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
+		$this->excel->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
+		$this->excel->getActiveSheet()->getColumnDimension('C')->setAutoSize(true);
+		$this->excel->getActiveSheet()->getColumnDimension('D')->setAutoSize(true);
+		$this->excel->getActiveSheet()->getColumnDimension('E')->setAutoSize(true);
+		$this->excel->getActiveSheet()->getColumnDimension('F')->setAutoSize(true);
+
+
+		//bold header
+		$this->excel->getActiveSheet()->getStyle("A1:H1")->applyFromArray(array("font" => array("bold" => true)));
+
+		$this->excel->getActiveSheet()->setCellValue('A1', 'NAME');
+
+		$this->excel->getActiveSheet()->setCellValue('B1', 'FACILITY');
+        $this->excel->getActiveSheet()->setCellValue('C1', 'FACILITY');
+
+		$this->excel->getActiveSheet()->setCellValue('D1', 'TIME IN');
+
+		$this->excel->getActiveSheet()->setCellValue('E1', 'TIME OUT');
+
+		$this->excel->getActiveSheet()->setCellValue('F1', 'HOURS WORKED');
+
+		$this->excel->getActiveSheet()->setCellValue('H1', 'DATE');
+
+		$rs = $this->empModel->getMachineCsvData($from,$to,$ihris_pid);
+		                
+		                
+		if(count($rs)<1){
+	        //no data from db
+	        echo "<h1 style='margin-top:20%; color:red;'><center> NO DATA IN THIS RANGE</center></h1>";
+		                
+		}
+			                
+		else{ //we have some excel data from db
+
+			$exceldata="";
+
+	        foreach ($rs as $row){
+
+	            $exceldata[] = $row;
+
+	        }
+
+
+			//print_r( $rs);
+			                //Fill data
+
+			$this->excel->getActiveSheet()->fromArray($exceldata, null,"A2");
+			 
+
+		    $filename='Biometric_report_data.csv'; //save our workbook as this file name
+
+		    header('Content-Type: text/csv'); //mime type
+		    header('Content-Disposition: attachment;filename="'.$filename.'"'); //tell browser what's the file name
+
+		    header('Cache-Control: max-age=0'); //no cache
+
+		    //if you want to save it as .XLSX Excel 2007 format
+
+		    $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'CSV'); 
+
+		    //force user to download the Excel file without writing it to server's HD
+
+		    $objWriter->save('php://output');
+			                
+		}
+	    
+	}
 
     public function viewTimeLogs(){
-
-       
-
-    
-
-        // $time_Logs=$this->empModel->getTimeLogs();
-
-        // //print_r($time_Logs);
-        // return $time_Logs;
-
-        //redirect('employees/viewTimeLogs');
-
-        $search_data=$this->input->post();
+ 
+	    $search_data=$this->input->post();
 	    
-        if($search_data){
-            
-    $data['from']=$search_data['dateFrom'];
-    $data['to']=$search_data['dateTo'];
-    $data['name']=$search_data['name'];
-    }
-    
-    else{
-        
-    $data['from']=date('Y-m-').'01';
-    $data['to']=date('Y-m-d');
-    $data['name']="";
-        
-    }
-    
-    $config=array();
-    $config['base_url']=base_url()."employees/viewTimeLogs";
-    $config['total_rows']=$this->empModel->count_timelogs();
-    $config['per_page']=100; //records per page
-    $config['uri_segment']=3; //segment in url
-    
-    //pagination links styling
-    $config['full_tag_open'] = "<ul class='pagination'>";
-    $config['full_tag_close'] = '</ul>';
-    $config['num_tag_open'] = '<li>';
-    $config['num_tag_close'] = '</li>';
-    $config['cur_tag_open'] = '<li class="active"><a href="#">';
-    $config['cur_tag_close'] = '</a></li>';
-    $config['prev_tag_open'] = '<li>';
-    $config['prev_tag_close'] = '</li>';
-    $config['first_tag_open'] = '<li>';
-    $config['first_tag_close'] = '</li>';
-    $config['last_tag_open'] = '<li>';
-    $config['last_tag_close'] = '</li>';
+        $config=array();
+        $config['base_url']=base_url()."employees/viewTimeLogs";
+        $config['total_rows']=$this->empModel->count_timelogs($search_data,$this->filters);
+        $config['per_page']=15; //records per page
+        $config['uri_segment']=3; //segment in url  
+        //pagination links styling
+        $config['full_tag_open'] = '<ul class="pagination">';
+        $config['full_tag_close'] = '</ul>';
+        $config['attributes'] = ['class' => 'page-link'];
+        $config['first_link'] = false;
+        $config['last_link'] = false;
+        $config['first_tag_open'] = '<li class="page-item">';
+        $config['first_tag_close'] = '</li>';
+        $config['prev_link'] = '&laquo';
+        $config['prev_tag_open'] = '<li class="page-item">';
+        $config['prev_tag_close'] = '</li>';
+        $config['next_link'] = '&raquo';
+        $config['next_tag_open'] = '<li class="page-item">';
+        $config['next_tag_close'] = '</li>';
+        $config['last_tag_open'] = '<li class="page-item">';
+        $config['last_tag_close'] = '</li>';
+        $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+        $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+        $config['num_tag_open'] = '<li class="page-item">';
+        $config['num_tag_close'] = '</li>';
+        $config['use_page_numbers'] = false;
+        $this->pagination->initialize($config);
+        $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
+        $data['links']=$this->pagination->create_links();
+	    $data['timelogs']=$this->empModel->getTimeLogs($config['per_page'],$page,$search_data,$this->filters);
+	
+        $data['title']="Staff Time Log Report";
+        $data['uptitle']="Staff Time Log Report";
+        $data['view']='time_logs';
+        $data['module']="employees";
+        echo Modules::run("templates/main",$data);
 
+	    
+	} 
+    // public function testing(){
+    //     $search_data=$this->input->post();
+    //     $data['timelogs']=$this->empModel->getTimeLogs($config['per_page']=1,$page=1,$search_data);
+    //  print_r($data);
+    // } 
 
-
-    $config['prev_link'] = '<i class="fa fa-long-arrow-left"></i>';
-    $config['prev_tag_open'] = '<li>';
-    $config['prev_tag_close'] = '</li>';
-
-
-    $config['next_link'] = '<i class="fa fa-long-arrow-right"></i>';
-    $config['next_tag_open'] = '<li>';
-    $config['next_tag_close'] = '</li>';
-    
-    $this->pagination->initialize($config);
-    
-    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
-    
-    $data['timelogs']=$this->empModel->getTimeLogs($config['per_page'],$page,$search_data);
-    $data['links']=$this->pagination->create_links();
-    $data['title']="Staff Time Log Report";
-    $data['uptitle']="Staff Time Log Report";
-    $data['view']='time_logs';
-    $data['module']="employees";
-    echo Modules::run("templates/main",$data);
-   
-    }
 
 
     Public function printStafflist(){  

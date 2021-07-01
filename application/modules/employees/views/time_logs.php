@@ -17,7 +17,7 @@
                   <form class="form-horizontal" action="<?php echo base_url() ?>employees/viewTimeLogs" method="post">
                 
                   <div class="row">
-                    <div class="form-group col-md-2">
+                    <div class="form-group col-md-3">
                     <label>Date From:</label>
 
                     <div class="input-group">
@@ -26,11 +26,11 @@
                             <i class="far fa-calendar-alt"></i>
                         </span>
                         </div>
-                        <input type="text"  name="dateFrom" class="form-control datepicker" autocomplete="off">
+                        <input type="text"  name="date_from" class="form-control datepicker" value="<?php echo date("Y-m-d",strtotime("-1 month")); ?>" autocomplete="off">
                     </div>
                     <!-- /.input group -->
                     </div>
-                    <div class="form-group col-md-2">
+                    <div class="form-group col-md-3">
                     <label>Date To:</label>
 
                     <div class="input-group">
@@ -39,14 +39,11 @@
                             <i class="far fa-calendar-alt"></i>
                         </span>
                         </div>
-                        <input type="text"  name="dateTo" class="form-control datepicker "  autocomplete="off">
+                        <input type="text"  name="date_to" class="form-control datepicker "  value="<?php echo date('Y-m-d'); ?>" autocomplete="off">
                     </div>
                     <!-- /.input group -->
                     </div>
                             
-                     
-     
-     
                   <div class="form-group col-md-6">
                        
                        <label for="aw_description">
@@ -59,13 +56,17 @@
     
                 <div class="form-group col-md-2">
             
-                <button type="submit" class="btn bt-md bg-gray-dark color-pale" style="margin-top:24px;">Apply</button>
-             
+                <button type="submit" class="btn bt-md bg-gray-dark color-pale" >Apply</button>
+               
               </div>
             
                </form>
+
+               
                         
               </div><!-- /.card-header -->
+              <a href="#"  class="btn bt-md bg-gray-dark color-pale" >CSV</a>
+              <p class="pagination"><?php echo $links;?></p>
               </div>
               </div>
               <div class="card-body">
@@ -75,6 +76,7 @@
                               <tr>
                                   <th>#</th>
                                   <th>NAME</th>
+                                  <th>POSITION</th>
                                   <th>DEPARTMENT</th>
                                   <th>DATE</th>
                                   <th>TIME IN</th>
@@ -96,6 +98,7 @@
                               <tr>
                                 <td><?php echo $no; ?></td>
                                 <td><?php echo $timelog->surname." ".$timelog->firstname; ?></td>
+                                <td><?php echo $timelog->job; ?></td>
                                 <td><?php echo $timelog->department; ?></td>
                                 <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
                                 <td><?php echo $time_out=$timelog->time_out; ?></td>

@@ -67,7 +67,7 @@ $reasons_opt="";
                             <i class="far fa-calendar-alt"></i>
                         </span>
                       
-                           <input type="text" class="form-control datepicker" value="<?php echo date('Y-m-d');?>" name="dateTo" class="form-control" required>            
+                           <input type="text" class="form-control datepicker" value="<?php echo date('Y-m-d');?>" name="dateTo"  required>            
                           </div>
                                         
 
@@ -77,7 +77,7 @@ $reasons_opt="";
                 <div class="col-md-12">
                    <div class="form-group">
                       <label>Reason:</label>
-                       <select name="reason_id" class="form-control" required>
+                       <select name="reason_id" class="form-control select2" required>
                         <option value="" disabled selected>Select Out of Station Reason</option>
                            <?php echo $reasons_opt; ?>
                        </select>
@@ -87,7 +87,7 @@ $reasons_opt="";
                  <div class="col-md-12">
                     <div class="form-group col-md-12">
                         <label>Remarks</label>
-                        <textarea name="remarks" rows="5" class="form-control pull-left" required></textarea>
+                        <textarea name="remarks" rows="5" class="form-control" required></textarea>
                     </div>
 
                     <div class="form-group col-md-12">
@@ -96,7 +96,7 @@ $reasons_opt="";
                     </div>
                  </div>
                <div class="form-group">
-                    <button class="btn bg-gray-dark color-pale pull-right" type="submit" style="margin-top:1.7em;">Submit</button>
+                    <button class="btn bg-gray-dark color-pale" type="submit" style="margin-top:1.7em;">Submit</button>
                 </div>
 
             </form>

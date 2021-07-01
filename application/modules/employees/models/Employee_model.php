@@ -518,94 +518,47 @@ Class Employee_model extends CI_Model
         return $query->num_rows();
     } 
    
-    public function count_timelogs(){
-		$query=$this->db->get('clk_log');
-		return $query->num_rows();
+    public function count_timelogs($search_data,$filter){
+       
+		$rows=$this->getTimeLogs($limit=false,$start=FALSE,$search_data,$filter);
+		return count($rows);
 		
 	}
-    public function getTimeLogs($limit=false,$start=FALSE,$search_data=FALSE){
+    public function getTimeLogs($limit,$start,$search_data,$filter){
         
-        		
-        $facility=$this->facility; //current facility
-      
-		
-         $search_data=$this->input->post();
-     
-          if($search_data){
-	      $date_from=$search_data['date_from'];
-          $date_to=$search_data['date_to'];
-          $date_from=date('Y-m-d', strtotime($date_from));
-	      $date_to=date('Y-m-d', strtotime($date_to));
-          $name=$search_data['name'];
-          
-          if($name){
-              
-              $ids=$this->getIds($name);
-              
-              if(count($ids)>0){
-              
-              $this->db->where_in('clk_log.ihris_pid',$ids);
-              }
+
+          if(empty($search_data['date_from'])){
+              $date_from=date("Y-m-d",strtotime("-1 month"));
+              $date_to=date('Y-m-d');
+
           }
-          
-          $this->db->where("date >= '$date_from' AND date <= '$date_to'");
+          if(!empty($search_data['name'])){  
+              $ids=$this->getIds( $search_data['name']);
+              $emps="'" . implode("','", $ids) ."'";
+              $namesearch="and ihrisdata.ihris_pid in ($emps)";
+              $date_from=$search_data['date_from'];
+              $date_to=$search_data['date_to'];
+              
           }
           else{
-            $date=date('Y-m-');
-            $this->db->like("date", "$date", "after"); 
+              $namesearch="";
           }
-          $facility=$this->facility;
-
-          $department=$this->department;
-          $division=$this->division;
-          $unit=$this->unit;
-  
-      
-        if(($this->user['role']!=='sadmin')||(!empty($department))||(!empty($division))||(!empty($unit))){
-  
-  
-                  if(!empty($department)){
-                      $this->db->where('ihrisdata.department_id',$department);
-                      
-                  }
-                 
-  
-                  if(!empty($division)){
-                      $this->db->where('ihrisdata.division',$division);
-                      
-                  }
-  
-  
-                  if(!empty($unit)){
-                       $this->db->where('ihrisdata.unit',$unit);
-                      
-                  }
-                  if(!empty($facility)){
-                      $this->db->where('ihrisdata.facility_id',$facility);
-                     
-                 }
-                
-                  
-                 
-          
-        }
-      
-         $this->db->limit($limit,$start);
-         $facility=$this->facility;
-        //  $this->db->query->order_by ('date', 'asc');
+          if(!empty($limit)){
+           $limit="LIMIT $start,$limit";
+          }
+          else{
+           $limit="";   
+          }
+        $query=$this->db->query("SELECT surname,firstname,othername,department,job,ihrisdata.ihris_pid as pid,ihrisdata.facility_id as facid, ihrisdata.facility as fac, time_in ,  time_out,clk_log.date as date  from clk_log, ihrisdata WHERE ihrisdata.ihris_pid=clk_log.ihris_pid and clk_log.date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch order by surname ASC $limit"); 
     
-	 $this->db->join("ihrisdata","ihrisdata.ihris_pid=clk_log.ihris_pid");
-	    $query=$this->db->get("clk_log");
-	    return $query->result();
+        $data=$query->result();
+        
+	    return $data;
 	}
 
 	public function getIds($name){
+    $query=$this->db->query("SELECT ihris_pid from ihrisdata WHERE firstname like'$name%' OR surname like '$name%' ");
 
-	$facility=$this->facility; //current facility
-	$this->db->select('ihris_pid');
-    $this->db->where("firstname like '%$name%'");
-    $this->db->or_where("surname like '%$name' ");
-    $query=$this->db->get('ihrisdata');
     $result=$query->result();
     $ids=array();
     foreach($result as $row){
