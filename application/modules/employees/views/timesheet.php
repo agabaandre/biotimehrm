@@ -253,13 +253,17 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 								      $initial_time = strtotime($starTime)/ 3600;
 									  $final_time = strtotime($endTime)/ 3600;
 
-									if(($initial_time)==0 || ($final_time)==0){ 
+									  if(($initial_time)==0 || ($final_time)==0){ 
 										$hours_worked=0; 
-									} 
-
-									else { 
+									  } 
+									  elseif($initial_time==$final_time){ 
+										$hours_worked=0; 
+									  } 
+									  else{
+									   
 										$hours_worked = round(($final_time - $initial_time), 1);   
-									} 
+										
+									  }
 
 									if ($hours_worked<0){ 
 										echo ($hours_worked*-1); 

@@ -182,7 +182,7 @@ class Employees extends MX_Controller{
         $config=array();
         $config['base_url']=base_url()."employees/viewTimeLogs";
         $config['total_rows']=$this->empModel->count_timelogs($search_data,$this->filters);
-        $config['per_page']=15; //records per page
+        $config['per_page']=200; //records per page
         $config['uri_segment']=3; //segment in url  
         //pagination links styling
         $config['full_tag_open'] = '<ul class="pagination">';

@@ -140,7 +140,31 @@ td{
                       <td><?php echo $timelog->date; ?></td>
                       <td><?php echo $timelog->time_in; ?></td>
 `                     <td><?php echo $timelog->time_out; ?></td>
-                      <td><?php if(($timelog->time_out)==0 || ($timelog->time_in)==0) { $timediff=0; } else { $timediff=(($timelog->time_out)-($timelog->time_in));   } if ($timediff<0){ echo ($timediff*-1); } else { echo $timediff; } ?> hr(s)</td>
+                      <td> <?php  
+                      
+                               $initial_time = strtotime( $timelog->time_in)/ 3600;
+                               $final_time = strtotime($timelog->time_out)/ 3600;
+              
+                                  if(($initial_time)==0 || ($final_time)==0){ 
+                                    $hours_worked=0; 
+                                  } 
+                                  elseif($initial_time==$final_time){ 
+                                    $hours_worked=0; 
+                                  } 
+                                  else{
+                                   
+                                    $hours_worked = round(($final_time - $initial_time), 1);   
+                                    
+                                  }
+                
+                                  if ($hours_worked<0){ 
+                                    echo ($hours_worked*-1) .'hr(s)'; 
+                                  } 
+                                  else { 
+                                    echo $hours_worked.'hr(s)'; 
+                                  } ?>
+                      
+                      </td>
                     
                     </tr>
                       <?php  } ?>
