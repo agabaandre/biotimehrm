@@ -253,13 +253,13 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 								     $Time_data=explode("|",$hours_data);
 
 
-								      $starTime=$Time_data[0];
+								      $starTime=@$Time_data[0];
 								      $endTime=@$Time_data[1];
 
 								      $initial_time = strtotime($starTime)/ 3600;
 									  $final_time = strtotime($endTime)/ 3600;
 
-									  if(($initial_time)==0 || ($final_time)==0){ 
+									  if(empty($initial_time)|| empty($final_time)){ 
 										$hours_worked=0; 
 									  } 
 									  elseif($initial_time==$final_time){ 
@@ -267,12 +267,15 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 									  } 
 									  else{
 									   
-										$hours_worked = round(($final_time - $initial_time), 1);   
+										$hours_worked = round(($final_time - $initial_time),1);   
 										
 									  }
 
 									if ($hours_worked<0){ 
-										echo ($hours_worked*-1); 
+										echo $hours_worked=$hours_worked*-1; 
+									} 
+									elseif ($hours_worked==-0){ 
+										echo $hours_worked=0; 
 									} 
 									else { 
 										echo $hours_worked; 
@@ -288,7 +291,7 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 							
 							<?php }//repeat days ?>
 
-							<span class="cell" style="width:10%;"><?php echo array_sum($personhrs); ?></span>
+							<span class="cell" style="width:10%;"><?php  echo array_sum($personhrs); ?></span>
 							<!-- <span class="cell" style="width:10%;">Expected Hours</span>
 							<span class="cell" style="width:10%;">%ge Presence</span> -->
 

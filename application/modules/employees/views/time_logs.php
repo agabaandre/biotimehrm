@@ -167,10 +167,10 @@
                                   }
                 
                                   if ($hours_worked<0){ 
-                                    echo ($hours_worked*-1) .'hr(s)'; 
+                                    echo $hours_worked=($hours_worked*-1) .'hr(s)'; 
                                   } 
                                   else { 
-                                    echo $hours_worked.'hr(s)'; 
+                                    echo $hours_worked=$hours_worked.'hr(s)'; 
                                   } 
                                   
 
