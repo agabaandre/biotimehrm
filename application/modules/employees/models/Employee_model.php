@@ -691,7 +691,7 @@ Class Employee_model extends CI_Model
                 max(t.day29)as day29,
                 max(t.day30)as day30,
                 max(t.day31)as day31,
-                concat(hr.surname,' ',hr.firstname) as fullname from time_sheet t,
+                concat(hr.surname,' ',hr.firstname) as fullname, hr.job as job from time_sheet t,
   ihrisdata hr where hr.ihris_pid=t.ihris_pid and t.ihris_pid='$id' and  t.date like '$valid_range-%'");
 
             $rowdata=$query->result_array();

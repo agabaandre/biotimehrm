@@ -379,7 +379,7 @@ class Employees extends MX_Controller{
 	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
 	    $data['links']=$this->pagination->create_links();
         $data['title']='Timesheet';
-        $data['uptitle']='Monthly Timesheet Report';
+        $data['uptitle']='Timesheet Report';
         $data['view']='timesheet';
         $data['module']='employees';
         $employee=$this->input->post('empid');

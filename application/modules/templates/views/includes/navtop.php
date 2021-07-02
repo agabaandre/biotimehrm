@@ -32,7 +32,7 @@
    
     <ul class="navbar-nav ml-auto">
 
-      <li class="nav-item" style="position:relative; float:left; margin-right:50px; margin-top:7px; font-size:13px; color:#FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 420px;">
+      <li class="nav-item" style="position:relative; float:left; margin-right:50px; margin-top:7px; font-size:13px; color:#FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">
                                 
               
                                 <a>

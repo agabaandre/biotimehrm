@@ -162,13 +162,15 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 				<?php if(count($workinghours)>0){ ?> 
 
 <?php //print_r($workinghours['0']); ?>
+
 					<br><br>
+					<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 						<div id="table" >   
 
 						<div class="header-row tbrow ">
 						    <span class="cell tbprimary"><b id="name"></b>#</span>
 						    <span class="cell" style="width:10%;"  >Name</span>
-							<!-- <span class="cell">Position</span> -->
+							<span class="cell">Position</span>
 							
 							<?php 
 
@@ -225,10 +227,24 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 							?>
 
 						<div class="table-row tbrow">
-						   <span class="cell" data-label="Position" ><?php echo $no;?></span>
+						   <span class="cell" data-label="No" ><?php echo $no;?></span>
 						   <span class="cell" data-label="Name" style="text-align:left; padding-left:1em;" >
 						   	<?php echo $hours['fullname'];?>
+
 						   </span>
+						   <span class="cell" data-label="Position" ><?php $words=explode(" ",$hours['job']);
+
+								$letters="";
+
+								foreach ($words as $word) {
+
+									$letters.=$word[0];
+								}
+
+								echo $letters;
+
+								?>
+								</span>
 						
 
 						<?php 
