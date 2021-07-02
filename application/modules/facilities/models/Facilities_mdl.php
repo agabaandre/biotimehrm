@@ -22,7 +22,7 @@ class Facilities_mdl extends CI_Model {
 		if($district_id){
 		$this->db->where('district_id',$district_id);
 		}
-		
+		$this->db->order_by("facility",'ASC');
 		$query=$this->db->get('ihrisdata');
 
 		return $query->result();
@@ -37,13 +37,13 @@ class Facilities_mdl extends CI_Model {
 		$district=$_SESSION['district'];
 		
 		if($district!==""){
-		$query=$this->db->query("select distinct facility_id,facility,district_id from ihrisdata where district_id='$district' order by facility asc");
+		$query=$this->db->query("select distinct facility_id,facility,district_id from ihrisdata where district_id='$district' order by facility ASC");
 		
 		}
 		
 		else
 		{
-		  $query=$this->db->query("select distinct facility_id,facility,district_id from ihrisdata order by facility asc");  
+		  $query=$this->db->query("select distinct facility_id,facility,district_id from ihrisdata order by facility ASC");  
 		    
 		}
 

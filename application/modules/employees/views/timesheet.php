@@ -137,10 +137,12 @@
 						 <div class="control-group">
 
 							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
+							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;">Print</button>
 
 						 </div>
-
+						 <?php //echo $this->uri->segment(2); ?>
 					 </div>
+					
 			 </div>
 				 </form>
 
@@ -202,6 +204,9 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 								<span class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color; ?>"><?php echo $i; ?></span>
 							
 							<?php } ?>
+							<span class="cell" style="width:10%;">Total Hours</span>
+							<!-- <span class="cell" style="width:10%;">Expected Hours</span>
+							<span class="cell" style="width:10%;">%ge Presence</span> -->
 
 						</div>
 
@@ -213,6 +218,7 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 						//$workeddays contains  worked days
 
 						foreach($workinghours as $hours) { 
+							$personhrs=array();
 
 							$no++;
 
@@ -271,6 +277,7 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 									else { 
 										echo $hours_worked; 
 									} 
+									array_push($personhrs,$hours_worked);
 										
 							 	}
 
@@ -278,10 +285,17 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 							
 							</span>
 							
+							
 							<?php }//repeat days ?>
 
+							<span class="cell" style="width:10%;"><?php echo array_sum($personhrs); ?></span>
+							<!-- <span class="cell" style="width:10%;">Expected Hours</span>
+							<span class="cell" style="width:10%;">%ge Presence</span> -->
+
 						</div>
+
 						<?php } ?>
+						
 
 						</div>
 

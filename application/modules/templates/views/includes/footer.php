@@ -379,9 +379,9 @@ if (!chart.renderer.forExport) {
                 $('#changepass').modal('show');
             }
 
-            var url=window.location.href;
+            var url="<?php echo $this->uri->segment(2); ?>";
 
-            if(url=="<?php echo base_url()?>rosta/actuals" || url=="<?php echo base_url()?>/rosta/actuals#"|| url=="<?php echo base_url()?>rosta/actuals#"|| url=="<?php echo base_url()?>rosta/fetch_report"|| url=="<?php echo base_url()?>rosta/actualsreport"|| url=="<?php echo base_url()?>rosta/tabular"){
+            if(url=="tabular" || url=="actuals"||  url=="fetch_report"|| url=="actualsreport"|| url=="tabular#" || url=="timesheet"){
 
                 $('body').addClass('sidebar-collapse');
                 $('#sidebar').toggleClass('active');

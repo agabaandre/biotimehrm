@@ -87,7 +87,9 @@
               <a href="<?php echo base_url()?>employees/attCsv/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name').'/'.'position-'.urlencode($this->input->post('job')); ?>" target="" class="btn bt-md bg-gray-dark color-pale" >CSV</a>
 
               <?php } ?>
-              <p class="pagination"><?php echo $links;?></p>
+              <p class="pagination"><?php echo $links;
+              
+              ?></p>
               </div>
               </div>
               <div class="card-body">
