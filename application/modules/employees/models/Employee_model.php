@@ -547,13 +547,20 @@ Class Employee_model extends CI_Model
           else{
               $namesearch="";
           }
+          if(!empty($search_data['job'])){
+            $job=$search_data['job'];
+            $sjob="AND job like'$job' ";
+           }
+           else{
+            $sjob="";   
+          }
           if(!empty($limit)){
            $limit="LIMIT $start,$limit";
           }
           else{
            $limit="";   
           }
-        $query=$this->db->query("SELECT surname,firstname,othername,department,job,ihrisdata.ihris_pid as pid,ihrisdata.facility_id as facid, ihrisdata.facility as fac, time_in ,  time_out,clk_log.date as date  from clk_log, ihrisdata WHERE ihrisdata.ihris_pid=clk_log.ihris_pid and clk_log.date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch order by surname ASC, clk_log.date ASC $limit"); 
+        $query=$this->db->query("SELECT surname,firstname,othername,department,job,ihrisdata.ihris_pid as pid,ihrisdata.facility_id as facid, ihrisdata.facility as fac, time_in ,  time_out,clk_log.date as date  from clk_log, ihrisdata WHERE ihrisdata.ihris_pid=clk_log.ihris_pid and clk_log.date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob order by surname ASC, clk_log.date ASC $limit"); 
     
         $data=$query->result();
         
@@ -583,7 +590,7 @@ Class Employee_model extends CI_Model
     }
 
 
-    public function timelogscsv($date_from, $date_to,$name,$filter){
+    public function timelogscsv($date_from, $date_to,$name,$job,$filter){
       
         if(!empty($name)){
             $sname="AND (firstname like'$name%' OR surname like '$name%') ";
@@ -591,7 +598,13 @@ Class Employee_model extends CI_Model
            else{
             $sname="";   
         }
-      $query=$this->db->query("SELECT surname,firstname,othername,department,job,ihrisdata.ihris_pid as pid,ihrisdata.facility_id as facid, ihrisdata.facility as fac, time_in ,  time_out,clk_log.date as date  from clk_log, ihrisdata WHERE ihrisdata.ihris_pid=clk_log.ihris_pid and clk_log.date BETWEEN '$date_from' AND '$date_to'  AND $filter $sname ORDER BY surname ASC, clk_log.date ASC"); 
+        if(!empty($job)){
+            $sjob="AND ihrisdata.job like '$job' ";
+           }
+           else{
+            $sjob="";   
+          }
+      $query=$this->db->query("SELECT surname,firstname,othername,department,job,ihrisdata.ihris_pid as pid,ihrisdata.facility_id as facid, ihrisdata.facility as fac, time_in ,  time_out,clk_log.date as date  from clk_log, ihrisdata WHERE ihrisdata.ihris_pid=clk_log.ihris_pid and clk_log.date BETWEEN '$date_from' AND '$date_to'  AND $filter $sname $sjob ORDER BY surname ASC, clk_log.date ASC"); 
   
       $data=$query->result();
       

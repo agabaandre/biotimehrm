@@ -119,11 +119,11 @@ class Employees extends MX_Controller{
      return $number;
     }
 
-    public function attCsv($datef,$datet,$person)
+    public function attCsv($datef,$datet,$person,$job)
     
 	{
       
-    $datas=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),$this->filters);
+    $datas=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode($job)),$this->filters);
 
     $csv_file = "Attend_TimeLogs" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
 	header("Content-Type: text/csv");

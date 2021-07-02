@@ -44,12 +44,29 @@
                     <!-- /.input group -->
                     </div>
                             
-                  <div class="form-group col-md-6">
+                  <div class="form-group col-md-3">
                        
                        <label for="aw_description">
                          Name </label>
                         
                     <input class="form-control" type="text" name="name" placeholder="Name">
+                     
+                    </div>
+                    <div class="form-group col-md-3">
+                       
+                       <label for="aw_description">
+                         Position </label>
+                        
+                         <select name="job" class="form-control select2">
+                         <option value="" >ALL</option>
+                         <?php $jobs=Modules::run("jobs/getJobs");
+                         foreach ($jobs as $element) {
+                             
+                         ?>
+                       
+                        <option value="<?php echo $element->job;?>" <?php if($this->input->post('job')==$element->job){ echo "selected"; } ?> ><?php echo $element->job;?></option>
+                        <?php } ?>
+                       </select>  
                      
                     </div>
                         
@@ -59,6 +76,7 @@
                 <button type="submit" class="btn bt-md bg-gray-dark color-pale" >Apply</button>
                
               </div>
+       
             
               </form>
 
@@ -66,7 +84,7 @@
                         
               </div><!-- /.card-header -->
               <?php if($this->input->post('date_from')) { ?>
-              <a href="<?php echo base_url()?>employees/attCsv/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name'); ?>" target="" class="btn bt-md bg-gray-dark color-pale" >CSV</a>
+              <a href="<?php echo base_url()?>employees/attCsv/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name').'/'.'position-'.urlencode($this->input->post('job')); ?>" target="" class="btn bt-md bg-gray-dark color-pale" >CSV</a>
 
               <?php } ?>
               <p class="pagination"><?php echo $links;?></p>
