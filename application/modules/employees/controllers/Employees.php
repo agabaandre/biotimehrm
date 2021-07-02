@@ -289,6 +289,39 @@ class Employees extends MX_Controller{
         //download it D save F.
         $this->m_pdf->pdf->Output($filename,'I');
     }
+
+    Public function print_timesheet($date,$employee,$job){  
+        
+        $this->load->library('ML_pdf');
+
+        $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,$employee,$this->filters,$job);
+                
+        $html=$this->load->view('print_timesheet',$data,true);
+
+        $fac=$_SESSION['facility'];
+
+        $filename=$fac."_timelogs_report_".date('Y-m').".pdf";
+
+
+        ini_set('max_execution_time',0);
+        $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+
+        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+        $this->m_pdf->pdf->showWatermarkImage = true;
+
+        date_default_timezone_set("Africa/Kampala");
+        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b>");
+
+        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+        $this->m_pdf->showWatermarkImage = true;
+         
+        ini_set('max_execution_time',0);
+        $this->m_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
+         
+        //download it D save F.
+        $this->m_pdf->pdf->Output($filename,'I');
+    }
+
     
     
 
@@ -299,7 +332,7 @@ class Employees extends MX_Controller{
              print_r($staffs);
         }
 
-
+    
 
 
     public function timesheet(){  
@@ -383,11 +416,11 @@ class Employees extends MX_Controller{
         $data['view']='timesheet';
         $data['module']='employees';
         $employee=$this->input->post('empid');
+        $job=$this->input->post('job');
        
-        $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$config['per_page'],$page,$employee,$this->filters);
+        $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$config['per_page'],$page,$employee,$this->filters,$job);
         echo Modules::run('templates/main',$data);
 
-       // print_r($data);
     }
     
     

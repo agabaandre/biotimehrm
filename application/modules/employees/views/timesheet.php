@@ -29,25 +29,8 @@
 
 					 return 'no';
 					}
+					?>
 
-					function dayState($day,$scheduled) {
-					$user=$_SESSION['role'];
-					//its today or day in the past
-					if(strtotime($day) < strtotime(date('Y-m-d')) && !empty($scheduled) && $user!=='sadmin'){								
-						$state="disabled";
-					}
-					else if(strtotime($day) < strtotime(date('Y-m-d')) && empty($scheduled) && $user!=='sadmin'){
-						$state="";
-					}
-					//if they are scheduled to work
-					if(strtotime($day) > strtotime(date('Y-m-d'))){								
-						$state="disabled";
-					}
-					echo $state;
-					}
-					//color
-					if(count($workinghours)>0){ ?>
-				<?php } ?>
 			</div>
             <div class="col-lg-12">
 
@@ -64,11 +47,11 @@
 
 			 <form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>employees/timesheet" method="post">
 			 <div class="row">
-					 <div class="col-md-3">
+					 <div class="col-md-2">
 
 						 <div class="control-group">
 
-							 <input type="hidden" id="month" value="<?php echo $month; ?>">
+							
 
 							 <select class="form-control select2" name="month"  onchange="this.form.submit()">
 
@@ -87,16 +70,16 @@
 								 <option value="11">NOVEMBER</option>
 								 <option value="12">DECEMBER</option>
 							 </select>
-
+							 <input type="hidden" id="month" value="<?php echo $month=$this->input->post('month'); ?>">
 						 </div>
 
 					 </div>
 
 
-					 <div class="col-md-3">
+					 <div class="col-md-2">
 						 <div class="control-group">
 
-							 <input type="hidden" id="year" value="<?php echo $year; ?>">
+							
 
 							 <select class="form-control select2" name="year" onchange="this.form.submit()">
 									 <option><?php echo $year; ?></option>
@@ -107,10 +90,11 @@
 
 									 <?php }  ?>
 							 </select>
+							 <input type="hidden" id="year" value="<?php echo $year=$this->input->post('year'); ?>">
 				
 						 </div>
 					 </div>
-					 <div class="col-md-3">
+					 <div class="col-md-2">
 						 <div class="control-group">
 					   
 
@@ -120,7 +104,7 @@
 						 //print_r($facility);
 						 $employees=Modules::run("employees/get_employees"); ?>
 						 <select class="form-control select2" name="empid" select2>
-									 <option value="" selected disabled>Select Employee</option>
+									 <option value="" selected disabled>SELECT EMPLOYEE</option>
 
 									 <?php foreach($employees as $employee){  ?>
 
@@ -131,8 +115,24 @@
 				
 						 </div>
 					 </div>
+					 <div class="col-md-2">
+                       
+                        
+                         <select name="job" class="form-control select2">
+                         <option value="" >SELECT JOB</option>
+                         <?php $jobs=Modules::run("jobs/getJobs");
+                         foreach ($jobs as $element) {
+                             
+                         ?>
+                       
+                        <option value="<?php echo $element->job;?>" <?php if($this->input->post('job')==$element->job){ echo "selected"; } ?> ><?php echo $element->job;?></option>
+                        <?php } ?>
+                       </select>  
+                     
+                    </div>
+                    
 
-					 <div class="col-md-3">
+					 <div class="col-md-4">
 
 						 <div class="control-group">
 
@@ -148,8 +148,7 @@
 
 	  </div>
 					</div>
-
-					
+<span class="pull-left"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></span>		
 <h4 class="panel-title">	MONTHLY TIMESHEET 	
 
 <?php
@@ -163,7 +162,8 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 
 <?php //print_r($workinghours['0']); ?>
 
-					<br><br>
+					<br>
+					
 					<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 						<div id="table" >   
 
@@ -176,9 +176,9 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 
 							//print_r($workinghours);
 
-									$monthh=date('m');
+									$monthh=$month;
 
-									$yearh=date('Y');
+									$yearh=$year;
 
 									$monthdays = cal_days_in_month(CAL_GREGORIAN, $monthh, $yearh); // get days in a month
 
@@ -249,7 +249,7 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 
 						<?php 
 
-							$month_days=date('t');//days in a month
+							$month_days=$monthdays;//days in a month
 
 							for($i=1;$i<=$month_days;$i++){// repeating td
 
@@ -315,7 +315,8 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 
 						<?php } ?>
 						
-
+						
+                        
 						</div>
 
 						<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>

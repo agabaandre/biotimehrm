@@ -624,7 +624,7 @@ Class Employee_model extends CI_Model
      
 
 
-    Public function fetch_TimeSheet($date_range=NULL,$start=NULL,$limit=NULL,$employee=NULL,$filter){    
+    Public function fetch_TimeSheet($date_range=NULL,$start=NULL,$limit=NULL,$employee=NULL,$filter,$job=NULL){    
 
         $month=$this->input->post('month');
         $year=$this->input->post('year');
@@ -648,8 +648,21 @@ Class Employee_model extends CI_Model
 		if(!empty($employee)){
             $search="and ihrisdata.ihris_pid='".$employee."'";
 		 }
+         if(!empty($job)){
+            $jsearch="and ihrisdata.job like '$job' ";
+		 }
+         else{
+             $jsearch="";
+         }
+         if(!empty($start)){
+            $limit="LIMIT $limit,$start";
+		 }
+         else{
+             $limit="";
+         }
 
-        $all=$this->db->query("SELECT distinct(ihris_pid) from ihrisdata where $filter $search order by surname ASC LIMIT $limit,$start");
+
+        $all=$this->db->query("SELECT distinct(ihris_pid) from ihrisdata where $filter $search $jsearch order by surname ASC $limit");
 
 
         $rows=$all->result_array();
