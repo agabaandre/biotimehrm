@@ -331,8 +331,7 @@ class Employees extends MX_Controller{
     }
 
     Public function csv_timesheet($month,$year,$employee,$job){  
-        
-        $this->load->library('ML_pdf');
+      
         $date=$year.'-'.$month;
         $data['year']=$year;
         $data['month']=$month;
@@ -340,37 +339,70 @@ class Employees extends MX_Controller{
         if(empty($date)){
             $date=date('Y-m');
         }
-        $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,str_replace("emp","",urldecode($employee)),$this->filters,str_replace("job","",$job));
-        $html=$this->load->view('print_timesheet',$data,true);
-        $fac=$_SESSION['facility_name'];
-        $filename=$fac."_timesheet_report_".$date.".csv";
         ini_set('max_execution_time', 0);
-        $this->load->helper('simple_html_dom');
-        $html = str_get_html($html);
-        header('Content-type: application/ms-excel');
-        header("Content-Disposition: attachment; filename=$filename");
 
-        $fp = fopen("php://output", "w");
+        $datas= $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,str_replace("emp","",urldecode($employee)),$this->filters,str_replace("job","",$job));
+        $csv_file = "Attend_TimeLogs" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
+        header("Content-Type: text/csv");
+        header("Content-Disposition: attachment; filename=\"$csv_file\"");	
+        $fh = fopen( 'php://output', 'w' );
+        $records=array();//output each row of the data, format line as csv and write to file pointer
+        
+         foreach($datas as $data){
+            $month_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);//days in a month
 
-        foreach($html->find('tr') as $element)
-        {
-                $th = array();
-                foreach( $element->find('th') as $row)  
-                {
-                    $th [] = $row->plaintext;
-                }
+            for($i=1;$i<=$month_days;$i++){// repeating td
+                $day="day".$i;  //changing day $i;
+                 $hours_data =$data[$day]; 
+                 if(!empty($hours_data))
+                 {
+                    $Time_data= array();
+                    $Time_data=explode("|",$hours_data);
+                    $starTime=@$Time_data[0];
+                    $endTime=@$Time_data[1];
+                    $initial_time = strtotime($starTime)/ 3600;
+                    $final_time = strtotime($endTime)/ 3600;
+                       if(empty($initial_time)|| empty($final_time)){ 
+                        $hours_worked=0; 
+                      } 
+                      elseif($initial_time==$final_time){ 
+                        $hours_worked=0; 
+                      } 
+                      else{
+                        $hours_worked = round(($final_time - $initial_time),1);     
+                      }
+                    if ($hours_worked<0){ 
+                        echo $hours_worked=$hours_worked*-1; 
+                    } 
+                    elseif ($hours_worked==-0){ 
+                        echo $hours_worked=0; 
+                    } 
+                    else { 
+                        echo $hours_worked; 
+                    } 
+                    array_push($personhrs,$hours_worked);
+                        
+                 }
+            }
 
-                $td = array();
-                foreach( $element->find('td') as $row)  
-                {
-                    $td [] = $row->plaintext;
-                }
-                !empty($th) ? fputcsv($fp, $th) : fputcsv($fp, $td);
+         
+    
+            $days =array("NAME"=>$data->surname." ".$data->firstname." ". $data->othername,"JOB"=>$data->job, "FACILITY"=>$data->fac,"DEPARTMENT"=>$data->department,  "HOURS WORKED"=>array_sum($personhrs));
+            array_push($records,$days);
         }
-
-
-        fclose($fp);
-		
+        $is_coloumn = true;
+        if(!empty($records)) {
+          foreach($records as $record) {
+            if($is_coloumn) {		  	  
+              fputcsv($fh, array_keys($record));
+              $is_coloumn = false;
+            }		
+            fputcsv($fh, array_values($record));
+          }
+           fclose($fh);
+        }
+        exit;  
+        
 
     }
 

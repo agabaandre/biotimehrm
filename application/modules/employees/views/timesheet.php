@@ -140,7 +140,8 @@
 							 <?php 
 							 if($this->input->post('month')){ ?>
 							 <a target="_blank" href="<?php echo base_url();?>employees/print_timesheet/<?php echo $this->input->post('month').'/'.$this->input->post('year').'/'.'emp'.urlencode($this->input->post('employee')).'/'.'job'.$this->input->post('job') ?>"  class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-print" aria-hidden="true"></i>Print</a>
-                             <?php } ?>
+                             <a target="_blank" href="<?php echo base_url();?>employees/csv_timesheet/<?php echo $this->input->post('month').'/'.$this->input->post('year').'/'.'emp'.urlencode($this->input->post('employee')).'/'.'job'.$this->input->post('job') ?>"  class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-print" aria-hidden="true"></i>Excel</a>
+							 <?php } ?>
 						 </div>
 						 <?php //echo $this->uri->segment(2); ?>
 					 </div>
