@@ -343,12 +343,12 @@ class Employees extends MX_Controller{
         $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,str_replace("emp","",urldecode($employee)),$this->filters,str_replace("job","",$job));
         $html=$this->load->view('print_timesheet',$data,true);
         $fac=$_SESSION['facility_name'];
-        $filename=$fac."_timesheet_report_".$date.".pdf";
+        $filename=$fac."_timesheet_report_".$date.".csv";
         ini_set('max_execution_time', 0);
         $this->load->helper('simple_html_dom');
         $html = str_get_html($html);
         header('Content-type: application/ms-excel');
-        header('Content-Disposition: attachment; filename=sample.csv');
+        header("Content-Disposition: attachment; filename=$filename");
 
         $fp = fopen("php://output", "w");
 
@@ -374,13 +374,8 @@ class Employees extends MX_Controller{
 
     }
 
-    
 
-
-    
-    
-
-        public function test(){
+    public function test(){
 
              $staffs = $this->empModel->fetchAllStaff(10,0,'ihris_pid',0);
 
