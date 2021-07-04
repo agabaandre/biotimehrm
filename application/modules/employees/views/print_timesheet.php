@@ -100,7 +100,8 @@ td{
 		MONTHLY TIMESHEET ATTENDANCE REPORT 
 
 			<?php
-			 echo $_SESSION['facility']."<br>"; 
+			$dates=$year.'-'.$month;
+			 echo $_SESSION['facility_name']; 
 
 			echo "   ".date('F, Y',strtotime(date($dates)));
 
@@ -111,14 +112,23 @@ td{
 
 <tr>          
 
-	<th>#</th>
+	
 	<th >Name</th>
 	<th>Position</th>
 	<?php 
 
-	$month=date('m');
 
-	$year=date('Y');
+
+		function isWeekend($date) {
+
+		$day=intval(date('N', strtotime($date)));
+
+		if($day>= 6){
+			return 'yes';
+		};
+
+		return 'no';
+		}
 
 	$monthdays = cal_days_in_month(CAL_GREGORIAN, $month, $year); // get days in a month
 
@@ -135,7 +145,7 @@ td{
             $wekday=$year."-".$month."-".$dy;
              
             if(isWeekend($wekday)=='yes'){
-                $color="red";
+                $color="#7a0404; color:#FFFFFF";
             }
             else{
                 $color="";
@@ -175,8 +185,8 @@ foreach($workinghours as $hours) {
 	?>
 
 <tr >
-	<td class='cost'><?php echo $no;?></td>
-	<td class='cost'><?php echo $hours['fullname'];?></td>
+	
+	<td class='cost' style="text-align:left;"><?php echo $hours['fullname'];?></td>
 	<td class='cost'><?php $words=explode(" ",$hours['job']);
 
 	$letters="";
@@ -190,9 +200,9 @@ foreach($workinghours as $hours) {
 
 	?></td>
 
-<?php 
+						<?php 
 
-							$month_days=date('t');//days in a month
+							$month_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);//days in a month
 
 							for($i=1;$i<=$month_days;$i++){// repeating td
 
@@ -244,8 +254,9 @@ foreach($workinghours as $hours) {
 							 	}
 
 							?>
-							
 							</td>
+							
+						
 							
 							
 							<?php }//repeat days ?>

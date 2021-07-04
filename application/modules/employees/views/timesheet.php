@@ -17,19 +17,19 @@
     <div class="container-fluid">
         <div class="row">
         	<div class="col-md-12">
-				<?php
+			<?php
 
-					function isWeekend($date) {
+				function isWeekend($date) {
 
-					 $day=intval(date('N', strtotime($date)));
+					$day=intval(date('N', strtotime($date)));
 
-					 if($day>= 6){
-					 	return 'yes';
-					 };
+					if($day>= 6){
+					return 'yes';
+					};
 
-					 return 'no';
-					}
-					?>
+					return 'no';
+				}
+				?>
 
 			</div>
             <div class="col-lg-12">
@@ -136,9 +136,11 @@
 
 						 <div class="control-group">
 
-							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
-							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;">Print</button>
-
+							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-tasks" aria-hidden="true"></i>Apply</button>
+							 <?php 
+							 if($this->input->post('month')){ ?>
+							 <a target="_blank" href="<?php echo base_url();?>employees/print_timesheet/<?php echo $this->input->post('month').'/'.$this->input->post('year').'/'.'emp'.urlencode($this->input->post('employee')).'/'.'job'.$this->input->post('job') ?>"  class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-print" aria-hidden="true"></i>Print</a>
+                             <?php } ?>
 						 </div>
 						 <?php //echo $this->uri->segment(2); ?>
 					 </div>

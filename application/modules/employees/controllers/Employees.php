@@ -9,7 +9,7 @@ class Employees extends MX_Controller{
         $this->load->model('employee_model','empModel');
         $this->user=$this->session->get_userdata();
         $this->load->library('pagination');
-        $this->watermark=FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
+        $this->watermark=FCPATH."assets/img/MOH.png";
         $this->filters=Modules::run('filters/sessionfilters');
      
 	}
@@ -290,37 +290,92 @@ class Employees extends MX_Controller{
         $this->m_pdf->pdf->Output($filename,'I');
     }
 
-    Public function print_timesheet($date,$employee,$job){  
+    Public function print_timesheet($month,$year,$employee,$job){  
         
         $this->load->library('ML_pdf');
-
-        $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,$employee,$this->filters,$job);
+        $date=$year.'-'.$month;
+        $data['year']=$year;
+        $data['month']=$month;
+        $data['date']=$date;
+        if(empty($date)){
+            $date=date('Y-m');
+        }
+        $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,str_replace("emp","",urldecode($employee)),$this->filters,str_replace("job","",$job));
                 
         $html=$this->load->view('print_timesheet',$data,true);
 
-        $fac=$_SESSION['facility'];
+        $fac=$_SESSION['facility_name'];
 
-        $filename=$fac."_timelogs_report_".date('Y-m').".pdf";
+        $filename=$fac."_timesheet_report_".$date.".pdf";
+
+        ini_set('max_execution_time', 0);
+		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+
+		date_default_timezone_set("Africa/Kampala");
+        $userdata=$this->session->get_userdata(); 
+
+		$this->ml_pdf->pdf->SetHTMLFooter("Printed / Accessed on: <b>" . date('d F,Y h:i A') . "</b> By: <b>" . ucfirst($userdata['names']) . "</b>");
+
+		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		$this->ml_pdf->showWatermarkImage = true;
 
 
-        ini_set('max_execution_time',0);
-        $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
 
-        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-        $this->m_pdf->pdf->showWatermarkImage = true;
+		ini_set('max_execution_time', 0);
+		$this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
 
-        date_default_timezone_set("Africa/Kampala");
-        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b>");
+		//download it D save F.
+		$this->ml_pdf->pdf->Output($filename, 'I');
 
-        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-        $this->m_pdf->showWatermarkImage = true;
-         
-        ini_set('max_execution_time',0);
-        $this->m_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
-         
-        //download it D save F.
-        $this->m_pdf->pdf->Output($filename,'I');
+
     }
+
+    Public function csv_timesheet($month,$year,$employee,$job){  
+        
+        $this->load->library('ML_pdf');
+        $date=$year.'-'.$month;
+        $data['year']=$year;
+        $data['month']=$month;
+        $data['date']=$date;
+        if(empty($date)){
+            $date=date('Y-m');
+        }
+        $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,str_replace("emp","",urldecode($employee)),$this->filters,str_replace("job","",$job));
+        $html=$this->load->view('print_timesheet',$data,true);
+        $fac=$_SESSION['facility_name'];
+        $filename=$fac."_timesheet_report_".$date.".pdf";
+        ini_set('max_execution_time', 0);
+        $this->load->helper('simple_html_dom');
+        $html = str_get_html($html);
+        header('Content-type: application/ms-excel');
+        header('Content-Disposition: attachment; filename=sample.csv');
+
+        $fp = fopen("php://output", "w");
+
+        foreach($html->find('tr') as $element)
+        {
+                $th = array();
+                foreach( $element->find('th') as $row)  
+                {
+                    $th [] = $row->plaintext;
+                }
+
+                $td = array();
+                foreach( $element->find('td') as $row)  
+                {
+                    $td [] = $row->plaintext;
+                }
+                !empty($th) ? fputcsv($fp, $th) : fputcsv($fp, $td);
+        }
+
+
+        fclose($fp);
+		
+
+    }
+
+    
+
 
     
     

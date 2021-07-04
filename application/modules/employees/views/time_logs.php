@@ -73,7 +73,7 @@
     
                 <div class="form-group col-md-2">
             
-                <button type="submit" class="btn bt-md bg-gray-dark color-pale" >Apply</button>
+                <button type="submit" class="btn bt-sm bg-gray-dark color-pale"  style="width:100px;"><i class="fa fa-tasks" aria-hidden="true"></i>Apply</button>
                
               </div>
        
@@ -84,7 +84,7 @@
                         
               </div><!-- /.card-header -->
               <?php if($this->input->post('date_from')) { ?>
-              <a href="<?php echo base_url()?>employees/attCsv/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name').'/'.'position-'.urlencode($this->input->post('job')); ?>" target="" class="btn bt-md bg-gray-dark color-pale" >CSV</a>
+              <a href="<?php echo base_url()?>employees/attCsv/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name').'/'.'position-'.urlencode($this->input->post('job')); ?>" target="" class="btn bt-sm bg-gray-dark color-pale"  style="width:100px;" ><i class="fa fa-file-excel"></i>CSV</a>
 
               <?php } ?>
               <p class="pagination"><?php echo $links;
