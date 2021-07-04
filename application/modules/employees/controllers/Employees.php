@@ -11,6 +11,8 @@ class Employees extends MX_Controller{
         $this->load->library('pagination');
         $this->watermark=FCPATH."assets/img/MOH.png";
         $this->filters=Modules::run('filters/sessionfilters');
+        $this->ufilters=Modules::run('filters/usessionfilters');
+        $this->ufilters=Modules::run('filters/districtfilters');
      
 	}
     public function filters(){

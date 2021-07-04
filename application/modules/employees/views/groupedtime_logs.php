@@ -148,33 +148,14 @@
                                 <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
                                 <td><?php echo $time_in=$timelog->time_in; ?></td>
                                 <td><?php echo $time_out=$timelog->time_out; ?></td>
-                                <td><?php 
-                                 
-                                  
-                                    $initial_time = strtotime($time_in)/ 3600;
-                                    $final_time = strtotime($time_out)/ 3600;
-              
-                                  if(($initial_time)==0 || ($final_time)==0){ 
-                                    $hours_worked=0; 
-                                  } 
-                                  elseif($initial_time==$final_time){ 
-                                    $hours_worked=0; 
-                                  } 
-                                  else{
-                                   
-                                    $hours_worked = round(($final_time - $initial_time), 1);   
-                                    
-                                  }
-                
+                                <td><?php   $timew=explode(":",$timelog->time_diff);
+                                            $hours_worked=$timew[0];
                                   if ($hours_worked<0){ 
                                     echo $hours_worked=($hours_worked*-1) .'hr(s)'; 
                                   } 
                                   else { 
                                     echo $hours_worked=$hours_worked.'hr(s)'; 
                                   } 
-                                  
-
-                                
                                 
                                 ?>
                                 

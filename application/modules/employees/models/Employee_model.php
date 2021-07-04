@@ -546,7 +546,7 @@ Class Employee_model extends CI_Model
         if(!empty($search_data['name'])){  
             $ids=$this->getIds( $search_data['name']);
             $emps="'" . implode("','", $ids) ."'";
-            $namesearch="and ihrisdata.ihris_pid in ($emps)";
+            $namesearch="and ihris_pid in ($emps)";
             
             
         }
@@ -566,7 +566,7 @@ Class Employee_model extends CI_Model
         else{
          $limit="";   
         }
-      $query=$this->db->query("SELECT surname,firstname,othername,department,job,ihrisdata.ihris_pid as pid,ihrisdata.facility_id as facid, ihrisdata.facility as fac, time_in ,  time_out,clk_log.date as date  from clk_log, ihrisdata WHERE ihrisdata.ihris_pid=clk_log.ihris_pid and clk_log.date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob order by surname ASC, clk_log.date ASC $limit"); 
+      $query=$this->db->query("SELECT *  from clk_diff WHERE date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob order by surname ASC, date ASC $limit"); 
   
       $data=$query->result();
       

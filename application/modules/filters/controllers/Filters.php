@@ -45,7 +45,7 @@ class Filters extends MX_Controller{
             $division="";
         }
         if(!empty($section)){
-            $section="and ihrisdata.division='$section'";
+            $section="and ihrisdata.section='$section'";
         }
         else{
             $section="";
