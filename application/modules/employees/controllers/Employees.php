@@ -149,11 +149,16 @@ class Employees extends MX_Controller{
       } 
 
       if ($hours_worked<0){ 
-        $hours = ($hours_worked*-1) .'hr(s)'; 
+        $hours = ($hours_worked*-1); 
       } 
       else { 
-        $hours = $hours_worked.'hr(s)'; 
+        $hours = $hours_worked;
       } 
+
+      if(!empty($hours_worked)){
+          
+      }
+
 
         $days =array("NAME"=>$data->surname." ".$data->firstname." ". $data->othername,"JOB"=>$data->job, "FACILITY"=>$data->fac,"DEPARTMENT"=>$data->department, "DATE"=>$data->date, "TIME IN"=>$data->time_in,"TIME OUT"=>$data->time_out,"HOURS WORKED"=>$hours);
         array_push($records,$days);
@@ -340,20 +345,20 @@ class Employees extends MX_Controller{
             $date=date('Y-m');
         }
         ini_set('max_execution_time', 0);
-
         $datas= $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,str_replace("emp","",urldecode($employee)),$this->filters,str_replace("job","",$job));
         $csv_file = "Attend_TimeLogs" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
         header("Content-Type: text/csv");
         header("Content-Disposition: attachment; filename=\"$csv_file\"");	
         $fh = fopen( 'php://output', 'w' );
         $records=array();//output each row of the data, format line as csv and write to file pointer
-        
+        $month_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);//days in a month
          foreach($datas as $data){
-            $month_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);//days in a month
-
+            $personhrs=array();
+            $days_worked=array();
             for($i=1;$i<=$month_days;$i++){// repeating td
                 $day="day".$i;  //changing day $i;
                  $hours_data =$data[$day]; 
+               //  print_r($hours_data);
                  if(!empty($hours_data))
                  {
                     $Time_data= array();
@@ -372,22 +377,25 @@ class Employees extends MX_Controller{
                         $hours_worked = round(($final_time - $initial_time),1);     
                       }
                     if ($hours_worked<0){ 
-                        echo $hours_worked=$hours_worked*-1; 
+                        $hours_worked=$hours_worked*-1; 
                     } 
                     elseif ($hours_worked==-0){ 
-                        echo $hours_worked=0; 
+                         $hours_worked=0; 
                     } 
                     else { 
-                        echo $hours_worked; 
+                        $hours_worked; 
                     } 
+                    if(!empty($hours_data)){
+                        $wdays=1;
+                    array_push($days_worked,$wdays);
+                    }
                     array_push($personhrs,$hours_worked);
                         
                  }
             }
+           // print_r($data['fullname']);
 
-         
-    
-            $days =array("NAME"=>$data->surname." ".$data->firstname." ". $data->othername,"JOB"=>$data->job, "FACILITY"=>$data->fac,"DEPARTMENT"=>$data->department,  "HOURS WORKED"=>array_sum($personhrs));
+            $days =array("NAME"=>$data['fullname'],"JOB"=>$data['job'], "FACILITY"=>$data['facility'],"DEPARTMENT"=>$data['department'], "PERIOD"=>$date, "DAYS WORKED"=>array_sum($days_worked), "HOURS WORKED"=>array_sum($personhrs));
             array_push($records,$days);
         }
         $is_coloumn = true;
@@ -402,9 +410,9 @@ class Employees extends MX_Controller{
            fclose($fh);
         }
         exit;  
+ }
         
 
-    }
 
 
     public function test(){
@@ -464,7 +472,7 @@ class Employees extends MX_Controller{
 
         $this->load->library('pagination');
         $config=array();
-        $config['base_url']=base_url()."employees/timesheet";
+        $config['base_url']=base_url()."employees/timesheet/";
         $config['total_rows']=$this->empModel->countTimesheet($date,$this->filters);
         $config['per_page']=20; //records per page
         $config['uri_segment']=3; //segment in url
