@@ -102,14 +102,14 @@ table.minimalistBlack tfoot td {
                         <td>DEPARTMENT</td>
                         <td> <p><?php echo $employee->department; ?></p></td>
                         </tr>
-                        <tr>
+                        <!-- <tr>
                         <td>DIVISION</td>
-                        <td><p><?php echo $employee->division; ?></p></td>
+                        <td><p><?php //echo $employee->division; ?></p></td>
                         </tr>
                         <tr>
                         <td>UNIT</td>
-                        <td><p><?php echo $employee->unit; ?></p></td>
-                        </tr>
+                        <td><p><?php //echo $employee->unit; ?></p></td>
+                        </tr> -->
                         <tr>
                         <td >PERIOD</td>
                         <td> <h5><i>From: <?php echo date('j F,Y', strtotime( $this->uri->segment(4)));  ?>    To: <?php echo date('j F,Y', strtotime( $this->uri->segment(5))); ?></i></h5>

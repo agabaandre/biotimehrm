@@ -44,8 +44,8 @@
                                             
                                               <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
                                               <td data-label="ATTENDANCE"><a class="btn btn-sm btn-default btn-outline"
-                                                   href="<?php echo base_url(); ?>employees/employeeTimeLogs/<?php echo urlencode($staff->ihris_pid); ?>">Attendance
-                                             Report</a></td>
+                                                   href="<?php echo base_url(); ?>employees/employeeTimeLogs/<?php echo urlencode($staff->ihris_pid); ?>">
+                                                   <i class="fa fa-eye" aria-hidden="true"></i> Report</a></td>
                                              
                                               </tr>
                                               <?php   } ?>
