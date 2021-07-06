@@ -526,11 +526,11 @@ Class Employee_model extends CI_Model
 	}
     public function count_monthlytimelogs($search_data,$filter){
        
-		$rows=$this->getTimeLogs($limit=false,$start=FALSE,$search_data,$filter);
+		$rows=$this->groupmonthlyTimeLogs($limit=false,$start=FALSE,$search_data,$filter);
 		return count($rows);
 		
 	}
-    public function getmonthlyTimeLogs($limit,$start,$search_data,$filter){
+    public function groupmonthlyTimeLogs($limit,$start,$search_data,$filter){
         
 
         if(empty($search_data['date_from'])){
@@ -566,7 +566,7 @@ Class Employee_model extends CI_Model
         else{
          $limit="";   
         }
-      $query=$this->db->query("SELECT *  from clk_diff WHERE date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob order by surname ASC, date ASC $limit"); 
+      $query=$this->db->query("SELECT k.*, SUM(k.time_diff) as m_timediff  from clk_diff k WHERE date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob GROUP BY pid, DATE_FORMAT(date, '%Y-%m') order by surname ASC, date ASC $limit"); 
   
       $data=$query->result();
       
@@ -718,42 +718,39 @@ Class Employee_model extends CI_Model
         foreach($rows as $row){
 
             $id= $row['ihris_pid'];
-
-                $query=$this->db->query("select  
-                t.date, t.ihris_pid,
-                max(t.day1) as day1,
-                max(t.day2)as day2,
-                max(t.day3)as day3,
-                max(t.day4)as day4,
-                max(t.day5)as day5,
-                max(t.day6)as day6,
-                max(t.day7)as day7,
-                max(t.day8)as day8,
-                max(t.day9)as day9,
-                max(t.day10)as day10,
-                max(t.day11)as day11,
-                max(t.day12)as day12,
-                max(t.day13)as day13,
-                max(t.day14)as day14,
-                max(t.day15)as day15,
-                max(t.day16)as day16,
-                max(t.day17)as day17,
-                max(t.day18)as day18,
-                max(t.day19)as day19,
-                max(t.day20)as day20,
-                max(t.day21)as day21,
-                max(t.day22)as day22,
-                max(t.day23)as day23,
-                max(t.day24)as day24,
-                max(t.day25)as day25,
-                max(t.day26)as day26,
-                max(t.day27)as day27,
-                max(t.day28)as day28,
-                max(t.day29)as day29,
-                max(t.day30)as day30,
-                max(t.day31)as day31,
-                concat(hr.surname,' ',hr.firstname) as fullname, hr.job as job, hr.facility as facility, hr.department as department from time_sheet t,
-  ihrisdata hr where hr.ihris_pid=t.ihris_pid and t.ihris_pid='$id' and  t.date like '$valid_range-%'");
+            $query=$this->db->query("select  
+            date, ihris_pid,
+            max(day1) as day1,
+            max(day2)as day2,
+            max(day3)as day3,
+            max(day4)as day4,
+            max(day5)as day5,
+            max(day6)as day6,
+            max(day7)as day7,
+            max(day8)as day8,
+            max(day9)as day9,
+            max(day10)as day10,
+            max(day11)as day11,
+            max(day12)as day12,
+            max(day13)as day13,
+            max(day14)as day14,
+            max(day15)as day15,
+            max(day16)as day16,
+            max(day17)as day17,
+            max(day18)as day18,
+            max(day19)as day19,
+            max(day20)as day20,
+            max(day21)as day21,
+            max(day22)as day22,
+            max(day23)as day23,
+            max(day24)as day24,
+            max(day25)as day25,
+            max(day26)as day26,
+            max(day27)as day27,
+            max(day28)as day28,
+            max(day29)as day29,
+            max(day30)as day30,
+            max(day31)as day31,fullname, job, facility, department from time_sheet  where ihris_pid='$id' and  date like '$valid_range-%'");
 
             $rowdata=$query->result_array();
 

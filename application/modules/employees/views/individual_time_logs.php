@@ -1,20 +1,5 @@
-<script>
-$('.datepicker').datepicker({
-    format: 'mm/dd/yyyy',
-    startDate: '-3d'
-});
-</script>
-
-<?php 
-//  $timelogs=Modules::run('employees/getTimeLogs');
-
-  //print_r($timelogs);
-?>
-
-
 
 <!-- Contains page content -->
-<div class="dashtwo-order-area" style="padding-top: 10px;">
     <div class="container-fluid">
         <div class="row">
             <script>
@@ -22,77 +7,110 @@ $('.datepicker').datepicker({
                 responsive: true
             });
             </script>
-            <div class="col-lg-12">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Time Logs <h3>
+      <section class="col-lg-12">
+            <!-- Custom tabs (Charts with tabs)-->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+               
+                <div class="card-tools">
+                
+                  <form class="form-horizontal" action="<?php echo base_url(); ?>employees/employeeTimeLogs/<?php echo $this->uri->segment(3); ?>" method="post">
+                
+                  <div class="row">
+                    <div class="form-group col-md-4">
+                    <label>Date From:</label>
 
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                        </div>
+                        <input type="text"  name="date_from" class="form-control datepicker" value="<?php echo date("Y-m-d",strtotime("-1 month")); ?>" autocomplete="off">
                     </div>
-                    <div class="panel-body">
+                    <!-- /.input group -->
+                    </div>
+                    <div class="form-group col-md-4">
+                    <label>Date To:</label>
 
-                        <div class="row">
-
-                            <form class="form-horizontal" id="limitsform" method="post"
-                                action="<?php echo base_url(); ?>employees/employeeTimeLogs/<?php echo $this->uri->segment(3); ?>">
-                                <div class="form-group col-md-2" style="margin-left:0.5em; margin-right:0.2em;">
-                                    <div class="form-group">
-
-                                        <div class="input-group date" data-provide="datepicker">
-                                            <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-                                            <input type="text" class="form-control"
-                                                value="<?php echo date('m').'/'.'01'.'/'.date('Y');?>" name="date_from"
-                                                class="form-control" required>
-
-                                        </div>
-                                        <label>Date (from)</label>
-                                    </div>
-
-                                </div>
-
-                                <div class="form-group col-md-2" style="margin-left:0.5em; margin-right:0.2em;">
-                                    <div class="form-group">
-                                        <div class="input-group date" data-provide="datepicker">
-                                            <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-                                            <input type="text" class="form-control" value="<?php echo date('m/d/Y');?>"
-                                                name="date_to" class="form-control" required>
-
-                                        </div>
-                                        <label>Date (to)</label>
-                                    </div>
-
-
-                                </div>
-
-                                <div class="form-group col-md-2" style="margin-left:0.5em; margin-top:0.3em;">
-                                    <button type="submit" class="btn btn-success"><i
-                                            class="fa fa-search"></i>Search</button>
-                                </div>
-
-
-                            </form>
-
-
-                            <a class="btn btn-success fa fa-print btn-sm" style="margin-left: 87%"
-                                href="<?php echo base_url(); ?>employees/printindividualTimeLogs/<?php echo $this->uri->segment(3); ?>/<?php echo date("Y-m-d", strtotime($from)); ?>/<?php echo date("Y-m-d", strtotime($to)); ?>/1">Print This View</a>
-
-
-                            <a class="btn btn-success fa fa-print btn-sm" style="margin-left:50px; margin-bottom:80px;"
-                                href="<?php echo base_url(); ?>employees/printindividualTimeLogs/<?php echo $this->uri->segment(3); ?>/<?php echo date("Y-m-d", strtotime($from)); ?>/<?php echo date("Y-m-d", strtotime($to)); ?>/2">Print Detailed View</a>
-
-
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
                         </div>
+                        <input type="text"  name="date_to" class="form-control datepicker "  value="<?php echo date('Y-m-d'); ?>" autocomplete="off">
+                    </div>
+                    <!-- /.input group -->
+                    </div>
+                 
+                        
+    
+                <div class="form-group col-md-4">
+                <div class="form-group col-md-3" style="margin-top:7px;">
+                    <label></label>
+                <button type="submit" class="btn bt-sm bg-gray-dark color-pale"  style="width:200px;"><i class="fa fa-tasks" aria-hidden="true"></i>Apply</button>
+               
+              </div>
 
-                        <div class="row" style="float: left;">
-                            <div class="col-md-4">
-                                <h4><?php echo $employee->surname." ".$employee->firstname; ?></h4>
-                            </div>
-                            <div class="col-md-4">
-                                <h4><?php echo $employee->job; ?></h4>
-                            </div>
-                            <div class="col-md-4">
-                                <h4><?php echo $employee->facility; ?></h4>
-                            </div>
-                        </div>
+              </div>
+       
+            
+              </form>
+
+               
+                        
+              </div><!-- /.card-header -->
+              <?php if($this->input->post('date_from')) { ?>
+             <a class="btn bt-sm bg-gray-dark color-pale" style="width:200px;" target="_blank"
+             href="<?php echo base_url(); ?>employees/printindividualTimeLogs/<?php echo $this->uri->segment(3); ?>/<?php echo date("Y-m-d", strtotime($from)); ?>/<?php echo date("Y-m-d", strtotime($to)); ?>/1"><i class="fa fa-print"></i>Print This View</a>
+
+
+            <a class="btn bt-sm bg-gray-dark color-pale" style="width:200px;" target="_blank"
+             href="<?php echo base_url(); ?>employees/printindividualTimeLogs/<?php echo $this->uri->segment(3); ?>/<?php echo date("Y-m-d", strtotime($from)); ?>/<?php echo date("Y-m-d", strtotime($to)); ?>/2"><i class="fa fa-print"></i>Print Detailed View</a>
+
+              <?php } ?>
+         
+              
+             </p>
+              </div>
+              </div>
+              <div class="card-body">
+              <p class="panel-title" style="font-weight:bold; font-size:16px; text-align:center;">	ATTENDANCE LOG FOR
+
+                        <?php
+                        echo " - ".$_SESSION['facility_name']." BEWTWEEN "; 
+
+                        if($this->input->post('date_from')){
+                          echo $this->input->post('date_from') ." AND ";
+                        }
+                        else{
+                          echo date("Y-m-d",strtotime("-1 month"))." AND ";
+                        }
+                        if($this->input->post('date_to')){
+                          echo $this->input->post('date_to');
+                        }
+                        else{
+                          echo date("Y-m-d");
+                        }
+
+
+                        ?>
+              </p>
+
+
+                <div class="row" style="float: left;">
+                    <div class="col-md-4">
+                        <h4><?php echo $employee->surname." ".$employee->firstname; ?></h4>
+                    </div>
+                    <div class="col-md-4">
+                        <h4><?php echo $employee->job; ?></h4>
+                    </div>
+                    <div class="col-md-4">
+                        <h4><?php echo $employee->facility; ?></h4>
+                    </div>
+                </div>
                            
                         <?php 
                           
@@ -279,10 +297,9 @@ $('.datepicker').datepicker({
             
 
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
+ </div>
+       
+  
 <?php 
 function totalDutys($totalDuty){
  $dutydays=$totalDuty;

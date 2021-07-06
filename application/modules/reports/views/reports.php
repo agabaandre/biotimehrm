@@ -28,7 +28,7 @@
                       <li><a href="<?php echo base_url()?>employees/timesheet">Monthly Timesheet</a><p> -Number of hours per for Each Health Worker in A month</p></li>
                       <li><a href="<?php echo base_url()?>employees/personlogs">Person Attendnce</a><p> - Printable Summary of Attedance to Duty by Employee</p></li>
                       <li><a href="<?php echo base_url()?>employees/viewTimeLogs">Daily Time Log Report </a><p> -Daily Time Logs </p></li>
-                      <li><a href="<?php echo base_url()?>employees/groupedTimeLogs">Group Monthly Time Log Report </a><p> -Group Monthly Time Logs </p></li>
+                      <li><a href="<?php echo base_url()?>employees/groupedTimeLogs">Monthly Time Log Report </a><p> -Monthly Time Logs </p></li>
                       <li><a href="<?php echo base_url()?>attendance/attendance_summary">Attendance Summary </a><p> -Aggregated by P - Present, O - Off Duty, L - Leave, A - Absent </p></li>
 
 					 

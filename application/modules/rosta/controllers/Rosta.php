@@ -176,7 +176,7 @@ class Rosta extends MX_Controller {
 		$config=array();
 	    $config['base_url']=base_url()."rosta/tabular";
 	    $config['total_rows']=Modules::run('employees/count_Staff');
-	    $config['per_page']=20; //records per page
+	    $config['per_page']=100; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
 		$config['full_tag_open'] = '<ul class="pagination">';
@@ -264,7 +264,7 @@ class Rosta extends MX_Controller {
 		$config=array();
 	    $config['base_url']=base_url()."rosta/fetch_report";
 	    $config['total_rows']=Modules::run('employees/count_Staff');
-	    $config['per_page']=20; //records per page
+	    $config['per_page']=50; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
 		$config['full_tag_open'] = '<ul class="pagination">';

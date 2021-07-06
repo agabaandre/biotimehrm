@@ -14,7 +14,7 @@
                
                 <div class="card-tools">
                 
-                  <form class="form-horizontal" action="<?php echo base_url() ?>employees/viewTimeLogs" method="post">
+                  <form class="form-horizontal" action="<?php echo base_url() ?>employees/groupedTimeLogs" method="post">
                 
                   <div class="row">
                     <div class="form-group col-md-3">
@@ -121,10 +121,10 @@
                                   <th>#</th>
                                   <th>NAME</th>
                                   <th>POSITION</th>
+                                  <th>FACILITY</th>
                                   <th>DEPARTMENT</th>
                                   <th>DATE</th>
-                                  <th>TIME IN</th>
-                                  <th>TIME OUT</th>
+                                
                                   <th width="30%">HOURS WORKED</th>
                                 
                               </tr>
@@ -143,20 +143,13 @@
                                 <td><?php echo $no; ?></td>
                                 <td><?php echo $timelog->surname." ".$timelog->firstname; ?></td>
                                 <td><?php echo $timelog->job; ?></td>
+                                <td><?php echo $timelog->facility; ?></td>
                                
                                 <td><?php echo $timelog->department; ?></td>
-                                <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
-                                <td><?php echo $time_in=$timelog->time_in; ?></td>
-                                <td><?php echo $time_out=$timelog->time_out; ?></td>
-                                <td><?php   $timew=explode(":",$timelog->time_diff);
-                                            $hours_worked=$timew[0];
-                                  if ($hours_worked<0){ 
-                                    echo $hours_worked=($hours_worked*-1) .'hr(s)'; 
-                                  } 
-                                  else { 
-                                    echo $hours_worked=$hours_worked.'hr(s)'; 
-                                  } 
-                                
+                                <td><?php echo date(' F,Y', strtotime($timelog->date)); ?></td>
+                              
+                                <td><?php  echo  $time=$timelog->m_timediff;
+                                  
                                 ?>
                                 
                                 
@@ -166,7 +159,9 @@
                                 <?php  } ?>
                             </tbody>
                           </table>
-
+                          <p class="pagination"><?php echo $links;
+              
+              ?></p>
                           </div><!-- /.card-body -->
             </div>
             <!-- /.card -->

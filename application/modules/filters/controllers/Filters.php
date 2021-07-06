@@ -59,6 +59,48 @@ class Filters extends MX_Controller{
         }
 return $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
     }
+    public function universalfilters()
+    {
+        $facility_id=$this->facility_id;
+        $department_id=$this->department_id;
+        $division=$this->division;
+        $unit=$this->unit;
+        $section=$this->section;
+
+        if(!empty($facility_id)){
+            $facility=" facility_id='$facility_id'";
+        }
+        else{
+            $facility="";
+        }
+        
+        if(!empty($department_id)){
+            $department="and department_id='$department_id'";
+        }
+        else{
+            $department="";
+        }
+        if(!empty($division)){
+            $division="and division='$division'";
+        }
+        else{
+            $division="";
+        }
+        if(!empty($section)){
+            $section="and section='$section'";
+        }
+        else{
+            $section="";
+        }
+
+        if(!empty($unit)){
+            $unit="and unit='$unit'";
+        }
+        else{
+            $unit="";
+        }
+return $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
+    }
 
     public function districtfilters()
     {

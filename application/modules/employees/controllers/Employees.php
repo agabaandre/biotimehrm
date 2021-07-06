@@ -10,9 +10,12 @@ class Employees extends MX_Controller{
         $this->user=$this->session->get_userdata();
         $this->load->library('pagination');
         $this->watermark=FCPATH."assets/img/MOH.png";
+        //requires a join on ihrisdata
         $this->filters=Modules::run('filters/sessionfilters');
-        $this->ufilters=Modules::run('filters/usessionfilters');
-        $this->ufilters=Modules::run('filters/districtfilters');
+        //doesnt require a join on ihrisdata
+        $this->ufilters=Modules::run('filters/universalfilters');
+        // requires a join on ihrisdata with district level
+        $this->distfilters=Modules::run('filters/districtfilters');
      
 	}
     public function filters(){
@@ -231,7 +234,7 @@ class Employees extends MX_Controller{
 	    
         $config=array();
         $config['base_url']=base_url()."employees/groupedTimeLogs";
-        $config['total_rows']=$this->empModel->count_monthlytimelogs($search_data,$this->filters);
+        $config['total_rows']=$this->empModel->count_monthlytimelogs($search_data,$this->ufilters);
         $config['per_page']=200; //records per page
         $config['uri_segment']=3; //segment in url  
         //pagination links styling
@@ -258,7 +261,7 @@ class Employees extends MX_Controller{
         $this->pagination->initialize($config);
         $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
         $data['links']=$this->pagination->create_links();
-	    $data['timelogs']=$this->empModel->getmonthlyTimeLogs($config['per_page'],$page,$search_data,$this->filters);
+	    $data['timelogs']=$this->empModel->groupmonthlyTimeLogs($config['per_page'],$page,$search_data,$this->ufilters);
 	
         $data['title']="Monthly Time Log Report";
         $data['uptitle']="Monthly Time Log Report";

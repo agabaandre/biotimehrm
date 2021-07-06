@@ -39,9 +39,7 @@
                    
                   
                   <div class="panel-body" style="overflow-x: scroll;">
-                   
-					<div class="col-md-12" style="padding-bottom:0.5em;">
-					
+                  
 					<div class="callout callout-success">
              
 
@@ -150,7 +148,7 @@
 				 </form>
 
 	  </div>
-					</div>
+				
 <span class="pull-left"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></span>		
 <h4 class="panel-title">	MONTHLY TIMESHEET 	
 
