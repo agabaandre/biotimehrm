@@ -12,6 +12,13 @@ class Attendance extends MX_Controller {
 		$this->load->model('attendance_model');
 		$this->departments=Modules::run("departments/getDepartments");
 		$this->attendModule="attendance";
+		$this->watermark=FCPATH."assets/img/MOH.png";
+		  //requires a join on ihrisdata
+		  $this->filters=Modules::run('filters/sessionfilters');
+		  //doesnt require a join on ihrisdata
+		  $this->ufilters=Modules::run('filters/universalfilters');
+		  // requires a join on ihrisdata with district level
+		  $this->distfilters=Modules::run('filters/districtfilters');
 		
 	}
 	public function attrosta($date_range,$person){
@@ -30,13 +37,10 @@ class Attendance extends MX_Controller {
 	
 
 	Public function attendance_summary(){	
-	    
-			    
+	 	    
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
 		$department=$this->input->post('department');
-
-		//for a dynamic one
 
 		if($month!="")
 		{
@@ -66,12 +70,11 @@ class Attendance extends MX_Controller {
 		$data['dates']=$date;
 
 		$data['facilities']=Modules::run("facilities/getFacilities");
-		$data['sums']=$this->attendance_model->attendance_summary($date);
+		$data['sums']=$this->attendance_model->attendance_summary($date,$this->filters);
 		$data['view']='attendance_summary';
 		$data['module']=$this->attendModule;
 		echo Modules::run('templates/main',$data);
 
-		//$this->load->view('attendance_summary',$data);
 	}
 	
 
@@ -120,19 +123,16 @@ fclose($fp);
 
 		//$data['username']=$this->username;
 
-		$data['sums']=$this->attendance_model->attendance_summary($date);
+		$data['sums']=$this->attendance_model->attendance_summary($date,$this->filters);
 
 		$html=$this->load->view('att_summary',$data,true);
 
 		$fac=$_SESSION['facility'];
-
 		$filename=$fac."att_summary_report_".$date.".pdf";
-
-
  		ini_set('max_execution_time',0);
  		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
- 
-
+		 $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		 $this->ml_pdf->pdf->showWatermarkImage = true;
  		ini_set('max_execution_time',0);
 		$this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
  
@@ -142,46 +142,40 @@ fclose($fp);
 
 	}
 	
-	
-	public function attCsv($valid_range){
-    
- 		$sums=$this->attendance_model->attendance_summary($valid_range);
 
-
-
- 		$fp = fopen('php://memory', 'w'); 
-
-		//add heading to data
-		$heading=array('person' =>"Staff Names" ,'R'=>"R", 'facility' =>' ', 'O' => "O", 'P' => "P", 'L' =>"L");
-
-		array_unshift($sums,$heading);
-
-		foreach ($sums as $sum) {
-	   
-			$data=array(); 
-			$data['person']=$sum['person'];
-			$data['R']=$sum['R'];
-			$data['O']=$sum['O'];
-			$data['P']=$sum['P'];
-			$data['L']=$sum['L'];
-			    
-			   fputcsv($fp, $data); 
-		}
-
-
-		$filename=$valid_range."att_summary_report.csv";
-
-		// reset the file pointer to the start of the file
-	    fseek($fp, 0);
-	    // tell the browser it's going to be a csv file
-	    header('Content-Type: application/csv');
-	    // tell the browser we want to save it instead of displaying it
-	    header('Content-Disposition: attachment; filename="'.$filename.'";');
-	    // make php send the generated csv lines to the browser
-	    fpassthru($fp);
-
-
-		fclose($fp);
+	public function attsums_csv($valid_range)
+	{
+		$datas=$this->attendance_model->attendance_summary($valid_range,$this->filters);
+    $csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
+	header("Content-Type: text/csv");
+	header("Content-Disposition: attachment; filename=\"$csv_file\"");	
+	$fh = fopen( 'php://output', 'w' );
+    $records=array();//output each row of the data, format line as csv and write to file pointer
+     foreach($datas as $data){
+		$roster=Modules::run('attendance/attrosta',$valid_range,urlencode($data['person_id']));
+		$present=$data['P'];
+        $eve=$roster['Evening'][0]->days;
+		$day=$roster['Day'][0]->days;
+		$night=$roster['Night'][0]->days;
+		$per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ $per = 0; } else{  $per; }
+        $days =array("Name"=>$data['person'], "Present"=>$present=$data['P'], "Off
+		Duty"=>$data['O'],
+		"Official
+		Request"=>$data['R'], "Leave"=>$data['L'], "Day Schedule"=>$day, "Evening Schedule"=>$eve,"Night Schedule"=>$night,"% Present"=>$per);
+        array_push($records,$days);
+    }
+    $is_coloumn = true;
+	if(!empty($records)) {
+	  foreach($records as $record) {
+		if($is_coloumn) {		  	  
+		  fputcsv($fh, array_keys($record));
+		  $is_coloumn = false;
+		}		
+		fputcsv($fh, array_values($record));
+	  }
+	   fclose($fh);
+	}
+	exit;  
 	}
 
 

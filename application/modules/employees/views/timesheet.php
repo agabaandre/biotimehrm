@@ -154,6 +154,10 @@
 
 <?php
 echo " - ".$_SESSION['facility_name']." "; 
+if(empty($month)){
+	$month=date('m');
+	$year=date('Y');
+}
 
 echo "              ".date('F, Y',strtotime($year."-".$month));
 
@@ -233,6 +237,7 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 						   	<?php echo $hours['fullname'];?>
 
 						   </span>
+						   
 						   <span class="cell" data-label="Position" ><?php $words=explode(" ",$hours['job']);
 
 								$letters="";

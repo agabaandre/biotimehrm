@@ -65,6 +65,9 @@ $userdata=$this->session->get_userdata();
     overflow-x: hidden;
     overflow-y: auto;
 }
+.callout.callout-success {
+    border-left-color: #207597 !important;
+}
   
   page-item.active .page-link {
     z-index: 3;

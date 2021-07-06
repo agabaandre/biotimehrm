@@ -390,61 +390,23 @@ class 	Attendance_model extends CI_Model {
 	}
 
     
-	Public function attendance_summary($valid_range){
-		$department=$this->department;
-		$facility=$this->session->userdata['facility'];
-		$division=$this->division;
-		$unit=$this->unit;
+	Public function attendance_summary($valid_range,$filters){
 
-			
-		if($department!==''){
-			$dep_filter="and ihrisdata.department_id='$department'";
-		}
-		else
-		{
-			$dep_filter=NULL;
-		}
-
-		if($department!==''){
-			$depr_filter="and leave_rota.department_id='$department'";
-		}
-		else
-		{
-			$depr_filter=NULL;
-		}
-
-
-		if($division!==''){
-			$div_filter="and ihrisdata.division='$division'";
-		}
-		else
-		{
-			$div_filter=NULL;
-		}
-
-		if($unit!==''){
-			$funit="and ihrisdata.unit='$unit'";
-		}
-		else
-		{
-			$funit=NULL;
-		}
+		if(!empty($this->input->post('empid'))){
+            $emp=$this->input->post('empid');
+            $emps="AND ihris_pid like'$emp' ";
+           }
+           else{
+            $emps="";   
+          }
 		
 	
-
 		$s=$this->db->query("select letter,schedule_id from schedules where  purpose='a'");
 
 		$schs=$s->result_array();
 
-		if($department){
-
-			$all=$this->db->query("select distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where facility_id='$facility' $dep_filter $div_filter $funit");
-		}
-
-		else{
-
-			$all=$this->db->query("select  distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where facility_id='$facility' $dep_filter $div_filter $funit");
-		}
+			$all=$this->db->query("select  distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filters $emps");
+		
 
 		$rows=$all->result_array();
 

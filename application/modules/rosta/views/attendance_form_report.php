@@ -16,41 +16,72 @@ foreach ($departments as $department) {
 
 
 
+<div class="container-fluid">
+        <div class="row">
+        	<div class="col-md-4">
+				<?php
 
-<!-- Contains page content -->
-<div class="dashtwo-order-area" style="padding-top: 10px; min-height: 35em;">
-  <div class="container-fluid">
-      <div class="row">
-          <div class="col-lg-12">
-              <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Daily Attendance Report <h3>
-                      
-                </div>
-                <div class="panel-body">
-                	<span  style="margin-left:0.6em;">
-					<b class="" style="font-weight:bold;font:1.2em;">Legend</b>
-					<p class="legend" style="margin:4px;">
-				
-					<b class="ltab">P=Present </b> 
-					<b class="ltab"> O=Off Duty </b>
-					<b class="ltab"> R=Official Request </b>
-					<b class="ltab"> L=Leave </b>
-				
-					</p>
+
+					function isWeekend($date) {
+
+					 $day=intval(date('N', strtotime($date)));
+
+					 if($day>= 6){
+					 return 'yes';
+					 };
+
+					 return 'no';
+					}
+
+
+
+					function dayState($day,$scheduled) {
+					$user=$_SESSION['role'];
+					//its today or day in the past
+					if(strtotime($day) < strtotime(date('Y-m-d')) && !empty($scheduled) && $user!=='sadmin'){								
+						$state="disabled";
+					}
+					else if(strtotime($day) < strtotime(date('Y-m-d')) && empty($scheduled) && $user!=='sadmin'){
+						$state="";
+					}
+					//if they are scheduled to work
+					if(strtotime($day) > strtotime(date('Y-m-d'))){								
+						$state="disabled";
+					}
+					echo $state;
+					}//color
+					if(count($duties)>0)
+					{
+					?>
+				<?php } ?>
+			</div>
+            <div class="col-lg-12">
+
+                <div class="panel panel-default">
+                  <div class="panel-body" style="overflow-x: scroll;">
+                    <span  style="margin-left:0.6em;">
+						<b class="" style="font-weight:bold;font:1.2em;">Legend</b>
+						<p class="legend" style="margin:4px;">
+					
+						<b class="ltab bg-gray-dark">P=Present </b> 
+						<b class="ltab bg-gray-dark"> O=Off Duty </b>
+						<b class="ltab bg-gray-dark"> R=Official Request </b>
+						<b class="ltab bg-gray-dark"> L=Leave </b>
+					
+						</p>
 					</span>
 					<hr>
 					<div class="col-md-12" style="padding-bottom:0.5em;">
-						<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/actualsreport" method="post">
+						<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/attfrom_report" method="post">
+						   <div class="row">
 							<div class="col-md-3">
+
 								<div class="control-group">
-
-									<input type="hidden" id="month" value="<?php echo $month; ?>">
-
-									<select class="form-control" name="month" onchange="this.form.submit()">
-
+									<input type="hidden" id="month" value="<?php echo $month; if(!empty($month)){$month=$month;}else{$month=date('Y');}; ?>">
+									<select class="form-control select2" name="month" onchange="this.form.submit()" >
+										
 										<option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
-								
+										
 										<option value="01">JANUARY</option>
 										<option value="02">FEBRUARY</option>
 										<option value="03">MARCH</option>
@@ -64,42 +95,47 @@ foreach ($departments as $department) {
 										<option value="11">NOVEMBER</option>
 										<option value="12">DECEMBER</option>
 									</select>
+								</div>
+							</div>
+							<div class="col-md-3">
+								<div class="control-group">
 
+								<?php $employees=Modules::run("employees/get_employees"); ?>
+									<select class="form-control select2" name="empid" select2>
+											<option value="NULL" selected disabled>Select Employee</option>
+
+											<?php foreach($employees as $employee){  ?>
+
+											<option value="<?php echo $employee->ihris_pid ?>"><?php echo $employee->surname.' '.$employee->firstname.' '.$employee->othername;?></option>
+
+											<?php }  ?>
+									</select>
+				       
 								</div>
 							</div>
 
-
 							<div class="col-md-3">
-
 								<div class="control-group">
-
-									<input type="hidden" id="year" value="<?php echo $year; ?>">
-
-									<select class="form-control" name="year" onchange="this.form.submit()">
-										
+									<input type="hidden" id="year" value="<?php echo $year; if(!empty($year)){$year=$year;}else{$year=date('Y');}; ?>">
+									<select class="form-control select2" name="year" onchange="this.form.submit()">
 										<option><?php echo $year; ?></option>
 
 											<?php for($i=-5;$i<=25;$i++){  ?>
 
 										<option><?php echo 2017+$i; ?></option>
 
-											<?php }  ?>
+												<?php }  ?>
 									</select>
-
 								</div>
 							</div>
-
-						
-
 							<div class="col-md-3">
 								<div class="control-group">
-									<input type="submit" name="" value="Load Month" class="btn btn-success">
+									<input type="submit" name="" value="Load Month" class="btn bg-gray-dark color-pale">
 								</div>
-							</div>
-
-							</form>
+						    </div>
 						</div>
-
+						</form>
+					</div>
 				<div class="col-md-12">
 
 					<div class="panel">

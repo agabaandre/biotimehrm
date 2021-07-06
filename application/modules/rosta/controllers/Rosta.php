@@ -873,7 +873,7 @@ class Rosta extends MX_Controller {
 	}
 	
 		
-	Public function actualsreport(){	
+	Public function attfrom_report(){	
 
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
@@ -907,7 +907,7 @@ class Rosta extends MX_Controller {
 		$config=array();
 	    $config['base_url']=base_url()."rosta/actualsreport";
 	    $config['total_rows']=$this->rosta_model->countActuals($date);
-	    $config['per_page']=15; //records per page
+	    $config['per_page']=50; //records per page
 	    $config['uri_segment']=3; //segment in url
 	    
 	    //pagination links styling
@@ -930,7 +930,7 @@ class Rosta extends MX_Controller {
 		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
 		$config['num_tag_open'] = '<li class="page-item">';
 		$config['num_tag_close'] = '</li>';
-        $config['use_page_numbers'] = true;
+        $config['use_page_numbers'] = false;
         
 	    $this->pagination->initialize($config);
 	    
@@ -961,7 +961,7 @@ class Rosta extends MX_Controller {
 		$data['matches']=$this->rosta_model->matches();
 		$data['checks']=$this->getChecks();
 		//$data['switches']=$this->switches();
-		$data['view']="actuals_report";
+		$data['view']="attendance_form_report";
 		$data['module']=$this->rostamodule;
 		echo Modules::run('templates/main',$data);
 	}
