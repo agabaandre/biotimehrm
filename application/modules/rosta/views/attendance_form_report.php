@@ -143,15 +143,15 @@ foreach ($departments as $department) {
 						<div class="panel-header">
 
 							<div class="col-md-2">
-									<!-- <?php 
-								if(count($duties)>0){
+									 <?php 
+								if(count($duties)>=0){
 
 									  $incomplete=0;
 									   
-									?> -->
-									<a href="<?php echo base_url() ?>rosta/print_actuals/<?php echo $year."-".$month; ?>" class="done btn btn-success btn-sm" target="_blank">
+									?> 
+									<a href="<?php echo base_url() ?>rosta/print_actuals/<?php echo $year."/".$month; ?>" class="btn btn-sm bg-gray-dark color-pale" target="_blank">
 									<i class="fa fa-print"></i> Print </a>
-										<!-- <?php    } ?>	 -->
+									<?php    } ?>	
 								</div>
 
 
@@ -168,10 +168,10 @@ foreach ($departments as $department) {
 							else{
 
 								?>
-								MONTHLY ACTUAL ATTENDANCE REPORT FOR HEALTH PERSONNEL
+								MONTHLY ATTENDANCE REPORT FOR HEALTH PERSONNEL
 
 								<?php
-								 echo " - ".$duties[0]['facility']."<br>"; 
+								 echo " - ".$_SESSION['facility'].""; 
 
 								echo "              ".date('F, Y',strtotime($year."-".$month));
 
@@ -193,16 +193,33 @@ foreach ($departments as $department) {
 				    <span class="cell">Name</span>
 					<span class="cell">Position</span>
 
-					<?php 
-						$monthdays = cal_days_in_month(CAL_GREGORIAN, $month, $year); // get days in a month
+				
+				<?php 
 
-						for($i=1;$i<($monthdays+1);$i++)
-						{
-						?>
+				$monthdays = cal_days_in_month(CAL_GREGORIAN, $month, $year); // get days in a month
 
-				<span class="cell" style="padding:0px; text-align: center; border: 1px solid;"><?php echo $i; ?></span>
-					
-					<?php } ?>
+					for($i=1;$i<($monthdays+1);$i++)
+					{		
+							
+							$dy=$i;
+
+							if($i<10){
+								$dy="0".$i;
+							}
+
+							$wekday=$year."-".$month."-".$dy;
+							
+							if(isWeekend($wekday)=='yes'){
+								$color="red";
+							}
+							else{
+								$color="";
+							}
+				?>
+
+	<span class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color; ?>"><?php echo $i; ?></span>
+
+<?php } ?>
 					
 
 				</div>	

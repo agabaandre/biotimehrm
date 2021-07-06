@@ -1,7 +1,7 @@
 
 <html>
 <head>
-    <title>Rota Report</title>
+    <title>Printable Duty Roster Report</title>
 <style>
 body {font-family: Arial;
 	font-size: 12pt;
@@ -111,7 +111,7 @@ function isWeekend($date) {
 		<td colspan=<?php echo $allcols; ?> style="border-right: 0; border-left: 0; border-top: 0;">
 			<h2>
 
-		  MONTHLY ATTENDANCE REPORT <br>
+		  MONTHLY DUTY ROSTER REPORT <br>
 
 			<?php
 			 echo $_SESSION['facility_name']." "; 

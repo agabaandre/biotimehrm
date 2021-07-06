@@ -13,8 +13,14 @@ class Rosta extends MX_Controller {
         $this->load->model('rosta_model');
         $this->rostamodule="rosta";
         $this->departments=Modules::run("departments/getDepartments");
-        $this->watermark=FCPATH."assets/images/watermark.png";
-		$this->filters=Modules::run('filters/sessionfilters');
+		$this->watermark=FCPATH."assets/img/MOH.png";
+        //requires a join on ihrisdata
+        $this->filters=Modules::run('filters/sessionfilters');
+        //doesnt require a join on ihrisdata
+        $this->ufilters=Modules::run('filters/universalfilters');
+        // requires a join on ihrisdata with district level
+        $this->distfilters=Modules::run('filters/districtfilters');
+		
     }
 
 	public function attendance_calenderFormat()
@@ -140,6 +146,7 @@ class Rosta extends MX_Controller {
 		
 		echo Modules::run("templates/main",$data);
 	}
+	
 
 	 public function tabular(){	
 
@@ -170,13 +177,13 @@ class Rosta extends MX_Controller {
 			$_SESSION['year']=date('Y');
 
 		}
-
+        $date=date('Y-m');
 	
 		$this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/tabular";
-	    $config['total_rows']=Modules::run('employees/count_Staff');
-	    $config['per_page']=100; //records per page
+	    $config['total_rows']=$this->rosta_model->count_tabs($date,$this->filters);
+	    $config['per_page']=50; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
 		$config['full_tag_open'] = '<ul class="pagination">';
@@ -263,7 +270,7 @@ class Rosta extends MX_Controller {
 		$this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/fetch_report";
-	    $config['total_rows']=Modules::run('employees/count_Staff');
+	    $config['total_rows']=$this->rosta_model->count_rosta($date,$this->filters);
 	    $config['per_page']=50; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
@@ -307,27 +314,32 @@ class Rosta extends MX_Controller {
 
 		//$data['switches']=$this->switches();
 		$data['module']=$this->rostamodule;
-		$data['view']="workschedules_report";
+		$data['view']="duty_report";
+		$data['title']="Duty Roster";
+		$data['uptitle']="Duty Roster Report";
 		
 		echo Modules::run('templates/main',$data);
 	}
 
 
 
-	Public function print_report($date){	
-
+	Public function print_roster($year,$month){	
+		$data['dates']=$year.'-'.$month;
+		$date=$data['dates'];
 	    $data['dates']=$date;
+		$data['month']=$month;
+		$data['year']=$year;
 	    
 		$this->load->library('ML_pdf');
 
 		$data['username']=$this->username;
 		$data['checks']=$this->checks;
 
-		$data['duties']=$this->rosta_model->fetch_report($date,10000,0);
+		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page']=FALSE,$page=FALSE,$empid=FALSE,$this->filters);
 
 		$data['matches']=$this->rosta_model->matches();
 		
-		$html=$this->load->view('rosta/printable',$data,true);
+		$html=$this->load->view('rosta/rosta_printable',$data,true);
 
 		$fac=$data['duties'][0]['facility'];
 		$date=date('F-Y',strtotime($data['duties'][0]['day1']));
@@ -940,9 +952,10 @@ class Rosta extends MX_Controller {
 		
 		$data['departments']=$this->departments; 
 
-		$data['facilities']=Modules::run("facilities/getFacilities");
 
-		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$empid=NULL,$this->filters);
+		$data['facilities']=Modules::run("facilities/getFacilities");
+		$empid=$this->input->post('empid');
+		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$empid,$this->filters);
 		$actualrows=$this->rosta_model->getActuals($date,$this->filters);
 		$actuals=array();
 		
@@ -962,21 +975,24 @@ class Rosta extends MX_Controller {
 		$data['checks']=$this->getChecks();
 		//$data['switches']=$this->switches();
 		$data['view']="attendance_form_report";
+		$data['title']="Monthly Attendance Form";
+		$data['uptitle']="Monthly Attendance Form Report";
 		$data['module']=$this->rostamodule;
 		echo Modules::run('templates/main',$data);
 	}
 	
 
-	Public function print_actuals($date){	
+	Public function print_actuals($year,$month){	
 
-	    $data['dates']=$date;
+	    $data['dates']=$year.'-'.$month;
+		$date=$data['dates'];
 	    
 		$this->load->library('ML_pdf');
 
 
-		$data['duties']=$this->rosta_model->fetch_report($date,10000,0);
+		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page']=FALSE,$page=FALSE,$empid=FALSE,$this->filters);
 		
-		$actualrows=$this->rosta_model->getActuals();
+		$actualrows=$this->rosta_model->getActuals($date);
 		$actuals=array();
 		
 		foreach($actualrows as $actual){
@@ -988,6 +1004,9 @@ class Rosta extends MX_Controller {
 		}
 		
 		$data['actuals']=$actuals;
+		$data['month']=$month;
+		$data['year']=$year;
+
 		
 		$html=$this->load->view('actual_printable',$data,true);
 

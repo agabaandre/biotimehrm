@@ -72,6 +72,8 @@ class Attendance extends MX_Controller {
 		$data['facilities']=Modules::run("facilities/getFacilities");
 		$data['sums']=$this->attendance_model->attendance_summary($date,$this->filters);
 		$data['view']='attendance_summary';
+		$data['title']='Attendance Form Summary';
+		$data['uptitle']='Attendance Form Summary';
 		$data['module']=$this->attendModule;
 		echo Modules::run('templates/main',$data);
 

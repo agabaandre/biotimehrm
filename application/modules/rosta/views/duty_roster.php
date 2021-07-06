@@ -159,7 +159,7 @@ if(count($duties)>0)
 </div>
 				<style>
                       .btnkey{
-                      width:15%;
+                      min-width:100px;;
                       color:#fff;
                       margin:2px;
 					  font-size: 11px;

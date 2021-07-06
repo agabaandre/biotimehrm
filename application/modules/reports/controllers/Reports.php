@@ -10,7 +10,7 @@ class Reports extends MX_Controller {
 
 		$this->load->model('reports_mdl');
 		$this->module="reports";
-		$this->title="Attendance Reports";
+		$this->title="Reports";
 
 
 	}
@@ -19,6 +19,8 @@ class Reports extends MX_Controller {
 
 		//$data['requests']=$this->requests;
 		$data['title']=$this->title;
+		$data['uptitle']="Reports";
+		
 		$data['view']='reports';
 		$data['module']=$this->module;
 		echo Modules::run('templates/main', $data);

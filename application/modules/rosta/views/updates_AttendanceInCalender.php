@@ -11,7 +11,7 @@
 
                      <p class="" style="text-align: left; margin-top: 5px; font-weight: bold; font-size: 1rem;">Attendance</p>
                      <hr style="color:#15b178;">
-                     <p class="" style="text-align: center; margin-top: 5px; font-weight:; font-size: 1.4rem;">Key</p>
+                     <p class="" style="text-align: center; margin-top: 5px;  font-size: 1.4rem;">Key</p>
                   <?php  $colors=Modules::run('schedules/getrosterKey'); ?>
                   <div class="col-lg-12" style="text-align:center;">
                     <p style="text-align:center; font-weight:bold; font:14rem;"></p>

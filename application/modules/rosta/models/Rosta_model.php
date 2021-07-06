@@ -176,6 +176,10 @@ public function __Construct(){
 		return ($this->db->affected_rows()!=1)?false:true;
 	}
 
+  public function count_rosta($date_range,$filter){
+	  return count($this->fetch_report($date_range,$start=NULL,$limit=NULL,$employee=NULL,$filter));
+  }
+
 
   
 
@@ -210,8 +214,16 @@ public function __Construct(){
 		 else{
 			 $search="";
 		 }
+		 if(!empty($limit)){
+            $limit=" LIMIT $limit,$start";
+			//$this->db->where('ihris_pid',$employee);
+		 }
+		 else{
+			 $limit="";
+		 }
+		 
 	        // Modify the view to cater for division, section and unit
-			$all=$this->db->query("select distinct dutyreport.ihris_pid from dutyreport,ihrisdata where $filter and ihrisdata.ihris_pid=dutyreport.ihris_pid and dutyreport.duty_date like '$valid_range-%' $search LIMIT $limit,$start");
+			$all=$this->db->query("select distinct dutyreport.ihris_pid from dutyreport,ihrisdata where $filter and ihrisdata.ihris_pid=dutyreport.ihris_pid and dutyreport.duty_date like '$valid_range-%' $search $limit");
 		
 		if($this->user['role']=='employee'){
 			$rows=array('1');
@@ -344,7 +356,9 @@ public function __Construct(){
 
 	 }
 
-
+    public function count_tabs($date_range,$filters){
+		return count($this->fetch_tabs($date_range,$start=FALSE,$limit=FALSE,$employee=FALSE,$filters));
+	}
 
 	Public function fetch_tabs($date_range,$start,$limit,$employee=FALSE,$filters){	
 
@@ -374,13 +388,19 @@ public function __Construct(){
 		if(!empty($employee)){
             $search="and ihrisdata.ihris_pid='".$employee."'";
 		}
-        $qry=$this->db->query("SELECT * from dutyreport, ihrisdata where $filters and ihrisdata.facility_id=dutyreport.facility_id and duty_date like '$valid_range-%'");
+		if(!empty($start)){
+            $limit=" LIMIT $limit,$start";
+		}
+		else{
+			$limit=" ";
+		}
+        $qry=$this->db->query("SELECT * from dutyreport, ihrisdata where $filters and ihrisdata.facility_id=dutyreport.facility_id and duty_date like '$valid_range-%' ");
 		
 		$rowno=$qry->num_rows();
 
 		if($rowno<1){
 			
-		$query=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search  order by surname ASC LIMIT $limit,$start");
+		$query=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search  order by surname ASC  $limit");
 	
 		$data=$query->result_array();
 

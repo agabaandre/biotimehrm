@@ -115,7 +115,7 @@
 					if(count($sums)>0)
 					{
 					?>
-								<a href="<?php echo base_url(); ?>attendance/attsums_csv/<?php echo $year."-".$month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
+								<a href="<?php echo base_url(); ?>attendance/attCsv/<?php echo $year."-".$month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
 					<?php } ?>
         </div>
 
@@ -134,7 +134,7 @@
 ?>
 <div class="col-md-3" style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></div>
 	<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0;">
-		<p style="font-size: 16px; font-weight:bold; margin:0 auto; margin-bottom:10px; text-align:center;">
+		<p style="font-size: 16px; font-weight:bold; margin:0 auto; ">
 <?php 
 if(count($sums)<1)
 {
@@ -153,7 +153,6 @@ else{
 <div class="header-row tbrow">
     <span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
     <span class="cell stcell   cname">Name</span>
-	<span class="cell stcell   cname">Job</span>
     <span class="cell stcell ">Present</span>
 	<span class="cell stcell ">Off Duty</span>
 	<span class="cell stcell ">Official Request</span>
@@ -172,7 +171,6 @@ foreach($sums as $sum) {?>
     <span class="cell stcell  tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no;?>
 	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['person'];?></span></b>
 </span>
-
     <span class="cell stcell  cname" data-label="Name"><?php echo $sum['person'];?></span>
     <span class="cell stcell " data-label="P"><?php echo $present=$sum['P'];?></span>
     <span class="cell stcell " data-label="O"><?php echo $sum['O'];?></span>
