@@ -108,6 +108,7 @@ font-size:6px !important;
 body::-webkit-scrollbar-track
 {
 	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+   box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3); 
 	background-color: #F5F5F5;
 }
 
@@ -131,6 +132,7 @@ body::-webkit-scrollbar-thumb
 .sido::-webkit-scrollbar-track
 {
 	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3) !important;
+       box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3); 
 	background-color: #F5F5F5;
 }
 
