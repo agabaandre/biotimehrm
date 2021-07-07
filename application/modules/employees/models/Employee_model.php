@@ -710,7 +710,7 @@ Class Employee_model extends CI_Model
          }
 
 
-        $all=$this->db->query("SELECT distinct(ihris_pid) from ihrisdata where $filter $search $jsearch order by surname ASC $limit");
+        $all=$this->db->query("SELECT distinct(ihris_pid),surname,firstname from ihrisdata where $filter $search $jsearch order by surname ASC $limit");
 
 
         $rows=$all->result_array();

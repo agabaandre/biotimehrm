@@ -120,6 +120,8 @@ endif;
 }
 
 public function biotimeClockin(){
+  ignore_user_abort(true);
+  ini_set('max_execution_time',0);
   $areas=$this->db->get('biotime_devices')->result();
   foreach($areas as $area){
   $query=$this->db->query("REPLACE INTO clk_log (
@@ -147,7 +149,8 @@ echo $area->area_name. " Checkin " .$this->db->affected_rows();
   }
 }
 public function biotimeClockout(){
-
+ignore_user_abort(true);
+ini_set('max_execution_time',0);
  $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state!=0 OR punch_state='Check Out') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT entry_id from clk_log) ");
  $entry_id=$query->result();
 
@@ -163,7 +166,8 @@ echo $this->db->affected_rows();
 }
 
 public function markAttendance(){
-
+ignore_user_abort(true);
+ini_set('max_execution_time',0);
 //poplulate actuals
 $query=$this->db->query("INSERT INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color,
  actuals.date, actuals.end,stream ) SELECT DISTINCT CONCAT( clk_log.date, ihrisdata.ihris_pid ) AS entry_id, ihrisdata.facility_id, 
@@ -183,6 +187,8 @@ $query=$this->db->query("INSERT INTO actuals( entry_id, facility_id, department_
 }
 //monthly
 public function rostatoAttend(){
+  ignore_user_abort(true);
+  ini_set('max_execution_time',0);
   //To set custom month uncomment below and set  ymonth of choice
   //$ymonth="2019-08"."-";
   // comment  the file below on line 145 if custom ymonth is set.
@@ -235,6 +241,8 @@ public function rostatoAttend(){
 }
 //Annual
 public function publicdaystoAttend(){
+  ignore_user_abort(true);
+  ini_set('max_execution_time',0);
   //uncomment and set $year on line 195
   //$year="";
   //comment below(197) if $year above(195) is set

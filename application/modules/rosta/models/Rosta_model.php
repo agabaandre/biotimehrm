@@ -629,46 +629,9 @@ public function __Construct(){
 	}
 
 
-	Public function fetch_summary($valid_range){	
+	Public function fetch_summary($valid_range, $filter){	
 
-		$department=$this->department;
-		$facility=$this->session->userdata['facility'];
-		$division=$this->division;
-		$unit=$this->unit;
-
-			
-		if((!empty($department))){
-			$dep_filter="and ihrisdata.department_id='$department'";
-		}
-		else
-		{
-			$dep_filter="";
-		}
-
-		if((!empty($department))){
-			$depr_filter="and duty_rosta.department_id='$department'";
-		}
-		else
-		{
-			$depr_filter="";
-		}
-
-
-		if ((!empty($division))){
-			$div_filter="and ihrisdata.division='$division'";
-		}
-		else
-		{
-			$div_filter="";
-		}
-
-		if ((!empty($unit))){
-			$funit="and ihrisdata.unit='$unit'";
-		}
-		else
-		{
-			$funit="";
-		}
+	
 
 
 		if(empty($valid_range)){
@@ -681,16 +644,10 @@ public function __Construct(){
 
 		$schs=$s->result_array();
 
-		 if(!empty($department)){
 
-		 	$all=$this->db->query("select distinct ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where facility_id='$facility' $dep_filter $div_filter $funit");
-		 }
+			$all=$this->db->query("select distinct ihris_pid, facility, concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filter");
 
-		else{
-
-			$all=$this->db->query("select distinct ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where facility_id='$facility'");
-
-		}
+		
 
 		$rows=$all->result_array();
 
@@ -704,14 +661,15 @@ public function __Construct(){
 
 			$id=$row['ihris_pid'];
 
-			$mydata["person"]=$row['fullname'];
+			 $mydata["person"]=$row['fullname'];
+			 $mydata['facility']=$row['facility'];
 
 			foreach($schs as $sc){
 				$i++;
 
 				$s_id=$sc['schedule_id'];
 
-				$query=$this->db->query("select ihrisdata.ihris_pid,dutyreport.duty_date, schedules.letter,dutyreport.entry_id,schedules.schedule,ihrisdata.job,ihrisdata.facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,count(dutyreport.schedule_id) as days from dutyreport,schedules,ihrisdata WHERE( dutyreport.duty_date like '$valid_range-%' and dutyreport.schedule_id=schedules.schedule_id and dutyreport.ihris_pid=ihrisdata.ihris_pid and dutyreport.facility_id='$facility' and dutyreport.ihris_pid='$id' and schedules.schedule_id='$s_id' and dutyreport.duty_date like '$valid_range%')");
+				$query=$this->db->query("select ihrisdata.ihris_pid,dutyreport.duty_date, schedules.letter,dutyreport.entry_id,schedules.schedule,count(dutyreport.schedule_id) as days from dutyreport,schedules, ihrisdata WHERE( dutyreport.duty_date like '$valid_range-%' and dutyreport.schedule_id=schedules.schedule_id and dutyreport.ihris_pid=ihrisdata.ihris_pid and dutyreport.ihris_pid='$id' and schedules.schedule_id='$s_id' and dutyreport.duty_date like '$valid_range%')");
 		
 				$rows=$this->db->affected_rows();
 
@@ -720,7 +678,7 @@ public function __Construct(){
 				//$mydata=array('person'.$i=>$rowdata[0]['fullname'],'shift'=>$rowdata[0]['schedule'],'days'=>$rowdata[0]['days']);
 
 				$mydata[$rowdata[0]['letter']]=$rowdata[0]['days'];
-				$mydata['facility']=$rowdata[0]['facility'];
+				
 			}
 
 			array_push($data,$mydata);

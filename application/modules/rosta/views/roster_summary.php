@@ -36,176 +36,140 @@
     
     
 </style>
-
-
-
-
- 
-  <div class="col-md-12" style="padding-bottom:0.5em;">
-		    <form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/summary" method="post">
-				<div class="col-md-3">
-
-				<div class="control-group">
-
-					<input type="hidden" id="month" value="<?php echo $month; ?>">
-
-				<select class="form-control" name="month" onchange="this.form.submit()" >
-
-					<option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
-					
-<option value="01">JANUARY</option>
-<option value="02">FEBRUARY</option>
-<option value="03">MARCH</option>
-<option value="04">APRIL</option>
-<option value="05">MAY</option>
-<option value="06">JUNE</option>
-<option value="07">JULY</option>
-<option value="08">AUGUST</option>
-<option value="09">SEPTEMBER</option>
-<option value="10">OCTOBER</option>
-<option value="11">NOVEMBER</option>
-<option value="12">DECEMBER</option>
-				</select>
-
-				</div>
-
-</div>
-
-
-			<div class="col-md-3">
-
-				<div class="control-group">
-
-						<input type="hidden" id="year" value="<?php echo $year; ?>">
-
-				<select class="form-control" name="year" onchange="this.form.submit()">
-					
-<option><?php echo $year; ?></option>
-
-<?php for($i=-5;$i<=25;$i++){  ?>
-
-<option><?php echo 2017+$i; ?></option>
-
-<?php }  ?>				</select>
-
-				</div>
-
-</div>
-
-
-<div class="col-md-3">
-
-				<div class="control-group">
-
-		
-				<select class="form-control" name="department" onchange="this.form.submit()" title="Department">
-					
-				<?php if($depart){  ?>
-				<option><?php  echo $depart; ?></option>
-
-		<?php	} ?>
-				<option value="">All</option>
-
-				     <?php echo $departs ?>
-
-
-				</select>
-				</div>
-
-</div>
-
-			<div class="col-md-3">
-
-				<div class="control-group">
-
-		<input type="submit" name="" value="Load Month" class="btn btn-success">
-
-				</div>
-
-</div>
-
-			</form>
-			</div>
-			
-			<div class="col-md-4">
-			    
-			 
-			    
-			    <?php 
-if(count($sums)>0)
-{
-
-
-
-?>
-			<a href="<?php echo base_url() ?>rosta/print_summary/<?php echo $year."-".$month; ?>" style="" class="print btn btn-success btn-sm" target="_blank"><i class="fa fa-print"></i>Print</a>
-
-
-<?php } ?>
-			    
-		
-	</div>
-
-
-
-
-
+<section class="content">
+     <div class="container-fluid">
+       <!-- Main row -->
+<div class="row">
 <div class="col-md-12">
+<div class="callout callout-success">
+             
 
-	<div class="panel">
+			 <form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/summary" method="post">
+			 <div class="row">
+					 <div class="col-md-2">
 
-		<div class="panel-header">
+						 <div class="control-group">
 
-<?php 
-if(count($sums)>0)
-{
+							 <input type="hidden" id="month" value="<?php echo $month; ?>">
+
+							 <select class="form-control select2" name="month"  onchange="this.form.submit()">
+
+								 <option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
+								 
+								 <option value="01">JANUARY</option>
+								 <option value="02">FEBRUARY</option>
+								 <option value="03">MARCH</option>
+								 <option value="04">APRIL</option>
+								 <option value="05">MAY</option>
+								 <option value="06">JUNE</option>
+								 <option value="07">JULY</option>
+								 <option value="08">AUGUST</option>
+								 <option value="09">SEPTEMBER</option>
+								 <option value="10">OCTOBER</option>
+								 <option value="11">NOVEMBER</option>
+								 <option value="12">DECEMBER</option>
+							 </select>
+
+						 </div>
+
+					 </div>
 
 
+					 <div class="col-md-2">
+						 <div class="control-group">
 
+							 <input type="hidden" id="year" value="<?php echo $year; ?>">
+
+							 <select class="form-control select2" name="year" onchange="this.form.submit()">
+									 <option><?php echo $year; ?></option>
+
+									 <?php for($i=-5;$i<=25;$i++){  ?>
+
+									 <option><?php echo 2017+$i; ?></option>
+
+									 <?php }  ?>
+							 </select>
+				
+						 </div>
+					 </div>
+					 <div class="col-md-4">
+						 <div class="control-group">
+					   
+
+						 <?php 
+						 
+						 $facility=$this->session->userdata['facility'];
+						 //print_r($facility);
+						 $employees=Modules::run("employees/get_employees"); ?>
+						 <select class="form-control select2" name="empid" select2>
+									 <option value="" selected disabled>Select Employee</option>
+
+									 <?php foreach($employees as $employee){  ?>
+
+									 <option value="<?php echo $employee->ihris_pid ?>"><?php echo $employee->surname.' '.$employee->firstname.' '.$employee->othername;?></option>
+
+									 <?php }  ?>
+							 </select>
+				
+						 </div>
+					 </div>
+
+					 <div class="col-md-4">
+
+						 <div class="control-group">
+
+							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
+							 <?php 
+		if(count($sums)>0)
+		{
 ?>
-			<a href="<?php echo base_url(); ?>rosta/bundleCsv/<?php echo $year."-".$month; ?>" style="margin-top:1em; margin-left:1em;" class="btn btn-success btn-sm"><i class="fa fa-file"></i> Export CSV</a>
+			<a href="<?php echo base_url() ?>rosta/print_summary/<?php echo $year."-".$month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
+					<?php } ?>
 
+					<?php 
+					if(count($sums)>0)
+					{
+					?>
+								<a href="<?php echo base_url(); ?>rosta/bundleCsv/<?php echo $year."-".$month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
+					<?php } ?>
+        </div>
 
-<?php } ?>
-		</div>
-		<div class="panel-body">
+						 </div>
 
+					 </div>
+			 </div>
+				 </form>
+	  </div>
+
+			</div>
+
+<div class="panel-body">
 <?php 
-
 //print_r($sums);   //raw data
-
 ?>
-
-
-               
-<div class="col-md-3" style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/images/MOH.png" width="100px">
-</div>
-
-<div class="col-md-9" style="border-right: 0; border-left: 0; border-top: 0;">
-		<h4>
+<div class="col-md-3" style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></div>
+	<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0;">
+		<p style="font-size: 16px; font-weight:bold; margin:0 auto; ">
 <?php 
 if(count($sums)<1)
 {
-
 echo "<font color='red'> No Schedule Data</font>";
 }
 else{
-
 ?>
-	MONTHLY DUTY ROSTER SUMMARY
-
+	MONTHLY ATTENDANCE TO DUTY SUMMARY
 		<?php
-		 echo " - ".$sums[0]['facility']."<br>"; 
-
+		
+		 echo " - ".$sums[0]['facility']." "; 
 		echo "              ".date('F, Y',strtotime($year."-".$month));
-
 		?>
-
 <?php } ?>
+	</p></div>
 
-	</h4>
-</div>
-           
+
+ 
+  
+			 
 
 
 <div id="table">
@@ -266,15 +230,6 @@ $no++;
 
 
 </div>
-
-
-</div></div>
-
-
-
-
-</div><!--col 12-->
-
 
 
 <script type="text/javascript">

@@ -477,7 +477,7 @@ class Rosta extends MX_Controller {
 		$date = $data['year'] . "-" . $data['month'];
 		$data['dates'] = $this->$date;
 		//$data['facilities'] = $this->attendance_model->get_facility();
-		$data['sums'] = $this->rosta_model->fetch_summary($date);
+		$data['sums'] = $this->rosta_model->fetch_summary($date,$this->filters);
 
 		$data['view']='roster_summary';
 		$data['module']=$this->rostamodule;
@@ -495,7 +495,7 @@ class Rosta extends MX_Controller {
 	public function bundleCsv($valid_range)
 	{
 
-		$sums = $this->rosta_model->fetch_summary($valid_range);
+		$sums = $this->rosta_model->fetch_summary($valid_range,$this->filters);
 
 		//$fp = fopen(FCPATH.'uploads/summary.csv', 'w');
 
@@ -1043,7 +1043,7 @@ class Rosta extends MX_Controller {
         
 		$this->load->library('ML_pdf');
 
-		$data['sums']=$this->rosta_model->fetch_summary($date);
+		$data['sums'] = $this->rosta_model->fetch_summary($date,$this->filters);
 				
 		$html=$this->load->view('printablesummary',$data,true);
 
