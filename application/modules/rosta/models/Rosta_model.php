@@ -415,7 +415,7 @@ public function __Construct(){
 		else{  // if there are schedules
 
 			
-			$all=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC LIMIT $limit,$start");
+			$all=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limit,$start");
 		
 
 		$rows=$all->result_array();
