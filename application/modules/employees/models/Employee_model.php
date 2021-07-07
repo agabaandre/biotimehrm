@@ -750,7 +750,7 @@ Class Employee_model extends CI_Model
             max(day28)as day28,
             max(day29)as day29,
             max(day30)as day30,
-            max(day31)as day31,fullname, job, facility, department from time_sheet  where ihris_pid='$id' and  date like '$valid_range-%'");
+            max(day31)as day31,fullname, job, facility, department from time_sheet  where ihris_pid='$id' and  date like '$valid_range-%' GROUP BY time_sheet.date like '$valid_range-%'");
 
             $rowdata=$query->result_array();
 
