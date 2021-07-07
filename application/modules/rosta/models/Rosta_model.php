@@ -346,7 +346,7 @@ public function __Construct(){
 	public function countActuals($valid_range){
 		$facility=$this->session->userdata['facility'];
 
-		$all=$this->db->query("select ihris_pid from actuals where actuals.facility_id='$facility' and actuals.date '$valid_range-%'");
+		$all=$this->db->query("select ihris_pid from actuals where actuals.facility_id='$facility' and actuals.date LIKE '$valid_range-%'");
 	
 
 		$rows=$all->num_rows();
