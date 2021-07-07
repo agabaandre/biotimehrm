@@ -182,8 +182,8 @@ class Rosta extends MX_Controller {
 		$this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/tabular";
-	    $config['total_rows']=$this->rosta_model->count_tabs($date,$this->filters);
-	    $config['per_page']=50; //records per page
+	    $config['total_rows']=400;
+	    $config['per_page']=20; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
 		$config['full_tag_open'] = '<ul class="pagination">';
@@ -205,7 +205,7 @@ class Rosta extends MX_Controller {
 		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
 		$config['num_tag_open'] = '<li class="page-item">';
 		$config['num_tag_close'] = '</li>';
-        $config['use_page_numbers'] = FALSE;
+        $config['use_page_numbers'] = TRUE;
 	    $this->pagination->initialize($config);
 	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
 	    $data['links']=$this->pagination->create_links();

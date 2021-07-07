@@ -169,9 +169,9 @@ public function markAttendance(){
 ignore_user_abort(true);
 ini_set('max_execution_time',0);
 //poplulate actuals
-$query=$this->db->query("INSERT INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color,
+$query=$this->db->query("REPLACE INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color,
  actuals.date, actuals.end,stream ) SELECT DISTINCT CONCAT( clk_log.date, ihrisdata.ihris_pid ) AS entry_id, ihrisdata.facility_id, 
- ihrisdata.department, ihrisdata.ihris_pid, schedules.schedule_id, schedules.color, clk_log.date, DATE_ADD(date, INTERVAL 01 DAY),channel FROM ihrisdata, 
+ ihrisdata.department, ihrisdata.ihris_pid, schedules.schedule_id, schedules.color, clk_log.date, DATE_ADD(date, INTERVAL 01 DAY),clk_log.source FROM ihrisdata, 
  clk_log, schedules WHERE ihrisdata.ihris_pid = clk_log.ihris_pid AND schedules.schedule_id =22 AND CONCAT( clk_log.date, ihrisdata.ihris_pid )
   NOT IN (SELECT entry_id from actuals)");        
   
@@ -337,8 +337,7 @@ if($delete){
 }
 public function getAllEmployees(){
 
-	$this->db->select('ihris_pid,department_id,facility_id');
-	$qry=$this->db->get('ihrisdata');
+$qry=$this->db->query("SELECT distinct ihris_pid,department_id,facility_id FROM ihrisdata WHERE ihrisdata.facility_id IN (SELECT distinct(facility_id) FROM clk_log)");
 
 	$employees=$qry->result();
 	return $employees;
