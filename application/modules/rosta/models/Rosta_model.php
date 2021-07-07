@@ -400,7 +400,7 @@ public function __Construct(){
 		else{
 			$limit=" ";
 		}
-        $qry=$this->db->query("SELECT ihris_pid from dutyreport, ihrisdata where $filters and ihrisdata.facility_id=dutyreport.facility_id and duty_date like '$valid_range-%' ");
+        $qry=$this->db->query("SELECT ihrisdata.ihris_pid from dutyreport, ihrisdata where $filters and ihrisdata.facility_id=dutyreport.facility_id and duty_date like '$valid_range-%' ");
 		
 		$rowno=$qry->num_rows();
 
