@@ -345,9 +345,8 @@ public function __Construct(){
 
 	public function countActuals($valid_range){
 		$facility=$this->session->userdata['facility'];
-		$department=$this->department;
 
-		$all=$this->db->query("select distinct ihris_pid from dutyreport where dutyreport.facility_id='$facility' and dutyreport.duty_date like '$valid_range-%'");
+		$all=$this->db->query("select ihris_pid from actuals where actuals.facility_id='$facility' and actuals.date '$valid_range-%'");
 	
 
 		$rows=$all->num_rows();
@@ -356,8 +355,15 @@ public function __Construct(){
 
 	 }
 
-    public function count_tabs($date_range,$filters){
-		return count($this->fetch_tabs($date_range,$start=FALSE,$limit=FALSE,$employee=FALSE,$filters));
+    public function count_tabs($valid_range){
+		$facility=$this->session->userdata['facility'];
+
+		$all=$this->db->query("select ihris_pid from duty_rosta where duty_rosta.facility_id='$facility' and duty_rosta.duty_date LIKE '$valid_range-%'");
+	
+
+		$rows=$all->num_rows();
+
+		return $rows;
 	}
 
 	Public function fetch_tabs($date_range,$start,$limit,$employee=FALSE,$filters){	
@@ -394,7 +400,7 @@ public function __Construct(){
 		else{
 			$limit=" ";
 		}
-        $qry=$this->db->query("SELECT * from dutyreport, ihrisdata where $filters and ihrisdata.facility_id=dutyreport.facility_id and duty_date like '$valid_range-%' ");
+        $qry=$this->db->query("SELECT ihris_pid from dutyreport, ihrisdata where $filters and ihrisdata.facility_id=dutyreport.facility_id and duty_date like '$valid_range-%' ");
 		
 		$rowno=$qry->num_rows();
 
