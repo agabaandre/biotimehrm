@@ -15,57 +15,57 @@ public function __Construct(){
 	/*Read the data from DB */
 	Public function getEvents(){
 		//current facility
-		$facility=$this->session->userdata['facility'];
+		// $facility=$this->session->userdata['facility'];
 
-		$division=$this->division;
-		$department=$this->department;
-		$unit=$this->unit;
-
-
-		if($department!==''){
-			$dep_filter="and ihrisdata.department_id='$department'";
-		}
-		else
-		{
-			$dep_filter="";
-		}
-
-		if($department!==''){
-			$depr_filter="and duty_rosta.department_id='$department'";
-		}
-		else
-		{
-			$depr_filter="";
-		}
+		// $division=$this->division;
+		// $department=$this->department;
+		// $unit=$this->unit;
 
 
-		if($division!==''){
-			$div_filter="and ihrisdata.division='$division'";
-		}
-		else
-		{
-			$div_filter="";
-		}
+		// if($department!==''){
+		// 	$dep_filter="and ihrisdata.department_id='$department'";
+		// }
+		// else
+		// {
+		// 	$dep_filter="";
+		// }
 
-		if($unit!==''){
-			$funit="and ihrisdata.unit='$unit'";
-		}
-		else
-		{
-			$funit="";
-		}
-
-		if(!empty($department)){
-		$sql = "SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE (duty_rosta.duty_date BETWEEN ? AND ? AND ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.facility_id='$facility' $depr_filter $div_filter $funit) ORDER BY surname ASC";
-	    }
-	    else{
-
-	    		$sql = "SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE (duty_rosta.duty_date BETWEEN ? AND ? AND ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.facility_id='$facility') ORDER BY surname ASC";
+		// if($department!==''){
+		// 	$depr_filter="and duty_rosta.department_id='$department'";
+		// }
+		// else
+		// {
+		// 	$depr_filter="";
+		// }
 
 
-	    }
+		// if($division!==''){
+		// 	$div_filter="and ihrisdata.division='$division'";
+		// }
+		// else
+		// {
+		// 	$div_filter="";
+		// }
 
-		return $this->db->query($sql, array($_GET['start'], $_GET['end']))->result();
+		// if($unit!==''){
+		// 	$funit="and ihrisdata.unit='$unit'";
+		// }
+		// else
+		// {
+		// 	$funit="";
+		// }
+
+		// if(!empty($department)){
+		// $sql = "SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE (duty_rosta.duty_date BETWEEN ? AND ? AND ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.facility_id='$facility' $depr_filter $div_filter $funit) ORDER BY surname ASC";
+	    // }
+	    // else{
+
+	    // 		$sql = "SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE (duty_rosta.duty_date BETWEEN ? AND ? AND ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.facility_id='$facility') ORDER BY surname ASC";
+
+
+	    // }
+
+		// return $this->db->query($sql, array($_GET['start'], $_GET['end']))->result();
 	}
 
 
