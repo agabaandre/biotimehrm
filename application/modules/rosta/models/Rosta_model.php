@@ -359,10 +359,10 @@ public function __Construct(){
 
 	 }
 
-    public function count_tabs($valid_range){
+    public function count_tabs(){
 		$facility=$this->session->userdata['facility'];
 
-		$all=$this->db->query("select ihris_pid from duty_rosta where duty_rosta.facility_id='$facility' and duty_rosta.duty_date LIKE '$valid_range-%'");
+		$all=$this->db->query("select distinct(ihris_pid) from ihrisdata where ihrisdata.facility_id='$facility' ");
 	
 
 		$rows=$all->num_rows();
@@ -396,7 +396,7 @@ public function __Construct(){
 		$search="";
 
 		if(!empty($employee)){
-            $search="and ihrisdata.ihris_pid='".$employee."'";
+            $search="and ihris_pid='".$employee."'";
 		}
 		if(!empty($start)){
             $limits=" LIMIT $limit,$start";
@@ -404,21 +404,21 @@ public function __Construct(){
 		else{
 			$limits=" ";
 		}
-        $qry=$this->db->query("SELECT ihrisdata.ihris_pid from dutyreport, ihrisdata where $filters and ihrisdata.facility_id=dutyreport.facility_id and duty_date like '$valid_range-%' ");
+        $qry=$this->db->query("SELECT ihris_pid from duty_rosta where facility_id='$facility' and  DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range' LIMIT 1 ");
 		
 		$rowno=$qry->num_rows();
 
-		if($rowno<1){
-			$all=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limit");
+		if($rowno==0){
+			$all=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
 			$data=$all->result_array();
 		    }
 		else{
 		 // if there are schedules
 
 			$this->db->query("SET @p0='$valid_range'"); 
-			$this->db->query("SET @p0='$facility'"); 
-			$this->db->query("SET @p0='$limit'"); 
-			$this->db->query("SET @p0='$start'"); 
+			$this->db->query("SET @p1='$facility'"); 
+			$this->db->query("SET @p2='$limit'"); 
+			$this->db->query("SET @p3='$start'"); 
 
 			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3)");
 

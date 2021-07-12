@@ -242,7 +242,7 @@ if(count($duties)>0)
 							// if beyond tenth disable editing or for other month for non system admins
 							
 
-							$no=0;
+							$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):0;
 
 							foreach($duties as $singleduty) { 
                            // print_r($singleduty);

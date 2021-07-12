@@ -183,7 +183,7 @@ class Rosta extends MX_Controller {
 		$this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/tabular";
-	    $config['total_rows']=$this->rosta_model->count_tabs($date);
+	    $config['total_rows']=$this->rosta_model->count_tabs();
 	    $config['per_page']=20; //records per page
 	    $config['uri_segment']=3; //segment in url  
 	    //pagination links styling
@@ -216,16 +216,16 @@ class Rosta extends MX_Controller {
 		//$data['checks']=$this->getChecks();
 		//$data['departments']=$this->departments;
 		$data['duties']=$this->rosta_model->fetch_tabs($date,$config['per_page'],$page,$employee,$this->filters);
-		// $data['matches']=$this->rosta_model->matches($date);
+		$data['matches']=$this->rosta_model->matches($date);
 		 $data['tab_schedules']=$this->rosta_model->tab_matches();
 		$data['view']='duty_roster';
 		$data['module']=$this->rostamodule;
 		$data['uptitle']="Duty Roster";
 		$data['title']="Duty Roster";
 
-		print_r($data['duties']);
+		//print_r($data['duties']);
 		
-		//echo Modules::run("templates/main",$data);
+		echo Modules::run("templates/main",$data);
 	}
 
 
