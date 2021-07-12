@@ -21,7 +21,7 @@
 
       <p class="brand-image img-circle elevation-2" style="color:#FEFFFF; font-size: 11px; height:20px; font-weight:bold; margin-top:2px; opacity: .8;">
 
-      <?php $userdata=$this->session->get_userdata(); 
+      <?php  
 
           echo strtoupper($userdata['names']); 
 

@@ -54,7 +54,7 @@
       <a href="#" data-toggle="dropdown" role="button" aria-expanded="false" class="nav-link dropdown-toggle">
                                     <span style="clear:both; color:#FFFFFF !important;">
 
-                                    <?php $userdata=$this->session->get_userdata(); 
+                                    <?php 
 
                                          echo $userdata['names']; 
 
