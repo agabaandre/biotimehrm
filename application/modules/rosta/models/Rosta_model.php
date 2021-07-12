@@ -267,9 +267,10 @@ public function __Construct(){
     
 
 
-	Public function matches(){	
+	Public function matches($date){	
+		$facility=$this->session->userdata['facility'];
 
-		$query=$this->db->query("Select dutyreport.ihris_pid,dutyreport.schedule_id,dutyreport.duty_date,schedules.letter from dutyreport,schedules where schedules.schedule_id=dutyreport.schedule_id");
+		$query=$this->db->query("Select duty_rosta.ihris_pid,duty_rosta.schedule_id,duty_rosta.duty_date,schedules.letter from duty_rosta,schedules where schedules.schedule_id=duty_rosta.schedule_id and duty_rosta.facility_id='$facility' and DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$date'");
 
 		$results=$query->result_array();
 
@@ -398,55 +399,34 @@ public function __Construct(){
             $search="and ihrisdata.ihris_pid='".$employee."'";
 		}
 		if(!empty($start)){
-            $limit=" LIMIT $limit,$start";
+            $limits=" LIMIT $limit,$start";
 		}
 		else{
-			$limit=" ";
+			$limits=" ";
 		}
         $qry=$this->db->query("SELECT ihrisdata.ihris_pid from dutyreport, ihrisdata where $filters and ihrisdata.facility_id=dutyreport.facility_id and duty_date like '$valid_range-%' ");
 		
 		$rowno=$qry->num_rows();
 
 		if($rowno<1){
-			
-		$query=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search  order by surname ASC  $limit");
-	
-		$data=$query->result_array();
-
-		}// if There are no $schedules yet
-
-		else{  // if there are schedules
-
-			
 			$all=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limit");
+			$data=$all->result_array();
+		    }
+		else{
+		 // if there are schedules
+
+			$this->db->query("SET @p0='$valid_range'"); 
+			$this->db->query("SET @p0='$facility'"); 
+			$this->db->query("SET @p0='$limit'"); 
+			$this->db->query("SET @p0='$start'"); 
+
+			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3)");
+
+			$data=$query->result_array();
+			$query->next_result(); 
+			$query->free_result(); 
 		
-
-		$rows=$all->result_array();
-
-		$data=array();
-
-		foreach($rows as $row){
-
-                
-				$id=$row['ihris_pid'];
-
-				// $query = $this->db->query("select distinct ihrisdata.ihris_pid,schedules.schedule,schedules.letter,dutyreport.duty_date, dutyreport.entry_id,ihrisdata.job,ihrisdata.facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,max(dutyreport.day1) as day1,max(dutyreport.day2)as day2,max(dutyreport.day3)as day3,max(dutyreport.day4)as day4,max(dutyreport.day5)as day5,max(dutyreport.day6)as day6,max(dutyreport.day7)as day7,max(dutyreport.day8)as day8,max(dutyreport.day9)as day9,max(dutyreport.day10)as day10,
-				// max(dutyreport.day11)as day11,max(dutyreport.day12)as day12,max(dutyreport.day13)as day13,max(dutyreport.day14)as day14,max(dutyreport.day15)as day15,max(dutyreport.day16)as day16,max(dutyreport.day17)as day17,max(dutyreport.day18)as day18,max(dutyreport.day19)as day19,
-				// max(dutyreport.day20)as day20,max(dutyreport.day21)as day21,max(dutyreport.day22)as day22,max(dutyreport.day23)as day23,max(dutyreport.day24)as day24,max(dutyreport.day25)as day25,max(dutyreport.day26)as day26,max(dutyreport.day27)as day27,max(dutyreport.day28)as day28,max(dutyreport.day29)as day29,max(dutyreport.day30)as day30,max(dutyreport.day31)as day31 from dutyreport JOIN ihrisdata on (dutyreport.duty_date like '$valid_range%'   and dutyreport.facility_id='$facility' and trim(ihrisdata.ihris_pid)='$id') join  schedules on (dutyreport.schedule_id=schedules.schedule_id) ");
-				$query = $this->db->query("select distinct ihrisdata.ihris_pid,schedules.schedule,schedules.letter,dutyreport.duty_date, dutyreport.entry_id,ihrisdata.job,ihrisdata.facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,max(dutyreport.day1) as day1,max(dutyreport.day2)as day2,max(dutyreport.day3)as day3,max(dutyreport.day4)as day4,max(dutyreport.day5)as day5,max(dutyreport.day6)as day6,max(dutyreport.day7)as day7,max(dutyreport.day8)as day8,max(dutyreport.day9)as day9,max(dutyreport.day10)as day10,
-				max(dutyreport.day11)as day11,max(dutyreport.day12)as day12,max(dutyreport.day13)as day13,max(dutyreport.day14)as day14,max(dutyreport.day15)as day15,max(dutyreport.day16)as day16,max(dutyreport.day17)as day17,max(dutyreport.day18)as day18,max(dutyreport.day19)as day19,
-				max(dutyreport.day20)as day20,max(dutyreport.day21)as day21,max(dutyreport.day22)as day22,max(dutyreport.day23)as day23,max(dutyreport.day24)as day24,max(dutyreport.day25)as day25,max(dutyreport.day26)as day26,max(dutyreport.day27)as day27,max(dutyreport.day28)as day28,max(dutyreport.day29)as day29,max(dutyreport.day30)as day30,max(dutyreport.day31)as day31 from dutyreport JOIN ihrisdata on (dutyreport.duty_date like '$valid_range%'   and dutyreport.facility_id='$facility' and trim(ihrisdata.ihris_pid)='$id') join  schedules on (dutyreport.schedule_id=schedules.schedule_id) GROUP BY dutyreport.duty_date like '$valid_range%'");
-				
-				// $rows=$this->db->affected_rows();
-
-
-				$rowdata=$query->result_array();
-
-
-				array_push($data,$rowdata[0]);
-			}
-		}
-
+		   }
 		return $data;
 
 	}

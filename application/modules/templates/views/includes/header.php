@@ -1,10 +1,10 @@
 
 <?php 
-
+$userdata=$this->session->get_userdata(); 
 if   (!isset($userdata['names'])){
   redirect('auth');
 }
-$userdata=$this->session->get_userdata(); 
+
 
                    
                     

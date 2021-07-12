@@ -149,6 +149,7 @@ class Rosta extends MX_Controller {
 	
 
 	 public function tabular(){	
+		
 
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
@@ -210,20 +211,21 @@ class Rosta extends MX_Controller {
 	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
 	    $data['links']=$this->pagination->create_links();
 		$date=date('Y-m');
+		ini_set('max_execution_time', 0);
 	    $data['schedules']=Modules::run("schedules/getSchedules","r");
 		//$data['checks']=$this->getChecks();
 		//$data['departments']=$this->departments;
 		$data['duties']=$this->rosta_model->fetch_tabs($date,$config['per_page'],$page,$employee,$this->filters);
-		$data['matches']=$this->rosta_model->matches();
-		$data['tab_schedules']=$this->rosta_model->tab_matches();
+		// $data['matches']=$this->rosta_model->matches($date);
+		 $data['tab_schedules']=$this->rosta_model->tab_matches();
 		$data['view']='duty_roster';
 		$data['module']=$this->rostamodule;
 		$data['uptitle']="Duty Roster";
 		$data['title']="Duty Roster";
 
-		//print_r($data);
+		print_r($data['duties']);
 		
-		echo Modules::run("templates/main",$data);
+		//echo Modules::run("templates/main",$data);
 	}
 
 
