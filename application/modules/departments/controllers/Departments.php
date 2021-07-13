@@ -181,28 +181,33 @@ class Departments extends MX_Controller{
 
       $district_id=$distdata[0];
       $district_name=$distdata[1];
+      unset(
+        $_SESSION['facility'],
+        $_SESSION['favility_name']
+       );
 
       $_SESSION['district']=$district_name;
       $_SESSION['district_id']=$district_id;
       $redirect=$this->input->post('direct');
       $facility_id = $this->input->post('facility');
-      $_SESSION['facility']=$facility_id;
+      $this->session->set_userdata('facility', $facility_id);
       $facquery=$this->db->query("SELECT facility from ihrisdata where facility_id='$facility_id'");
       $facname=$facquery->row();
-      $_SESSION['facility_name']=$facname->facility;
+      $this->session->set_userdata('facility_name', $facname->facility);
+    
      
-      $depart_id=$this->input->post('department');
-      $_SESSION['department_id']=$depart_id;
-      $depquery=$this->db->query("SELECT department from ihrisdata where department_id='$depart_id'");
-      $depname=$facquery->row();
-      $_SESSION['department']=$depname->department;
+      // $depart_id=$this->input->post('department');
+      // $_SESSION['department_id']=$depart_id;
+      // $depquery=$this->db->query("SELECT department from ihrisdata where department_id='$depart_id'");
+      // $depname=$facquery->row();
+      // $_SESSION['department']=$depname->department;
 
-      $division = $this->input->post('division');
-      $section = $this->input->post('section');
-      $unit = $this->input->post('unit');
-      $_SESSION['division']=$division;
-      $_SESSION['section']=$section;
-      $_SESSION['unit']=$unit;
+      // $division = $this->input->post('division');
+      // $section = $this->input->post('section');
+      // $unit = $this->input->post('unit');
+      // $_SESSION['division']=$division;
+      // $_SESSION['section']=$section;
+      // $_SESSION['unit']=$unit;
       
 
       redirect($redirect);

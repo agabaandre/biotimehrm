@@ -8,10 +8,10 @@ class Filters extends MX_Controller{
 		parent:: __construct();
         $this->district_id=$this->session->userdata['district_id'];
         $this->facility_id=$this->session->userdata['facility'];
-        $this->department_id=$this->session->userdata['department_id'];
-        $this->division=$this->session->userdata['division'];
-        $this->section=$this->session->userdata['section'];
-        $this->unit=$this->session->userdata['unit'];
+        $this->department_id="";
+        $this->division="";
+        $this->section="";
+        $this->unit="";
        
      
 	}
