@@ -188,7 +188,7 @@
 
 
 	
-   print_r(	$_SESSION['year']);
+   //print_r(	$_SESSION['year']);
 	$monthdays = cal_days_in_month(CAL_GREGORIAN, $month, $year); // get days in a month
 
 	// for($i=1;$i<($monthdays+1);$i++)
@@ -263,7 +263,9 @@ foreach($duties as $singleduty) {
 
 <?php 
 
-	$month_days=date('t');//days in a month
+
+	//days in a month
+	$month_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 
 	for($i=1;$i<=$month_days;$i++){// repeating td
 
@@ -282,7 +284,7 @@ foreach($duties as $singleduty) {
 		}
 		$dayentry=$singleduty[$day].$singleduty['ihris_pid'];  //entry id
 
-		$ddate=trim(date("Y-m")."-".$d);
+		$ddate=trim($year.'-'.$month."-".$d);
 
 		?>
 		<input type="text" style="text-transform:uppercase; padding:0px; text-align: center;" class="actual field" did="<?php echo $ddate; ?>"  day="<?php echo $i; ?>" maxlength="1" size="1px" title="P,O,R and L only" 

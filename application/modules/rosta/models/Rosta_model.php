@@ -189,7 +189,7 @@ public function __Construct(){
 		$search="";
 
 		if(!empty($employee)){
-            $search="and ihris_pid='".$employee."'";
+            $search="$employee";
 		}
 		if(!empty($start)){
             $limits=" LIMIT $limit,$start";
@@ -212,8 +212,9 @@ public function __Construct(){
 			$this->db->query("SET @p1='$facility'"); 
 			$this->db->query("SET @p2='$limit'"); 
 			$this->db->query("SET @p3='$start'"); 
+			$this->db->query("SET @p4='$start'");
 
-			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3)");
+			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3,@p4)");
 
 			$data=$query->result_array();
 			$query->next_result(); 
@@ -329,17 +330,29 @@ public function __Construct(){
 		return $rows;
 	}
 
-	Public function fetch_tabs($valid_range,$start,$limit,$employee=FALSE,$filters){	
+	Public function fetch_tabs($valid_range,$start,$limit,$employee=FALSE,$filters){
+		
 	
 		$facility=$this->session->userdata['facility'];
 		
 		$employee=$this->input->post('empid');
 
+		
 
-		$search="";
+
+		
 
 		if(!empty($employee)){
-            $search="and ihris_pid='".$employee."'";
+            $search="and ihrisdata.ihris_pid='$employee";
+		}
+		else{
+			$search="";
+		}
+		if(!empty($employee)){
+            $psearch=$employee;
+		}
+		else{
+			$psearch="";
 		}
 		if(!empty($start)){
             $limits=" LIMIT $limit,$start";
@@ -347,29 +360,45 @@ public function __Construct(){
 		else{
 			$limits=" ";
 		}
-        $qry=$this->db->query("SELECT ihris_pid from duty_rosta where facility_id='$facility' and  DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range' LIMIT 1 ");
-		
+		//dutyroster count
+		$qry1=$this->db->query("SELECT distinct(ihris_pid) from ihrisdata where facility_id='$facility' ");
+		$rowno1=$qry1->num_rows();
+		//facility count
+        $qry=$this->db->query("SELECT distinct(ihris_pid) from duty_rosta where facility_id='$facility' and  DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range'");
 		$rowno=$qry->num_rows();
-
 		if($rowno==0){
 			$all=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
 			$data=$all->result_array();
 		    }
-		else{
+		else if ($rowno==$rowno1){
 		 // if there are schedules
 
 			$this->db->query("SET @p0='$valid_range'"); 
 			$this->db->query("SET @p1='$facility'"); 
 			$this->db->query("SET @p2='$limit'"); 
 			$this->db->query("SET @p3='$start'"); 
-
-			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3)");
-
+			$this->db->query("SET @p4='$psearch'");
+			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3, @p4)");
 			$data=$query->result_array();
 			$query->next_result(); 
 			$query->free_result(); 
-		
 		   }
+		   else{
+			$this->db->query("SET @p0='$valid_range'"); 
+			$this->db->query("SET @p1='$facility'"); 
+			$this->db->query("SET @p2='$limit'"); 
+			$this->db->query("SET @p3='$start'"); 
+			$this->db->query("SET @p4='$psearch'");
+			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3, @p4)");
+			$ddata=$query->result_array();
+			$query->next_result(); 
+			$query->free_result(); 
+			$query=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters  $search AND ihrisdata.ihris_pid NOT IN (SELECT distinct(ihris_pid) from duty_rosta where facility_id='$facility' and  DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range') order by surname ASC $limits");
+			$notscheduled=$query->result_array();
+			$final=array_merge($ddata,$notscheduled);
+			 $data=$final;
+		   }
+
 		return $data;
 
 	}
@@ -831,15 +860,10 @@ public function __Construct(){
 
 	public function getActuals($date)
 	{
-
 		$facility = $_SESSION['facility'];
-
-		$query = $this->db->query("select actuals.*, schedules.letter as actual from actuals join schedules on actuals.schedule_id=schedules.schedule_id and schedules.purpose='a' and actuals.facility_id='$facility' and actuals.date like'$date-%'");
-
-
+		$query = $this->db->query("select actuals.*, schedules.letter as actual from actuals join schedules on actuals.schedule_id=schedules.schedule_id and schedules.purpose='a' and actuals.facility_id='$facility' and DATE_FORMAT(actuals.date, '%Y-%m') = '$date'");
 		$result = $query->result_array();
-
-		return $result;
+	return $result;
 	}
 
 

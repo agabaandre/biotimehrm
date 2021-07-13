@@ -103,7 +103,7 @@ function isWeekend($date) {
 		
 		<?php
 		
-		$allcols=date('t');//days in a month
+		$allcols= cal_days_in_month(CAL_GREGORIAN, $month, $year);//days in a month
 
 		
 		?>
@@ -131,9 +131,8 @@ function isWeekend($date) {
 	<?php 
 
 
-	$monthdays = cal_days_in_month(CAL_GREGORIAN, $month, $year); // get days in a month
-
-
+	$monthdays = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+	 // get days in a month
 									for($i=1;$i<($monthdays+1);$i++)
 									{		
 										    

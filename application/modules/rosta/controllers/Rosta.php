@@ -750,7 +750,7 @@ class Rosta extends MX_Controller {
 		$data['view']='actuals';
 		
 		$data['module']=$this->rostamodule;
-		//print_r($data['duties']);
+		//print_r($actualrows);
 		echo Modules::run('templates/main',$data);
 	}
 	
@@ -910,7 +910,7 @@ class Rosta extends MX_Controller {
 
 		$data['facilities']=Modules::run("facilities/getFacilities");
 		$empid=$this->input->post('empid');
-		//$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$empid,$this->filters);
+		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$empid,$this->filters);
 		$actualrows=$this->rosta_model->getActuals($date,$this->filters);
 		$actuals=array();
 		
@@ -945,7 +945,7 @@ class Rosta extends MX_Controller {
 		$this->load->library('ML_pdf');
 
 
-		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page']=FALSE,$page=FALSE,$empid=FALSE,$this->filters);
+		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page']=2000,$page=0,$empid=FALSE,$this->filters);
 		
 		$actualrows=$this->rosta_model->getActuals($date);
 		$actuals=array();
