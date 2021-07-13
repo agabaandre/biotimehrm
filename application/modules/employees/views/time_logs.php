@@ -98,17 +98,17 @@
                         <?php
                         echo " - ".$_SESSION['facility_name']." BEWTWEEN "; 
 
-                        if($this->input->post('date_from')){
-                          echo $this->input->post('date_from') ." AND ";
+                        if(!empty($this->input->post('date_from'))){
+                          echo $_SESSION['date_from'] ." AND ";
                         }
                         else{
-                          echo date("Y-m-d",strtotime("-1 month"))." AND ";
+                          //echo date("Y-m-d",strtotime("-1 month"))." AND ";
                         }
-                        if($this->input->post('date_to')){
-                          echo $this->input->post('date_to');
+                        if(!empty($this->input->post('date_from'))){
+                          echo $_SESSION['date_to'] ;
                         }
                         else{
-                          echo date("Y-m-d");
+                          //echo date("Y-m-d");
                         }
 
 

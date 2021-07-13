@@ -140,7 +140,31 @@ class Employees extends MX_Controller{
 	exit;  
 	}
     public function viewTimeLogs(){
-	    $search_data=$this->input->post();
+      $date_from=$this->input->post('date_from');
+      $date_to=$this->input->post('date_to');
+      $search_data['name']=$this->input->post('name');
+      if(!empty($date_from)){
+        $_SESSION['date_from']= $date_from;
+        $_SESSION['date_to']= $date_to;
+        $search_data['date_from']= $_SESSION['date_from'];
+        $search_data['date_to']= $_SESSION['date_to'];
+        
+       }
+         
+       if (!empty($_SESSION['date_from'])){
+          $search_data['date_from']= $_SESSION['date_from'];
+          $search_data['date_to']= $_SESSION['date_to'];
+       }
+       else{
+        $date_from=date("Y-m-d",strtotime("-1 month"));
+        $date_to=date('Y-m-d');
+        $_SESSION['date_from']= $date_from;
+        $_SESSION['date_to']= $date_to;
+        $search_data['date_from']= $_SESSION['date_from'];
+        $search_data['date_to']= $_SESSION['date_to'];
+       
+        
+       }
         $config=array();
         $config['base_url']=base_url()."employees/viewTimeLogs";
         $config['total_rows']=$this->empModel->count_timelogs($search_data,$this->filters);
@@ -178,7 +202,7 @@ class Employees extends MX_Controller{
         echo Modules::run("templates/main",$data);
 	} 
     public function groupedTimeLogs(){
-	    $search_data=$this->input->post();
+	      $search_data=$this->input->post();
         $config=array();
         $config['base_url']=base_url()."employees/groupedTimeLogs";
         $config['total_rows']=$this->empModel->count_monthlytimelogs($search_data,$this->ufilters);
@@ -361,29 +385,25 @@ class Employees extends MX_Controller{
              print_r($staffs);
         }
     public function timesheet(){  
-        $month=$this->input->post('month');
-        $year=$this->input->post('year');
-       // $department=$this->input->post('department');
-        //for a dynamic one
-        if($this->uri->segment(3) && !$this->input->post()){
-            $data['month']=$_SESSION['month'];
-            $data['year']=$_SESSION['year'];
-        }
-        else{
-        if($month!=""){
-            $data['month']=$month;
-            $data['year']=$year;
-            $_SESSION['month']=$month;
-            $_SESSION['year']=$year;
-        }
-        else{
-            $data['month']=date('m');
-            $data['year']=date('Y');
-            $_SESSION['month']=date('m');
-            $_SESSION['year']=date('Y');
-        }
+      $month=$this->input->post('month');
+      $year=$this->input->post('year');
+      if(!empty($month)){
+        $_SESSION['month']=$month;
+        $_SESSION['year']=$year;
+        $date=$_SESSION['year'].'-'.$_SESSION['month'];
        }
-        $date=$data['year']."-".$data['month'];
+         if (!empty($_SESSION['year'])){
+        $date=$_SESSION['year'].'-'.$_SESSION['month'];
+        $data['month']=$_SESSION['month'];
+        $data['year']=$_SESSION['year'];
+       }
+       else{
+        $_SESSION['month']=date('m');
+        $_SESSION['year']=date('Y');
+        $date=$_SESSION['year'].'-'.$_SESSION['month'];
+        $data['month']=$_SESSION['month'];
+        $data['year']=$_SESSION['year'];
+       }
         $this->load->library('pagination');
         $config=array();
         $config['base_url']=base_url()."employees/timesheet/";
@@ -428,33 +448,7 @@ class Employees extends MX_Controller{
          $data['duties']=$this->empModel->fetch_TimeSheet();
          print_r($data['duties']);
     }
-    public function employeeTimeLogs($ihris_pid=false,$print=false,$from=false,$to=false){
-          $post=$this->input->post();
-          if($post){
-          $search_data=$this->input->post();
-          $data['from']=$search_data['date_from'];
-          $data['to']=$search_data['date_to'];
-          }
-          else{
-          $data['from']='10/01/2019';
-          $data['to']=date('m/d/Y');
-          $search_data['date_from']= $data['from'];
-          $search_data['date_to']= $data['to'];
-          }
-          $dbresult=$this->empModel->getEmployeeTimeLogs(urldecode($ihris_pid),10000,0,$search_data);
-          $data['timelogs']=$dbresult['timelogs'];
-          $data['employee']=$dbresult['employee'];
-          $data['leaves']=$dbresult['leaves'];
-          $data['offs']=$dbresult['offs'];
-          $data['requests']=$dbresult['requests'];
-          $data['workdays']=$dbresult['dutydays'];
-          $data['title']="Health  Staff Individual Time Logs";
-          $data['uptitle']="Staff TimeLog Report";
-          //$data['facilities']=Modules::run("facilities/getFacilities");
-          $data['view']='individual_time_logs';
-          $data['module']="employees";
-          echo Modules::run("templates/main",$data);
-        }
+    
         public function printindividualTimeLogs($ihris_pid,$from=false,$to=false,$flag){
           if($from){
             // $from= str_replace('-','/',$from);

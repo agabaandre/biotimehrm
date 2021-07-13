@@ -285,64 +285,7 @@ if (!chart.renderer.forExport) {
 }
 });
 </script>
-<!-- Calendars -->
- <script type="text/javascript">
 
- document.addEventListener('DOMContentLoaded', function() {
-  var calendarEl = document.getElementById('attcalendar');
-
- var base_url='<?php echo base_url();?>';
- //console.log(base_url);
-
-  var calendar = new FullCalendar.Calendar(calendarEl, {
-    plugins: [ 'dayGrid', 'timeGrid', 'list', 'bootstrap' ],
-    timeZone: 'UTC',
-    themeSystem: 'bootstrap',
-    header: {
-      left: 'prev,next today',
-      center: 'title',
-      right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
-    },
-    weekNumbers: true,
-    eventLimit: true, // allow "more" link when too many events
-    events: base_url+'calendar/getattEvents'
-  });
-
-
-  calendar.render();
-});
-
-
-  document.addEventListener('DOMContentLoaded', function() {
-  var calendarEl = document.getElementById('dutycalendar');
-  var base_url='<?php echo base_url();?>';
-
-  var calendar = new FullCalendar.Calendar(calendarEl, {
-    plugins: [ 'dayGrid', 'timeGrid', 'list', 'bootstrap' ],
-    timeZone: 'UTC',
-    themeSystem: 'bootstrap',
-    header: {
-      left: 'prev,next today',
-      center: 'title',
-      right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
-    },
-    weekNumbers: true,
-    eventLimit: true, // allow "more" link when too many events
-    events: base_url+'calendar/getdutyEvents'
-    
-  }
-  
-  
-  );
- 
-  calendar.render();
-
-}
-
-);
-
-
-</script>
 <script>
  $(document).ready(function() {
     $('.mytable').DataTable( {

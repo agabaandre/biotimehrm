@@ -97,19 +97,19 @@
 
                         <?php
                         echo " - ".$_SESSION['facility_name']." BEWTWEEN "; 
-
                         if($this->input->post('date_from')){
-                          echo $this->input->post('date_from') ." AND ";
+                          echo $_SESSION['date_from'] ." AND ";
                         }
                         else{
                           echo date("Y-m-d",strtotime("-1 month"))." AND ";
                         }
                         if($this->input->post('date_to')){
-                          echo $this->input->post('date_to');
+                          echo $_SESSION['date_to'] ;
                         }
                         else{
                           echo date("Y-m-d");
                         }
+                      
 
 
                         ?>

@@ -574,17 +574,10 @@ Class Employee_model extends CI_Model
   }
     public function getTimeLogs($limit,$start,$search_data,$filter){
         
-
-          if(empty($search_data['date_from'])){
-              $date_from=date("Y-m-d",strtotime("-1 month"));
-              $date_to=date('Y-m-d');
-
-          }
-          else{
             $date_from=$search_data['date_from'];
             $date_to=$search_data['date_to'];
 
-          }
+          
           if(!empty($search_data['name'])){  
               $ids=$this->getIds( $search_data['name']);
               $emps="'" . implode("','", $ids) ."'";
@@ -750,7 +743,7 @@ Class Employee_model extends CI_Model
             max(day28)as day28,
             max(day29)as day29,
             max(day30)as day30,
-            max(day31)as day31,fullname, job, facility, department from time_sheet  where ihris_pid='$id' and  date like '$valid_range-%' GROUP BY time_sheet.date like '$valid_range-%'");
+            max(day31)as day31,fullname, job, facility, department from time_sheet  where ihris_pid='$id' and  date like '$valid_range-%' like '$valid_range-%'");
 
             $rowdata=$query->result_array();
 

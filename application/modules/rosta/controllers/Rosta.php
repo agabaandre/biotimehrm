@@ -874,7 +874,7 @@ class Rosta extends MX_Controller {
 		
         $this->load->library('pagination');
 		$config=array();
-	    $config['base_url']=base_url()."rosta/actualsreport";
+	    $config['base_url']=base_url()."rosta/attfrom_report";
 	    $config['total_rows']=$this->rosta_model->countActuals($date);
 	    $config['per_page']=50; //records per page
 	    $config['uri_segment']=3; //segment in url
