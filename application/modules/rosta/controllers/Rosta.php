@@ -282,7 +282,7 @@ class Rosta extends MX_Controller {
        
 		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$employee=NULL,$this->filters);
 
-		$data['matches']=$this->rosta_model->matches();
+		$data['matches']=$this->rosta_model->matches($date);
 		$data['checks']=$this->getChecks();
 		
 		$data['facilities']=Modules::run("facilities/getFacilities");
@@ -310,13 +310,15 @@ class Rosta extends MX_Controller {
 		$data['username']=$this->username;
 		$data['checks']=$this->checks;
 
-		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page']=FALSE,$page=FALSE,$empid=FALSE,$this->filters);
+	
+		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page']=1000,$page=0,$employee=NULL,$this->filters);
 
-		$data['matches']=$this->rosta_model->matches();
+		$data['matches']=$this->rosta_model->matches($date);
+		$data['checks']=$this->getChecks();
 		
 		$html=$this->load->view('rosta/rosta_printable',$data,true);
 
-		$fac=$data['duties'][0]['facility'];
+		$fac=$data['duties'][0]['facility_name'];
 		$date=date('F-Y',strtotime($data['duties'][0]['day1']));
 
 		$filename=$fac."_rota_report_".$date.".pdf";

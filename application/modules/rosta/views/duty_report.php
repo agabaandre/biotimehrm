@@ -278,7 +278,7 @@ foreach ($departments as $department) {
 
 								<?php 
 
-								$month_days=date('t');//days in a month
+								$month_days=$monthdays;//days in a month
 
 								for($i=1;$i<=$month_days;$i++){// repeating td
 
@@ -301,7 +301,7 @@ foreach ($departments as $department) {
 							    
 								}
 
-								;?></span>
+								?></span>
 
 
 								<?php }

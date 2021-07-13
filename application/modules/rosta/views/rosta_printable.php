@@ -103,7 +103,7 @@ function isWeekend($date) {
 		
 		<?php
 		
-		$allcols=date('t');//days in a month
+		$allcols=$monthdays = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 
 		
 		?>
@@ -201,9 +201,9 @@ foreach($duties as $singleduty) {
 
 <?php 
 
-$month_days=date('t');//days in a month
+//days in a month
 
-for($i=1;$i<=$month_days;$i++){// repeating td
+for($i=1;$i<=$monthdays;$i++){// repeating td
 
 $day="day".$i;  //changing day
 
@@ -229,9 +229,9 @@ if($d<10){
 
 		$dayentry=$singleduty[$day].$singleduty['ihris_pid'];  //entry id
 
-		$ddate=trim(date("Y-m")."-".$d);
+		$ddate=$dates.'-'.$d;
 
-                echo $actuals[$dayentry]; 
+		echo $matches[$singleduty[$day].$singleduty['ihris_pid']];
 
 
 ?>

@@ -171,7 +171,7 @@ foreach ($departments as $department) {
 								MONTHLY ATTENDANCE REPORT FOR HEALTH PERSONNEL
 
 								<?php
-								 echo " - ".$_SESSION['facility'].""; 
+								 echo " - ".$_SESSION['facility_name'].""; 
 
 								echo "              ".date('F, Y',strtotime($year."-".$month));
 

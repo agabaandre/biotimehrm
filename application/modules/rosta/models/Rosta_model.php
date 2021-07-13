@@ -234,7 +234,7 @@ public function __Construct(){
 			$query->free_result(); 
 			$query=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters  $search AND ihrisdata.ihris_pid NOT IN (SELECT distinct(ihris_pid) from duty_rosta where facility_id='$facility' and  DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range') order by surname ASC $limits");
 			$notscheduled=$query->result_array();
-			$final=array_merge($ddata,$notscheduled);
+			$final=array_merge_recursive($ddata,$notscheduled);
 			 $data=$final;
 		   }
 
