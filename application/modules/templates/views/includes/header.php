@@ -20,16 +20,12 @@ $permissions=$userdata['permissions'];
   <!-- Font Awesome -->
   <link rel="stylesheet" href="<?php echo base_url()?>assets/css/responsive2.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/fontawesome-free/css/all.min.css">
-   
+ 
   <!-- fullCalendar -->
-  
-  <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar/main.min.css">
-  <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar-daygrid/main.min.css">
-  <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar-timegrid/main.min.css">
-  <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/fullcalendar-bootstrap/main.min.css">
+  <link rel="stylesheet" href="<?php echo base_url()?>assets/bower_components/fullcalendar/dist/fullcalendar.min.css">
+  <link rel="stylesheet" href="<?php echo base_url()?>assets/bower_components/fullcalendar/dist/fullcalendar.print.min.css" media="print">
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/select2/css/select2.min.css">
   <link rel="stylesheet" href="<?php echo base_url()?>assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
-  <!-- <link rel="stylesheet" href="<?php echo base_url(); ?>assets/bootstrap-datepicker/css/bootstrap-datepicker.min.css"> -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.8.0/css/bootstrap-datepicker.min.css">
   
   <!-- Theme style -->
@@ -145,9 +141,17 @@ body::-webkit-scrollbar-thumb
   border-radius:4px;
 }
 .btnkey{
-  min-width:100px;;
+  min-width:98px;;
   color:#fff !important;
-  padding:4px;
+  margin:2px;
+  border-radius:2px;
+
+  }
+  .rbtnkey{
+  min-width:148px;;
+  color:#fff !important;
+  margin:2px;
+  border-radius:2px;
 
   }
 

@@ -140,14 +140,11 @@
                   Attendance Calendar
 
                 </h3>
-                <div class="row">
-                    
-               
               
-              </div><!-- /.card-header -->
               <div class="card-body">
-              <div class="row" style="text-align:center; font-weight:bold;"><p>KEY</p></div>
-                <ul class="nav nav-pills" style="margin: 0auto;">
+              
+                <ul class="nav nav-pills" style="margin: 0 auto; margin-top:4px;">
+                         <p></p>
                             
                             <?php  $colors=Modules::run('schedules/getattKey'); ?>
                             <div class="row">
@@ -160,9 +157,10 @@
                               <?php  }?>
                             
                               </div>
-                              </div>
+                 
           
                 </ul>
+                </div>
                 <div id="attcalendar">
                
                  
@@ -230,37 +228,40 @@
 
           <!-- right col -->
           <section class="col-lg-9 connectedSortable">
-            <!-- Custom tabs (Charts with tabs)-->
-            <div class="card">
+              <!-- Custom tabs (Charts with tabs)-->
+              <div class="card">
               <div class="card-header">
                 <h3 class="card-title">
                   Duty Roster Calendar
+
                 </h3>
-                <div class="card-tools">
-                <div class="row" style="text-align:center; font-weight:bold;"><p>KEY</p></div>
-                <ul class="nav nav-pills" style="margin: 0auto;">
+              
+              <div class="card-body">
+              
+                <ul class="nav nav-pills" style="margin: 0 auto; margin-top:4px;">
+                         <p></p>
                             
-                            <?php  $colors=Modules::run('schedules/rostaKey'); ?>
+                            <?php  $colors=Modules::run('schedules/getrosterKey'); ?>
                             <div class="row">
                             
           
                               <?php foreach ($colors as $color) { ?>
                               <li class="nav-item">
-                              <a class="btn btn-flat btnkey" style="background-color:<?php echo $color->color;  ?>;" data-toggle="tab"><?php echo $color->schedule;?></a>
+                              <a class="btn btn-flat rbtnkey" style="background-color:<?php echo $color->color;  ?>;" data-toggle="tab"><?php echo $color->schedule;?></a>
                               </li>
                               <?php  }?>
                             
                               </div>
-                              </div>
+                 
           
                 </ul>
                 </div>
-              </div><!-- /.card-header -->
-              <div class="card-body">
-                   <div id='dutycalendar'></div>  
+                <div id="dutycalendar">
+               
+                 
+                </div>
               </div><!-- /.card-body -->
             </div>
-            <!-- /.card -->
 
           
           </section>
@@ -371,6 +372,90 @@
     </section>
     <!-- /.content -->
 <script src="<?php echo base_url()?>assets/plugins/moment/moment.min.js"></script>
-<script src="<?php echo base_url(); ?>assets/js/fullcalendar/fullcalendar.min.js"></script>
+<script src="<?php echo base_url()?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
 
+<!-- calendar -->
+<script type="text/javascript">
+ 	
+ 	var base_url=$('.base_url').html();
+
+ 	 $('#attcalendar').fullCalendar({
+        defaultView:'basicWeek',
+        header: {
+            left: 'prev, next, today',
+            center: 'title',
+             right: 'month, basicWeek, basicDay'
+        },
+        // Get all events stored in database
+        eventLimit: true, // allow "more" link when too many events
+        // events:base_url+'calendar/getattEvents',
+        selectable: false,
+        selectHelper: true,
+        editable: false,
+
+         // Mouse over
+            eventMouseover: function(calEvent, jsEvent, view){
+
+            var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
+            $("body").append(tooltip);
+
+            $(this).mouseover(function(e) {
+                $(this).css('z-index', 10000);
+                $('.event-tooltip').fadeIn('500');
+                $('.event-tooltip').fadeTo('10', 1.9);
+            }).mousemove(function(e) {
+                $('.event-tooltip').css('top', e.pageY + 10);
+                $('.event-tooltip').css('left', e.pageX + 20);
+            });
+        },
+        eventMouseout: function(calEvent, jsEvent) {
+            $(this).css('z-index', 8);
+            $('.event-tooltip').remove();
+        },
+        // H
+    });
+ 
+    </script>
+    <!-- calendar -->
+ <script type="text/javascript">
+ 	
+ 	var base_url=$('.base_url').html();
+
+ 	 $('#dutycalendar').fullCalendar({
+        defaultView:'basicWeek',
+        header: {
+            left: 'prev, next, today',
+            center: 'title',
+             right: 'month, basicWeek, basicDay'
+        },
+        // Get all events stored in database
+        eventLimit: true, // allow "more" link when too many events
+        // events:base_url+'calendar/getattEvents',
+        selectable: false,
+        selectHelper: true,
+        editable: false,
+
+         // Mouse over
+            eventMouseover: function(calEvent, jsEvent, view){
+
+            var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
+            $("body").append(tooltip);
+
+            $(this).mouseover(function(e) {
+                $(this).css('z-index', 10000);
+                $('.event-tooltip').fadeIn('500');
+                $('.event-tooltip').fadeTo('10', 1.9);
+            }).mousemove(function(e) {
+                $('.event-tooltip').css('top', e.pageY + 10);
+                $('.event-tooltip').css('left', e.pageX + 20);
+            });
+        },
+        eventMouseout: function(calEvent, jsEvent) {
+            $(this).css('z-index', 8);
+            $('.event-tooltip').remove();
+        },
+        // H
+    });
+ 
+    </script>
     

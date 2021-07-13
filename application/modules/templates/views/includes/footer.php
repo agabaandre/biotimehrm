@@ -36,15 +36,8 @@
 <script src="<?php echo base_url(); ?>assets/dist/js/demo.js"></script>
 
 <script src="<?php echo base_url()?>assets/dist/js/demo.js"></script>
-<!-- fullCalendar 2.2.5 -->
-<script src="<?php echo base_url()?>assets/plugins/moment/moment.min.js"></script>
-<script src="<?php echo base_url()?>assets/plugins/fullcalendar/main.min.js"></script>
-<script src="<?php echo base_url()?>assets/plugins/fullcalendar-daygrid/main.min.js"></script>
-<script src="<?php echo base_url()?>assets/plugins/fullcalendar-timegrid/main.min.js"></script>
-<script src="<?php echo base_url()?>assets/plugins/fullcalendar-interaction/main.min.js"></script>
-<script src="<?php echo base_url()?>assets/plugins/fullcalendar-bootstrap/main.min.js"></script>
-<script src="<?php echo base_url(); ?>/assets/plugins/jquery/jquery.min.js"></script>
 
+<script src="<?php echo base_url(); ?>/assets/plugins/jquery/jquery.min.js"></script>
 <!-- jQuery UI 1.11.4 -->
 <script src="<?php echo base_url(); ?>/assets/plugins/jquery-ui/jquery-ui.min.js"></script>
 <!-- date-range-picker -->
@@ -53,6 +46,9 @@
 <script src="<?php echo base_url(); ?>assets/bootstrap-datepicker/js/bootstrap-datepicker.min.js"></script>
 <script src="<?php echo base_url(); ?>/assets/plugins/select2/js/select2.full.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/js/notify.min.js"></script>
+<!-- fullCalendar 2.2.5 -->
+<script src="<?php echo base_url()?>assets/plugins/moment/moment.min.js"></script>
+<script src="<?php echo base_url()?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
 
 <!-- DataTables  & Plugins -->
 <script src="<?php echo base_url(); ?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
@@ -70,6 +66,7 @@
 
 <div class="control-sidebar-bg"></div>
 </div>
+
 <script>
 $( document ).ready(function() {
   $.fn.datepicker.defaults.format = "yyyy-mm-dd";
@@ -336,6 +333,7 @@ if (!chart.renderer.forExport) {
 
 
     </script>
+ 
 
 
 
