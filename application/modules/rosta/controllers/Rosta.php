@@ -57,39 +57,32 @@ class Rosta extends MX_Controller {
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
 		$employee=$this->input->post('empid');
+		if(!empty($month)){
+			$_SESSION['month']=$month;
+			$_SESSION['year']=$year;
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 
-		if($this->uri->segment(3) && !$this->input->post()){
+		}
+	
 
+	     if (!empty($_SESSION['year'])){
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 			$data['month']=$_SESSION['month'];
 			$data['year']=$_SESSION['year'];
 
-		}
-
-		else{
-
-		if($month!=""){
-
-			$data['month']=$month;
-
-			$data['year']=$year;
-
-			$_SESSION['month']=$month;
-			$_SESSION['year']=$year;
-
-		}
-
-		else{
-
-			$data['month']=date('m');
-
-			$data['year']=date('Y');
-
+		 }
+		 else{
+			
 			$_SESSION['month']=date('m');
 			$_SESSION['year']=date('Y');
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
+		 }
 
-		}
+		
 
-	   }
+	   
 		$this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/leaveRoster";
@@ -149,9 +142,6 @@ class Rosta extends MX_Controller {
 	
 
 	 public function tabular(){	
-		
-
-
 		$employee=$this->input->post('empid');
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
@@ -161,6 +151,7 @@ class Rosta extends MX_Controller {
 			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 
 		}
+	
 
 	     if (!empty($_SESSION['year'])){
 			$date=$_SESSION['year'].'-'.$_SESSION['month'];
@@ -169,9 +160,12 @@ class Rosta extends MX_Controller {
 
 		 }
 		 else{
-			$date=('Y-m'); 
-			$data['month']=date('m');
-			$data['year']=date('Y');;
+			
+			$_SESSION['month']=date('m');
+			$_SESSION['year']=date('Y');
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
 		 }
 	
 		$this->load->library('pagination');
@@ -230,38 +224,24 @@ class Rosta extends MX_Controller {
 
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
-		$department=$this->input->post('department');
+		if(!empty($month)){
+			$_SESSION['month']=$month;
+			$_SESSION['year']=$year;
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+		 }
+	     if (!empty($_SESSION['year'])){
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
+		 }
+		 else{
+			$_SESSION['month']=date('m');
+			$_SESSION['year']=date('Y');
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
+		 }
 
-
-		if($month!=""){
-
-			$data['month']=$month;
-
-			$data['year']=$year;
-		}
-
-		else{
-
-			$data['month']=date('m');
-
-			$data['year']=date('Y');
-
-		}
-
-		if($department!=''){
-
-			$data['depart']=$department;
-
-		}
-
-		else{
-
-			$data['depart']='';
-		}
-
-		$date=date('Y')."-".date('m');
-
-		
 		$this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/fetch_report";
@@ -446,31 +426,29 @@ class Rosta extends MX_Controller {
 
 		$month = $this->input->post('month');
 		$year = $this->input->post('year');
-		$department = $this->input->post('department');
+		if(!empty($month)){
+			$_SESSION['month']=$month;
+			$_SESSION['year']=$year;
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 
-
-
-		//for a dynamic one
-
-		if ($month != "") {
-
-			$data['month'] = $month;
-
-			$data['year'] = $year;
-		} else {
-
-			$data['month'] = date('m');
-
-			$data['year'] = date('Y');
 		}
+	
 
-		if ($department) {
+	     if (!empty($_SESSION['year'])){
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
 
-			$data['depart'] = $department;
-		}
-
-		$date = $data['year'] . "-" . $data['month'];
-		$data['dates'] = $this->$date;
+		 }
+		 else{
+			
+			$_SESSION['month']=date('m');
+			$_SESSION['year']=date('Y');
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
+		 }
+	
 		//$data['facilities'] = $this->attendance_model->get_facility();
 		$data['sums'] = $this->rosta_model->fetch_summary($date,$this->filters);
 
@@ -525,29 +503,28 @@ class Rosta extends MX_Controller {
 
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
-		$department=$this->input->post('department');
-
-
-		//for a dynamic one
-
-		if($month!=""){
-
-			$data['month']=$month;
-
-			$data['year']=$year;
-			$data['department']=$department;
+		if(!empty($month)){
+			$_SESSION['month']=$month;
+			$_SESSION['year']=$year;
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 
 		}
+	
 
-		else{
+	     if (!empty($_SESSION['year'])){
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
 
-			$data['month']=date('m');
-
-			$data['year']=date('Y');
-
-		}
-
-		$date=date('Y')."-".date('m');
+		 }
+		 else{
+			
+			$_SESSION['month']=date('m');
+			$_SESSION['year']=date('Y');
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
+		 }
 
 		$data['departments']=$this->departments;
 		
@@ -575,32 +552,29 @@ class Rosta extends MX_Controller {
 
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
-		$department=$this->input->post('department');
-
-
-		//for a dynamic one
-
-		if($month!="")
-		{
-
-			$data['month']=$month;
-
-			$data['year']=$year;
-			$data['department']=$department;
+		if(!empty($month)){
+			$_SESSION['month']=$month;
+			$_SESSION['year']=$year;
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 
 		}
+	
 
-		else{
+	     if (!empty($_SESSION['year'])){
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
 
-			$data['month']=date('m');
-
-			$data['year']=date('Y');
-
-		}
-
-		$date=date('Y')."-".date('m');
-
-		$data['departments']=$this->departments;
+		 }
+		 else{
+			
+			$_SESSION['month']=date('m');
+			$_SESSION['year']=date('Y');
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
+		 }
+		
 
 		$data['duties']=$this->rosta_model->fetch_report($date);
 
@@ -698,13 +672,12 @@ class Rosta extends MX_Controller {
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
 		if(!empty($month)){
-
 			$_SESSION['month']=$month;
 			$_SESSION['year']=$year;
 			$date=$_SESSION['year'].'-'.$_SESSION['month'];
-			
 
 		}
+	
 
 	     if (!empty($_SESSION['year'])){
 			$date=$_SESSION['year'].'-'.$_SESSION['month'];
@@ -713,12 +686,13 @@ class Rosta extends MX_Controller {
 
 		 }
 		 else{
-			$date=('Y-m'); 
-			$data['month']=date('m');
-			$data['year']=date('Y');;
+			
+			$_SESSION['month']=date('m');
+			$_SESSION['year']=date('Y');
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
 		 }
-
-
 		$this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/actuals";
@@ -874,30 +848,27 @@ class Rosta extends MX_Controller {
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
 		if(!empty($month)){
-
-			$data['month']=$month;
-
-			$data['year']=$year;
-
 			$_SESSION['month']=$month;
 			$_SESSION['year']=$year;
 			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 
 		}
+	
 
-		else{
+	     if (!empty($_SESSION['year'])){
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
 
-			$data['month']=date('m');
-
-			$data['year']=date('Y');
-
+		 }
+		 else{
+			
 			$_SESSION['month']=date('m');
 			$_SESSION['year']=date('Y');
 			$date=$_SESSION['year'].'-'.$_SESSION['month'];
-
-
-
-		}
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
+		 }
 		
         $this->load->library('pagination');
 		$config=array();
