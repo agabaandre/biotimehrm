@@ -4,15 +4,7 @@ $userdata=$this->session->get_userdata();
 if   (!isset($userdata['names'])){
   redirect('auth');
 }
-
-
-                   
-                    
-                     $permissions=$userdata['permissions'];
-
-                   // print_r($userdata); 
-
-
+$permissions=$userdata['permissions'];
 
  ?>
 <!DOCTYPE html>
@@ -152,6 +144,13 @@ body::-webkit-scrollbar-thumb
 	border: 1px solid #555555 !important;
   border-radius:4px;
 }
+.btnkey{
+  min-width:100px;;
+  color:#fff !important;
+  padding:4px;
+
+  }
+
 
 </style>
 </head>

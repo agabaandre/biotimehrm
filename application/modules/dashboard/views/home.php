@@ -138,19 +138,31 @@
               <div class="card-header">
                 <h3 class="card-title">
                   Attendance Calendar
+
                 </h3>
-                <div class="card-tools">
-                  <ul class="nav nav-pills ml-auto">
-                    <!-- <li class="nav-item">
-                      <a class="nav-link active" href="#revenue-chart" data-toggle="tab">Area</a>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link" href="#sales-chart" data-toggle="tab">Donut</a>
-                    </li> -->
-                  </ul>
-                </div>
+                <div class="row">
+                    
+               
+              
               </div><!-- /.card-header -->
               <div class="card-body">
+              <div class="row" style="text-align:center; font-weight:bold;"><p>KEY</p></div>
+                <ul class="nav nav-pills" style="margin: 0auto;">
+                            
+                            <?php  $colors=Modules::run('schedules/getattKey'); ?>
+                            <div class="row">
+                            
+          
+                              <?php foreach ($colors as $color) { ?>
+                              <li class="nav-item">
+                              <a class="btn btn-flat btnkey" style="background-color:<?php echo $color->color;  ?>;" data-toggle="tab"><?php echo $color->schedule;?></a>
+                              </li>
+                              <?php  }?>
+                            
+                              </div>
+                              </div>
+          
+                </ul>
                 <div id="attcalendar">
                
                  
@@ -225,14 +237,23 @@
                   Duty Roster Calendar
                 </h3>
                 <div class="card-tools">
-                  <ul class="nav nav-pills ml-auto">
-                    <!-- <li class="nav-item">
-                      <a class="nav-link active" href="#revenue-chart" data-toggle="tab">Area</a>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link" href="#sales-chart" data-toggle="tab">Donut</a>
-                    </li> -->
-                  </ul>
+                <div class="row" style="text-align:center; font-weight:bold;"><p>KEY</p></div>
+                <ul class="nav nav-pills" style="margin: 0auto;">
+                            
+                            <?php  $colors=Modules::run('schedules/rostaKey'); ?>
+                            <div class="row">
+                            
+          
+                              <?php foreach ($colors as $color) { ?>
+                              <li class="nav-item">
+                              <a class="btn btn-flat btnkey" style="background-color:<?php echo $color->color;  ?>;" data-toggle="tab"><?php echo $color->schedule;?></a>
+                              </li>
+                              <?php  }?>
+                            
+                              </div>
+                              </div>
+          
+                </ul>
                 </div>
               </div><!-- /.card-header -->
               <div class="card-body">
