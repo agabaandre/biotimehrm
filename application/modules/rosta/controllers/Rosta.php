@@ -151,34 +151,28 @@ class Rosta extends MX_Controller {
 	 public function tabular(){	
 		
 
+
+		$employee=$this->input->post('empid');
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
-		$employee=$this->input->post('empid');
-
-
-		
-		if($month!=""){
-
-			$data['month']=$month;
-
-			$data['year']=$year;
-
+		if(!empty($month)){
 			$_SESSION['month']=$month;
 			$_SESSION['year']=$year;
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 
 		}
 
-		else{
+	     if (!empty($_SESSION['year'])){
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
 
+		 }
+		 else{
+			$date=('Y-m'); 
 			$data['month']=date('m');
-
-			$data['year']=date('Y');
-
-			$_SESSION['month']=date('m');
-			$_SESSION['year']=date('Y');
-
-		}
-        $date=date('Y-m');
+			$data['year']=date('Y');;
+		 }
 	
 		$this->load->library('pagination');
 		$config=array();
@@ -210,7 +204,6 @@ class Rosta extends MX_Controller {
 	    $this->pagination->initialize($config);
 	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
 	    $data['links']=$this->pagination->create_links();
-		$date=date('Y-m');
 		ini_set('max_execution_time', 0);
 	    $data['schedules']=Modules::run("schedules/getSchedules","r");
 		//$data['checks']=$this->getChecks();
@@ -700,41 +693,30 @@ class Rosta extends MX_Controller {
 
 	Public function actuals(){	
 
-		$month=$this->input->post('month');
-		$year=$this->input->post('year');
 		$data['uptitle']="Daily Attendance";
 		$data['title']="Daily Attendance";
-
-
-		//for a dynamic one
-
-		
-
-		if($month!=""){
-
-			$data['month']=$month;
-
-			$data['year']=$year;
+		$month=$this->input->post('month');
+		$year=$this->input->post('year');
+		if(!empty($month)){
 
 			$_SESSION['month']=$month;
 			$_SESSION['year']=$year;
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			
 
 		}
 
-		else{
+	     if (!empty($_SESSION['year'])){
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
 
+		 }
+		 else{
+			$date=('Y-m'); 
 			$data['month']=date('m');
-
-			$data['year']=date('Y');
-
-			$_SESSION['month']=date('m');
-			$_SESSION['year']=date('Y');
-
-		}
-
-	   
-
-		$date=$data['year']."-".$data['month'];
+			$data['year']=date('Y');;
+		 }
 
 
 		$this->load->library('pagination');
@@ -791,11 +773,10 @@ class Rosta extends MX_Controller {
 		}
 		
 		$data['actuals']=$actuals;
-		//	$data['switches']=$this->switches();
 		$data['view']='actuals';
 		
 		$data['module']=$this->rostamodule;
-		//print_r($actualrows);
+		//print_r($data['duties']);
 		echo Modules::run('templates/main',$data);
 	}
 	
@@ -889,18 +870,18 @@ class Rosta extends MX_Controller {
 		
 	Public function attfrom_report(){	
 
+			
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
-		$department=$this->input->post('department');
-
-		//for a dynamic one
-
-		if($month!="")
-		{
+		if(!empty($month)){
 
 			$data['month']=$month;
 
 			$data['year']=$year;
+
+			$_SESSION['month']=$month;
+			$_SESSION['year']=$year;
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 
 		}
 
@@ -909,14 +890,15 @@ class Rosta extends MX_Controller {
 			$data['month']=date('m');
 
 			$data['year']=date('Y');
+
+			$_SESSION['month']=date('m');
+			$_SESSION['year']=date('Y');
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+
+
+
 		}
-
-		if($department!==''){
-
-			$data['depart']=$department;
-		}
-
-		$date=date('Y')."-".date('m');
+		
         $this->load->library('pagination');
 		$config=array();
 	    $config['base_url']=base_url()."rosta/actualsreport";
@@ -957,7 +939,7 @@ class Rosta extends MX_Controller {
 
 		$data['facilities']=Modules::run("facilities/getFacilities");
 		$empid=$this->input->post('empid');
-		$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$empid,$this->filters);
+		//$data['duties']=$this->rosta_model->fetch_report($date,$config['per_page'],$page,$empid,$this->filters);
 		$actualrows=$this->rosta_model->getActuals($date,$this->filters);
 		$actuals=array();
 		
@@ -973,7 +955,7 @@ class Rosta extends MX_Controller {
 		
 		$data['actuals']=$actuals;
 
-		$data['matches']=$this->rosta_model->matches();
+		//$data['matches']=$this->rosta_model->matches($date);
 		$data['checks']=$this->getChecks();
 		//$data['switches']=$this->switches();
 		$data['view']="attendance_form_report";

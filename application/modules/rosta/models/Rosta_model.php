@@ -176,93 +176,52 @@ public function __Construct(){
 		return ($this->db->affected_rows()!=1)?false:true;
 	}
 
-  public function count_rosta($date_range,$filter){
-	  return count($this->fetch_report($date_range,$start=NULL,$limit=NULL,$employee=NULL,$filter));
-  }
 
 
-  
-
-
-	Public function fetch_report($date_range,$start=NULL,$limit=NULL,$employee=NULL,$filter){	
+	Public function fetch_report($valid_range,$start=NULL,$limit=NULL,$employee=NULL,$filters){	
 
 		$facility=$this->session->userdata['facility'];
 	
+		$employee=$this->input->post('empid');
 
-		$month=$this->input->post('month');
-		$year=$this->input->post('year');
-		
-		$date=$year."-".$month;
 
-		if($month!="")
-		{
 
-			$valid_range=$date;
-
-		}
-
-		else{
-
-			$valid_range=$date_range;
-		}
-       
+		$search="";
 
 		if(!empty($employee)){
-            $search="and ihrisdata.ihris_pid='".$employee."'";
-			//$this->db->where('ihris_pid',$employee);
-		 }
-		 else{
-			 $search="";
-		 }
-		 if(!empty($limit)){
-            $limit=" LIMIT $limit,$start";
-			//$this->db->where('ihris_pid',$employee);
-		 }
-		 else{
-			 $limit="";
-		 }
-		 
-	        // Modify the view to cater for division, section and unit
-			$all=$this->db->query("select distinct dutyreport.ihris_pid from dutyreport,ihrisdata where $filter and ihrisdata.ihris_pid=dutyreport.ihris_pid and dutyreport.duty_date like '$valid_range-%' $search $limit");
-		
-		if($this->user['role']=='employee'){
-			$rows=array('1');
-		
+            $search="and ihris_pid='".$employee."'";
+		}
+		if(!empty($start)){
+            $limits=" LIMIT $limit,$start";
 		}
 		else{
-			$rows=$all->result_array();
-		
+			$limits=" ";
 		}
-
+        $qry=$this->db->query("SELECT ihris_pid from duty_rosta where facility_id='$facility' and  DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range' LIMIT 1 ");
 		
+		$rowno=$qry->num_rows();
 
-		$data=array();
+		if($rowno==0){
+			$all=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
+			$data=$all->result_array();
+		    }
+		else{
+		 // if there are schedules
 
-		foreach($rows as $row){
+			$this->db->query("SET @p0='$valid_range'"); 
+			$this->db->query("SET @p1='$facility'"); 
+			$this->db->query("SET @p2='$limit'"); 
+			$this->db->query("SET @p3='$start'"); 
 
-            if($this->user['role']=='employee'){
-				$id=$this->user['ihris_pid'];
-			
-			}
-			else{
-				$id=$row['ihris_pid'];
-			
-			}
+			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3)");
 
-				// $query=$this->db->query("select  dutyreport.ihris_pid, dutyreport.duty_date,max(dutyreport.day1) as day1,max(dutyreport.day2)as day2,max(dutyreport.day3)as day3,max(dutyreport.day4)as day4,max(dutyreport.day5)as day5,max(dutyreport.day6)as day6,max(dutyreport.day7)as day7,max(dutyreport.day8)as day8,max(dutyreport.day9)as day9,max(dutyreport.day10)as day10,
-				// max(dutyreport.day11)as day11,max(dutyreport.day12)as day12,max(dutyreport.day13)as day13,max(dutyreport.day14)as day14,max(dutyreport.day15)as day15,max(dutyreport.day16)as day16,max(dutyreport.day17)as day17,max(dutyreport.day18)as day18,max(dutyreport.day19)as day19,
-				// max(dutyreport.day20)as day20,max(dutyreport.day21)as day21,max(dutyreport.day22)as day22,max(dutyreport.day23)as day23,max(dutyreport.day24)as day24,max(dutyreport.day25)as day25,max(dutyreport.day26)as day26,max(dutyreport.day27)as day27,max(dutyreport.day28)as day28,max(dutyreport.day29)as day29,max(dutyreport.day30)as day30,max(dutyreport.day31)as day31,schedules.letter,schedules.schedule,ihrisdata.job,ihrisdata.facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from dutyreport,schedules,ihrisdata WHERE( dutyreport.duty_date like '$valid_range-%' and dutyreport.schedule_id=schedules.schedule_id and dutyreport.ihris_pid=ihrisdata.ihris_pid and dutyreport.facility_id='$facility' and dutyreport.ihris_pid='$id')");
-				$query = $this->db->query("select distinct ihrisdata.ihris_pid,schedules.schedule,schedules.letter,dutyreport.duty_date, dutyreport.entry_id,ihrisdata.job,ihrisdata.facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,max(dutyreport.day1) as day1,max(dutyreport.day2)as day2,max(dutyreport.day3)as day3,max(dutyreport.day4)as day4,max(dutyreport.day5)as day5,max(dutyreport.day6)as day6,max(dutyreport.day7)as day7,max(dutyreport.day8)as day8,max(dutyreport.day9)as day9,max(dutyreport.day10)as day10,
-				max(dutyreport.day11)as day11,max(dutyreport.day12)as day12,max(dutyreport.day13)as day13,max(dutyreport.day14)as day14,max(dutyreport.day15)as day15,max(dutyreport.day16)as day16,max(dutyreport.day17)as day17,max(dutyreport.day18)as day18,max(dutyreport.day19)as day19,
-				max(dutyreport.day20)as day20,max(dutyreport.day21)as day21,max(dutyreport.day22)as day22,max(dutyreport.day23)as day23,max(dutyreport.day24)as day24,max(dutyreport.day25)as day25,max(dutyreport.day26)as day26,max(dutyreport.day27)as day27,max(dutyreport.day28)as day28,max(dutyreport.day29)as day29,max(dutyreport.day30)as day30,max(dutyreport.day31)as day31 from dutyreport JOIN ihrisdata on (dutyreport.duty_date like '$valid_range%'   and dutyreport.facility_id='$facility' and trim(ihrisdata.ihris_pid)='$id') join  schedules on (dutyreport.schedule_id=schedules.schedule_id) GROUP BY dutyreport.duty_date like '$valid_range%'");
-				
-
-			$rowdata=$query->result_array();
-
-			array_push($data,$rowdata[0]);
-		}
-
+			$data=$query->result_array();
+			$query->next_result(); 
+			$query->free_result(); 
+		
+		   }
 		return $data;
+
 	}
     
 
@@ -350,7 +309,7 @@ public function __Construct(){
 	public function countActuals($valid_range){
 		$facility=$this->session->userdata['facility'];
 
-		$all=$this->db->query("select ihris_pid from actuals where actuals.facility_id='$facility' and actuals.date LIKE '$valid_range-%'");
+		$all=$this->db->query("select distinct(ihris_pid) from duty_rosta where duty_rosta.facility_id='$facility' and duty_rosta.duty_date LIKE '$valid_range-%'");
 	
 
 		$rows=$all->num_rows();
@@ -370,27 +329,11 @@ public function __Construct(){
 		return $rows;
 	}
 
-	Public function fetch_tabs($date_range,$start,$limit,$employee=FALSE,$filters){	
-
+	Public function fetch_tabs($valid_range,$start,$limit,$employee=FALSE,$filters){	
 	
 		$facility=$this->session->userdata['facility'];
 		
-		$month=$this->input->post('month');
-		$year=$this->input->post('year');
 		$employee=$this->input->post('empid');
-
-		$date=$year."-".$month;
-
-		if($month!=""){
-
-			$valid_range=$date;
-
-		}
-
-		else{
-
-			$valid_range=$date_range;
-		}
 
 
 		$search="";

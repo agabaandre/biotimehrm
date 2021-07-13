@@ -27,8 +27,16 @@
 
 
           ?>
+         
+          
 
       </p>
+          <hr>
+        <p style="color:#FEFFFF; font-size: 10px; height:20px; font-weight:bold; margin-top:1px;">
+          <?php 
+          echo "PERIOD:". $userdata['month'].'-'.$userdata['year'];
+        ?>
+        </p>
         <div class="image">
           <p ><img src="<?php echo base_url(); ?>assets/img/user.jpg" class="img-circle elevation-2" alt="User Image" style="width:35px; height:35px;"></p>
         </div>

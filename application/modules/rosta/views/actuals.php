@@ -158,7 +158,7 @@
 						MONTHLY ATTENDANCE FOR 
 
 					<?php
-					 echo " - ".$duties[0]['facility']."<br>"; 
+					 echo " - ".$duties[0]['facility_name']."<br>"; 
 
 					echo "              ".date('F, Y',strtotime($year."-".$month));
 
@@ -188,7 +188,7 @@
 
 
 	
-
+   print_r(	$_SESSION['year']);
 	$monthdays = cal_days_in_month(CAL_GREGORIAN, $month, $year); // get days in a month
 
 	// for($i=1;$i<($monthdays+1);$i++)
@@ -224,7 +224,7 @@
 </div>
 
 <?php 
-$no=0;
+	$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):0;
 
 //$nonworkables contains non duty days
 //$workeddays contains  worked days
