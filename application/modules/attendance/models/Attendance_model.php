@@ -394,7 +394,7 @@ class 	Attendance_model extends CI_Model {
 	}
     
 	Public function attendance_summary($valid_range,$filters,$start=NULL,$limit=NULL,$employee=NULL){
-
+        $facility=$_SESSION['facility'];
 		if(!empty($employee)){
             $search="and ihrisdata.ihris_pid='$employee";
 		}
@@ -409,37 +409,43 @@ class 	Attendance_model extends CI_Model {
 			$limits=" ";
 		}
 		
-	
+
 		$s=$this->db->query("select letter,schedule_id from schedules where  purpose='a'");
 
 		$schs=$s->result_array();
 
-			$all=$this->db->query("select  distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filters $limits $search");
+			// $all=$this->db->query("select  distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filters $limits $search");
 		
 
-		$rows=$all->result_array();
+		// $rows=$all->result_array();
 
-		$data=array();
+		// $data=array();
 
-		$mydata=array();
+		// $mydata=array();
 
-		$i=0;
+		//   $i=0;
 
-		foreach($rows as $row){
+		// foreach($rows as $row){
 
-			$id=$row['ihris_pid'];
+		// 	$id=$row['ihris_pid'];
 
-			$mydata["person"]=$row['fullname'];
-			$mydata["person_id"]=$id;
+		// 	$mydata["person"]=$row['fullname'];
+		// 	$mydata["person_id"]=$id;
 
-			foreach($schs as $sc){
-				$i++;
+			// foreach($schs as $sc){
+			// 	$i++;
 
-				$s_id=$sc['schedule_id'];
+			// 	$s_id=$sc['schedule_id'];
 
-				$qry=$this->db->query("select schedules.letter,count(actuals.schedule_id) as days from actuals,schedules where actuals.ihris_pid='$id' and actuals.schedule_id='$s_id' and schedules.schedule_id=actuals.schedule_id and DATE_FORMAT(actuals.date, '%Y-%m') ='$valid_range'");
+				$query=$this->db->query("SET @p0='$valid_range'");
+				$query=$this->db->query("SET @p1='$facility'");
+				$query=$this->db->query("SET @p2='$limit");
+				$query=$this->db->query("SET @p3='$start");
+				$query=$this->db->query("CALL `report_att_sums`(@p0, @p1, @p2, @p3)");
 
-				$rowdata=$qry->result_array();
+				//$qry=$this->db->query("select schedules.letter,count(actuals.schedule_id) as days from actuals,schedules where actuals.ihris_pid='$id' and actuals.schedule_id='$s_id' and schedules.schedule_id=actuals.schedule_id and DATE_FORMAT(actuals.date, '%Y-%m') ='$valid_range'");
+
+				$rowdata=$query->result_array();
 
 				if($rowdata[0]['letter']){
 
@@ -447,18 +453,18 @@ class 	Attendance_model extends CI_Model {
 
 				}
 
-				else{
+		// 		else{
 
-					$mydata[$sc['letter']]='0';
+		// 			$mydata[$sc['letter']]='0';
 
-				}
+		// 		}
 
-				$mydata['facility']=$rows[0]['facility'];
+		// 		$mydata['facility']=$rows[0]['facility'];
 
-			}
+			
 
-			array_push($data,$mydata);
-		}
+		// 	array_push($data,$mydata);
+		// }
 
 		return $data;
 	}//summary
