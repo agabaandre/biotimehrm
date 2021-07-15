@@ -145,20 +145,16 @@ foreach($sums as $sum) {?>
 
 <tr>
 	<td data-label="no"><?php echo $no;?></td>
-	<td data-label="Person"><?php echo $sum['person'];?></td>
-	<td data-label="P"><?php echo $present=$sum['P'];?></td>
-    <td data-label="O"><?php echo $sum['O'];?></td>
-	<td data-label="R"><?php echo $sum['R'];?></td>
-	<td data-label="L"><?php echo $sum['L'];?></td>
+	<td data-label="Name"  data-label="Name"><?php echo $sum['fullname'].' '.$sum['fullname'];?></td>
+    <td data-label="P"><?php if(!empty($present=$sum['P'])){ echo $present; } else{ echo 0; }?></td>
+    <td data-label="O"><?php if(!empty($O=$sum['O'])){ echo $present; } else{ echo 0; }?></td>
+	<td data-label="R"><?php if(!empty($R=$sum['R'])){ echo $present; } else{ echo 0; }?></td>
+	<td data-label="L"><?php if(!empty($L=$sum['L'])){ echo $present; } else{ echo 0; }?></td>
+	<td data-label="H"><?php if(!empty($H=$sum['H'])){ echo $present; } else{ echo 0; }?></td>
 	<td data-label="D"><?php $roster=Modules::run('attendance/attrosta',$dates,urlencode($sum['person_id'])); ?><?php echo $day=$roster['Day'][0]->days; ?></td>
 	<td data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></td>
 	<td data-label="N"><?php echo $night=$roster['Night'][0]->days;?></td>
-	<td data-label="Percentage Pr"><?php $per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } ?> % </td>
-
-
-
-	
-
+	<td data-label="Percentage Pr"><?php $per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } ?> % </td>	
 </tr>
 
 <?php

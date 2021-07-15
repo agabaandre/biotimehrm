@@ -388,15 +388,16 @@ class 	Attendance_model extends CI_Model {
 	   
 	    return $rows;
 	}
-    public function countAttendanceSummary($date,$filters){
-	    $query=$this->db->query("select distinct(ihris_pid) from  ihrisdata where $filters");
+    public function countAttendanceSummary($valid_range){
+		$facility=$_SESSION['facility'];
+	    $query=$this->db->query("SELECT * from person_attend_final WHERE facility_id='$facility'  and duty_date='$valid_range'");
 		return $query->num_rows();
 	}
     
 	Public function attendance_summary($valid_range,$filters,$start=NULL,$limit=NULL,$employee=NULL){
         $facility=$_SESSION['facility'];
 		if(!empty($employee)){
-            $search="and ihrisdata.ihris_pid='$employee";
+            $search="and ihris_pid='$employee";
 		}
 		else{
 			$search="";
@@ -408,63 +409,8 @@ class 	Attendance_model extends CI_Model {
 		else{
 			$limits=" ";
 		}
-		
-
-		$s=$this->db->query("select letter,schedule_id from schedules where  purpose='a'");
-
-		$schs=$s->result_array();
-
-			// $all=$this->db->query("select  distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filters $limits $search");
-		
-
-		// $rows=$all->result_array();
-
-		// $data=array();
-
-		// $mydata=array();
-
-		//   $i=0;
-
-		// foreach($rows as $row){
-
-		// 	$id=$row['ihris_pid'];
-
-		// 	$mydata["person"]=$row['fullname'];
-		// 	$mydata["person_id"]=$id;
-
-			// foreach($schs as $sc){
-			// 	$i++;
-
-			// 	$s_id=$sc['schedule_id'];
-
-				$query=$this->db->query("SET @p0='$valid_range'");
-				$query=$this->db->query("SET @p1='$facility'");
-				$query=$this->db->query("SET @p2='$limit");
-				$query=$this->db->query("SET @p3='$start");
-				$query=$this->db->query("CALL `report_att_sums`(@p0, @p1, @p2, @p3)");
-
-				//$qry=$this->db->query("select schedules.letter,count(actuals.schedule_id) as days from actuals,schedules where actuals.ihris_pid='$id' and actuals.schedule_id='$s_id' and schedules.schedule_id=actuals.schedule_id and DATE_FORMAT(actuals.date, '%Y-%m') ='$valid_range'");
-
-				$rowdata=$query->result_array();
-
-				if($rowdata[0]['letter']){
-
-					$mydata[$rowdata[0]['letter']]=$rowdata[0]['days'];
-
-				}
-
-		// 		else{
-
-		// 			$mydata[$sc['letter']]='0';
-
-		// 		}
-
-		// 		$mydata['facility']=$rows[0]['facility'];
-
-			
-
-		// 	array_push($data,$mydata);
-		// }
+		  $query=$this->db->query("SELECT * from person_attend_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
+		  $data=$query->result_array();
 
 		return $data;
 	}//summary

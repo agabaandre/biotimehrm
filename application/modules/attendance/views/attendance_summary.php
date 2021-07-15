@@ -158,6 +158,7 @@ else{
 	<span class="cell stcell ">Off Duty</span>
 	<span class="cell stcell ">Official Request</span>
 	<span class="cell stcell ">Leave</span>
+	<span class="cell stcell ">Holiday</span>
 	<span class="cell stcell ">Day Schedule</span>
 	<span class="cell stcell ">Evening Schedule</span>
 	<span class="cell stcell ">Night Schedule</span>
@@ -170,13 +171,14 @@ foreach($sums as $sum) {?>
 <div class="table-row tbrow strow">
     <input type="radio" name="expand" class="fa fa-angle-double-down trigger">
     <span class="cell stcell  tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no;?>
-	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['person'];?></span></b>
+	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['fullname'];?></span></b>
 </span>
-    <span class="cell stcell  cname" data-label="Name"><?php echo $sum['person'];?></span>
-    <span class="cell stcell " data-label="P"><?php echo $present=$sum['P'];?></span>
-    <span class="cell stcell " data-label="O"><?php echo $sum['O'];?></span>
-	<span class="cell stcell " data-label="R"><?php echo $sum['R'];?></span>
-	<span class="cell stcell " data-label="L"><?php echo $sum['L'];?></span>
+    <span class="cell stcell  cname" data-label="Name"><?php echo $sum['fullname'].' '.$sum['fullname'];?></span>
+    <span class="cell stcell " data-label="P"><?php if(!empty($present=$sum['P'])){ echo $present; } else{ echo 0; }?></span>
+    <span class="cell stcell " data-label="O"><?php if(!empty($O=$sum['O'])){ echo $present; } else{ echo 0; }?></span>
+	<span class="cell stcell " data-label="R"><?php if(!empty($R=$sum['R'])){ echo $present; } else{ echo 0; }?></span>
+	<span class="cell stcell " data-label="L"><?php if(!empty($L=$sum['L'])){ echo $present; } else{ echo 0; }?></span>
+	<span class="cell stcell " data-label="L"><?php if(!empty($H=$sum['H'])){ echo $present; } else{ echo 0; }?></span>
 	<span class="cell stcell " data-label="D"><?php $roster=Modules::run('attendance/attrosta',$mydate,urlencode($sum['person_id'])); ?><?php echo $day=$roster['Day'][0]->days; ?></span>
 	<span class="cell stcell " data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></span>
 	<span class="cell stcell " data-label="N"><?php echo $night=$roster['Night'][0]->days;?></span>
