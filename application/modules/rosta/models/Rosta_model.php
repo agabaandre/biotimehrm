@@ -556,7 +556,7 @@ public function __Construct(){
 		}
 
 		
-		$query=$this->db->query("SELECT * from person_duty_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
+		$query=$this->db->query("SELECT * from person_dut_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
 		$data=$query->result_array();
 
 		return $data;
@@ -828,7 +828,7 @@ public function __Construct(){
 	public function countrosta_summary($date,$filters){
 
 		$facility=$_SESSION['facility'];
-	    $query=$this->db->query("SELECT * from person_duty_final WHERE facility_id='$facility'  and duty_date='$date'");
+	    $query=$this->db->query("SELECT * from person_dut_final WHERE facility_id='$facility'  and duty_date='$date'");
 	return $query->num_rows();
 	    
 	}

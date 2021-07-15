@@ -390,7 +390,7 @@ class 	Attendance_model extends CI_Model {
 	}
     public function countAttendanceSummary($valid_range){
 		$facility=$_SESSION['facility'];
-	    $query=$this->db->query("SELECT * from person_attend_final WHERE facility_id='$facility'  and duty_date='$valid_range'");
+	    $query=$this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range'");
 		return $query->num_rows();
 	}
     
@@ -409,7 +409,7 @@ class 	Attendance_model extends CI_Model {
 		else{
 			$limits=" ";
 		}
-		  $query=$this->db->query("SELECT * from person_attend_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
+		  $query=$this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
 		  $data=$query->result_array();
 
 		return $data;
