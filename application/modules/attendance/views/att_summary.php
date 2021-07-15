@@ -104,9 +104,7 @@ else{
 	<p style="text-align:left;">MONTHLY ATTENDANCE TO DUTY SUMMARY FOR
 
 		<?php
-		 echo " - ".$sums[0]['facility'].""; 
-
-		echo "              ".date('F, Y',strtotime($dates));
+		 echo $sums[0]['facility']." ".date('F, Y',strtotime($dates));
 
 		?>
 	</p>
@@ -121,6 +119,7 @@ else{
 <tr>
 	<th>#</th>
 	<th>Name</th>
+	<th>Job</th>
 	<th>Present</th>
 	<th>Off Duty</th>
 	<th>Official Request</th>
@@ -148,6 +147,7 @@ foreach($sums as $sum) {?>
 <tr>
 	<td data-label="no"><?php echo $no;?></td>
 	<td data-label="Name"><?php echo $sum['fullname'].' '.$sum['othername'];?></td>
+	<td data-label="Job"><?php echo $sum['job']?></td>
     <td data-label="P"><?php if(!empty($present=$sum['P'])){ echo $present; } else{ echo 0; }?></td>
     <td data-label="O"><?php if(!empty($O=$sum['O'])){ echo $present; } else{ echo 0; }?></td>
 	<td data-label="R"><?php if(!empty($R=$sum['R'])){ echo $present; } else{ echo 0; }?></td>

@@ -436,14 +436,14 @@ class Rosta extends MX_Controller {
 		 foreach($sums as $sum){
 			 $name=$sum['fullname'].' '.$sum['othername'];
 			 $job=$sum['job'];
-			 $d=$sum['D']; if(!empty($d)){echo $d;} else{ echo 0;}
-			 $e=$sum['E']; if(!empty($e)){echo $e;} else{ echo 0;}
-			 $n=$sum['N']; if(!empty($n)){echo $n;} else{ echo 0;}
-			 $o=$sum['O']; if(!empty($o)){echo $o;} else{ echo 0;}
-			 $a=$sum['A']; if(!empty($a)){echo $a;} else{ echo 0;}
-			 $s=$sum['S']; if(!empty($s)){echo $s;} else{ echo 0;} 
-			 $m=$sum['M']; if(!empty($m)){echo $m;} else{ echo 0;} 
-			 $z=$sum['Z'];if(!empty($z)){echo $d;} else{ echo 0;}
+			 if(!empty($sum['D'])){ $d=$sum['D'];} else{ $d= 0;}
+			 if(!empty($sum['E'])){ $e=$sum['E'];} else{ $e= 0;;}
+			 if(!empty($sum['N'])){ $n=$sum['N'];} else{$n= 0;}
+			 if(!empty($sum['O'])){ $o=$sum['O'];} else{ $o= 0;}
+			 if(!empty($sum['A'])){ $a=$sum['A'];} else{ $a= 0;}
+			 $s=$sum['S']; if(!empty($s)){ $s=$s;} else{ $s= 0;} 
+			 $m=$sum['M']; if(!empty($m)){ $m;} else{ $m= 0;} 
+			 $z=$sum['Z'];if(!empty($z)){ $z;} else{ $z= 0;}
 			 $total= $sum['D']+$sum['E']+$sum['N']+$sum['O']+$sum['A']+$sum['S']+$sum['M']+$sum['Z'];
 			$days =array("Name"=>$name, "Job"=>$job,"Day"=>$d,  "Evening"=>$e,"Night"=>$n, "Offduty"=>$o,"Annual Leave"=>$a, "Study Leave"=>$s, "Maternity Leave"=>$m,"Other Leave"=>$z,"% Total"=>$total);
 			array_push($records,$days);

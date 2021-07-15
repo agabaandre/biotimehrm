@@ -157,7 +157,7 @@ class Attendance extends MX_Controller {
 		$day=$roster['Day'][0]->days;
 		$night=$roster['Night'][0]->days;
 		$per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ $per = 0; } else{  $per; }
-        $days =array("Name"=>$data['fullname'], "Present"=>$present, "Off
+        $days =array("Name"=>$data['fullname'],"Job"=>$data['job'], "Present"=>$present, "Off
 		Duty"=>$off,
 		"Official
 		Request"=>$request, "Leave"=>$leave,"Holiday"=>$holiday, "Day Schedule"=>$day, "Evening Schedule"=>$eve,"Night Schedule"=>$night,"% Present"=>$per);

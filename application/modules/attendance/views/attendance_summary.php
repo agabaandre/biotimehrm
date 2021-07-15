@@ -152,6 +152,7 @@ else{
 <div class="header-row tbrow">
     <span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
     <span class="cell stcell   cname">Name</span>
+	<span class="cell stcell">Job</span>
     <span class="cell stcell ">Present</span>
 	<span class="cell stcell ">Off Duty</span>
 	<span class="cell stcell ">Official Request</span>
@@ -172,6 +173,7 @@ foreach($sums as $sum) {?>
 	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['fullname'];?></span></b>
 </span>
     <span class="cell stcell  cname" data-label="Name"><?php echo $sum['fullname'].' '.$sum['fullname'];?></span>
+	<span class="cell stcell  cname" data-label="Name"><?php echo $sum['job'] ?></span>
     <span class="cell stcell " data-label="P"><?php if(!empty($present=$sum['P'])){ echo $present; } else{ echo 0; }?></span>
     <span class="cell stcell " data-label="O"><?php if(!empty($O=$sum['O'])){ echo $present; } else{ echo 0; }?></span>
 	<span class="cell stcell " data-label="R"><?php if(!empty($R=$sum['R'])){ echo $present; } else{ echo 0; }?></span>
