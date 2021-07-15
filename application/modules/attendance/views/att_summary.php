@@ -101,14 +101,15 @@ echo "<font color='red'> No Usable Data</font>";
 else{
 
 ?>
-	MONTHLY ATTENDANCE TO DUTY SUMMARY
+	<p style="text-align:left;">MONTHLY ATTENDANCE TO DUTY SUMMARY FOR
 
 		<?php
-		 echo " - ".$sums[0]['facility']."<br>"; 
+		 echo " - ".$sums[0]['facility'].""; 
 
 		echo "              ".date('F, Y',strtotime($dates));
 
 		?>
+	</p>
 
 <?php } ?>
 
@@ -139,7 +140,7 @@ else{
 
 <?php 
 
-$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):1;
+$no=1;
 
 foreach($sums as $sum) {?>
 

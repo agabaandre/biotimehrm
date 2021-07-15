@@ -11,106 +11,45 @@ public function __Construct(){
 		$this->unit=$this->session->userdata['unit'];
 
 	}
-	/*
-	/*Read the data from DB */
-	Public function getEvents(){
-		//current facility
-		// $facility=$this->session->userdata['facility'];
-
-		// $division=$this->division;
-		// $department=$this->department;
-		// $unit=$this->unit;
-
-
-		// if($department!==''){
-		// 	$dep_filter="and ihrisdata.department_id='$department'";
-		// }
-		// else
-		// {
-		// 	$dep_filter="";
-		// }
-
-		// if($department!==''){
-		// 	$depr_filter="and duty_rosta.department_id='$department'";
-		// }
-		// else
-		// {
-		// 	$depr_filter="";
-		// }
-
-
-		// if($division!==''){
-		// 	$div_filter="and ihrisdata.division='$division'";
-		// }
-		// else
-		// {
-		// 	$div_filter="";
-		// }
-
-		// if($unit!==''){
-		// 	$funit="and ihrisdata.unit='$unit'";
-		// }
-		// else
-		// {
-		// 	$funit="";
-		// }
-
-		// if(!empty($department)){
-		// $sql = "SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE (duty_rosta.duty_date BETWEEN ? AND ? AND ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.facility_id='$facility' $depr_filter $div_filter $funit) ORDER BY surname ASC";
-	    // }
-	    // else{
-
-	    // 		$sql = "SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE (duty_rosta.duty_date BETWEEN ? AND ? AND ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.facility_id='$facility') ORDER BY surname ASC";
-
-
-	    // }
-
-		// return $this->db->query($sql, array($_GET['start'], $_GET['end']))->result();
-	}
-
 
 
 	/*Create new events */
 	Public function addEvent(){
 
 		$start =$_POST['start']; // or your date as well
-		
-	
 
-		       $department=$this->department;
+		$department=$this->department;
 
-				$newstartdate = $start; //add one to prev date 2017-11-02
+		$newstartdate = $start; //add one to prev date 2017-11-02
 
-				$newenddate = date('Y-m-d',strtotime($start . "+1 days")); //add one to prev date
-					
-				$entry=$newstartdate.$_POST['hpid'];
+		$newenddate = date('Y-m-d',strtotime($start . "+1 days")); //add one to prev date
+			
+		$entry=$newstartdate.$_POST['hpid'];
 
-				$facility=$this->session->userdata['facility'];
+		$facility=$this->session->userdata['facility'];
 
 
-				$sql = "INSERT INTO duty_rosta (entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_date,duty_rosta.end) VALUES (?,?,?,?,?,?,?,?)";
+		$sql = "INSERT INTO duty_rosta (entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_date,duty_rosta.end) VALUES (?,?,?,?,?,?,?,?)";
 
-				$done=$this->db->query($sql, array($entry,$facility,$department, $_POST['hpid'],$_POST['duty'],$_POST['color'],$newstartdate,$newenddate));	
-		
-
-			if($done){
-
-				$rows=$this->db->affected_rows();
-			}
-
-			else if(!$done){
-			    
-			    $rows=0;
-			}
+		$done=$this->db->query($sql, array($entry,$facility,$department, $_POST['hpid'],$_POST['duty'],$_POST['color'],$newstartdate,$newenddate));	
 
 
-			return $rows;
+		if($done){
+
+			$rows=$this->db->affected_rows();
+		}
+
+		else if(!$done){
+			
+			$rows=0;
+		}
+
+
+		return $rows;
 		
 
 	
 	}// end add event
-
-
 
 	/*Update  event */
 	Public function updateEvent(){
@@ -123,8 +62,6 @@ public function __Construct(){
 
 	}
 
-
-
 	/*Delete event */
 	Public function deleteEvent(){
 
@@ -134,8 +71,6 @@ public function __Construct(){
 
 		return ($this->db->affected_rows()!=1)?false:true;
 	}
-
-
 
 	/*Update  event */
 	Public function dragUpdateEvent(){
@@ -152,17 +87,17 @@ public function __Construct(){
 
 			for($i=0;$i<$days;$i++){
 
-				$oneday="+".$i." day";//1 day
-				$twodays="+".($i+1)." day";//1 other day for end date
+			$oneday="+".$i." day";//1 day
+			$twodays="+".($i+1)." day";//1 other day for end date
 
-				$sdate = $start;
+			$sdate = $start;
 
-				$newstartdate = date('Y-m-d',strtotime($oneday, $sdate)); //add one to prev date 2017-11-02
+			$newstartdate = date('Y-m-d',strtotime($oneday, $sdate)); //add one to prev date 2017-11-02
 
-				$newenddate = date('Y-m-d',strtotime($twodays, $sdate)); //add one to prev date
+			$newenddate = date('Y-m-d',strtotime($twodays, $sdate)); //add one to prev date
 
-				$sql = "UPDATE duty_rosta SET  duty_date = ?, end = ?   WHERE entry_id= ?";
-				$this->db->query($sql, array($newstartdate,$newenddate, $_POST['id']));
+			$sql = "UPDATE duty_rosta SET  duty_date = ?, end = ?   WHERE entry_id= ?";
+			$this->db->query($sql, array($newstartdate,$newenddate, $_POST['id']));
 			}//for
 		}//if
 
@@ -175,8 +110,6 @@ public function __Construct(){
 
 		return ($this->db->affected_rows()!=1)?false:true;
 	}
-
-
 
 	Public function fetch_report($valid_range,$start=NULL,$limit=NULL,$employee=NULL,$filters){	
 		$facility=$this->session->userdata['facility'];	
@@ -239,12 +172,8 @@ public function __Construct(){
 		   }
 
 		return $data;
-
-
 	}
-    
-
-
+  
 	Public function matches($date){	
 		$facility=$this->session->userdata['facility'];
 
@@ -286,8 +215,6 @@ public function __Construct(){
 
 	}
 
-
-
 	Public function tab_matches(){	
 
 		$query=$this->db->query("Select schedule_id,letter from schedules where purpose='r'");
@@ -300,7 +227,7 @@ public function __Construct(){
 
 		for($i=0;$i<$ro;$i++) {
 
-			$schedules["'".$results[$i]['letter']."'"]=$results[$i]['schedule_id'];
+		$schedules["'".$results[$i]['letter']."'"]=$results[$i]['schedule_id'];
 			
 		}
 
