@@ -539,6 +539,7 @@ public function __Construct(){
 
 
 	Public function fetch_summary($valid_range,$filters,$start=NULL,$limit=NULL,$employee=NULL){
+		$facility=$_SESSION['facility'];
 
 		if(!empty($employee)){
             $search="and ihrisdata.ihris_pid='$employee";
@@ -554,50 +555,9 @@ public function __Construct(){
 			$limits=" ";
 		}
 
-		$s=$this->db->query("select letter,schedule_id from schedules where  purpose='r'");
-
-		$schs=$s->result_array();
-
-
-			$all=$this->db->query("select distinct ihris_pid, facility, concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filters $limits $search");
-
 		
-
-		$rows=$all->result_array();
-
-		$data=array();
-
-		$mydata=array();
-
-		$i=0;
-
-		foreach($rows as $row){
-
-			$id=$row['ihris_pid'];
-
-			 $mydata["person"]=$row['fullname'];
-			 $mydata['facility']=$row['facility'];
-
-			foreach($schs as $sc){
-				$i++;
-
-				$s_id=$sc['schedule_id'];
-
-				$query=$this->db->query("select ihrisdata.ihris_pid,duty_rosta.duty_date, schedules.letter,duty_rosta.entry_id,schedules.schedule,count(duty_rosta.schedule_id) as days from duty_rosta,schedules, ihrisdata WHERE( duty_rosta.duty_date like '$valid_range-%' and duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.ihris_pid=ihrisdata.ihris_pid and duty_rosta.ihris_pid='$id' and schedules.schedule_id='$s_id' AND DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range' )");
-		
-				$rows=$this->db->affected_rows();
-
-				$rowdata=$query->result_array();
-
-				//$mydata=array('person'.$i=>$rowdata[0]['fullname'],'shift'=>$rowdata[0]['schedule'],'days'=>$rowdata[0]['days']);
-
-				$mydata[$rowdata[0]['letter']]=$rowdata[0]['days'];
-				
-			}
-
-			array_push($data,$mydata);
-
-		}
+		$query=$this->db->query("SELECT * from person_duty_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
+		$data=$query->result_array();
 
 		return $data;
 	}//summary
@@ -867,9 +827,9 @@ public function __Construct(){
 	}
 	public function countrosta_summary($date,$filters){
 
-			$all=$this->db->query("select ihris_pid  from ihrisdata where $filters");
-
-		return $all->num_rows();
+		$facility=$_SESSION['facility'];
+	    $query=$this->db->query("SELECT * from person_duty_final WHERE facility_id='$facility'  and duty_date='$date'");
+	return $query->num_rows();
 	    
 	}
   

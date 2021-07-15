@@ -201,19 +201,19 @@ foreach($sums as $sum) {?>
 <div class="table-row tbrow content">
     <input type="radio" name="expand" class="fa fa-angle-double-down trigger">
     <span class="cell tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no;?>
-	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['person'];?></span></b>
+	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['fullname'];?></span></b>
 </span>
-    <span class="cell cname" data-label="Name"><?php echo $sum['person'];?></span>
+    <span class="cell cname" data-label="Name"><?php echo $sum['fullname'].' '.$sum['othername'];?></span>
 
 	
-	<span class="cell" data-label="D"><?php echo $sum['D'];?></span>
-	<span class="cell" data-label="E"><?php echo $sum['E'];?></span>
-	<span class="cell" data-label="N"><?php echo $sum['N'];?></span>
-	<span class="cell" data-label="O"><?php echo $sum['O'];?></span>
-	<span class="cell" data-label="A"><?php echo $sum['A'];?></span>
-	<span class="cell" data-label="S"><?php echo $sum['S'];?></span>
-	<span class="cell" data-label="M"><?php echo $sum['M'];?></span>
-	<span class="cell" data-label="Z"><?php echo $sum['Z'];?></span>
+	<span class="cell" data-label="D"><?php  $d=$sum['D']; if(!empty($d)){echo $d;} else{ echo 0;}?></span>
+	<span class="cell" data-label="E"><?php  $e=$sum['E']; if(!empty($e)){echo $e;} else{ echo 0;}?></span>
+	<span class="cell" data-label="N"><?php  $n=$sum['N']; if(!empty($n)){echo $n;} else{ echo 0;}?></span>
+	<span class="cell" data-label="O"><?php  $o=$sum['O']; if(!empty($o)){echo $o;} else{ echo 0;}?></span>
+	<span class="cell" data-label="A"><?php  $a=$sum['A']; if(!empty($a)){echo $a;} else{ echo 0;}?></span>
+	<span class="cell" data-label="S"><?php  $s=$sum['S']; if(!empty($s)){echo $s;} else{ echo 0;} ?></span>
+	<span class="cell" data-label="M"><?php  $m=$sum['M']; if(!empty($m)){echo $m;} else{ echo 0;} ?></span>
+	<span class="cell" data-label="Z"><?php  $z=$sum['Z'];if(!empty($z)){echo $d;} else{ echo 0;}?></span>
 	<span class="cell" data-label="Z"><?php echo $sum['D']+$sum['E']+$sum['N']+$sum['O']+$sum['A']+$sum['S']+$sum['M']+$sum['Z'];?></span>
 
 
