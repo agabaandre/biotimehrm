@@ -428,36 +428,41 @@ class Rosta extends MX_Controller {
 	{
 
 		$sums = $this->rosta_model->fetch_summary($valid_range,$this->filters);
-
-		//$fp = fopen(FCPATH.'uploads/summary.csv', 'w');
-
-		$fp = fopen('php://memory', 'w');
-
-		//add heading to data
-		$heading = array('person' => "Names",'facility' => ' Facility', 'D' => "Day Duty",  'E' => "Evening", 'N' => "Night", 'O' => "Off Duty", 'A' => "Annual Leave", 'S' => "Study Leave", 'M' => "Maternity Leave", 'Z' => "Other Leave", 'H' => "");
-
-		array_unshift($sums, $heading);
-
-		foreach ($sums as $sum) {
-
-			fputcsv($fp, $sum);
+		$csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
+		header("Content-Type: text/csv");
+		header("Content-Disposition: attachment; filename=\"$csv_file\"");	
+		$fh = fopen( 'php://output', 'w' );
+		$records=array();//output each row of the data, format line as csv and write to file pointer
+		 foreach($sums as $sum){
+			 $name=$sum['fullname'].' '.$sum['othername'];
+			 $job=$sum['job'];
+			 $d=$sum['D']; if(!empty($d)){echo $d;} else{ echo 0;}
+			 $e=$sum['E']; if(!empty($e)){echo $e;} else{ echo 0;}
+			 $n=$sum['N']; if(!empty($n)){echo $n;} else{ echo 0;}
+			 $o=$sum['O']; if(!empty($o)){echo $o;} else{ echo 0;}
+			 $a=$sum['A']; if(!empty($a)){echo $a;} else{ echo 0;}
+			 $s=$sum['S']; if(!empty($s)){echo $s;} else{ echo 0;} 
+			 $m=$sum['M']; if(!empty($m)){echo $m;} else{ echo 0;} 
+			 $z=$sum['Z'];if(!empty($z)){echo $d;} else{ echo 0;}
+			 $total= $sum['D']+$sum['E']+$sum['N']+$sum['O']+$sum['A']+$sum['S']+$sum['M']+$sum['Z'];
+			$days =array("Name"=>$name, "Job"=>$job,"Day"=>$d,  "Evening"=>$e,"Night"=>$n, "Offduty"=>$o,"Annual Leave"=>$a, "Study Leave"=>$s, "Maternity Leave"=>$m,"Other Leave"=>$z,"% Total"=>$total);
+			array_push($records,$days);
 		}
-
-
-		$filename = $valid_range . "_summary_report.csv";
-
-		// reset the file pointer to the start of the file
-		fseek($fp, 0);
-		// tell the browser it's going to be a csv file
-		header('Content-Type: application/csv');
-		// tell the browser we want to save it instead of displaying it
-		header('Content-Disposition: attachment; filename="' . $filename . '";');
-		// make php send the generated csv lines to the browser
-		fpassthru($fp);
-
-
-		fclose($fp);
+		$is_coloumn = true;
+		if(!empty($records)) {
+		  foreach($records as $record) {
+			if($is_coloumn) {		  	  
+			  fputcsv($fh, array_keys($record));
+			  $is_coloumn = false;
+			}		
+			fputcsv($fh, array_values($record));
+		  }
+		   fclose($fh);
+		}
+		exit;  
 	}
+
+	
 	Public function presence(){	
 
 		$month=$this->input->post('month');

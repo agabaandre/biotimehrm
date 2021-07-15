@@ -178,6 +178,7 @@ else{
 <div class="header-row tbrow">
     <span class="cell tbprimary cnumber"># <b id="name"></b></span>
     <span class="cell  cname">Name</span>
+	<span class="cell  cname">Job</span>
 	<span class="cell">Day</span>
 	<span class="cell">Evening</span>
 	<span class="cell">Night</span>
@@ -205,7 +206,7 @@ foreach($sums as $sum) {?>
 </span>
     <span class="cell cname" data-label="Name"><?php echo $sum['fullname'].' '.$sum['othername'];?></span>
 
-	
+	<span class="cell cname" data-label="Job"><?php echo $sum['job'];?></span>
 	<span class="cell" data-label="D"><?php  $d=$sum['D']; if(!empty($d)){echo $d;} else{ echo 0;}?></span>
 	<span class="cell" data-label="E"><?php  $e=$sum['E']; if(!empty($e)){echo $e;} else{ echo 0;}?></span>
 	<span class="cell" data-label="N"><?php  $n=$sum['N']; if(!empty($n)){echo $n;} else{ echo 0;}?></span>

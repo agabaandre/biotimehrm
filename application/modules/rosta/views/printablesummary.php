@@ -88,14 +88,13 @@ echo "<font color='red'> No Usable Data</font>";
 else{
 
 ?>
-	MONTLY DUTY ROTA SUMMARY
+<p>	MONTLY DUTY ROTA SUMMARY
 
 		<?php
-		 echo " - ".$sums[0]['facility']."<br>"; 
-
-		echo "              ".date('F, Y',strtotime($dates));
+		 echo " - ".$sums[0]['facility']." ".date('F, Y',strtotime($dates));
 
 		?>
+</p>
 
 <?php } ?>
 
@@ -108,6 +107,7 @@ else{
 <tr>
 	<th>#</th>
 	<th>Name</th>
+	<th>Job</th>
 	<th>Day</th>
 	<th>Evening</th>
 	<th>Night</th>
@@ -115,7 +115,8 @@ else{
 	<th>Annual</th>
 	<th>Study</th>
 	<th>Maternity</th>
-	<th>Other</th>
+	<th>Other Leave</th>
+	<th>Total Days</th>
 	
 
 </tr>
@@ -132,19 +133,17 @@ foreach($sums as $sum) {?>
 
 <tr>
 	<td class="cost"><?php echo $no;?></td>
-	<td class="cost"><?php echo $sum['person'];?></td>
-	<td class="cost"><?php echo $sum['D'];?></td>
-	<td class="cost"><?php echo $sum['E'];?></td>
-	<td class="cost"><?php echo $sum['N'];?></td>
-	<td class="cost"><?php echo $sum['O'];?></td>
-	<td class="cost"><?php echo $sum['A'];?></td>
-	<td class="cost"><?php echo $sum['S'];?></td>
-	<td class="cost"><?php echo $sum['M'];?></td>
-	<td class="cost"><?php echo $sum['Z'];?></td>
-
-
-
-	
+	<td data-label="Name"><?php echo $sum['fullname'].' '.$sum['othername'];?></td>
+	<td data-label="Name"><?php echo $sum['job'];?></td>
+	<td data-label="D"><?php  $d=$sum['D']; if(!empty($d)){echo $d;} else{ echo 0;}?></td>
+	<td data-label="E"><?php  $e=$sum['E']; if(!empty($e)){echo $e;} else{ echo 0;}?></td>
+	<td data-label="N"><?php  $n=$sum['N']; if(!empty($n)){echo $n;} else{ echo 0;}?></td>
+	<td data-label="O"><?php  $o=$sum['O']; if(!empty($o)){echo $o;} else{ echo 0;}?></td>
+	<td data-label="A"><?php  $a=$sum['A']; if(!empty($a)){echo $a;} else{ echo 0;}?></td>
+	<td data-label="S"><?php  $s=$sum['S']; if(!empty($s)){echo $s;} else{ echo 0;} ?></td>
+	<td data-label="M"><?php  $m=$sum['M']; if(!empty($m)){echo $m;} else{ echo 0;} ?></td>
+	<td data-label="Z"><?php  $z=$sum['Z'];if(!empty($z)){echo $d;} else{ echo 0;}?></td>
+	<td data-label="Z"><?php echo $sum['D']+$sum['E']+$sum['N']+$sum['O']+$sum['A']+$sum['S']+$sum['M']+$sum['Z'];?></td>
 
 </tr>
 

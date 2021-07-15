@@ -105,41 +105,6 @@ class Attendance extends MX_Controller {
 	}
 	
 
-public function bundleCsv($valid_range){
-    
- $sums=$this->attendance_model->fetch_summary($valid_range);
-
-//$fp = fopen(FCPATH.'uploads/summary.csv', 'w');
-
- $fp = fopen('php://memory', 'w'); 
-
-//add heading to data
-$heading=array('person' =>"Names" ,'D'=>"Day Duty", 'facility' =>' ', 'E' => "Evening", 'N' => "Night", 'O' =>"Off Duty", 'A' => "Annual Leave", 'S' => "Study Leave", 'M' => "Maternity Leave", 'Z' =>"Other Leave", 'H' => "");
-
-array_unshift($sums,$heading);
-
-foreach ($sums as $sum) {
-    
-   fputcsv($fp, $sum);
-    
-}
-
-
-$filename=$valid_range."_summary_report.csv";
-
-// reset the file pointer to the start of the file
-    fseek($fp, 0);
-    // tell the browser it's going to be a csv file
-    header('Content-Type: application/csv');
-    // tell the browser we want to save it instead of displaying it
-    header('Content-Disposition: attachment; filename="'.$filename.'";');
-    // make php send the generated csv lines to the browser
-    fpassthru($fp);
-
-
-fclose($fp);
-
-}
 
 	Public function print_attsummary($date)
 	{	

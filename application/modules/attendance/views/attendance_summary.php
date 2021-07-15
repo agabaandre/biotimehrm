@@ -144,9 +144,7 @@ echo "<font color='red'> No Schedule Data</font>";
 else{
 ?>
 	MONTHLY ATTENDANCE TO DUTY SUMMARY
-		<?php
-		 echo " - ".$sums[0]['facility']." "; 
-		echo "              ".date('F, Y',strtotime($year."-".$month));
+		<?php  echo " - ".$sums[0]['facility']." ".date('F, Y',strtotime($year."-".$month));
 		?>
 <?php } ?>
 	</p></div>
