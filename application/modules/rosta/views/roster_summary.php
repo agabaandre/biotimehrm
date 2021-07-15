@@ -150,6 +150,7 @@
 <div class="col-md-3" style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></div>
 	<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0;">
 		<p style="font-size: 16px; font-weight:bold; margin:0 auto; ">
+
 <?php 
 if(count($sums)<1)
 {
@@ -171,7 +172,7 @@ else{
   
 			 
 
-
+<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 <div id="table">
 
 <div class="header-row tbrow">
@@ -193,7 +194,7 @@ else{
 
 <?php 
 
-$no=1;
+$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):1;
 
 foreach($sums as $sum) {?>
 
@@ -230,6 +231,7 @@ $no++;
 
 
 </div>
+<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 
 
 <script type="text/javascript">
@@ -237,7 +239,7 @@ $no++;
 
 var url=window.location.href;
 
-if(url=='<?php echo base_url(); ?>rosta/fetch_report'){
+if(url=='<?php echo base_url(); ?>rosta/summary'){
 
 
 	$('.sidebar-mini').addClass('sidebar-collapse');

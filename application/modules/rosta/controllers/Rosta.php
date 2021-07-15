@@ -11,6 +11,7 @@ class Rosta extends MX_Controller {
         parent::__construct();
 
         $this->load->model('rosta_model');
+		
         $this->rostamodule="rosta";
         $this->departments=Modules::run("departments/getDepartments");
 		$this->watermark=FCPATH."assets/img/MOH.png";
@@ -426,8 +427,9 @@ class Rosta extends MX_Controller {
 	{
 
 
-		$month = $this->input->post('month');
-		$year = $this->input->post('year');
+		$month=$this->input->post('month');
+		$year=$this->input->post('year');
+		$empid=$this->input->post('empid');
 		if(!empty($month)){
 			$_SESSION['month']=$month;
 			$_SESSION['year']=$year;
@@ -450,9 +452,39 @@ class Rosta extends MX_Controller {
 			$data['month']=$_SESSION['month'];
 			$data['year']=$_SESSION['year'];
 		 }
-	
+		
+        $this->load->library('pagination');
+		$config=array();
+		$config['base_url']=base_url()."rosta/summary";
+		$config['total_rows']=$this->rosta_model->countrosta_summary($date,$this->filters);
+	    $config['per_page']=30; //records per page
+	    $config['uri_segment']=3; //segment in url
+	    //pagination links styling
+		$config['full_tag_open'] = '<ul class="pagination">';
+		$config['full_tag_close'] = '</ul>';
+		$config['attributes'] = ['class' => 'page-link'];
+		$config['first_link'] = false;
+		$config['last_link'] = false;
+		$config['first_tag_open'] = '<li class="page-item">';
+		$config['first_tag_close'] = '</li>';
+		$config['prev_link'] = '&laquo';
+		$config['prev_tag_open'] = '<li class="page-item">';
+		$config['prev_tag_close'] = '</li>';
+		$config['next_link'] = '&raquo';
+		$config['next_tag_open'] = '<li class="page-item">';
+		$config['next_tag_close'] = '</li>';
+		$config['last_tag_open'] = '<li class="page-item">';
+		$config['last_tag_close'] = '</li>';
+		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+		$config['num_tag_open'] = '<li class="page-item">';
+		$config['num_tag_close'] = '</li>';
+        $config['use_page_numbers'] = false;
+	    $this->pagination->initialize($config);
+	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
+	    $data['links']=$this->pagination->create_links();
 		//$data['facilities'] = $this->attendance_model->get_facility();
-		$data['sums'] = $this->rosta_model->fetch_summary($date,$this->filters);
+		$data['sums'] = $this->rosta_model->fetch_summary($date,$this->filters,$config['per_page'],$page,$empid);
 
 		$data['view']='roster_summary';
 		$data['module']=$this->rostamodule;
@@ -477,7 +509,7 @@ class Rosta extends MX_Controller {
 		$fp = fopen('php://memory', 'w');
 
 		//add heading to data
-		$heading = array('person' => "Names", 'D' => "Day Duty", 'facility' => ' ', 'E' => "Evening", 'N' => "Night", 'O' => "Off Duty", 'A' => "Annual Leave", 'S' => "Study Leave", 'M' => "Maternity Leave", 'Z' => "Other Leave", 'H' => "");
+		$heading = array('person' => "Names",'facility' => ' Facility', 'D' => "Day Duty",  'E' => "Evening", 'N' => "Night", 'O' => "Off Duty", 'A' => "Annual Leave", 'S' => "Study Leave", 'M' => "Maternity Leave", 'Z' => "Other Leave", 'H' => "");
 
 		array_unshift($sums, $heading);
 

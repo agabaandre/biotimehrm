@@ -80,7 +80,12 @@ class Auth extends MX_Controller {
         "division"=>$person->division,
         "unit"=>$person->unit,
         "district_id"=>$person->district_id,
-        "district"=>$person->district
+        "district"=>$person->district,
+        "year"=>date('Y'),
+        "month"=>date('m'),
+        "date_from"=>date("Y-m-d",strtotime("-1 month")),
+        "date_to"=>date('Y-m-d')
+
 			);
 
 			//print_r($userdata);

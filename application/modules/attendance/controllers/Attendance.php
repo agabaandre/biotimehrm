@@ -8,17 +8,18 @@ class Attendance extends MX_Controller {
 		
 		
 		parent:: __construct();
-
+        
 		$this->load->model('attendance_model');
 		$this->departments=Modules::run("departments/getDepartments");
 		$this->attendModule="attendance";
 		$this->watermark=FCPATH."assets/img/MOH.png";
 		  //requires a join on ihrisdata
-		  $this->filters=Modules::run('filters/sessionfilters');
-		  //doesnt require a join on ihrisdata
-		  $this->ufilters=Modules::run('filters/universalfilters');
-		  // requires a join on ihrisdata with district level
-		  $this->distfilters=Modules::run('filters/districtfilters');
+		$this->filters=Modules::run('filters/sessionfilters');
+		//doesnt require a join on ihrisdata
+		$this->ufilters=Modules::run('filters/universalfilters');
+		// requires a join on ihrisdata with district level
+		$this->distfilters=Modules::run('filters/districtfilters');
+		$this->load->library('pagination');
 		
 	}
 	public function attrosta($date_range,$person){
@@ -40,37 +41,61 @@ class Attendance extends MX_Controller {
 	 	    
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
-		$department=$this->input->post('department');
-
-		if($month!="")
-		{
-
-			$data['month']=$month;
-
-			$data['year']=$year;
-		}
-
-		else{
-
-			$data['month']=date('m');
-
-			$data['year']=date('Y');
+		$empid=$this->input->post('empid');
+		if(!empty($month)){
+			$_SESSION['month']=$month;
+			$_SESSION['year']=$year;
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 
 		}
+	
 
-		if($department){
+	     if (!empty($_SESSION['year'])){
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
 
-			$data['depart']=$department;
-
-		}
-
-		$date=$data['year']."-".$data['month'];
-			    
-		$data['departments']=Modules::run("departments/getDepartments");
-		$data['dates']=$date;
-
-		$data['facilities']=Modules::run("facilities/getFacilities");
-		$data['sums']=$this->attendance_model->attendance_summary($date,$this->filters);
+		 }
+		 else{
+			
+			$_SESSION['month']=date('m');
+			$_SESSION['year']=date('Y');
+			$date=$_SESSION['year'].'-'.$_SESSION['month'];
+			$data['month']=$_SESSION['month'];
+			$data['year']=$_SESSION['year'];
+		 }
+		
+        
+		$config=array();
+	    $config['base_url']=base_url()."attendance/attendance_summary";
+	    $config['total_rows']=$this->attendance_model->countAttendanceSummary($date,$this->filters);
+	    $config['per_page']=30; //records per page
+	    $config['uri_segment']=3; //segment in url
+	    //pagination links styling
+		$config['full_tag_open'] = '<ul class="pagination">';
+		$config['full_tag_close'] = '</ul>';
+		$config['attributes'] = ['class' => 'page-link'];
+		$config['first_link'] = false;
+		$config['last_link'] = false;
+		$config['first_tag_open'] = '<li class="page-item">';
+		$config['first_tag_close'] = '</li>';
+		$config['prev_link'] = '&laquo';
+		$config['prev_tag_open'] = '<li class="page-item">';
+		$config['prev_tag_close'] = '</li>';
+		$config['next_link'] = '&raquo';
+		$config['next_tag_open'] = '<li class="page-item">';
+		$config['next_tag_close'] = '</li>';
+		$config['last_tag_open'] = '<li class="page-item">';
+		$config['last_tag_close'] = '</li>';
+		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+		$config['num_tag_open'] = '<li class="page-item">';
+		$config['num_tag_close'] = '</li>';
+        $config['use_page_numbers'] = false;
+	    $this->pagination->initialize($config);
+	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
+	    $data['links']=$this->pagination->create_links();
+		$data['sums']=$this->attendance_model->attendance_summary($date,$this->filters,$config['per_page'],$page,$empid);
 		$data['view']='attendance_summary';
 		$data['title']='Attendance Form Summary';
 		$data['uptitle']='Attendance Form Summary';
@@ -125,7 +150,9 @@ fclose($fp);
 
 		//$data['username']=$this->username;
 
-		$data['sums']=$this->attendance_model->attendance_summary($date,$this->filters);
+		$data['sums']=$this->attendance_model->attendance_summary($date,$this->filters,$config['per_page']=FALSE,$page=FALSE,$empid=FALSE);
+
+
 
 		$html=$this->load->view('att_summary',$data,true);
 
@@ -147,7 +174,7 @@ fclose($fp);
 
 	public function attsums_csv($valid_range)
 	{
-		$datas=$this->attendance_model->attendance_summary($valid_range,$this->filters);
+	$datas=$this->attendance_model->attendance_summary($valid_range,$this->filters,$config['per_page']=NULL,$page=NULL,$empid=FALSE);
     $csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
 	header("Content-Type: text/csv");
 	header("Content-Disposition: attachment; filename=\"$csv_file\"");	

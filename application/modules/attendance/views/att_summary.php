@@ -138,7 +138,7 @@ else{
 
 <?php 
 
-$no=1;
+$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):1;
 
 foreach($sums as $sum) {?>
 
@@ -150,7 +150,7 @@ foreach($sums as $sum) {?>
     <td data-label="O"><?php echo $sum['O'];?></td>
 	<td data-label="R"><?php echo $sum['R'];?></td>
 	<td data-label="L"><?php echo $sum['L'];?></td>
-	<td data-label="D"><?php $roster=Modules::run('attendance/attrosta',$mydate,urlencode($sum['person_id'])); ?><?php echo $day=$roster['Day'][0]->days; ?></td>
+	<td data-label="D"><?php $roster=Modules::run('attendance/attrosta',$dates,urlencode($sum['person_id'])); ?><?php echo $day=$roster['Day'][0]->days; ?></td>
 	<td data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></td>
 	<td data-label="N"><?php echo $night=$roster['Night'][0]->days;?></td>
 	<td data-label="Percentage Pr"><?php $per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } ?> % </td>

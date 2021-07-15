@@ -9,6 +9,11 @@ class Calendar extends MX_Controller {
 		parent::__Construct();
 
 		$this->load->model('calendar_model');
+		$this->filters=Modules::run('filters/sessionfilters');
+        //doesnt require a join on ihrisdata
+        $this->ufilters=Modules::run('filters/universalfilters');
+        // requires a join on ihrisdata with district level
+        $this->distfilters=Modules::run('filters/districtfilters');
 
 	}
 
@@ -22,7 +27,7 @@ class Calendar extends MX_Controller {
 	}
 	Public function getattEvents()
 	{
-		$result=$this->calendar_model->getattEvents();
+		$result=$this->calendar_model->getattEvents($this->ufilters);
 		echo json_encode($result);
 	}
 	

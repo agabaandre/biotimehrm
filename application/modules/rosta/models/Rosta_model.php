@@ -611,15 +611,20 @@ public function __Construct(){
 	}
 
 
-	Public function fetch_summary($valid_range, $filter){	
+	Public function fetch_summary($valid_range,$filters,$start=NULL,$limit=NULL,$employee=NULL){
 
+		if(!empty($employee)){
+            $search="and ihrisdata.ihris_pid='$employee";
+		}
+		else{
+			$search="";
+		}
 	
-
-
-		if(empty($valid_range)){
-		    
-			$valid_range=date('Y-m');
-
+		if(!empty($start)){
+            $limits=" LIMIT $limit,$start";
+		}
+		else{
+			$limits=" ";
 		}
 
 		$s=$this->db->query("select letter,schedule_id from schedules where  purpose='r'");
@@ -627,7 +632,7 @@ public function __Construct(){
 		$schs=$s->result_array();
 
 
-			$all=$this->db->query("select distinct ihris_pid, facility, concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filter");
+			$all=$this->db->query("select distinct ihris_pid, facility, concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filters $limits $search");
 
 		
 
@@ -651,7 +656,7 @@ public function __Construct(){
 
 				$s_id=$sc['schedule_id'];
 
-				$query=$this->db->query("select ihrisdata.ihris_pid,dutyreport.duty_date, schedules.letter,dutyreport.entry_id,schedules.schedule,count(dutyreport.schedule_id) as days from dutyreport,schedules, ihrisdata WHERE( dutyreport.duty_date like '$valid_range-%' and dutyreport.schedule_id=schedules.schedule_id and dutyreport.ihris_pid=ihrisdata.ihris_pid and dutyreport.ihris_pid='$id' and schedules.schedule_id='$s_id' and dutyreport.duty_date like '$valid_range%')");
+				$query=$this->db->query("select ihrisdata.ihris_pid,duty_rosta.duty_date, schedules.letter,duty_rosta.entry_id,schedules.schedule,count(duty_rosta.schedule_id) as days from duty_rosta,schedules, ihrisdata WHERE( duty_rosta.duty_date like '$valid_range-%' and duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.ihris_pid=ihrisdata.ihris_pid and duty_rosta.ihris_pid='$id' and schedules.schedule_id='$s_id' AND DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range' )");
 		
 				$rows=$this->db->affected_rows();
 
@@ -895,17 +900,17 @@ public function __Construct(){
 
 		if($district && !$facility){
 		 
-			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where ihrisdata.district_id='$district'   and   ihrisdata.ihris_pid IN(select dutyreport.ihris_pid from dutyreport where duty_date like '$valid_range%')");
+			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where ihrisdata.district_id='$district'   and   ihrisdata.ihris_pid IN(select duty_rosta.ihris_pid from duty_rosta where duty_date like '$valid_range%')");
 		}
 
 		else if($facility){
 		    
-			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where  ihrisdata.district_id='$district' and  ihrisdata.facility_id='$facility'   and   ihrisdata.ihris_pid IN(select dutyreport.ihris_pid from dutyreport where duty_date like '$valid_range%')");
+			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where  ihrisdata.district_id='$district' and  ihrisdata.facility_id='$facility'   and   ihrisdata.ihris_pid IN(select duty_rosta.ihris_pid from duty_rosta where duty_date like '$valid_range%')");
 		}
 
 		else{
 
-			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where  ihrisdata.ihris_pid IN(select dutyreport.ihris_pid from dutyreport where duty_date like '$valid_range%')");
+			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where  ihrisdata.ihris_pid IN(select duty_rosta.ihris_pid from duty_rosta where duty_date like '$valid_range%')");
 
 		}
 		} 
@@ -913,17 +918,17 @@ public function __Construct(){
 
 			if($district && !$facility){
 		 
-			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where ihrisdata.district_id='$district'   and   ihrisdata.ihris_pid IN(select dutyreport.ihris_pid from dutyreport where duty_date like '$valid_range%')");
+			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where ihrisdata.district_id='$district'   and   ihrisdata.ihris_pid IN(select duty_rosta.ihris_pid from duty_rosta where duty_date like '$valid_range%')");
 		}
 
 		else if($facility){
 		    
-			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where  ihrisdata.district_id='$district' and  ihrisdata.facility_id='$facility'   and   ihrisdata.ihris_pid IN(select dutyreport.ihris_pid from dutyreport where duty_date like '$valid_range%')");
+			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where  ihrisdata.district_id='$district' and  ihrisdata.facility_id='$facility'   and   ihrisdata.ihris_pid IN(select duty_rosta.ihris_pid from duty_rosta where duty_date like '$valid_range%')");
 		}
 
 		else{
 
-			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where  ihrisdata.ihris_pid IN(select dutyreport.ihris_pid from dutyreport where duty_date like '$valid_range%')");
+			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata where  ihrisdata.ihris_pid IN(select duty_rosta.ihris_pid from duty_rosta where duty_date like '$valid_range%')");
 
 		}
 		}
@@ -933,122 +938,14 @@ public function __Construct(){
 		return $rows->rows;
 	    
 	}
-	public function countrosta_summary($date){
+	public function countrosta_summary($date,$filters){
 
-	
-			$department=$this->department;
-			$all=$this->db->query("select count(ihrisdata.ihris_pid) as rows from ihrisdata,duty_rosta where  ihrisdata.ihris_pid=duty_rosta.ihris_pid and (duty_rosta.department_id='$department' and duty_date like '$date%')");
-		
-		
-		
+			$all=$this->db->query("select ihris_pid  from ihrisdata where $filters");
 
-		$rows=$all->row();
-
-		return $rows->rows;
+		return $all->num_rows();
 	    
 	}
-
-
-Public function attendance_summary($valid_range){
-		$department=$this->department;
-		$facility=$this->session->userdata['facility'];
-		$division=$this->division;
-		$unit=$this->unit;
-
-			
-		if($department!==''){
-			$dep_filter="and ihrisdata.department_id='$department'";
-		}
-		else
-		{
-			$dep_filter=NULL;
-		}
-
-		if($department!==''){
-			$depr_filter="and leave_rota.department_id='$department'";
-		}
-		else
-		{
-			$depr_filter=NULL;
-		}
-
-
-		if($division!==''){
-			$div_filter="and ihrisdata.division='$division'";
-		}
-		else
-		{
-			$div_filter=NULL;
-		}
-
-		if($unit!==''){
-			$funit="and ihrisdata.unit='$unit'";
-		}
-		else
-		{
-			$funit=NULL;
-		}
-	
-		$s=$this->db->query("select letter,schedule_id from schedules where  purpose='a'");
-
-		$schs=$s->result_array();
-
-		if($department){
-
-			$all=$this->db->query("select distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where facility_id='$facility' $dep_filter $div_filter $funit");
-		}
-
-		else{
-
-			$all=$this->db->query("select  distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where facility_id='$facility' $dep_filter $div_filter $funit");
-		}
-
-		$rows=$all->result_array();
-
-		$data=array();
-
-		$mydata=array();
-
-		$i=0;
-
-		foreach($rows as $row){
-
-			$id=$row['ihris_pid'];
-
-			$mydata["person"]=$row['fullname'];
-			$mydata["person_id"]=$id;
-
-			foreach($schs as $sc){
-				$i++;
-
-				$s_id=$sc['schedule_id'];
-
-				$qry=$this->db->query("select schedules.letter,count(actuals.schedule_id) as days from actuals,schedules where actuals.ihris_pid='$id' and actuals.schedule_id='$s_id' and schedules.schedule_id=actuals.schedule_id and actuals.date like '$valid_range%'");
-
-				$rowdata=$qry->result_array();
-
-				if($rowdata[0]['letter']){
-
-					$mydata[$rowdata[0]['letter']]=$rowdata[0]['days'];
-
-				}
-
-				else{
-
-					$mydata[$sc['letter']]='0';
-
-				}
-
-				$mydata['facility']=$rows[0]['facility'];
-
-			}
-
-			array_push($data,$mydata);
-		}
-
-		return $data;
-	}//summary
-	  
+  
 
 	//import rota data
 	public function upload_rota($importdata){
@@ -1124,9 +1021,6 @@ Public function attendance_summary($valid_range){
 		return $data;
 	}//summary
 
-
-
-
 	public function template_data(){
 
 		$facility=$this->session->userdata['facility'];
@@ -1137,126 +1031,6 @@ Public function attendance_summary($valid_range){
 
 		return $result;
 	}
-	
-
-
-///////////////new code//////////////////////////
-
-
-
-
-
-
-
-public function getRealSummary($date){	
-$valid_range=$date;
-
-$department=$this->session->userdata['department_id'];
-$department=$this->department;
-$facility=$this->session->userdata['facility'];
-$division=$this->division;
-$unit=$this->unit;
-
-	
-if($department!==''){
-	$dep_filter="and ihrisdata.department_id='$department'";
-}
-else
-{
-	$dep_filter=NULL;
-}
-
-if($department!==''){
-	$depr_filter="and leave_rota.department_id='$department'";
-}
-else
-{
-	$depr_filter=NULL;
 }
 
 
-if($division!==''){
-	$div_filter="and ihrisdata.division='$division'";
-}
-else
-{
-	$div_filter=NULL;
-}
-
-if($unit!==''){
-	$funit="and ihrisdata.unit='$unit'";
-}
-else
-{
-	$funit=NULL;
-}
-
-
-if(empty($valid_range)){
-    
-$valid_range=date('Y-m');
-
-}
-
-
-$s=$this->db->query("select letter,schedule_id from schedules where purpose='r'");
-
-$schs=$s->result_array();
-
-if($department){
-$all=$this->db->query("select distinct ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where facility_id='$facility' $dep_filter $div_filter $funit");
-}
-else{
-
-$all=$this->db->query("select distinct ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where facility_id='$facility' $dep_filter $div_filter $funit");
-
-}
-$rows=$all->result_array();
-
-$data=array();
-
-$mydata=array();
-
-$i=0;
-
-
-
-
-foreach($rows as $row){
-
-	$id=$row['ihris_pid'];
-
-$mydata["person"]=$row['fullname'];
-
-	foreach($schs as $sc){
-$i++;
-
-	$s_id=$sc['schedule_id'];
-
-
-
-	$query=$this->db->query("select ihrisdata.ihris_pid,dutyreport.duty_date, schedules.letter,dutyreport.entry_id,schedules.schedule,ihrisdata.job,ihrisdata.facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,count(dutyreport.schedule_id) as days from dutyreport,schedules,ihrisdata WHERE( dutyreport.duty_date like '$valid_range-%' and dutyreport.schedule_id=schedules.schedule_id and dutyreport.ihris_pid=ihrisdata.ihris_pid and dutyreport.facility_id='$facility' and dutyreport.ihris_pid='$id' and schedules.schedule_id='$s_id' and dutyreport.duty_date like '$valid_range%')");
-	
-	$rows=$this->db->affected_rows();
-
-$rowdata=$query->result_array();
-
-
-//$mydata=array('person'.$i=>$rowdata[0]['fullname'],'shift'=>$rowdata[0]['schedule'],'days'=>$rowdata[0]['days']);
-
-$mydata[$rowdata[0]['letter']]=$rowdata[0]['days'];
-$mydata['facility']=$rowdata[0]['facility'];
-
-}
-
-array_push($data,$mydata);
-
-
-
-	}
-
-
-return $data;
-}//summary
-
-}

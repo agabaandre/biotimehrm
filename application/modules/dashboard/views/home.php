@@ -152,7 +152,7 @@
           
                               <?php foreach ($colors as $color) { ?>
                               <li class="nav-item">
-                              <a class="btn btn-flat btnkey" style="background-color:<?php echo $color->color;  ?>;" data-toggle="tab"><?php echo $color->schedule;?></a>
+                              <a class="btn btn-flat btnkey" style="background-color:<?php echo $color->color;  ?>;" ><?php echo $color->schedule;?></a>
                               </li>
                               <?php  }?>
                             
@@ -388,7 +388,7 @@
         },
         // Get all events stored in database
         eventLimit: true, // allow "more" link when too many events
-        // events:base_url+'calendar/getattEvents',
+        events:base_url+'calendar/getattEvents',
         selectable: false,
         selectHelper: true,
         editable: false,
@@ -412,7 +412,7 @@
             $(this).css('z-index', 8);
             $('.event-tooltip').remove();
         },
-        // H
+        
     });
  
     </script>
@@ -430,7 +430,7 @@
         },
         // Get all events stored in database
         eventLimit: true, // allow "more" link when too many events
-        // events:base_url+'calendar/getattEvents',
+        events:base_url+'calendar/getEvents',
         selectable: false,
         selectHelper: true,
         editable: false,

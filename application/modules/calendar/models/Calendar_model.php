@@ -7,152 +7,119 @@ class Calendar_model extends CI_Model {
 		
 		parent:: __construct();
 
-		$this->facility=$this->session->facility;
-		$this->department=$this->session->userdata['department_id'];
-		$this->division=$this->session->userdata['division'];
-		$this->unit=$this->session->userdata['unit'];
+		$this->district_id=$this->session->userdata['district_id'];
+        $this->facility_id=$this->session->userdata['facility'];
+        $this->department_id="";
+        $this->division="";
+        $this->section="";
+        $this->unit="";
+       
 
 
 	}
 
 	Public function getattEvents()
-	{
-		
-			//current facility
-		$facility=$this->session->userdata['facility'];
-		$department=$this->department;
-		$division=$this->division;
-		$unit=$this->unit;
+	{       
+		$facility_id=$this->facility_id;
+        $department_id=$this->department_id;
+        $division=$this->division;
+        $unit=$this->unit;
+        $section=$this->section;
+		if(!empty($facility_id)){
+            $facility=" actuals.facility_id='$facility_id'";
+        }
+        else{
+            $facility="";
+        }
+        
+        if(!empty($department_id)){
+            $department="and ihrisdata.department_id='$department_id'";
+        }
+        else{
+            $department="";
+        }
+        if(!empty($division)){
+            $division="and ihrisdata.division='$division'";
+        }
+        else{
+            $division="";
+        }
+        if(!empty($section)){
+            $section="and ihrisdata.section='$section'";
+        }
+        else{
+            $section="";
+        }
 
-		if($department!==''){
-			$dep_filter="and ihrisdata.department_id='$department'";
-		}
-		else
-		{
-			$dep_filter="";
-		}
-
-		if($department!==''){
-			$depr_filter="and actuals.department_id='$department'";
-		}
-		else
-		{
-			$depr_filter="";
-		}
-
-
-		if($division!==''){
-			$div_filter="and ihrisdata.division='$division'";
-		}
-		else
-		{
-			$div_filter="";
-		}
-
-		if($unit!==''){
-			$funit="and ihrisdata.unit='$unit'";
-		}
-		else
-		{
-			$funit="";
-		}
-
-
-		if($department){
-				$sql = "SELECT entry_id as id,actuals.end,actuals.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,actuals.color,actuals.date as start,actuals.schedule_id as schedule FROM actuals,ihrisdata,schedules WHERE (ihrisdata.ihris_pid=actuals.ihris_pid AND actuals.schedule_id=schedules.schedule_id and actuals.facility_id='$facility' $dep_filter$div_filter$funit ) ORDER BY salary_grade ASC LIMIT 1000";	
-		     }
-
-		else{
-
-			$sql = "SELECT entry_id as id,actuals.end,actuals.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,actuals.color,actuals.date as start,actuals.schedule_id as schedule FROM actuals,ihrisdata,schedules WHERE (ihrisdata.ihris_pid=actuals.ihris_pid AND actuals.schedule_id=schedules.schedule_id and actuals.facility_id='$facility' ) ORDER BY salary_grade ASC LIMIT 1000";
-
-		    }
-
-
-				//actuals.date BETWEEN ? AND ? AND  , array($start, $date)
-			//return $this->db->query($sql, array('2018-05-02','2018-09-01'))->result();
-
-				 $date=date('Y-m-d');
-
-                 $start="1999-01-01";
-                  //$_GET['start'], $_GET['end']
-			/*$sql = "SELECT * FROM actuals WHERE actuals.date BETWEEN ? AND ? ORDER BY actuals.date ASC";*/
-
-			return $this->db->query($sql)->result();
+        if(!empty($unit)){
+            $unit="and ihrisdata.unit='$unit'";
+        }
+        else{
+            $unit="";
+        }
+			$start=$_GET["start"];
+			$end=$_GET["end"];
+            $filters= $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
+			$query=$this->db->query("SELECT entry_id as id, actuals.end,actuals.ihris_pid as person_id,schedules.schedule as duty,actuals.facility_id,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,actuals.color,actuals.date as start,actuals.schedule_id as schedule FROM actuals,ihrisdata,schedules WHERE ($filters and ihrisdata.ihris_pid=actuals.ihris_pid AND actuals.schedule_id=schedules.schedule_id AND  actuals.date BETWEEN '$start' AND '$end') ORDER BY salary_grade ASC, date DESC");	
+		  
+	return $query->result();
 
 	}
 /*Read the data from DB */
 	Public function getEvents()
 	{
-		
-			//current facility
-		$facility=$this->session->userdata['facility'];
-		$department=$this->department;
-		$division=$this->division;
-		$unit=$this->unit;
+		$facility_id=$this->facility_id;
+        $department_id=$this->department_id;
+        $division=$this->division;
+        $unit=$this->unit;
+        $section=$this->section;
+		if(!empty($facility_id)){
+            $facility=" duty_rosta.facility_id='$facility_id'";
+        }
+        else{
+            $facility="";
+        }
+        
+        if(!empty($department_id)){
+            $department="and ihrisdata.department_id='$department_id'";
+        }
+        else{
+            $department="";
+        }
+        if(!empty($division)){
+            $division="and ihrisdata.division='$division'";
+        }
+        else{
+            $division="";
+        }
+        if(!empty($section)){
+            $section="and ihrisdata.section='$section'";
+        }
+        else{
+            $section="";
+        }
 
-		if($department!==''){
-			$dep_filter="and ihrisdata.department_id='$department'";
-		}
-		else
-		{
-			$dep_filter="";
-		}
-
-		if($department!==''){
-			$depr_filter="and duty_rosta.department_id='$department'";
-		}
-		else
-		{
-			$depr_filter="";
-		}
-
-
-		if($division!==''){
-			$div_filter="and ihrisdata.division='$division'";
-		}
-		else
-		{
-			$div_filter="";
-		}
-
-		if($unit!==''){
-			$funit="and ihrisdata.unit='$unit'";
-		}
-		else
-		{
-			$funit="";
-		}
-
-
-		if($department){
-				$sql = "SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE (ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.facility_id='$facility' $dep_filter$div_filter$funit ) ORDER BY  duty_date DESC LIMIT 10000";	
-		     }
-
-		else{
-
-			$sql = "SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE (ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id and duty_rosta.facility_id='$facility' ) ORDER BY  duty_date DESC LIMIT 10000 ";
-
-		    }
+        if(!empty($unit)){
+            $unit="and ihrisdata.unit='$unit'";
+        }
+        else{
+            $unit="";
+        }
+            $filters= $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
 
 
-				//duty_rosta.duty_date BETWEEN ? AND ? AND  , array($start, $date)
-			//return $this->db->query($sql, array('2018-05-02','2018-09-01'))->result();
-
-				 $date=date('Y-m-d');
-
-                 $start="1999-01-01";
-                  //$_GET['start'], $_GET['end']
-			/*$sql = "SELECT * FROM duty_rosta WHERE duty_rosta.duty_date BETWEEN ? AND ? ORDER BY duty_rosta.duty_date ASC";*/
-
-			return $this->db->query($sql)->result();
+            $start=$_GET["start"];
+			$end=$_GET["end"];
+			
+			$query = $this->db->query("SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE ( $filters AND ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id  AND duty_rosta.duty_date BETWEEN '$start' AND '$end' ) ORDER BY  salary_grade ASC,duty_date DESC");
+	$data=$query->result();
+    return $data;
 
 	}
 
 
 /*Create new events */
-
-	Public function addEvent()
+Public function addEvent()
 	{
 
 

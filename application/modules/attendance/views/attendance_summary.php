@@ -115,7 +115,7 @@
 					if(count($sums)>0)
 					{
 					?>
-								<a href="<?php echo base_url(); ?>attendance/attCsv/<?php echo $year."-".$month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
+								<a href="<?php echo base_url(); ?>attendance/attsums_csv/<?php echo $year."-".$month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
 					<?php } ?>
         </div>
 
@@ -129,6 +129,7 @@
 			</div>
 
 <div class="panel-body">
+<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 <?php 
 //print_r($sums);   //raw data
 ?>
@@ -186,6 +187,7 @@ $no++;
 } ?>
 </div>
 </div></div>
+<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 </div>
 </div>
 </div>
@@ -194,13 +196,13 @@ $no++;
 
 <script type="text/javascript">
 var url=window.location.href;
-if(url=='<?php echo base_url(); ?>rosta/fetch_report'){
+if(url=='<?php echo base_url(); ?>attendance/attendance_summary'){
 	$('.sidebar-mini').addClass('sidebar-collapse');
 }
 $('.csv').click(function(e){
     e.preventDefault();
     $.ajax({
-        url:'<?php echo base_url(); ?>rosta/bundleCsv',
+        url:'<?php echo base_url(); ?>attendance/attsums_csv',
         success:function(res){
             console.log(res);
         }

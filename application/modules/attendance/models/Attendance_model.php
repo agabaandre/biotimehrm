@@ -388,24 +388,33 @@ class 	Attendance_model extends CI_Model {
 	   
 	    return $rows;
 	}
-
+    public function countAttendanceSummary($date,$filters){
+	    $query=$this->db->query("select distinct(ihris_pid) from  ihrisdata where $filters");
+		return $query->num_rows();
+	}
     
-	Public function attendance_summary($valid_range,$filters){
+	Public function attendance_summary($valid_range,$filters,$start=NULL,$limit=NULL,$employee=NULL){
 
-		if(!empty($this->input->post('empid'))){
-            $emp=$this->input->post('empid');
-            $emps="AND ihris_pid like'$emp' ";
-           }
-           else{
-            $emps="";   
-          }
+		if(!empty($employee)){
+            $search="and ihrisdata.ihris_pid='$employee";
+		}
+		else{
+			$search="";
+		}
+	
+		if(!empty($start)){
+            $limits=" LIMIT $limit,$start";
+		}
+		else{
+			$limits=" ";
+		}
 		
 	
 		$s=$this->db->query("select letter,schedule_id from schedules where  purpose='a'");
 
 		$schs=$s->result_array();
 
-			$all=$this->db->query("select  distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filters $emps");
+			$all=$this->db->query("select  distinct ihris_pid,facility,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname from ihrisdata where $filters $limits $search");
 		
 
 		$rows=$all->result_array();
@@ -428,7 +437,7 @@ class 	Attendance_model extends CI_Model {
 
 				$s_id=$sc['schedule_id'];
 
-				$qry=$this->db->query("select schedules.letter,count(actuals.schedule_id) as days from actuals,schedules where actuals.ihris_pid='$id' and actuals.schedule_id='$s_id' and schedules.schedule_id=actuals.schedule_id and actuals.date like '$valid_range%'");
+				$qry=$this->db->query("select schedules.letter,count(actuals.schedule_id) as days from actuals,schedules where actuals.ihris_pid='$id' and actuals.schedule_id='$s_id' and schedules.schedule_id=actuals.schedule_id and DATE_FORMAT(actuals.date, '%Y-%m') ='$valid_range'");
 
 				$rowdata=$qry->result_array();
 
@@ -457,9 +466,9 @@ class 	Attendance_model extends CI_Model {
 	
 	Public function attrosta($valid_range,$person){	
 
-		$day=$this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=14 and duty_date like'$valid_range-%' and ihris_pid='$person'")->result();
-		$evening=$this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=15 and duty_date like'$valid_range-%' and ihris_pid='$person'")->result();
-		$night=$this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=16 and duty_date like'$valid_range-%' and ihris_pid='$person'")->result();
+		$day=$this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=14 and DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range' and ihris_pid='$person'")->result();
+		$evening=$this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=15 and DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range' and ihris_pid='$person'")->result();
+		$night=$this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=16 and DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range' and ihris_pid='$person'")->result();
 		
 		$data['Day']=$day;
 		$data['Evening']=$evening;

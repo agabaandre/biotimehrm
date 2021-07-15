@@ -154,6 +154,10 @@ body::-webkit-scrollbar-thumb
   border-radius:2px;
 
   }
+  .fc-content{
+    color:#fff !important;
+
+  }
 
 
 </style>
