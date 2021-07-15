@@ -182,15 +182,20 @@ fclose($fp);
     $records=array();//output each row of the data, format line as csv and write to file pointer
      foreach($datas as $data){
 		$roster=Modules::run('attendance/attrosta',$valid_range,urlencode($data['person_id']));
-		$present=$data['P'];
+		if(!empty($data['P'])){$present=$data['P']; } else{$present=0;}
+		if(!empty($data['O'])){$off=$data['O']; } else{$off=0;};
+		if(!empty($data['L'])){$leave=$data['L']; } else{$leave=0;};
+		if(!empty($data['R'])){$request=$data['R']; } else{$request=0;};
+		if(!empty($data['P'])){$present=$data['P']; } else{$present=0;};
+		if(!empty($data['H'])){$holiday=$data['H']; } else{$holiday=0;};
         $eve=$roster['Evening'][0]->days;
 		$day=$roster['Day'][0]->days;
 		$night=$roster['Night'][0]->days;
 		$per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ $per = 0; } else{  $per; }
-        $days =array("Name"=>$data['person'], "Present"=>$present=$data['P'], "Off
-		Duty"=>$data['O'],
+        $days =array("Name"=>$data['fullname'], "Present"=>$present, "Off
+		Duty"=>$off,
 		"Official
-		Request"=>$data['R'], "Leave"=>$data['L'], "Day Schedule"=>$day, "Evening Schedule"=>$eve,"Night Schedule"=>$night,"% Present"=>$per);
+		Request"=>$request, "Leave"=>$leave,"Holiday"=>$holiday, "Day Schedule"=>$day, "Evening Schedule"=>$eve,"Night Schedule"=>$night,"% Present"=>$per);
         array_push($records,$days);
     }
     $is_coloumn = true;

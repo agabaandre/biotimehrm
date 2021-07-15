@@ -124,10 +124,11 @@ else{
 	<th>Off Duty</th>
 	<th>Official Request</th>
 	<th>Leave</th>
+	<th>Holiday</th>
 	<th>Day Schedule</th>
 	<th>Evening Schedule</th>
 	<th> Night Schedule</th>
-	<th> Present</th>
+	<th> Present %</th>
 	
 
 
@@ -145,7 +146,7 @@ foreach($sums as $sum) {?>
 
 <tr>
 	<td data-label="no"><?php echo $no;?></td>
-	<td data-label="Name"  data-label="Name"><?php echo $sum['fullname'].' '.$sum['fullname'];?></td>
+	<td data-label="Name"><?php echo $sum['fullname'].' '.$sum['othername'];?></td>
     <td data-label="P"><?php if(!empty($present=$sum['P'])){ echo $present; } else{ echo 0; }?></td>
     <td data-label="O"><?php if(!empty($O=$sum['O'])){ echo $present; } else{ echo 0; }?></td>
 	<td data-label="R"><?php if(!empty($R=$sum['R'])){ echo $present; } else{ echo 0; }?></td>
