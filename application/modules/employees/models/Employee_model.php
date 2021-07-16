@@ -687,10 +687,10 @@ Class Employee_model extends CI_Model
       $search="";
 
 		if(!empty($employee)){
-            $search="and ihrisdata.ihris_pid='".$employee."'";
+            $search="and ihris_pid='".$employee."'";
 		 }
          if(!empty($job)){
-            $jsearch="and ihrisdata.job like '$job' ";
+            $jsearch="and job like '$job' ";
 		 }
          else{
              $jsearch="";
@@ -702,60 +702,57 @@ Class Employee_model extends CI_Model
              $limit="";
          }
 
-
-        $all=$this->db->query("SELECT distinct(ihris_pid),surname,firstname from ihrisdata where $filter $search $jsearch order by surname ASC $limit");
-
-
-        $rows=$all->result_array();
-
-        foreach($rows as $row){
-
-            $id= $row['ihris_pid'];
-            $query=$this->db->query("select  
-            date, ihris_pid,
-            max(day1) as day1,
-            max(day2)as day2,
-            max(day3)as day3,
-            max(day4)as day4,
-            max(day5)as day5,
-            max(day6)as day6,
-            max(day7)as day7,
-            max(day8)as day8,
-            max(day9)as day9,
-            max(day10)as day10,
-            max(day11)as day11,
-            max(day12)as day12,
-            max(day13)as day13,
-            max(day14)as day14,
-            max(day15)as day15,
-            max(day16)as day16,
-            max(day17)as day17,
-            max(day18)as day18,
-            max(day19)as day19,
-            max(day20)as day20,
-            max(day21)as day21,
-            max(day22)as day22,
-            max(day23)as day23,
-            max(day24)as day24,
-            max(day25)as day25,
-            max(day26)as day26,
-            max(day27)as day27,
-            max(day28)as day28,
-            max(day29)as day29,
-            max(day30)as day30,
-            max(day31)as day31,fullname, job, facility, department from time_sheet  where ihris_pid='$id' and  date like '$valid_range-%' like '$valid_range-%'");
-
-            $rowdata=$query->result_array();
-
-            if(!empty($rowdata[0]['ihris_pid'])){
-
-            $data[]=$rowdata[0];
-           }
-          
-    }
+        $facility=$_SESSION['facility'];
+       
+                $query=$this->db->query("
+                SELECT
+                ihris_pid,
+                MAX(day1) AS day1,
+                MAX(day2) AS day2,
+                MAX(day3) AS day3,
+                MAX(day4) AS day4,
+                MAX(day5) AS day5,
+                MAX(day6) AS day6,
+                MAX(day7) AS day7,
+                MAX(day8) AS day8,
+                MAX(day9) AS day9,
+                MAX(day10) AS day10,
+                MAX(day11) AS day11,
+                MAX(day12) AS day12,
+                MAX(day13) AS day13,
+                MAX(day14) AS day14,
+                MAX(day15) AS day15,
+                MAX(day16) AS day16,
+                MAX(day17) AS day17,
+                MAX(day18) AS day18,
+                MAX(day19) AS day19,
+                MAX(day20) AS day20,
+                MAX(day21) AS day21,
+                MAX(day22) AS day22,
+                MAX(day23) AS day23,
+                MAX(day24) AS day24,
+                MAX(day25) AS day25,
+                MAX(day26) AS day26,
+                MAX(day27) AS day27,
+                MAX(day28) AS day28,
+                MAX(day29) AS day29,
+                MAX(day30) AS day30,
+                MAX(day31) AS day31,
+                fullname,
+                job,
+                facility,
+                department
+            FROM
+                time_sheet
+            WHERE
+                (
+                    DATE_FORMAT(time_sheet.date, '%Y-%m') = '$valid_range' AND time_sheet.facility_id = '$facility' and ihris_pid IS NOT NULL $search $jsearch 
+                )
+                 GROUP BY  time_sheet.ihris_pid ORDER BY fullname ASC  $limit");
+            $data=$query->result_array();
 
 
-            return  $data;
+return  $data;
 
 }
 public function count_employeeTimelogs($ihris_pid,$date=NULL){
