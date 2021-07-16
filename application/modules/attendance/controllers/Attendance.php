@@ -146,7 +146,7 @@ class Attendance extends MX_Controller {
 	$fh = fopen( 'php://output', 'w' );
     $records=array();//output each row of the data, format line as csv and write to file pointer
      foreach($datas as $data){
-		$roster=Modules::run('attendance/attrosta',$valid_range,urlencode($data['person_id']));
+		$roster=Modules::run('attendance/attrosta',$valid_range,urlencode($data['ihris_pid']));
 		if(!empty($data['P'])){$present=$data['P']; } else{$present=0;}
 		if(!empty($data['O'])){$off=$data['O']; } else{$off=0;};
 		if(!empty($data['L'])){$leave=$data['L']; } else{$leave=0;};

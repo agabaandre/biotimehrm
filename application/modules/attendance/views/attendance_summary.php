@@ -172,14 +172,14 @@ foreach($sums as $sum) {?>
     <span class="cell stcell  tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no;?>
 	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['fullname'];?></span></b>
 </span>
-    <span class="cell stcell  cname" data-label="Name"><?php echo $sum['fullname'].' '.$sum['fullname'];?></span>
+    <span class="cell stcell  cname" data-label="Name"><?php echo $sum['fullname'].' '.$sum['othername'];?></span>
 	<span class="cell stcell  cname" data-label="Name"><?php echo $sum['job'] ?></span>
     <span class="cell stcell " data-label="P"><?php if(!empty($present=$sum['P'])){ echo $present; } else{ echo 0; }?></span>
     <span class="cell stcell " data-label="O"><?php if(!empty($O=$sum['O'])){ echo $present; } else{ echo 0; }?></span>
 	<span class="cell stcell " data-label="R"><?php if(!empty($R=$sum['R'])){ echo $present; } else{ echo 0; }?></span>
 	<span class="cell stcell " data-label="L"><?php if(!empty($L=$sum['L'])){ echo $present; } else{ echo 0; }?></span>
 	<span class="cell stcell " data-label="L"><?php if(!empty($H=$sum['H'])){ echo $present; } else{ echo 0; }?></span>
-	<span class="cell stcell " data-label="D"><?php $roster=Modules::run('attendance/attrosta',$mydate,urlencode($sum['person_id'])); ?><?php echo $day=$roster['Day'][0]->days; ?></span>
+	<span class="cell stcell " data-label="D"><?php $roster=Modules::run('attendance/attrosta',$mydate,urlencode($sum['ihris_pid'])); ?><?php echo $day=$roster['Day'][0]->days; ?></span>
 	<span class="cell stcell " data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></span>
 	<span class="cell stcell " data-label="N"><?php echo $night=$roster['Night'][0]->days;?></span>
 	<span class="cell stcell " data-label="Percentage Pr"><?php $per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } ?> % </span>

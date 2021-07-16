@@ -234,7 +234,7 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 						<div class="table-row tbrow">
 						   <span class="cell" data-label="No" ><?php echo $no;?></span>
 						   <span class="cell" data-label="Name" style="text-align:left; padding-left:1em;" >
-						   	<?php echo $hours['fullname'];?>
+						   	<?php echo $hours['fullname'] .' '.$hours['othername'];?>
 
 						   </span>
 						   

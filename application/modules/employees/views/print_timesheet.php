@@ -186,7 +186,7 @@ foreach($workinghours as $hours) {
 
 <tr >
 	
-	<td class='cost' style="text-align:left;"><?php echo $hours['fullname'];?></td>
+	<td class='cost' style="text-align:left;"><?php echo $hours['fullname'].' '.$hours['othername'];?></td>
 	<td class='cost'><?php $words=explode(" ",$hours['job']);
 
 	$letters="";
