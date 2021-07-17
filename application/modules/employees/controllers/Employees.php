@@ -448,6 +448,46 @@ class Employees extends MX_Controller{
          $data['duties']=$this->empModel->fetch_TimeSheet();
          print_r($data['duties']);
     }
+    public function employeeTimeLogs($ihris_pid=false,$print=false,$from=false,$to=false){
+
+        
+      $post=$this->input->post();
+    if($post){
+
+
+      $search_data=$this->input->post();
+              
+      $data['from']=$search_data['date_from'];
+      $data['to']=$search_data['date_to'];
+      
+      }
+      
+      else{
+          
+      $data['from']='10/01/2019';
+      $data['to']=date('m/d/Y');
+      $search_data['date_from']= $data['from'];
+      $search_data['date_to']= $data['to'];
+          
+      }
+      
+      $dbresult=$this->empModel->getEmployeeTimeLogs(urldecode($ihris_pid),10000,0,$search_data);
+      $data['timelogs']=$dbresult['timelogs'];
+      $data['employee']=$dbresult['employee'];
+      $data['leaves']=$dbresult['leaves'];
+      $data['offs']=$dbresult['offs'];
+      $data['requests']=$dbresult['requests'];
+      $data['workdays']=$dbresult['dutydays'];
+  
+      $data['title']="Health  Staff Individual Time Logs";
+      //$data['facilities']=Modules::run("facilities/getFacilities");
+      $data['view']='individual_time_logs';
+  
+      $data['module']="employees";
+      echo Modules::run("templates/main",$data);
+     
+      }
+  
     
         public function printindividualTimeLogs($ihris_pid,$from=false,$to=false,$flag){
           if($from){
