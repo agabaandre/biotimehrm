@@ -60,7 +60,12 @@ class Calendar_model extends CI_Model {
 			$start=$_GET["start"];
 			$end=$_GET["end"];
             $filters= $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
-			$query=$this->db->query("SELECT entry_id as id, actuals.end,actuals.ihris_pid as person_id,schedules.schedule as duty,actuals.facility_id,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,actuals.color,actuals.date as start,actuals.schedule_id as schedule FROM actuals,ihrisdata,schedules WHERE ($filters and ihrisdata.ihris_pid=actuals.ihris_pid AND actuals.schedule_id=schedules.schedule_id AND  actuals.date BETWEEN '$start' AND '$end') ORDER BY salary_grade ASC, date DESC");	
+			$query=$this->db->query("SELECT entry_id as id, actuals.end,actuals.ihris_pid as person_id,schedules.schedule as duty,actuals.facility_id,
+            COALESCE(surname,'','')
+				,' ',
+				COALESCE(firstname,'','')
+			
+			) as title,actuals.color,actuals.date as start,actuals.schedule_id as schedule FROM actuals,ihrisdata,schedules WHERE ($filters and ihrisdata.ihris_pid=actuals.ihris_pid AND actuals.schedule_id=schedules.schedule_id AND  actuals.date BETWEEN '$start' AND '$end') ORDER BY salary_grade ASC, date DESC");	
 		  
 	return $query->result();
 
@@ -111,7 +116,12 @@ class Calendar_model extends CI_Model {
             $start=$_GET["start"];
 			$end=$_GET["end"];
 			
-			$query = $this->db->query("SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,concat(ihrisdata.surname,' ',ihrisdata.firstname) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE ( $filters AND ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id  AND duty_rosta.duty_date BETWEEN '$start' AND '$end' ) ORDER BY  salary_grade ASC,duty_date DESC");
+			$query = $this->db->query("SELECT entry_id as id,duty_rosta.end,duty_rosta.ihris_pid as person_id,schedules.schedule as duty,CONCAT(
+				COALESCE(surname,'','')
+				,' ',
+				COALESCE(firstname,'','')
+				
+			) as title,duty_rosta.color,duty_rosta.duty_date as start,duty_rosta.schedule_id as schedule FROM duty_rosta,ihrisdata,schedules WHERE ( $filters AND ihrisdata.ihris_pid=duty_rosta.ihris_pid AND duty_rosta.schedule_id=schedules.schedule_id  AND duty_rosta.duty_date BETWEEN '$start' AND '$end' ) ORDER BY  salary_grade ASC,duty_date DESC");
 	$data=$query->result();
     return $data;
 
