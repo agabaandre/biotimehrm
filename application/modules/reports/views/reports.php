@@ -14,7 +14,10 @@
             <!-- Custom tabs (Charts with tabs)-->
 
 
-           
+           <?php 
+             $userdata=$this->session->get_userdata();
+             $permissions=$userdata['permissions'];
+           ?>
 
             <div class="callout callout-success">
               <h5><i class="fas fa-file"></i> Attendance Reports</h5>
@@ -73,9 +76,10 @@
 
 
             <ol>
-                      <li><a href="<?php echo base_url()?>">Duty Roster Reporting Rate </a></p>- Duty Roster reporting rate by, National, Region, District, Facility </li>      
-                      <li><a href="<?php echo base_url()?>">Attendance Reporting Rate </a></p>- Duty Roster reporting rate by National, Region, District, Facility </li>  
-                            
+                      <li><a href="<?php echo base_url('reports/rosterRate')?>">Duty Roster Reporting Rate </a></p>- Duty Roster reporting rate by Facility </li>      
+                      <li><a href="<?php echo base_url('reports/attendanceRate')?>">Attendance Reporting Rate </a></p>- Duty Roster reporting rate by  Facility </li>  
+                      <li><a href="<?php echo base_url('reports/attendroster')?>">Duty Roster Vs Attendance </a></p>- Comparison of days on Day,Evening and Days Present at the Facility  </li>  
+                         
                       
                 			
 				   </ol>

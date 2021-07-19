@@ -23,6 +23,88 @@ class Reports_mdl extends CI_Model {
 		return $query->result();
  
 	}
+	public function getgraphData(){
+		$facility=$_SESSION['facility'];
+
+		$date_from=date("Y-m",strtotime("-11 month"));
+		$date_to=date('Y-m');
+		
+	
+	    $datas=array();
+		$period=array();
+		$targets=array();
+		$target=$this->db->query("SELECT staff from staffing_rate WHERE date like '$date_to%' AND facility_id='$facility'");
+	foreach($target->result() as $dt):
+		$staff=$dt->staff;
+	endforeach;
+		$query=$this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from attendance_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
+	foreach($query->result() as $data):
+	  array_push($targets,$staff);
+	  array_push($period,$data->period);
+	  array_push($datas, $data->data);
+
+	 endforeach;
+
+
+
+	  return array('period'=>$period, 'data'=>$datas, 'target'=>$targets);
+
+	}
+
+	public function dutygraphData(){
+		$facility=$_SESSION['facility'];
+		$date_from=date("Y-m",strtotime("-11 month"));
+		$date_to=date('Y-m');
+	    $datas=array();
+		$period=array();
+		$targets=array();
+		$target=$this->db->query("SELECT staff from staffing_rate WHERE date like '$date_to%' AND facility_id='$facility'");
+	foreach($target->result() as $dt):
+		$staff=$dt->staff;
+	endforeach;
+		$query=$this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from rosta_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
+	foreach($query->result() as $data):
+	  array_push($targets,$staff);
+	  array_push($period,$data->period);
+	  array_push($datas, $data->data);
+
+	 endforeach;
+
+
+
+	  return array('period'=>$period, 'data'=>$datas, 'target'=>$targets);
+
+	}
+	public function attroData(){
+		$facility=$_SESSION['facility'];
+		$date_from=date("Y-m",strtotime("-11 month"));
+		$date_to=date('Y-m');
+	    $rdata=array();
+		$rperiod=array();
+		$adata=array();
+		$aperiod=array();
+		
+	  $query=$this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from dutydays_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
+	foreach($query->result() as $data):
+		$rdate=$data->period;
+		$rostadata=$data->data;
+		array_push($rdata,$rostadata);
+		array_push($rperiod,$rdate);
+	    $query2=$this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from presence_rate WHERE date='$rdate' AND facility_id='$facility'");
+		foreach($query2->result() as $attd):
+		$attdate=$attd->period;
+		$attdata=$attd->data;	
+		array_push($adata,$attdata);
+		array_push($aperiod,$attdate);
+		endforeach;
+	 endforeach;
+
+
+
+	  return array('aperiod'=>$aperiod, 'adata'=>$adata,'dperiod'=>$rperiod,'ddata'=>$rdata);
+
+	}
+
 
 
 

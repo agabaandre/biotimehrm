@@ -61,7 +61,7 @@ class Calendar_model extends CI_Model {
 			$end=$_GET["end"];
             $filters= $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
 			$query=$this->db->query("SELECT entry_id as id, actuals.end,actuals.ihris_pid as person_id,schedules.schedule as duty,actuals.facility_id,
-            COALESCE(surname,'','')
+           CONCAT(COALESCE(surname,'','')
 				,' ',
 				COALESCE(firstname,'','')
 			
