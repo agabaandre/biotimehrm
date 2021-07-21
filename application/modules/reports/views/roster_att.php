@@ -25,7 +25,7 @@
 }
 
 </style>
-<section class="col-lg-12 connectedSortable">
+<section class="col-lg-12 connectedSortable" style="min-height:600px;">
             <!-- Custom tabs (Charts with tabs)-->
             <div class="card">
               <div class="card-header">
@@ -54,10 +54,11 @@
 
           <?php 
 
-$graph=Modules::run("reports/attroData"); 
+//$graph=Modules::run("reports/attroData"); 
 
  ?> 
  <script>
+function renderGraph(gdata){
  Highcharts.chart('line_graph', {
      chart: {
          type: 'line'
@@ -72,7 +73,7 @@ $graph=Modules::run("reports/attroData");
          text: ''
      },
      xAxis: {
-         categories: <?php echo json_encode($graph['dperiod']); ?>
+         categories: gdata.period
      },
      yAxis: {
          title: {
@@ -95,11 +96,25 @@ $graph=Modules::run("reports/attroData");
     },
      series: [{
          name: 'Staff Present',
-         data: <?php echo json_encode($graph['adata'],JSON_NUMERIC_CHECK); ?>
+         data: gdata.adata
      }, {
          name: 'Staff Scheduled',
-         data: <?php echo json_encode($graph['ddata'],JSON_NUMERIC_CHECK); ?>
+         data:gdata.ddata
      }]
- });
+ })
+//console.log(gdata.dperiod);
+
+};
  
- </script>
+$(document).ready(function(){
+
+$.ajax({
+    url:'<?php echo  base_url('reports/attroData'); ?>',
+    success:function(response){
+        //console.log(response);
+        renderGraph(JSON.parse(response));
+    }
+ });
+
+});
+</script>

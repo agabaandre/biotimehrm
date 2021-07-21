@@ -82,6 +82,7 @@
             <!-- /.info-box -->
           </div>
           <!-- /.col -->
+          
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box mb-3">
               <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-thumbs-up"></i></span>
@@ -95,6 +96,7 @@
             <!-- /.info-box -->
           </div>
           <!-- /.col -->
+
 
           <!-- fix for small devices only -->
           <div class="clearfix hidden-md-up"></div>
@@ -173,7 +175,7 @@
             <!-- calender key -->
           </section>
 
-          
+      
 
         <div class="col-md-3">
             <!-- Info Boxes Style 2 -->
@@ -181,8 +183,8 @@
               <span class="info-box-icon"><i class="fas fa-users"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text">Total Health Workers</span>
-                <span class="info-box-number"><?php echo $districts ?></span>
+                <span class="info-box-text">iHRIS Health Workers</span>
+                <span class="info-box-number" id="workers"></span>
               </div>
               <!-- /.info-box-content-->
             </div>
@@ -192,7 +194,7 @@
 
               <div class="info-box-content">
                 <span class="info-box-text">Total Facilities</span>
-                <span class="info-box-number"><?php echo $facilities ?></span>
+                <span class="info-box-number" id="facilities" ></span>
         </div>
               <!-- /.info-box-content -->
         </div>
@@ -202,32 +204,129 @@
 
               <div class="info-box-content">
                 <span class="info-box-text">Departments</span>
-                <span class="info-box-number"><?php echo $departments ?></span>
+                <span class="info-box-number" id="departments"></span>
         </div>
               <!-- /.info-box-content -->
             </div>
+            
             <!-- /.info-box -->
         <div class="info-box mb-3 bg-info">
-              <span class="info-box-icon"><i class="fas fa-mobile-alt" ></i></span>
+              <span class="info-box-icon"><i class="fas fa-tasks" ></i></span>
 
               <div class="info-box-content">
                 <span class="info-box-text">Jobs</span>
-                <span class="info-box-number"><?php echo $jobs ?></span>
+                <span class="info-box-number" id="jobs"></span>
               </div -->
               <!-- /.info-box-content-->
         </div>
-            <!-- /.info-box -->
+        <div class="info-box mb-3 bg-blue" >
+              <span class="info-box-icon"><i class="fa fa-users"></i></span>
 
-           
-              <!-- /.footer -->
+              <div class="info-box-content" style="color:#FFF !important;">
+                <span class="info-box-text">My Facility Staff</span>
+                <span class="info-box-number" id="mystaff"></span>
         </div>
-    
+              <!-- /.info-box-content -->
+        </div>
+        <div class="info-box mb-3 bg-success" >
+              <span class="info-box-icon"><i class="fas fa-sync"></i></span>
 
+              <div class="info-box-content" style="color:#FFF !important;">
+                <span class="info-box-text">Last iHRIS Sync</span>
+                <span class="info-box-number" id="ihris_sync"></span>
+        </div>
+              <!-- /.info-box-content -->
+        </div>
+        <div class="info-box mb-3 bg-orange" style="min-height:95px;">
+              <span class="info-box-icon"><i class="fas fa-fingerprint" style="color:#FFF !important;"></i></span>
 
+              <div class="info-box-content" style="color:#FFF !important;">
+                <span class="info-box-text">Biotime Devices</span>
+                <span class="info-box-number" id="biometrics"></span>
+        </div>
+              <!-- /.info-box-content -->
+        </div>
+      
+           
+       
+        </div>
+
+      
+      <section class="col-lg-12 connectedSortable">
+            <!-- Custom tabs (Charts with tabs)-->
+            <div class="card">
+              <div class="card-header">
+              
+                <div class="card-tools">
+                  <ul class="nav nav-pills ml-auto">
+                    <!-- <li class="nav-item">
+                      <a class="nav-link active" href="#revenue-chart" data-toggle="tab">Area</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#sales-chart" data-toggle="tab">Donut</a>
+                    </li> -->
+                  </ul>
+                </div>
+              </div><!-- /.card-header -->
+              <div class="card-body">
+              <div id="line_graph_att"></div>
+              </div><!-- /.card-body -->
+            </div>
+            <!-- /.card -->
+
+              
+              </section>
+      
+
+    <?php 
+
+    $graph=Modules::run("reports/graphData"); 
+
+    ?> 
+    <script>
+    Highcharts.chart('line_graph_att', {
+        chart: {
+            type: 'line'
+        },
+        title: {
+            text: 'Attendace Reporting Rate'
+        },
+        subtitle: {
+            text: ''
+        },
+        xAxis: {
+            categories: <?php echo json_encode($graph['period']); ?>
+        },
+        yAxis: {
+            title: {
+                text: 'Staff'
+            }
+        },
+        plotOptions: {
+            line: {
+                dataLabels: {
+                    enabled: true
+                },
+                enableMouseTracking: true
+            }
+        },
+        credits: {
+                enabled: false
+        },
+        series: [{
+            name: 'Staff',
+            data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
+        }, {
+            name: 'Target',
+            data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
+        }]
+    });
+
+    </script>
 
 
           <!-- right col -->
-          <section class="col-lg-9 connectedSortable">
+          <section class="col-lg-6 connectedSortable">
               <!-- Custom tabs (Charts with tabs)-->
               <div class="card">
               <div class="card-header">
@@ -266,83 +365,44 @@
           
           </section>
 
+          
+
 
           
-          <div class="col-md-3">
+          <div class="col-md-6">
             <!-- Info Boxes Style 2 -->
-            <div class="info-box mb-3 bg-warning">
-              <!--span class="info-box-icon"><i class="fas fa-tag"></i></span>
+            <div class="col-md-6">
+                <div class="info-box mb-3 bg-warning">
+                <span class="info-box-icon"><i class="fas fa-bed"></i></span>
 
-              <div class="info-box-content">
-                <span class="info-box-text">Inventory</span>
-                <span class="info-box-number">5,200</span>
-              </div -->
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-            <div class="info-box mb-3 bg-success">
-              <!--span class="info-box-icon"><i class="far fa-heart"></i></span>
-
-              <div class="info-box-content">
-                <span class="info-box-text">Mentions</span>
-                <span class="info-box-number">92,050</span>
-              </div -->
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-            <div class="info-box mb-3 bg-danger">
-              <!--span class="info-box-icon"><i class="fas fa-cloud-download-alt"></i></span>
-
-              <div class="info-box-content">
-                <span class="info-box-text">Downloads</span>
-                <span class="info-box-number">114,381</span>
-              </div -->
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-            <div class="info-box mb-3 bg-info">
-              <!--span class="info-box-icon"><i class="far fa-comment"></i></span>
-
-              <div class="info-box-content">
-                <span class="info-box-text">Direct Messages</span>
-                <span class="info-box-number">163,921</span>
-              </div -->
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-
-           
-              <!-- /.footer -->
-            </div>
-
-
-          <section class="col-lg-4 connectedSortable">
-            <!-- Custom tabs (Charts with tabs)-->
-            <div class="card">
-              <div class="card-header">
-               
-                <div class="card-tools">
-                  <ul class="nav nav-pills ml-auto">
-                    <!-- <li class="nav-item">
-                      <a class="nav-link active" href="#revenue-chart" data-toggle="tab">Area</a>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link" href="#sales-chart" data-toggle="tab">Donut</a>
-                    </li> -->
-                  </ul>
+                  <div class="info-box-content">
+                    <span class="info-box-text">On Leave this Month</span>
+                    <span class="onleave"></span>
+                  </div>
+                  
                 </div>
-              </div><!-- /.card-header -->
-              <div class="card-body">
-              <div id="monthlyhours"></div>
-              </div><!-- /.card-body -->
-            </div>
-            <!-- /.card -->
-
           
-          </section>
+              <!-- /.info-box -->
+              <div class="info-box mb-3 bg-success">
+                <span class="info-box-icon"><i class="far fa-heart"></i></span>
+
+                <div class="info-box-content">
+                  <span class="info-box-text">On Official Request</span>
+                  <span class="info-box-number">92,050</span>
+                  </div>
+                <!-- /.info-box-content -->
+              </div>
+              
+             </div>
+             
+
+            
+             
+            
 
 
-          <section class="col-lg-8 connectedSortable">
+            
+            <section class="col-lg-12 connectedSortable">
             <!-- Custom tabs (Charts with tabs)-->
             <div class="card">
               <div class="card-header">
@@ -359,13 +419,68 @@
                 </div>
               </div><!-- /.card-header -->
               <div class="card-body">
-              <div id="clockin-container" style="width:90%; height:90%;"></div>
+              <div id="line_graph" style="width:100%; height:100%;"></div>
               </div><!-- /.card-body -->
             </div>
             <!-- /.card -->
 
           
           </section>
+
+
+          <?php 
+
+$graph=Modules::run("reports/dutygraphData"); 
+
+ ?> 
+ <script>
+ Highcharts.chart('line_graph', {
+     chart: {
+         type: 'line'
+     },
+      title: {
+         text: 'Duty Roster Reporting Rate'
+     },
+     subtitle: {
+         text: ''
+     },
+     xAxis: {
+         categories: <?php echo json_encode($graph['period']); ?>
+     },
+     yAxis: {
+         title: {
+             text: 'Staff'
+         }
+     },
+     plotOptions: {
+         line: {
+             dataLabels: {
+                 enabled: true
+             },
+             enableMouseTracking: true
+         }
+     },
+     credits: {
+             enabled: false
+     },
+     series: [{
+         name: 'Staff',
+         data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
+     }, {
+         name: 'Target',
+         data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
+     }]
+ });
+ 
+ </script>
+           
+              <!-- /.footer -->
+            </div>
+
+
+
+
+    
         </div>
         <!-- /.row (main row) -->
       </div><!-- /.container-fluid -->
@@ -374,9 +489,34 @@
 <script src="<?php echo base_url()?>assets/plugins/moment/moment.min.js"></script>
 <script src="<?php echo base_url()?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
 
-<!-- calendar -->
 <script type="text/javascript">
- 	
+//get dashboard Data
+$(document).ready(function(){
+        $.ajax({
+            type:'GET',
+            url:'<?php echo base_url('dashboard/dashboardData')?>',
+            dataType: "json",
+            data:'',
+            success:function(data){
+                
+                     $('#workers').text(data.workers);
+                     $('#facilities').text(data.facilities);
+                     $('#departments').text(data.departments);
+                     $('#jobs').text(data.jobs);
+                     $('#mystaff').text(data.mystaff);
+                     $('#ihris_sync').text(data.ihris_sync);
+                     $('#biometrics').text(data.biometrics);
+                    console.log(data);
+               
+                
+            }
+            
+        });
+       
+       
+   
+});
+ 	//duty roster calendar
  	var base_url=$('.base_url').html();
 
  	 $('#attcalendar').fullCalendar({
@@ -415,10 +555,7 @@
         
     });
  
-    </script>
-    <!-- calendar -->
- <script type="text/javascript">
- 	
+//attendance calendar
  	var base_url=$('.base_url').html();
 
  	 $('#dutycalendar').fullCalendar({
@@ -457,5 +594,6 @@
         // H
     });
  
-    </script>
-    
+
+</script>
+         

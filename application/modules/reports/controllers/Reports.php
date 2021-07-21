@@ -78,7 +78,7 @@ class Reports extends MX_Controller {
 	public function  attroData(){
 		$data=$this->reports_mdl->attroData();
      //print_r($data);
-	 return $data;
+	echo  json_encode($data,JSON_NUMERIC_CHECK);
 	}
 
 

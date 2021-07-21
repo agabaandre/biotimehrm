@@ -8,6 +8,7 @@ class Dashboard extends MX_Controller {
 		parent:: __construct();
 
 			$this->dashmodule="dashboard";
+			$this->load->model("dashboard_mdl",'dash_mdl');
 
 			}
 
@@ -17,8 +18,14 @@ class Dashboard extends MX_Controller {
 		$data['title']="Main Dashboard";
 		$data['uptitle']="Main Dashboard";
 		$data['view']="home";
+		//$data['dashboard']=$this->dashboardData();
 
 		echo Modules::run('templates/main',$data);
+	}
+	public function dashboardData(){
+		
+		$data = $this->dash_mdl->getData();
+	echo json_encode($data);
 	}
 
 
