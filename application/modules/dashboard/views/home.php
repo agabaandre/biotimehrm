@@ -395,31 +395,31 @@
 <script src="<?php echo base_url()?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
 <script type="text/javascript">
 //get dashboard Data
-// $(document).ready(function(){
-//         $.ajax({
-//             type:'GET',
-//             url:'<?php echo base_url('dashboard/dashboardData')?>',
-//             dataType: "json",
-//             data:'',
-//             success:function(data){
+$(document).ready(function(){
+        $.ajax({
+            type:'GET',
+            url:'<?php echo base_url('dashboard/dashboardData')?>',
+            dataType: "json",
+            data:'',
+            success:function(data){
                 
-//                      $('#workers').text(data.workers);
-//                      $('#facilities').text(data.facilities);
-//                      $('#departments').text(data.departments);
-//                      $('#jobs').text(data.jobs);
-//                      $('#mystaff').text(data.mystaff);
-//                      $('#ihris_sync').text(data.ihris_sync);
-//                      $('#biometrics').text(data.biometrics);
-//                     //console.log(data);
+                     $('#workers').text(data.workers);
+                     $('#facilities').text(data.facilities);
+                     $('#departments').text(data.departments);
+                     $('#jobs').text(data.jobs);
+                     $('#mystaff').text(data.mystaff);
+                     $('#ihris_sync').text(data.ihris_sync);
+                     $('#biometrics').text(data.biometrics);
+                    console.log(data);
                
                 
-//             }
+            }
             
-//         });
+        });
        
        
    
-// });
+});
  	//duty roster calendar
  	var base_url=$('.base_url').html();
 
@@ -500,91 +500,91 @@
  //duty roster graph
 <?php 
 
-// $graph=Modules::run("reports/dutygraphData"); 
+$graph=Modules::run("reports/dutygraphData"); 
 
-//  ?> 
-//  Highcharts.chart('line_graph', {
-//      chart: {
-//          type: 'line'
-//      },
-//       title: {
-//          text: 'Duty Roster Reporting Rate'
-//      },
-//      subtitle: {
-//          text: ''
-//      },
-//      xAxis: {
-//          categories: <?php echo json_encode($graph['period']); ?>
-//      },
-//      yAxis: {
-//          title: {
-//              text: 'Staff'
-//          }
-//      },
-//      plotOptions: {
-//          line: {
-//              dataLabels: {
-//                  enabled: true
-//              },
-//              enableMouseTracking: true
-//          }
-//      },
-//      credits: {
-//              enabled: false
-//      },
-//      series: [{
-//          name: 'Staff',
-//          data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
-//      }, {
-//          name: 'Target',
-//          data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
-//      }]
-//  });
+ ?> 
+ Highcharts.chart('line_graph', {
+     chart: {
+         type: 'line'
+     },
+      title: {
+         text: 'Duty Roster Reporting Rate'
+     },
+     subtitle: {
+         text: ''
+     },
+     xAxis: {
+         categories: <?php echo json_encode($graph['period']); ?>
+     },
+     yAxis: {
+         title: {
+             text: 'Staff'
+         }
+     },
+     plotOptions: {
+         line: {
+             dataLabels: {
+                 enabled: true
+             },
+             enableMouseTracking: true
+         }
+     },
+     credits: {
+             enabled: false
+     },
+     series: [{
+         name: 'Staff',
+         data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
+     }, {
+         name: 'Target',
+         data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
+     }]
+ });
  
 
-// <?php 
+<?php 
 
-// $graph=Modules::run("reports/graphData"); 
+$graph=Modules::run("reports/graphData"); 
 
-// ?> 
+?> 
 
-// Highcharts.chart('line_graph_att', {
-//     chart: {
-//         type: 'line'
-//     },
-//     title: {
-//         text: 'Attendace Reporting Rate'
-//     },
-//     subtitle: {
-//         text: ''
-//     },
-//     xAxis: {
-//         categories: <?php echo json_encode($graph['period']); ?>
-//     },
-//     yAxis: {
-//         title: {
-//             text: 'Staff'
-//         }
-//     },
-//     plotOptions: {
-//         line: {
-//             dataLabels: {
-//                 enabled: true
-//             },
-//             enableMouseTracking: true
-//         }
-//     },
-//     credits: {
-//             enabled: false
-//     },
-//     series: [{
-//         name: 'Staff',
-//         data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
-//     }, {
-//         name: 'Target',
-//         data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
-//     }]
-// });
+Highcharts.chart('line_graph_att', {
+    chart: {
+        type: 'line'
+    },
+    title: {
+        text: 'Attendace Reporting Rate'
+    },
+    subtitle: {
+        text: ''
+    },
+    xAxis: {
+        categories: <?php echo json_encode($graph['period']); ?>
+    },
+    yAxis: {
+        title: {
+            text: 'Staff'
+        }
+    },
+    plotOptions: {
+        line: {
+            dataLabels: {
+                enabled: true
+            },
+            enableMouseTracking: true
+        }
+    },
+    credits: {
+            enabled: false
+    },
+    series: [{
+        name: 'Staff',
+        data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
+    }, {
+        name: 'Target',
+        data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
+    }]
+});
 
 </script>
 
