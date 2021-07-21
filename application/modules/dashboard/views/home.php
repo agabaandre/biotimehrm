@@ -276,56 +276,7 @@
 
               
               </section>
-      
-
-    <?php 
-
-    $graph=Modules::run("reports/graphData"); 
-
-    ?> 
-    <script>
-    Highcharts.chart('line_graph_att', {
-        chart: {
-            type: 'line'
-        },
-        title: {
-            text: 'Attendace Reporting Rate'
-        },
-        subtitle: {
-            text: ''
-        },
-        xAxis: {
-            categories: <?php echo json_encode($graph['period']); ?>
-        },
-        yAxis: {
-            title: {
-                text: 'Staff'
-            }
-        },
-        plotOptions: {
-            line: {
-                dataLabels: {
-                    enabled: true
-                },
-                enableMouseTracking: true
-            }
-        },
-        credits: {
-                enabled: false
-        },
-        series: [{
-            name: 'Staff',
-            data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
-        }, {
-            name: 'Target',
-            data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
-        }]
-    });
-
-    </script>
-
-
-          <!-- right col -->
+            <!-- right col -->
           <section class="col-lg-6 connectedSortable">
               <!-- Custom tabs (Charts with tabs)-->
               <div class="card">
@@ -427,52 +378,6 @@
           
           </section>
 
-
-          <?php 
-
-$graph=Modules::run("reports/dutygraphData"); 
-
- ?> 
- <script>
- Highcharts.chart('line_graph', {
-     chart: {
-         type: 'line'
-     },
-      title: {
-         text: 'Duty Roster Reporting Rate'
-     },
-     subtitle: {
-         text: ''
-     },
-     xAxis: {
-         categories: <?php echo json_encode($graph['period']); ?>
-     },
-     yAxis: {
-         title: {
-             text: 'Staff'
-         }
-     },
-     plotOptions: {
-         line: {
-             dataLabels: {
-                 enabled: true
-             },
-             enableMouseTracking: true
-         }
-     },
-     credits: {
-             enabled: false
-     },
-     series: [{
-         name: 'Staff',
-         data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
-     }, {
-         name: 'Target',
-         data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
-     }]
- });
- 
- </script>
            
               <!-- /.footer -->
             </div>
@@ -488,7 +393,6 @@ $graph=Modules::run("reports/dutygraphData");
     <!-- /.content -->
 <script src="<?php echo base_url()?>assets/plugins/moment/moment.min.js"></script>
 <script src="<?php echo base_url()?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
-
 <script type="text/javascript">
 //get dashboard Data
 $(document).ready(function(){
@@ -593,7 +497,97 @@ $(document).ready(function(){
         },
         // H
     });
+ //duty roster graph
+<?php 
+
+$graph=Modules::run("reports/dutygraphData"); 
+
+ ?> 
+ Highcharts.chart('line_graph', {
+     chart: {
+         type: 'line'
+     },
+      title: {
+         text: 'Duty Roster Reporting Rate'
+     },
+     subtitle: {
+         text: ''
+     },
+     xAxis: {
+         categories: <?php echo json_encode($graph['period']); ?>
+     },
+     yAxis: {
+         title: {
+             text: 'Staff'
+         }
+     },
+     plotOptions: {
+         line: {
+             dataLabels: {
+                 enabled: true
+             },
+             enableMouseTracking: true
+         }
+     },
+     credits: {
+             enabled: false
+     },
+     series: [{
+         name: 'Staff',
+         data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
+     }, {
+         name: 'Target',
+         data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
+     }]
+ });
  
 
+<?php 
+
+$graph=Modules::run("reports/graphData"); 
+
+?> 
+
+Highcharts.chart('line_graph_att', {
+    chart: {
+        type: 'line'
+    },
+    title: {
+        text: 'Attendace Reporting Rate'
+    },
+    subtitle: {
+        text: ''
+    },
+    xAxis: {
+        categories: <?php echo json_encode($graph['period']); ?>
+    },
+    yAxis: {
+        title: {
+            text: 'Staff'
+        }
+    },
+    plotOptions: {
+        line: {
+            dataLabels: {
+                enabled: true
+            },
+            enableMouseTracking: true
+        }
+    },
+    credits: {
+            enabled: false
+    },
+    series: [{
+        name: 'Staff',
+        data: <?php echo json_encode($graph['data'],JSON_NUMERIC_CHECK); ?>
+    }, {
+        name: 'Target',
+        data: <?php echo json_encode($graph['target'],JSON_NUMERIC_CHECK); ?>
+    }]
+});
+
 </script>
+
+
+
          
