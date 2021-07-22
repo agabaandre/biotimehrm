@@ -48,7 +48,7 @@ class Dashboard_mdl extends CI_Model {
 
            //get  clock count
         $date=date('Y-m');
-        $fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg FROM clk_diff WHERE facility_id='$facility' and date_format(date,'%Y-%m')='$date'");
+        $fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg FROM clk_diff WHERE facility_id='$facility' and date_format(date,'%Y-%m')='2021-06'");
         $data['avg_hours']= $fac->result()[0]->avg;
 
 

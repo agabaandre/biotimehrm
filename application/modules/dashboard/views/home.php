@@ -3,13 +3,14 @@
 .info-box-main {
     box-shadow: 0 0 1px rgba(86, 76, 76, 0.13),0 1px 3px rgba(110, 68, 68, 0.2);
     border-radius: .25rem;
-    background: linear-gradient( 135deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
+    background: linear-gradient( 135deg, rgb(56 54 54) 0%, rgb(11 155 206 / 78%) 100%);
     text-align: center;
     display: -ms-flexbox;
     display: flex;
     margin-bottom: 1rem;
     min-height: 90px;
     padding: .5rem;
+    border-radius: 6px;
     position: relative;
     color: #FFF;
 }
@@ -83,12 +84,12 @@
         <div class="row">
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box info-box-main">
-              <span class="info-box-icon bg-info elevation-1"><i class="fas fa-cog"></i></span>
+              <span class="info-box-icon bg-info elevation-1"><i class="fas fa-calendar-check"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text">My Staff</span>
+                <span class="info-box-text">Present</span>
                 <span class="info-box-number">
-                  10
+                   10
                   <small>%</small>
                 </span>
               </div>
@@ -100,10 +101,10 @@
           
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box mb-3 info-box-main">
-              <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-thumbs-up"></i></span>
+              <span class="info-box-icon bg-info elevation-1"><i class="fa fa-home"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text">Last iHRIS Sync</span>
+                <span class="info-box-text">Off Duty</span>
                 <span class="info-box-number">41,410</span>
               </div>
               <!-- /.info-box-content -->
@@ -118,11 +119,11 @@
 
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box mb-3 info-box-main">
-              <span class="info-box-icon bg-success elevation-1"><i class="fas fa-shopping-cart"></i></span>
+              <span class="info-box-icon bg-info elevation-1"><i class="fas fa-bed"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text">Last BioTime Sync</span>
-                <span class="info-box-number">760</span>
+                <span class="info-box-text">on Leave</span>
+                <span class="info-box-number" id="leave">760</span>
               </div>
               <!-- /.info-box-content -->
             </div>
@@ -131,11 +132,11 @@
           <!-- /.col -->
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box mb-3 info-box-main">
-              <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-users"></i></span>
+              <span class="info-box-icon bg-info elevation-1"><i class="fa fa-paper-plane"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text">Active Districts</span>
-                <span class="info-box-number">2,000</span>
+                <span class="info-box-text" id="request">On Official Request</span>
+                <span class="info-box-number"></span>
               </div>
               <!-- /.info-box-content -->
             </div>
@@ -399,13 +400,15 @@
               <!-- /.info-box -->
               <div class="info-box mb-3 bg-success">
                 <span class="info-box-icon"><i class="far fa-heart"></i></span>
-
+      
                 <div class="info-box-content">
                   <span class="info-box-text">On Official Request</span>
                   <span class="info-box-number">92,050</span>
                   </div>
                 <!-- /.info-box-content -->
               </div>
+
+              <div id="avg_hours"></div>
          
              
 
@@ -451,6 +454,7 @@ $(document).ready(function(){
                      $('#mystaff').text(data.mystaff);
                      $('#ihris_sync').text(data.ihris_sync);
                      $('#biometrics').text(data.biometrics);
+                     knobgauge(data.avg_hours);
                     console.log(data);
                
                 
@@ -665,9 +669,12 @@ var gaugeOptions = {
     // the value axis
     yAxis: {
         stops: [
-            [0.1, '#55BF3B'], // green
+            
+            [0.1, '#DF5353'], // red
             [0.5, '#DDDF0D'], // yellow
-            [0.9, '#DF5353'] // red
+            [0.9, '#55BF3B'] // green
+            
+           
         ],
         lineWidth: 0,
         tickWidth: 0,
@@ -694,6 +701,8 @@ var gaugeOptions = {
 
 
 //gauge
+function knobgauge(gvalue){
+ 
 var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptions, {
     yAxis: {
         min: 0,
@@ -709,7 +718,7 @@ var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptio
 
     series: [{
         name: 'Hours',
-        data: [7],
+        data: [gvalue],
         dataLabels: {
             format:
                 '<div style="text-align:center">' +
@@ -722,7 +731,9 @@ var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptio
         }
     }]
 
-}));
+}))
+console.log(gvalue);
+};
 </script>
 
 
