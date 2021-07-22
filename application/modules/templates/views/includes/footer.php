@@ -35,7 +35,6 @@
 <!-- AdminLTE for demo purposes -->
 <script src="<?php echo base_url(); ?>assets/dist/js/demo.js"></script>
 
-<script src="<?php echo base_url()?>assets/dist/js/demo.js"></script>
 
 <script src="<?php echo base_url(); ?>/assets/plugins/jquery/jquery.min.js"></script>
 <!-- jQuery UI 1.11.4 -->
@@ -49,7 +48,11 @@
 <!-- fullCalendar 2.2.5 -->
 <script src="<?php echo base_url()?>assets/plugins/moment/moment.min.js"></script>
 <script src="<?php echo base_url()?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
+ <!-- counterup JS
+		============================================ -->
+<script src="http://localhost/mohattendance_dev/assets/js/counterup/jquery.counterup.min.js"></script>
 
+<script src="http://localhost/mohattendance_dev/assets/js/counterup/counterup-active.js"></script>
 <!-- DataTables  & Plugins -->
 <script src="<?php echo base_url(); ?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
@@ -81,7 +84,7 @@ $( document ).ready(function() {
 // Radialize the colors
 $( document ).ready(function() {
 Highcharts.setOptions({
-    colors: Highcharts.map(Highcharts.getOptions().colors, function (color) {
+    colors: Highcharts.getOptions().colors.map(function(color) {
         return {
             radialGradient: {
                 cx: 0.5,
@@ -97,190 +100,7 @@ Highcharts.setOptions({
 });
 });
 
-// Build the chart
-Highcharts.chart('clockin-container', {
-    chart: {
-        plotBackgroundColor: null,
-        plotBorderWidth: null,
-        plotShadow: false,
-        type: 'pie'
-    },
-    title: {
-        text: 'Attendance Reporting Method'
-    },
-    tooltip: {
-        pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
-    },
-    accessibility: {
-        point: {
-            valueSuffix: '%'
-        }
-    },
-    plotOptions: {
-        pie: {
-            allowPointSelect: true,
-            cursor: 'pointer',
-            dataLabels: {
-                enabled: true,
-                format: '<b>{point.name}</b>: {point.percentage:.1f} %',
-                connectorColor: 'silver'
-            }
-        }
-    },
-    series: [{
-        name: 'Share',
-        data: [
-            { name: 'Manual Form', y: 64 },
-            { name: 'BioTime', y: 11 },
-            { name: 'Mobile Phones', y: 5 },
-            { name: 'None', y: 20 },
-          
-        ]
-    }],
-    credits:[{
-      enabled:'false',
-    }
 
-    ],
-    exporting: {
-        buttons: {
-            contextButton: {
-                enabled: false
-            }    
-        }
-    }
-  
-});
-
-</script>
-
-<script>
-
-//Daily average working hours
-Highcharts.chart('monthlyhours', {
-
-chart: {
-    type: 'gauge',
-    plotBackgroundColor: null,
-    plotBackgroundImage: null,
-    plotBorderWidth: 0,
-    plotShadow: false
-},
-
-title: {
-    text: 'Average Monthly Working Hours'
-},
-
-pane: {
-    startAngle: -150,
-    endAngle: 150,
-    background: [{
-        backgroundColor: {
-            linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-            stops: [
-                [0, '#FFF'],
-                [1, '#333']
-            ]
-        },
-        borderWidth: 0,
-        outerRadius: '109%'
-    }, {
-        backgroundColor: {
-            linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-            stops: [
-                [0, '#333'],
-                [1, '#FFF']
-            ]
-        },
-        borderWidth: 1,
-        outerRadius: '107%'
-    }, {
-        // default background
-    }, {
-        backgroundColor: '#DDD',
-        borderWidth: 0,
-        outerRadius: '105%',
-        innerRadius: '103%'
-    }]
-},
-
-// the value axis
-yAxis: {
-    min: 0,
-    max: 24,
-
-    minorTickInterval: 'auto',
-    minorTickWidth: 1,
-    minorTickLength: 10,
-    minorTickPosition: 'inside',
-    minorTickColor: '#666',
-
-    tickPixelInterval: 30,
-    tickWidth: 2,
-    tickPosition: 'inside',
-    tickLength: 10,
-    tickColor: '#666',
-    labels: {
-        step: 2,
-        rotation: 'auto'
-    },
-    title: {
-        text: 'Hours'
-    },
-    plotBands: [{
-        from: 0,
-        to: 3,
-        color: '#DF5353' // green
-    }, {
-        from: 3,
-        to: 7,
-        color: '#DDDF0D' // yellow
-    }, {
-        from: 7,
-        to: 24,
-        color: '#55BF3B' // green
-    }]
-},
-
-series: [{
-    name: 'Speed',
-    data: [8],
-    tooltip: {
-        valueSuffix: ' Hrs'
-    }
-}],
-credits:[{
-      enabled:'false',
-    }
-
-    ],
-    exporting: {
-        buttons: {
-            contextButton: {
-                enabled: false
-            }    
-        }
-    }
-
-},
-// Add some life
-function (chart) {
-if (!chart.renderer.forExport) {
-    setInterval(function () {
-        var point = chart.series[0].points[0],
-            newVal,
-            inc = Math.round((Math.random() - 0.5) * 1.1);
-
-        newVal = point.y + inc;
-        if (newVal < 0 || newVal > 200) {
-            newVal = point.y - inc;
-        }
-
-        point.update(newVal);
-
-    }, 3000);
-}
-});
 </script>
 
 <script>

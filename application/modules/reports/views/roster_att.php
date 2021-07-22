@@ -107,7 +107,7 @@ function renderGraph(gdata){
 };
  
 $(document).ready(function(){
-
+    renderGraph(0);
 $.ajax({
     url:'<?php echo  base_url('reports/attroData'); ?>',
     success:function(response){

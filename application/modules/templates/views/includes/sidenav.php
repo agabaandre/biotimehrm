@@ -34,7 +34,7 @@
           <hr>
         <p style="color:#FEFFFF; font-size: 10px; height:20px; font-weight:bold; margin-top:1px;">
           <?php 
-          echo "PERIOD:". $userdata['month'].'-'.$userdata['year'];
+          echo $period="PERIOD:". $userdata['month'].'-'.$userdata['year'];
         ?>
         </p>
         <div class="image">
