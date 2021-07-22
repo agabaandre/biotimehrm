@@ -37,6 +37,7 @@ class Dashboard_mdl extends CI_Model {
          //number of biotime devs
         $fac=$this->db->query("Select *  from biotime_devices");
         $data['biometrics']= $fac->num_rows();
+
         //attendance
         // $date=date('Y-m');
         // $fac=$this->db->query("Select distinct(facility_id) from rosta_rate where date='$date'");
@@ -44,6 +45,11 @@ class Dashboard_mdl extends CI_Model {
 
         // $fac=$this->db->query("Select distinct(facility_id) from attendance_rate where date='$date'");
         // $data['attendance']=$fac->num_rows();
+
+           //get  clock count
+        $date=date('Y-m');
+        $fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg FROM clk_diff WHERE facility_id='$facility' and date_format(date,'%Y-%m')='$date'");
+        $data['avg_hours']= $fac->result()[0]->avg;
 
 
 

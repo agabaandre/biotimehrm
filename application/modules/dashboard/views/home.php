@@ -1,11 +1,26 @@
  <!-- Main content -->
+ <style>
+.info-box-main {
+    box-shadow: 0 0 1px rgba(86, 76, 76, 0.13),0 1px 3px rgba(110, 68, 68, 0.2);
+    border-radius: .25rem;
+    background: linear-gradient( 135deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
+    text-align: center;
+    display: -ms-flexbox;
+    display: flex;
+    margin-bottom: 1rem;
+    min-height: 90px;
+    padding: .5rem;
+    position: relative;
+    color: #FFF;
+}
+</style>
  <section class="content">
       <div class="container-fluid">
         <!-- Main row -->
 
         <div class="row">
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box">
+            <div class="info-box info-box-main">
               <span class="info-box-icon bg-info elevation-1"><i class="fas fa-cog"></i></span>
               <span class="base_url" style="display: none;" ><?php echo base_url(); ?></span>
               <div class="info-box-content">
@@ -21,7 +36,7 @@
           </div>
           <!-- /.col -->
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box mb-3">
+            <div class="info-box info-box-main mb-3">
               <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-thumbs-up"></i></span>
 
               <div class="info-box-content">
@@ -38,7 +53,7 @@
           <div class="clearfix hidden-md-up"></div>
 
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box mb-3">
+            <div class="info-box info-box-main mb-3">
               <span class="info-box-icon bg-success elevation-1"><i class="fas fa-shopping-cart"></i></span>
 
               <div class="info-box-content">
@@ -51,7 +66,7 @@
           </div>
           <!-- /.col -->
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box mb-3">
+            <div class="info-box info-box-main mb-3">
               <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-users"></i></span>
 
               <div class="info-box-content">
@@ -67,7 +82,7 @@
 
         <div class="row">
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box">
+            <div class="info-box info-box-main">
               <span class="info-box-icon bg-info elevation-1"><i class="fas fa-cog"></i></span>
 
               <div class="info-box-content">
@@ -84,7 +99,7 @@
           <!-- /.col -->
           
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box mb-3">
+            <div class="info-box mb-3 info-box-main">
               <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-thumbs-up"></i></span>
 
               <div class="info-box-content">
@@ -102,7 +117,7 @@
           <div class="clearfix hidden-md-up"></div>
 
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box mb-3">
+            <div class="info-box mb-3 info-box-main">
               <span class="info-box-icon bg-success elevation-1"><i class="fas fa-shopping-cart"></i></span>
 
               <div class="info-box-content">
@@ -115,7 +130,7 @@
           </div>
           <!-- /.col -->
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box mb-3">
+            <div class="info-box mb-3 info-box-main">
               <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-users"></i></span>
 
               <div class="info-box-content">
@@ -682,7 +697,7 @@ var gaugeOptions = {
 var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptions, {
     yAxis: {
         min: 0,
-        max: 200,
+        max: 24,
         title: {
             text: 'Hours'
         }
@@ -693,8 +708,8 @@ var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptio
     },
 
     series: [{
-        name: 'Speed',
-        data: [80],
+        name: 'Hours',
+        data: [7],
         dataLabels: {
             format:
                 '<div style="text-align:center">' +
