@@ -155,8 +155,6 @@ Highcharts.setOptions({
     </script>
  
 
-
-
 <!-- ./wrapper -->
 <?php
 $uri = $_SERVER['REQUEST_URI'];

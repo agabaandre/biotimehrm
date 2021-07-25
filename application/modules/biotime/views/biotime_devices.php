@@ -7,7 +7,7 @@
 
        <div class="row">
          
-         <section class="col-lg-12 ">
+         <section class="col-lg-12" style="min-height:450px;">
         
         
           <?php $machines=Modules::run('biotime/getMachines'); 
@@ -16,7 +16,7 @@
           
             
           ?>
-                <table id="mytab2" class="table table-bordered table-striped">
+                <table id="mytab2" class="table table-bordered table-striped mytable">
                   <thead>
                   <tr>
                       <th> Serial Number</th>

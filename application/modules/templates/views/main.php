@@ -15,9 +15,12 @@ require_once("includes/sidenav.php");
     <!-- Content Header (Page header) -->
     <section class="content-header">
       <div class="container-fluid">
-        <div class="row mb-2">
-          <div class="col-sm-6">
+        <div class="row">
+      
+          <div class="col-md-12">
             <!-- <h1>Fixed Layout</h1> -->
+
+           <p> test </p>
           </div>
        
         </div>
@@ -33,8 +36,8 @@ require_once("includes/sidenav.php");
         <div class="row">
           <div class="col-12" style="margin-bottom:3px;">
              <div class="card">
-                <div class="card-header">
-                   <h3 class="card-title"></h3>
+                <div class="">
+                   
                 </div>
                    <div class="card-body">
               

@@ -30,6 +30,10 @@ public function getMachines($filter){
 return $this->db->get('biotime_devices')->result();
 
 }
+public function get_enrolled(){
+  $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility'");
+return $query->result(); 
+}
 
 
 

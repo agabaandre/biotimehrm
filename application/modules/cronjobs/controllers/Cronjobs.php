@@ -145,7 +145,7 @@ public function biotimeClockin(){
     ihrisdata.facility
     from  biotime_data, ihrisdata where biotime_data.area_alias='$area->area_name' AND (biotime_data.emp_code=ihrisdata.card_number OR biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='Check In' OR punch_state='0') ");
    
-echo $area->area_name. " Checkin " .$this->db->affected_rows();
+ $area->area_name. " Checkin " .$this->db->affected_rows();
   }
 }
 public function biotimeClockout(){
@@ -200,7 +200,7 @@ public function rostatoAttend(){
   //poplulate actuals
   $query=$this->db->query("INSERT INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color, actuals.date, actuals.end ) 
   SELECT entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_rosta.duty_date,duty_rosta.end from duty_rosta WHERE schedule_id 
-  IN(17,18,19,20,21) and duty_rosta.duty_date like '$ymonth%' AND duty_rosta.entry_id NOT IN(SELECT entry_id from actuals)");
+  IN(17,18,19,20,21) AND duty_rosta.entry_id NOT IN(SELECT entry_id from actuals)");
   $rowsnow=$this->db->affected_rows();
   if($query){
     echo  $msg="<font color='green'>".$rowsnow. "  Attendance Records Marked</font><br>";

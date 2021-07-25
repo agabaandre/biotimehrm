@@ -146,6 +146,50 @@
   
 
         <div class="row">
+
+      <!-- Left col -->
+      <section class="col-lg-9 connectedSortable">
+            <!-- Custom tabs (Charts with tabs)-->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  Attendance Calendar
+
+                </h3>
+              
+              <div class="card-body">
+              
+                <ul class="nav nav-pills" style="margin: 0 auto; margin-top:4px;">
+                         <p></p>
+                            
+                            <?php  $colors=Modules::run('schedules/getattKey'); ?>
+                            <div class="row">
+                            
+          
+                              <?php foreach ($colors as $color) { ?>
+                              <li class="nav-item">
+                              <a class="btn btn-flat btnkey" style="background-color:<?php echo $color->color;  ?>;" ><?php echo $color->schedule;?></a>
+                              </li>
+                              <?php  }?>
+                            
+                              </div>
+                 
+          
+                </ul>
+                </div>
+                <div id="attcalendar">
+               
+                 
+                </div>
+              </div><!-- /.card-body -->
+            </div>
+            <!-- /.card -->
+
+
+            <!-- calender key -->
+          </section>
+
+
         
         <div class="col-md-3">
           <div class="info-box mb-3 info-box-main">
@@ -221,49 +265,8 @@
            
        
         </div>
-           <!-- Left col -->
-           <section class="col-lg-9 connectedSortable">
-            <!-- Custom tabs (Charts with tabs)-->
-            <div class="card">
-              <div class="card-header">
-                <h3 class="card-title">
-                  Attendance Calendar
-
-                </h3>
-              
-              <div class="card-body">
-              
-                <ul class="nav nav-pills" style="margin: 0 auto; margin-top:4px;">
-                         <p></p>
-                            
-                            <?php  $colors=Modules::run('schedules/getattKey'); ?>
-                            <div class="row">
-                            
-          
-                              <?php foreach ($colors as $color) { ?>
-                              <li class="nav-item">
-                              <a class="btn btn-flat btnkey" style="background-color:<?php echo $color->color;  ?>;" ><?php echo $color->schedule;?></a>
-                              </li>
-                              <?php  }?>
-                            
-                              </div>
-                 
-          
-                </ul>
-                </div>
-                <div id="attcalendar">
-               
-                 
-                </div>
-              </div><!-- /.card-body -->
-            </div>
-            <!-- /.card -->
-
-
-            <!-- calender key -->
-          </section>
-
-
+    </idv>
+           
       
       <section class="col-lg-6 connectedSortable">
             <!-- Custom tabs (Charts with tabs)-->

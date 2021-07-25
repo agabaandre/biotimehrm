@@ -95,10 +95,7 @@
               
             </div>
             <div class="card">
-
-
             <ol>
-
              <?php // print_r($setting); ?>
                       <li><a href="<?php echo base_url()?>workshops/checkins">Out of Station Checkin  </a></p>-Log showing the field staff who are attending to their activities </li>        
                       <li><a href="<?php echo base_url()?>workshops/linkedDevices">Mobile Check In Devices </a></p>-Out of station Mobile Check In Devices </li>

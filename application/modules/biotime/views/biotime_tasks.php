@@ -81,6 +81,16 @@
                                    
                                   
                                    </tr>
+                                   <tr>
+                                   
+                                   <th data-label="Serial Number">EMPLOYEES</th>
+                                   <td data-label="Facility"><?php echo $machine->area_name ?> 
+                                   </td>
+                                   <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
+                                   <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
+                                   
+                                  
+                                   </tr>
                                     
         
         </tbody>

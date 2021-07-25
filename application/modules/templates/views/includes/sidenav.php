@@ -145,7 +145,7 @@
             <a href="#" class="nav-link">
               <i class="fa fa-fingerprint"></i>
               <p>
-                Biotime
+                Biometrics
                 <i class="fas fa-angle-left right"></i>
               </p>
             </a>
@@ -158,34 +158,16 @@
                                 <i class="far fa-circle nav-icon"></i>
                                 Tasks</a>
                                 </li>
-
-
-
-            </ul>
-            </li>
-            <?php } ?>
-                <!--user perm 26-->
-           <?php if(in_array('26', $permissions)){ ?>
-            <li class="nav-item has-treeview ">
-            <a href="#" class="nav-link">
-              <i class="fa fa-mobile"></i>
-              <p>
-                Mobile Phones
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-                               <li class="nav-item"><a href="<?php echo base_url()?>biotime/updateTerminals" class="nav-link">
+                                <li class="nav-item"><a href="<?php echo base_url()?>biotime/enrolled" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 Enrolled Users</a></li>
-                             
 
 
 
             </ul>
             </li>
             <?php } ?>
-
+          
         
 
           <li class="nav-item has-treeview">

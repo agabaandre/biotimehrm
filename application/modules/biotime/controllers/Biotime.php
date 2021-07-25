@@ -40,10 +40,6 @@ class Biotime extends MX_Controller{
        
 		 echo Modules::run("templates/main",$data);
       
-         
-
-       
-       
     
     }
     public function tasks(){
@@ -55,7 +51,19 @@ class Biotime extends MX_Controller{
             echo Modules::run("templates/main",$data);
   
        
-       }
+    }
+    public function enrolled(){
+    
+        $data['view']='enrolled';
+        $data['uptitle']="Enrolled Users";
+        $data['title']="Enrolled Users ";
+        $data['module']="biotime";
+        echo Modules::run("templates/main",$data);
+  
+    }
+    public function get_enrolled(){
+        return $this->biotime_mdl->get_enrolled();
+    }
     //Department Department code, Department Name
     public function syncDepartments(){
 
@@ -71,6 +79,7 @@ class Biotime extends MX_Controller{
         
     }
     public function syncPersons($facilty){
+        
 
         
     }
