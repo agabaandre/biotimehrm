@@ -72,7 +72,7 @@ class HttpUtil{
        
         return json_decode( (string) $response->getBody()->getContents());
     }
-    public function get_List($endpoint, $method="",$headers = [],$options)
+       public function get_List($endpoint, $method="",$headers = [],$options)
     {
         // die(var_dump($this->get_jwt_auth()));
       
@@ -110,17 +110,18 @@ class HttpUtil{
     }
     //http requests
 
- public function sendHttpPost($url,$headers=[],$body){
- 
+ public function curlsendHttpPost($endpoint,$headers,$body){
+    $url=BIO_URL.$endpoint;
     $ch = curl_init($url);
 
-    file_put_contents('log.txt', "\n HEADERS OUT ".json_encode($headers),FILE_APPEND);
      //post values
-    curl_setopt($ch,CURLOPT_POSTFIELDS,$body);
+    curl_setopt($ch,CURLOPT_POSTFIELDS,json_encode($body));
     // Option to Return the Result, rather than just true/false
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
     // Set Request Headers
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers
+    );
     //time to wait while waiting for connection...indefinite
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
 
@@ -128,7 +129,6 @@ class HttpUtil{
     //set curl time..processing time out
     curl_setopt($ch, CURLOPT_TIMEOUT, 200);
     // Perform the request, and save content to $result
-    ini_set("max_execution_time",400);
     $result = curl_exec($ch);
       //curl error handling
       $curl_errno = curl_errno($ch);
@@ -138,31 +138,30 @@ class HttpUtil{
                     return  "CURL Error ($curl_errno): $curl_error\n";
                   }
         $info = curl_getinfo($ch);
-       file_put_contents('log.txt', "\n REQUEST FULL ".json_encode($info),FILE_APPEND);
        curl_close($ch);
        $decodedResponse =json_decode($result);
-       return $decodedResponse;
+       return $result;
 }
 
-public function sendHttpGet($url,$headers,$body=[]){
-
+public function curlgetHttp($endpoint,$headers,$body){
+    $url=BIO_URL.$endpoint;
     $ch = curl_init($url);
 
-    file_put_contents("logs.txt", "\n HEADERS OUT ".json_encode($headers),FILE_APPEND);
      //post values
-    //curl_setopt($ch,CURLOPT_POSTFIELDS,$body);
+    // curl_setopt($ch,CURLOPT_POSTFIELDS,json_encode($body));
     // Option to Return the Result, rather than just true/false
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
     // Set Request Headers
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers
+    );
     //time to wait while waiting for connection...indefinite
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
 
-    curl_setopt($ch,CURLOPT_POST,0);
+    // curl_setopt($ch,CURLOPT_POST,1);
     //set curl time..processing time out
     curl_setopt($ch, CURLOPT_TIMEOUT, 200);
     // Perform the request, and save content to $result
-    ini_set("max_execution_time",400);
     $result = curl_exec($ch);
       //curl error handling
       $curl_errno = curl_errno($ch);
@@ -171,13 +170,40 @@ public function sendHttpGet($url,$headers,$body=[]){
                      curl_close($ch);
                     return  "CURL Error ($curl_errno): $curl_error\n";
                   }
-
         $info = curl_getinfo($ch);
-       file_put_contents('log.tx', "\n REQUEST FULL ".json_encode($info),FILE_APPEND);
        curl_close($ch);
        $decodedResponse =json_decode($result);
-       return $decodedResponse;
+       return $result;
 }
+
+public function curlHttpGet($endpoint,$headers,$body=[]){
+
+    $url=BIO_URL.$endpoint;
+    $ch = curl_init($url);
+    
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 80);
+       
+    $response = curl_exec($ch);
+        
+    if(curl_error($ch)){
+        $response = 'Request Error:' . curl_error($ch);
+    }else{
+        $response;
+    }
+       
+    curl_close($ch);
+  return $response;
+   
+}
+
+
+
+
 
     
 

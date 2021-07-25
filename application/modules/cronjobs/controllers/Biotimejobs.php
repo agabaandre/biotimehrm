@@ -11,6 +11,7 @@ class Biotimejobs extends MX_Controller {
         $this->username=Modules::run('svariables/getSettings')->biotime_username;
         $this->password=Modules::run('svariables/getSettings')->biotime_password;
         $this->load->model('biotimejobs_mdl');
+        $this->facility=$_SESSION['facility'];
 
 
     }
@@ -187,6 +188,7 @@ class Biotimejobs extends MX_Controller {
     return $response;
    }
 
+
    public function fetchBiotTimeLogs($user_date=FALSE){
     $resp=$this->getTime($page=1,$user_date);
     $count = $resp->count;
@@ -207,53 +209,152 @@ class Biotimejobs extends MX_Controller {
                             "punch_time" => $mydata->punch_time
              );
             array_push($rows,$data);
-        
-         
+            
     }
    }
  
   
    $message=$this->biotimejobs_mdl->add_time_logs($rows);
 
-   $this->log($message);
+   $this->logattendance($message);
 
  }
+
+
+ //enroll new users (Front End Action that requires login);
+ public function get_new_users($facility){
+    $query=$this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
+ return $query->result();
+ }
+ // get
+ public function create_new_biotimeuserx($firstname,$surname,$emp_code,$area,$department,$position){
+     
+    $http = new HttpUtil();
+    $headers = [
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+        'Authorization' =>"JWT ".$this->get_token(),
+    ];
+    $data = array(
+        'first_name' => $firstname,
+        'last_name' => $surname,
+        'emp_code' => $emp_code,
+        'area' => urldecode($area), 
+        'department' => urldecode(str_replace('dep','',$department)), 
+        'position' => urldecode($position),	
+					
+    );
+
+    $endpoint='/personnel/api/employees/';
+    $response = $http->getTimeLogs($endpoint,$data,$headers);
+ print_r($response);
+
+ }
+
+ public function create_new_biotimeuser($firstname,$surname,$emp_code,$area,$department,$position){
+    $farea=urldecode($area);
+    $fjob=urldecode($position);
+    $fdep=urldecode($department);
+
+    $barea=$this->getbioloc($farea);
+    if(empty($barea)){
+        $parea=1;
+    }
+    else{
+        $parea=$barea;
+    }
+    $bjob=$this->getbiojobs($fjob);
+    if(empty($bjob)){
+        $pjobs=1;
+    }
+    else{
+        $pjobs=$bjob;
+    }
+    $bdep=$this->getbiodeps($fdep);
+    if(empty($bdep)){
+        $pdep=1;
+    }
+    else{
+        $pdep=$bdep;
+    }
+
+    $http = new HttpUtil();
+   
+    $body = array(
+        'first_name' => $firstname,
+        'last_name' => $surname,
+        'emp_code' => $emp_code,
+        'area' => [(string)$parea], 
+        'department' => (string)$pdep, 
+        'position' => (string)$pjobs,	
+		);
+
+    $endpoint='personnel/api/employees/';
+    $headr = array();
+    $headr[] = 'Content-length:'.strlen(json_encode($body));
+    $headr[] = 'Content-type: application/json';
+    $headr[] = 'Authorization: JWT '.$this->get_token();
     
+    $response = $http->curlsendHttpPost($endpoint,$headr,$body);
 
-//  $response = $this->getTime($spage="",$user_date);
-//  $count = $response->count;
-//  $pages = (int)ceil($count/10);
- //empty array to package terminal data
- // $rows=array();
- // for ($currentPage=1; $currentPage<=$pages; $currentPage++){
- //   $responses = $this->getTime($currentPage,$user_date);
- //   foreach($responses->data as $resp){
- //   $data  =array("emp_code" => $resp['emp_code'],
- //                 "terminal_sn" => $resp['terminal_sn'],
- //                 "area_alias" => $resp['area_alias'],
- //                 "longitude" => $resp['longitude'],
- //                 "latitude" => $resp['latitude'],
- //                 "punch_state" => $resp['punch_state'],
- //                 "punch_time" => $resp['punch_time']
- //  );
+     if($response){
+    
+     return json_decode($response);
+    // $this->log($message);
+    }
+   
 
- //  array_push($rows,$data);
- 
- //       }
-
- // }
- // print_r();
-
-
+}
 public function log($message){
     //add double [] at the beggining and at the end of file contents
    return file_put_contents('log.txt', "\n{".'"REQUEST DETAILS: '.date('Y-m-d H:i:s').' Time": '.json_encode($message).'},',FILE_APPEND);
 }
-
-public function logAttendance($message){
+public function logattendance($message){
     //add double [] at the beggining and at the end of file contents
-    return file_put_contents('log.txt', "\n{".'"REQUEST DETAILS: '.date('Y-m-d H:i:s').' Time: "'.json_encode($message).'},',FILE_APPEND);
- }
+   return file_put_contents('fetchatt_log.txt', "\n{".'"REQUEST DETAILS: '.date('Y-m-d H:i:s').' Time": '.json_encode($message).'},',FILE_APPEND);
+}
+public function getbiojobs($job){
+ $query=$this->db->query("SELECT id from biotime_jobs where position_code='$job' LIMIT 1");
+ return $query->result()[0]->id;
+
+}
+public function getbiodeps($dep_id){
+    $query=$this->db->query("SELECT id from biotime_departments where dept_code='$dep_id' LIMIT 1");
+    return $query->result()[0]->id;
+
+}
+public function getbioloc($facility){
+    $query=$this->db->query("SELECT id from biotime_facilities where area_code='$facility' LIMIT 1");
+    return $query->result()[0]->id;
+
+}
+//not working
+public function biotimeFacilities()
+    {
+
+       $http = new HttpUtil();
+       $headr = array();
+       $headr[] = 'Content-length: 0';
+       $headr[] = 'Content-type: application/json';
+       $headr[] = 'Authorization: JWT '.$this->get_token();
+    
+
+ 
+       $query=array('page_size'=>50000
+       );
+      
+       $params='?'.http_build_query($query);
+       $endpoint='personnel/api/areas/'.$params;
+    
+       //leave options and undefined. guzzle will use the http:query;
+       
+       $response = $http->curlgetHttp($endpoint,$headr,[]);
+        //return $response;
+    print_r( json_decode($response));
+   }
+
+
+
 
 
 

@@ -4,7 +4,7 @@ Class Biotimejobs_mdl extends CI_Model
 {
    public  function __construct(){
         parent:: __construct();
-        $this->facility=$this->session->userdata['facility'];
+        $this->facility=$_SESSION['facility'];
       
 
     }
@@ -37,15 +37,16 @@ return $message;
  
 public function add_enrolled($data){
     if(count($data)>1){
+    $this->db->query("CALL `fingerpints_cache`()");
     $this->db->query("TRUNCATE fingerprints_staging");
     }
     $query = $this->db->insert_batch('fingerprints_staging',$data);
-    $times = $this->db->query_times;
+
 
 
     if($query){
         $n=$this->db->query("select entry_id from fingerprints_staging");
-        $this->db->query("CALL `fingerpints_cache`()");
+      
         $message=print_r($this->exect()) ." saveEnrolled() add_enrolled() Created Enrolled users from Biotime ".$n->num_rows();
 
         
@@ -60,17 +61,17 @@ return $message;
 }
 public function add_time_logs($data){
     if(count($data)>1){
-    
+    $this->db->query("CALL `biotime_cache`()");
     $this->db->query("TRUNCATE biotime_data");
     }
     $query = $this->db->insert_batch('biotime_data',$data);
-    $times = $this->db->query_times;
+    $this->db->query(" DELETE from biotime_data where emp_code='0'");
 
 
     if($query){
         $n=$this->db->query("select entry_id biotime_data");
-        $this->db->query("CALL `biotime_cache`()");
-        $message=print_r($this->exect()) ." fetchBiotTimeLogs()  add_time_logs() Created Enrolled users from Biotime ".$n->num_rows();
+        
+        $message=print_r($this->exect()) ." fetchBiotTimeLogs()  add_time_logs() Created Logs from Biotime ".$n->num_rows();
         
     }
     else{

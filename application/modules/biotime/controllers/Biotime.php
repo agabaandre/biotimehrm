@@ -61,6 +61,15 @@ class Biotime extends MX_Controller{
         echo Modules::run("templates/main",$data);
   
     }
+    public function unenrolled(){
+    
+        $data['view']='unenrolled_users';
+        $data['uptitle']="New Biometric Users";
+        $data['title']="New Biometric Users ";
+        $data['module']="biotime";
+        echo Modules::run("templates/main",$data);
+  
+    }
     public function get_enrolled(){
         return $this->biotime_mdl->get_enrolled();
     }
@@ -86,6 +95,11 @@ class Biotime extends MX_Controller{
     public function getMachines($search=FALSE){
         return $this->biotime_mdl->getMachines($search);
     }
+
+    public function get_new_users(){
+        return $this->biotime_mdl->get_new_users();
+    }
+   
    
 
 
