@@ -175,37 +175,7 @@ public function curlgetHttp($endpoint,$headers,$body){
        $decodedResponse =json_decode($result);
        return $result;
 }
-
-public function curlHttpGet($endpoint,$headers,$body=[]){
-
-    $url=BIO_URL.$endpoint;
-    $ch = curl_init($url);
-    
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 80);
-       
-    $response = curl_exec($ch);
-        
-    if(curl_error($ch)){
-        $response = 'Request Error:' . curl_error($ch);
-    }else{
-        $response;
-    }
-       
-    curl_close($ch);
-  return $response;
-   
-}
-
-
-
-
-
-    
+  
 
 }
 

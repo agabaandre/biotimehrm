@@ -50,7 +50,7 @@
                                                    $surname=$staff->surname;
                                                    $firstname=$staff->firstname
                                              ?>
-                                              <td data-label="ATT STATUS"><a href="<?php echo base_url("cronjobs/biotimejobs/create_new_biotimeuser/").$firstname.'/'.$surname.'/'.$card_number.'/'.urlencode($facility_id).'/'.urlencode('dep'.$dep).'/'.urlencode($job_id); ?>" class="btn btn-default" target="_blank"><i class="fa fa-fingerprint"></i>Enroll</button></t)d>
+                                              <td data-label="ATT STATUS"><a href="<?php echo base_url("biotimejobs/create_new_biotimeuser/").$firstname.'/'.$surname.'/'.$card_number.'/'.urlencode($facility_id).'/'.urlencode('dep'.$dep).'/'.urlencode($job_id); ?>" class="btn btn-default" target="_blank"><i class="fa fa-fingerprint"></i>Enroll</button></t)d>
                                               
                                              
                                               </tr>

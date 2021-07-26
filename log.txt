@@ -5,5 +5,6 @@
 {"REQUEST DETAILS: 2021-07-25 20:25:06 Time": "1 saveEnrolled() add_enrolled() Created Enrolled users from Biotime 732"},
 {"REQUEST DETAILS: 2021-07-25 20:58:13 Time": "1 saveEnrolled() add_enrolled() Created Enrolled users from Biotime 732"},
 {"REQUEST DETAILS: 2021-07-25 21:45:39 Time": "1 saveEnrolled() add_enrolled() Created Enrolled users from Biotime 732"},
- REQUEST FULL Array
- REQUEST FULL Array
+{"REQUEST DETAILS: 2021-07-26 11:46:03 Time": "{\"emp_code\":[\"Employee with this Employee ID already exists.\"]}"},
+{"REQUEST DETAILS: 2021-07-26 11:59:48 Time": "{\"emp_code\":[\"Employee with this Employee ID already exists.\"]}"},
+{"REQUEST DETAILS: 2021-07-26 12:00:27 Time": "{\"emp_code\":[\"Employee with this Employee ID already exists.\"]}"},

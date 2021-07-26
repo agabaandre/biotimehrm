@@ -36,12 +36,13 @@ class Dashboard_mdl extends CI_Model {
         $data['biometrics']= $fac->num_rows();
 
         //attendance
-        // $date=date('Y-m');
-        // $fac=$this->db->query("Select distinct(facility_id) from rosta_rate where date='$date'");
-        // $data['roster']=$fac->num_rows();
+        $userdata=$this->session->userdata();
+        $date=$userdata['year'].'-'.$userdata['month'];
+        $fac=$this->db->query("Select distinct(facility_id) from rosta_rate where date='$date'");
+        $data['roster']=$fac->num_rows();
 
-        // $fac=$this->db->query("Select distinct(facility_id) from attendance_rate where date='$date'");
-        // $data['attendance']=$fac->num_rows();
+        $fac=$this->db->query("Select distinct(facility_id) from attendance_rate where date='$date'");
+        $data['attendance']=$fac->num_rows();
 
            //get  clock count
         $userdata=$this->session->userdata();

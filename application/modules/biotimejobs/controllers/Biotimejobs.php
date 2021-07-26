@@ -197,31 +197,8 @@ class Biotimejobs extends MX_Controller {
     $query=$this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
  return $query->result();
  }
- // get
- public function create_new_biotimeuserx($firstname,$surname,$emp_code,$area,$department,$position){
-     
-    $http = new HttpUtil();
-    $headers = [
-        'Content-Type' => 'application/json',
-        'Accept' => 'application/json',
-        'Authorization' =>"JWT ".$this->get_token(),
-    ];
-    $data = array(
-        'first_name' => $firstname,
-        'last_name' => $surname,
-        'emp_code' => $emp_code,
-        'area' => urldecode($area), 
-        'department' => urldecode(str_replace('dep','',$department)), 
-        'position' => urldecode($position),	
-					
-    );
-
-    $endpoint='/personnel/api/employees/';
-    $response = $http->getTimeLogs($endpoint,$data,$headers);
- print_r($response);
-
- }
-
+ // create new user
+ 
  public function create_new_biotimeuser($firstname,$surname,$emp_code,$area,$department,$position){
     $farea=urldecode($area);
     $fjob=urldecode($position);
@@ -269,9 +246,7 @@ class Biotimejobs extends MX_Controller {
     $response = $http->curlsendHttpPost($endpoint,$headr,$body);
 
      if($response){
-    
-     print_r (json_decode($response));
-    // $this->log($message);
+    $this->log($response);
     }
    
 
