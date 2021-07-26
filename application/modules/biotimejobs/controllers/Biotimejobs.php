@@ -125,35 +125,6 @@ class Biotimejobs extends MX_Controller {
 
      $this->log($message);
     }
-
-        
-        
-    public function create($data){
-        $http = new HttpUtil();
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-            // 'Authorization' => "Token ".$this->get_general_auth(),
-            'Authorization' =>"JWT ". $this->get_token(),
-        ];
-        
-        $response = $http->sendRequest('iclock/api/terminals',"GET",$headers,[],$search=FALSE);
-
-        print_r($response);
-    }
-    public function update($data){
-        $http = new HttpUtil();
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-            // 'Authorization' => "Token ".$this->get_general_auth(),
-            'Authorization' =>"JWT ". $this->get_token(),
-        ];
-        
-        $response = $http->sendRequest('iclock/api/terminals',"PUT",$headers,[],$search=FALSE);
-
-        
-    }
 //get cron jobs from the server
     public function getTime($page=FALSE,$userdate=FALSE)
     {
@@ -299,7 +270,7 @@ class Biotimejobs extends MX_Controller {
 
      if($response){
     
-     return json_decode($response);
+     print_r (json_decode($response));
     // $this->log($message);
     }
    
@@ -345,6 +316,52 @@ public function biotimeFacilities()
       
        $params='?'.http_build_query($query);
        $endpoint='personnel/api/areas/'.$params;
+    
+       //leave options and undefined. guzzle will use the http:query;
+       
+       $response = $http->curlgetHttp($endpoint,$headr,[]);
+        //return $response;
+    print_r( json_decode($response));
+   }
+   public function biotimejobs()
+    {
+
+       $http = new HttpUtil();
+       $headr = array();
+       $headr[] = 'Content-length: 0';
+       $headr[] = 'Content-type: application/json';
+       $headr[] = 'Authorization: JWT '.$this->get_token();
+    
+
+ 
+       $query=array('page_size'=>50000
+       );
+      
+       $params='?'.http_build_query($query);
+       $endpoint='personnel/api/position/'.$params;
+    
+       //leave options and undefined. guzzle will use the http:query;
+       
+       $response = $http->curlgetHttp($endpoint,$headr,[]);
+        //return $response;
+    print_r( json_decode($response));
+   }
+   public function biotimedepartments()
+    {
+
+       $http = new HttpUtil();
+       $headr = array();
+       $headr[] = 'Content-length: 0';
+       $headr[] = 'Content-type: application/json';
+       $headr[] = 'Authorization: JWT '.$this->get_token();
+    
+
+ 
+       $query=array('page_size'=>5000000
+       );
+      
+       $params='?'.http_build_query($query);
+       $endpoint='personnel/api/department/'.$params;
     
        //leave options and undefined. guzzle will use the http:query;
        

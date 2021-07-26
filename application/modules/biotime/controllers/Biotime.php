@@ -1,7 +1,7 @@
 
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
-
+use \utils\HttpUtil;
 class Biotime extends MX_Controller{
 	
 	public  function __construct(){
