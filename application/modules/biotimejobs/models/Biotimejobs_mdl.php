@@ -36,20 +36,21 @@ return $message;
 
  
 public function add_enrolled($data){
-    if(count($data)>1){
+    if($count=count($data)>1){
     $this->db->query("CALL `fingerpints_cache`()");
     $this->db->query("TRUNCATE fingerprints_staging");
     }
     $query = $this->db->insert_batch('fingerprints_staging',$data);
 
-
+  
 
     if($query){
         $n=$this->db->query("select entry_id from fingerprints_staging");
       
         $message=print_r($this->exect()) ." saveEnrolled() add_enrolled() Created Enrolled users from Biotime ".$n->num_rows();
 
-        
+        // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows() ));
+        // ");
     }
     else{
         $message=print_r($this->exect()) ." saveEnrolled() add_enrolled() Failed ";
@@ -67,12 +68,15 @@ public function add_time_logs($data){
     $query = $this->db->insert_batch('biotime_data',$data);
     $this->db->query(" DELETE from biotime_data where emp_code='0'");
 
+   
 
+    
     if($query){
         $n=$this->db->query("select entry_id biotime_data");
         
         $message=print_r($this->exect()) ." fetchBiotTimeLogs()  add_time_logs() Created Logs from Biotime ".$n->num_rows();
-        
+        // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows());
+        // ");
     }
     else{
         $message=print_r($this->exect()) ." fetchBiotTimeLogs()  add_time_logs() Failed ";
@@ -82,9 +86,68 @@ public function add_time_logs($data){
 return $message;
 
 }
+
+
+public function save_department($data){
+    if(count($data)>1){
+        $this->db->query("TRUNCATE biotime_departments");
+    }
+    $query=$this->db->insert_batch("biotime_departments",$data);
+    if($query){
+        $n=$this->db->query("select id biotime_departments");
+        
+        $message=print_r($this->exect()) ." save_department() Created Departments from Biotime ".$n->num_rows();
+        // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows());
+        // ");
+    }
+    else{
+        $message=print_r($this->exect()) ." Fetch Departments Failed ";
+
+    }
+
+return $message;
+}
+public function save_jobs($data){
+    if(count($data)>1){
+        $this->db->query("TRUNCATE biotime_jobs");
+    }
+    $query=$this->db->insert_batch("biotime_jobs",$data);
+    if($query){
+        $n=$this->db->get("biotime_jobs");
+        $message=print_r($this->exect()) ." save_jobs() Created jobs from Biotime ".$n->num_rows();
+        // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows());
+        // ");
+    }
+    else{
+        $message=print_r($this->exect()) ." Fetch jobs Failed ";
+
+    }
+
+return $message;
+}
+public function save_facilities($data){
+    if(count($data)>1){
+        $this->db->query("TRUNCATE biotime_facilities");
+    }
+    $query=$this->db->insert_batch("biotime_facilities",$data);
+    if($query){
+        $n=$this->db->get("biotime_facilities");
+        
+        $message=print_r($this->exect()) ." save_facilities() Created Fcailities from Biotime ".$n->num_rows();
+        // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows());
+        // ");
+    }
+    else{
+        $message=print_r($this->exect()) ." Fetch Failities Failed ";
+
+    }
+
+return $message;
+}
 //not working as expected. should return querytime
 public function exect(){
 return  $this->benchmark->elapsed_time();
 }
+
 
 }

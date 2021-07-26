@@ -140,7 +140,7 @@ class HttpUtil{
         $info = curl_getinfo($ch);
        curl_close($ch);
        $decodedResponse =json_decode($result);
-       return $result;
+       return $decodedResponse;
 }
 
 public function curlgetHttp($endpoint,$headers,$body){
@@ -173,7 +173,7 @@ public function curlgetHttp($endpoint,$headers,$body){
         $info = curl_getinfo($ch);
        curl_close($ch);
        $decodedResponse =json_decode($result);
-       return $result;
+       return $decodedResponse;
 }
   
 

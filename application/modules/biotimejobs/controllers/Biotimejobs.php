@@ -71,7 +71,7 @@ class Biotimejobs extends MX_Controller {
 
     }
    //employees all enrolled users before creating new ones.
-
+   
    public function get_Enrolled($page=FALSE)
    {
 
@@ -296,9 +296,22 @@ public function biotimeFacilities()
        
        $response = $http->curlgetHttp($endpoint,$headr,[]);
         //return $response;
-    print_r( json_decode($response));
+         //return $response;
+         $j=array();
+         foreach ($response->data as $facs) {
+             $data=array('id'=>$facs->id,
+                         'area_code'=>$facs->area_code,
+                         'area_name'=>$facs->area_name
+         );
+         array_push($j,$data);
+             
+         }
+         
+         $message=$this->biotimejobs_mdl->save_facilities($j);
+        //  print_r($response->data[0]->id);
+         return $this->log($message);
    }
-   public function biotimejobs()
+   public function biotime_jobs()
     {
 
        $http = new HttpUtil();
@@ -318,8 +331,19 @@ public function biotimeFacilities()
        //leave options and undefined. guzzle will use the http:query;
        
        $response = $http->curlgetHttp($endpoint,$headr,[]);
-        //return $response;
-    print_r( json_decode($response));
+          //return $response;
+          $j=array();
+          foreach ($response->data as $jobs) {
+              $data=array('id'=>$jobs->id,
+                          'position_code'=>$jobs->position_code,
+                          'position_name'=>$jobs->posistion_name
+          );
+          array_push($j,$data);
+              
+          }
+          
+          $message=$this->biotimejobs_mdl->save_jobs($j);
+    return $this->log($message);
    }
    public function biotimedepartments()
     {
@@ -342,7 +366,19 @@ public function biotimeFacilities()
        
        $response = $http->curlgetHttp($endpoint,$headr,[]);
         //return $response;
-    print_r( json_decode($response));
+    $j=array();
+    foreach ($response->data as $deps) {
+        $data=array('id'=>$deps->id,
+                    'dep_code'=>$deps->dept_code,
+                    'dept_name'=>$deps->dept_name
+    );
+    array_push($j,$data);
+        
+    }
+    
+    $message=$this->biotimejobs_mdl->save_department($j);
+    return $this->log($message);
+   
    }
 
 

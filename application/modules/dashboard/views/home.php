@@ -22,7 +22,7 @@
         <div class="row">
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box info-box-main">
-              <span class="info-box-icon  elevation-1"><i class="fas fa-cog"></i></span>
+              <span class="info-box-icon  elevation-1"><i class="fas fa-sync"></i></span>
               <span class="base_url" style="display: none;" ><?php echo base_url(); ?></span>
               <div class="info-box-content">
                 <span class="info-box-text">iHRIS Sync</span>
@@ -39,8 +39,8 @@
               <span class="info-box-icon  elevation-1"><i class="fas fa-clock"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text" id="att_sums">Attendance Summary</span>
-                <span class="info-box-number"></span>
+                <span class="info-box-text" >Last Attendance Sum </span>
+                <span class="info-box-number" id="attendance"></span>
               </div>
               <!-- /.info-box-content -->
             </div>
@@ -56,8 +56,8 @@
               <span class="info-box-icon  elevation-1"><i class="fas fa-calendar"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text" id="roster_sums"> Duty Roster Summary</span>
-                <span class="info-box-number">760</span>
+                <span class="info-box-text" > Last Roster Sum </span>
+                <span class="info-box-number" id="roster"></span>
               </div>
               <!-- /.info-box-content -->
             </div>
@@ -69,8 +69,8 @@
               <span class="info-box-icon  elevation-1"><i class="fas fa-fingerprint"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text">Biometric Sync</span>
-                <span class="info-box-number" id="bio_sync"></span>
+                <span class="info-box-text">BioTime Last Sync</span>
+                <span class="info-box-number" id="biotime_last"></span>
               </div>
               <!-- /.info-box-content -->
             </div>
@@ -85,11 +85,10 @@
               <span class="info-box-icon  elevation-1"><i class="fas fa-calendar-check"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text">Projected Presence</span>
-                <span class="info-box-number" id="presence">
-                 
-                  <small>workers</small>
+                <span class="info-box-text">Present</span>
+                <span class="info-box-number" id="present">
                 </span>
+                <small>Staff</small>
               </div>
               <!-- /.info-box-content -->
             </div>
@@ -104,6 +103,8 @@
               <div class="info-box-content">
                 <span class="info-box-text">Off Duty</span>
                 <span class="info-box-number" id="offduty"></span>
+
+                <small>Staff</small>
               </div>
               <!-- /.info-box-content -->
             </div>
@@ -122,6 +123,9 @@
               <div class="info-box-content">
                 <span class="info-box-text">on Leave</span>
                 <span class="info-box-number" id="leave"></span>
+
+                
+                <small>Staff</small>
               </div>
               <!-- /.info-box-content -->
             </div>
@@ -133,8 +137,10 @@
               <span class="info-box-icon  elevation-1"><i class="fa fa-paper-plane"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text" id="request">On Official Request</span>
-                <span class="info-box-number"></span>
+                <span class="info-box-text">On Official Request</span>
+                <span class="info-box-number" id="request"></span>
+                
+                <small>Staff</small>
               </div>
               <!-- /.info-box-content -->
             </div>
@@ -197,7 +203,8 @@
 
               <div class="info-box-content">
                 <span class="info-box-text">Out of Station Requests</span>
-                <span class="info-box-number" id="orequests"></span>
+                <span class="info-box-number" id="requesting"></span>
+                <small>Staff Requests</small>
               </div>
               <!-- /.info-box-content-->
             </div>
@@ -252,7 +259,7 @@
               <!-- /.info-box-content -->
         </div>
        
-        <div class="info-box mb-3 bg-orange" style="min-height:95px;">
+        <div class="info-box mb-3 bg-orange" style="min-height:85px;">
               <span class="info-box-icon"><i class="fas fa-fingerprint" style="color:#FFF !important;"></i></span>
 
               <div class="info-box-content" style="color:#FFF !important;">
@@ -492,6 +499,14 @@ $(document).ready(function(){
                      $('#mystaff').text(data.mystaff);
                      $('#ihris_sync').text(data.ihris_sync);
                      $('#biometrics').text(data.biometrics);
+                     $('#roster').text(data.roster);
+                     $('#attendance').text(data.attendance);
+                     $('#biotime_last').text(data.biotime_last);
+                     $('#present').text(data.present);
+                     $('#offduty').text(data.offduty);
+                     $('#leave').text(data.leave);
+                     $('#request').text(data.request);
+                     $('#requesting').text(data.requesting);
                      knobgauge(data.avg_hours);
                     console.log(data);
                
