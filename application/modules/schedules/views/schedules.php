@@ -10,7 +10,7 @@
                       </div>
 
                       <div class="box-body">
-                         <center>
+                      
                           <ul class="breadcrumb">
                             <li>
                               <a class="btn btn-sm btn-info" href="<?php echo base_url()?>schedules/attendance_schedules">Attendance Schedules</a>
@@ -22,7 +22,7 @@
                               <a class="btn btn-sm btn-info" href="<?php echo base_url()?>schedules/Public_Holidays">Public Holiday Schedules</a>
                             </li>
                           </ul>
-                          </center> 
+                       
                       </div>
 
             </section>

@@ -198,49 +198,39 @@ class Auth extends MX_Controller {
 
         $this->load->library('pagination');
         $config=array();
-          $config['base_url']=base_url()."auth/getAll";
-          $config['total_rows']=$this->auth_mdl->count_Users($searchkey);
-          $config['per_page']=20; //records per page
-          $config['uri_segment']=3; //segment in url  
-          //pagination links styling
-          $config['full_tag_open'] = "<ul class='pagination'>";
-            $config['full_tag_close'] = '</ul>';
-            $config['num_tag_open'] = '<li>';
-            $config['num_tag_close'] = '</li>';
-            $config['cur_tag_open'] = '<li class="active"><a href="#">';
-            $config['cur_tag_close'] = '</a></li>';
-            $config['prev_tag_open'] = '<li>';
-            $config['prev_tag_close'] = '</li>';
-            $config['first_tag_open'] = '<li>';
-            $config['first_tag_close'] = '</li>';
-            $config['last_tag_open'] = '<li>';
-            $config['last_tag_close'] = '</li>';
-        
-        
-        
-            $config['prev_link'] = '<i class="fa fa-angle-double-left"></i>';
-            $config['prev_tag_open'] = '<li>';
-            $config['prev_tag_close'] = '</li>';
-        
-        
-            $config['next_link'] = '<i class="fa fa-angle-double-right"></i>';
-            $config['next_tag_open'] = '<li>';
-            $config['next_tag_close'] = '</li>';
-            $config['use_page_numbers'] = true;
-            
-          $this->pagination->initialize($config);
-          
-          $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
-          
-          
-          $data['links']=$this->pagination->create_links();
-
-          $data['users']=$this->auth_mdl->getAll($config['per_page'],$page,$searchkey);
-
+        $config['base_url']=base_url()."auth/getAll";
+        $config['total_rows']=$this->auth_mdl->count_Users($searchkey);
+        $config['per_page']=20; //records per page
+        $config['uri_segment']=3; //segment in url  
+            //pagination links styling
+        $config['full_tag_open'] = '<ul class="pagination">';
+        $config['full_tag_close'] = '</ul>';
+        $config['attributes'] = ['class' => 'page-link'];
+        $config['first_link'] = false;
+        $config['last_link'] = false;
+        $config['first_tag_open'] = '<li class="page-item">';
+        $config['first_tag_close'] = '</li>';
+        $config['prev_link'] = '&laquo';
+        $config['prev_tag_open'] = '<li class="page-item">';
+        $config['prev_tag_close'] = '</li>';
+        $config['next_link'] = '&raquo';
+        $config['next_tag_open'] = '<li class="page-item">';
+        $config['next_tag_close'] = '</li>';
+        $config['last_tag_open'] = '<li class="page-item">';
+        $config['last_tag_close'] = '</li>';
+        $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+        $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+        $config['num_tag_open'] = '<li class="page-item">';
+        $config['num_tag_close'] = '</li>';
+        $config['use_page_numbers'] = false;
+        $this->pagination->initialize($config);
+        $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
+        $data['links']=$this->pagination->create_links();
+        $data['users']=$this->auth_mdl->getAll($config['per_page'],$page,$searchkey);
         $data['module']="auth";
 		    $data['view']="add_users";
 		    $data['title']="User management";
-
+        $data['uptitle']="User management";
 		    echo Modules::run("templates/main",$data);
      }
 

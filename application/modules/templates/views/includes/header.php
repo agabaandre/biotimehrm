@@ -129,7 +129,19 @@ body::-webkit-scrollbar-thumb
     font-size: 12px !important;
   }
 
+  .buttons-html5{
+    font-size: 12px !important;
+    background:#343a40!important;
+    margin:6px;
+    border-radius:4px;
 
+  }
+  .page-item.active .page-link {
+    z-index: 3;
+    color: #fff;
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+}
 .sido::-webkit-scrollbar
 {
 	width: 0.5em;

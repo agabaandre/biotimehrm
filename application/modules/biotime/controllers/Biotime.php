@@ -15,24 +15,7 @@ class Biotime extends MX_Controller{
      
 	}
     public function updateTerminals(){
-     $terminals=Modules::run('cronjobs/Biotimejobs/terminals');
-        //  print_r($terminals);
-       $db=array();
-         foreach ($terminals->data as $terminal){
-            
-       
-        $insert= array(
-        'sn'=>$terminal->sn,
-        'ip_address'=>$terminal->ip_address,
-        'area_code'=>$terminal->area_code,
-        'user_count'=>$terminal->user_count,
-        'face_count'=>$terminal->face_count,
-        'palm_count'=>$terminal->palm_count,
-        'area_name' =>$terminal->area_name,
-        'last_activity'=>$terminal->last_activity);
-        $message=$this->biotime_mdl->addMachines($insert);
-         }
-        $this->session->set_flashdata('message', $message);
+     
          $data['view']='biotime_devices';
          $data['uptitle']="Bio Time Devices";
          $data['title']="Bio Time Devices";
@@ -74,6 +57,57 @@ class Biotime extends MX_Controller{
         return $this->biotime_mdl->get_enrolled();
     }
     //Department Department code, Department Name
+
+    public function getbioDeps(){
+        return $this->biotime_mdl->getbioDeps();
+
+    }
+    public function getbiojobs(){
+        return $this->biotime_mdl->getbiojobs();
+
+    }
+    public function getbiofacilities(){
+        return $this->biotime_mdl->getbiofacilities();
+
+    }
+    public function getihrisDeps(){
+        return $this->biotime_mdl->getihrisDeps();
+
+    }
+    public function getihrisjobs(){
+        return $this->biotime_mdl->getihrisjobs();
+    }
+    public function getihrisfacilities(){
+
+        return $this->biotime_mdl->getihrisfacilities();
+
+    }
+    public function getihris_users(){
+
+        return $this->biotime_mdl->getihris_users();
+
+    }
+
+    public function bioihriscontrol(){
+        $data['biousers']=count($this->get_enrolled());
+        $data['ihrisusers']=count($this->getihris_users());
+        $data['biojobs']=count($this->getbiojobs());
+        $data['biodeps']=count($this->getbioDeps());
+        $data['biofacs']=count($this->getbiofacilities());
+        $data['ihrisjobs']=$this->getihrisjobs();
+        $data['ihrisfacs']=$this->getihrisfacilities();
+        $data['ihrisdeps']=$this->getihrisDeps();
+        $data['usersgap']=count($this->biotime_mdl->get_new_users());
+        $data['jobsgap']=count($this->biotime_mdl->get_new_jobs());
+        $data['depsgap']=count($this->biotime_mdl->get_new_deps());
+        $data['facsgap']=count($this->biotime_mdl->get_new_facs());
+        $data['biouserssync']=$this->get_enrolled()[0]->last_gen;
+        $data['ilastsync']=$this->getihris_users()[0]->last_update;
+        $data['blastjobssync']=$this->biotime_mdl->getbiojobs()[0]->last_gen;
+        $data['blastdepssync']=$this->biotime_mdl->getbioDeps()[0]->last_update;
+        $data['blastfacsync']=$this->biotime_mdl->getbiofacilities()[0]->last_gen;;
+    return $data;
+    }
     public function syncDepartments(){
 
 

@@ -20,7 +20,7 @@ $permissions=$userdata['permissions'];
     position: fixed;
     margin-left:100px;
     margin-top:120px;
-    margin-bottom: :0;
+    margin-bottom: 0px;
     z-index: 10040;
     overflow-x: auto;
     overflow-y: auto;
@@ -38,7 +38,7 @@ $permissions=$userdata['permissions'];
                       
                 </div>
                 <div class="panel-body">
-                  <center><span style="color:blue;"><?php echo $this->session->flashdata('msg'); ?></span></center>
+                <span style="color:blue;"><?php echo $this->session->flashdata('msg'); ?></span>
                   <div class="table-responsive">
                       <table class="table table-striped table-bordered table-hover " style="font-size:12px;">
                             <thead class="tth" style="color: white;">

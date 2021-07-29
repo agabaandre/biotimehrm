@@ -580,13 +580,13 @@ function pickColor(duty){
 
 if(duty=='14'){
 
-    var kala='#d1a110';
+    var kala='#297bb2';
 }
 
 else
     if(duty=='15'){
 //even
-    var kala='#49b229';
+    var kala='#245270';
 }
 
 else
@@ -594,21 +594,21 @@ else
 //night
 if(duty=='16'){
 
-    var kala='#29b299';
+    var kala='#2f446b';
 }
 else
 
 //off
 if(duty=='17'){
 
-    var kala='#297bb2';
+    var kala='#d1a110';
 }
 
 else
 //annual leave
 if(duty=='18'){
 
-    var kala='#603e1f';
+    var kala='#B22222';
 }
 
 
@@ -617,21 +617,21 @@ else
 //study leave
 if(duty=='19'){
 
-    var kala='#052942';
+    var kala='#FF8C00';
 }
 
 else
 //maternity leave
 if(duty=='20'){
 
-    var kala='#280542';
+    var kala='#9ACD32';
 }
 
 else
 //other
 if(duty=='21'){
 
-    var kala='#420524';
+    var kala='#32CD32';
 }
 
 return kala;

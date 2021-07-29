@@ -20,7 +20,7 @@
               <div class="card-body">
                <?php echo Modules::run('svariables/readLogs');
                
-               fclose('log.txt');
+               
                ?>
             </div>
               <!-- /.card-body -->

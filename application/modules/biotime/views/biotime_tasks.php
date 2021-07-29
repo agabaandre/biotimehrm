@@ -14,7 +14,7 @@
             <div class="card">
               <div class="card-header">
                 <h3 class="card-title">
-                 iHRIS Data Bio-Time Status
+                 iHRIS Data vs Bio-Time Status
                 </h3>
                 <div class="card-tools">
                   <ul class="nav nav-pills ml-auto">
@@ -40,7 +40,10 @@
         <tr>
             <th >DATA SET</th>
             <th >IHRIS COUNT</th>
+            <th >LAST SYNC</th>
             <th >BIOTIME COUNT</th>
+            <th >LAST SYNC</th>
+            <th >GAP</th>
             <th>  ACTION  </th>
           
           
@@ -51,43 +54,59 @@
      
                                   
                                     <tr>
-                                   
+                                    <?php $activity=Modules::run('biotime/bioihriscontrol'); 
+                                      //print_r($activity);
+                                    
+                                    ?>
                                     <th data-label="Serial Number">DEPARTMENTS</th>
-                                    <td data-label="Facility"><?php echo $machine->area_name ?> 
-                                    </td>
-                                    <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
-                                    <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
+                                    <td data-label="Facility"><?php echo $activity['ihrisdeps']; ?> </td>
+                                    <td data-label="Facility"><?php echo $activity['ilastsync']; ?> </td>
+                                    <td data-label="Last Sync"><?php echo $activity['biodeps']; ?></td>
+                                    <td data-label="Facility"><?php echo $activity['blastdepssync']; ?> </td>
+                                    <td data-label="Last Sync"><?php echo $activity['depsgap']; ?></td>
+                                    <td data-label="Last Sync"><a href="" class="btn bg-gray-dark color-pale" ><span class="fa fa-sync"> </span> Sync from Biotime<a></td>
                                     
                                    
                                     </tr>
                                     <tr>
                                    
                                    <th data-label="Serial Number">FACILITIES /AREAS</th>
-                                   <td data-label="Facility"><?php echo $machine->area_name ?> 
+                                   <td data-label="Facility"><?php echo $activity['ihrisfacs']; ?> 
                                    </td>
-                                   <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
-                                   <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
-                                   
+                                   <td data-label="Facility"><?php echo $activity['ilastsync']; ?> </td>
+                                   <td data-label="Last Sync"><?php echo $activity['biofacs']; ?></td>
+                                   <td data-label="Facility"><?php echo $activity['blastfacsync']; ?> </td>
+                                   <td data-label="Last Sync"><?php echo $activity['facsgap']; ?></td>
+                                   <td data-label="Last Sync"><a href="" class="btn bg-gray-dark color-pale" ><span class="fa fa-sync"> </span> Sync from Biotime<a></td>
+                                     
                                   
                                    </tr>
 
                                    <tr>
                                    
                                    <th data-label="Serial Number">JOB / POSITION</th>
-                                   <td data-label="Facility"><?php echo $machine->area_name ?> 
+                                   <td data-label="Facility"><?php echo $activity['ihrisjobs']; ?> 
                                    </td>
-                                   <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
-                                   <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
+                                   <td data-label="Facility"><?php echo $activity['ilastsync']; ?> </td>
+                                   <td data-label="Last Sync"><?php echo $activity['biojobs']; ?></td>
+                                   <td data-label="Facility"><?php echo $activity['blastjobssync']; ?> </td>
+                                   <td data-label="Last Sync"><?php echo $activity['jobsgap']; ?></td>
+                                   <td data-label="Last Sync"><a href="biotimejobs/" class="btn bg-gray-dark color-pale" ><span class="fa fa-sync"> </span> Sync from Biotime<a></td>
+                                    
                                    
                                   
                                    </tr>
                                    <tr>
                                    
                                    <th data-label="Serial Number">EMPLOYEES</th>
-                                   <td data-label="Facility"><?php echo $machine->area_name ?> 
+                                   <td data-label="Facility"><?php echo $activity['ihrisusers']; ?> 
                                    </td>
-                                   <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
-                                   <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
+                                   <td data-label="Facility"><?php echo $activity['ilastsync']; ?> </td>
+                                   <td data-label="Last Sync"><?php echo $activity['biousers']; ?></td>
+                                   <td data-label="Facility"><?php echo $activity['biouserssync']; ?> </td>
+                                   <td data-label="Last Sync"><?php echo $activity['usersgap']; ?></td>
+                                   <td data-label="Last Sync"><a href="<?php echo base_url()?>biotimejobs/saveEnrolled"  target="_blank" class="btn bg-gray-dark color-pale" ><span class="fa fa-sync"> </span> Sync from Biotime<a></td>
+                                  
                                    
                                   
                                    </tr>
@@ -102,9 +121,9 @@
               
               
 
-              </div><!-- /.card-body -->
+              </div><!-- /.card-body -['
             </div>
-            <!-- /.card -->
+           /.card -->
 
 
             <!-- calender key -->

@@ -363,7 +363,7 @@ letter=letter.replace(/\s/g, '');//remove spaces
 
 letter=letter.toUpperCase();//converte to upper case
 
-if(letter!=="P" && letter!=="R" && letter!=="O" && letter!=="L" && letter!=="X" ){  // if letter is not defined as atual tracker
+if(letter!=="P" && letter!=="R" && letter!=="O" && letter!=="L" && letter!=="X" && letter!=="H" ){  // if letter is not defined as atual tracker
 
 	$.notify("Warning: Letter not recognised ", "warn");
 
@@ -416,7 +416,7 @@ function pickColor(duty){
 
 if(duty=='P'){
 
-    var kala='#297bb2';
+    var kala='#4169E1';
 }
 
 else
@@ -430,7 +430,7 @@ else
 //night
 if(duty=='R'){
 
-    var kala='#0d718af2';
+    var kala='#008B8B';
 }
 else
 
@@ -441,7 +441,11 @@ if(duty=='L'){
 }
 if(duty=='X'){
 
-var kala='#9c1111';
+var kala='#DC143C';
+}
+if(duty=='H'){
+
+var kala='#C71585';
 }
 
 

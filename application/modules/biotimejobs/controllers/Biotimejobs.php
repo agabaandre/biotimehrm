@@ -47,9 +47,32 @@ class Biotimejobs extends MX_Controller {
         ];
       
        $response = $http->sendRequest('iclock/api/terminals',"GET",$headers,[]);
-
-  
-    return $response;
+       foreach ($response->data as $terminal){
+            
+       
+        $insert= array(
+        'sn'=>$terminal->sn,
+        'ip_address'=>$terminal->ip_address,
+        'area_code'=>$terminal->area->area_code,
+        'user_count'=>$terminal->user_count,
+        'face_count'=>$terminal->face_count,
+        'palm_count'=>$terminal->palm_count,
+        'area_name' =>$terminal->area_name,
+        'last_activity'=>$terminal->last_activity);
+        $message=$this->biotimejobs_mdl->addMachines($insert);
+         }
+         $this->log($message);
+         $process=1;
+         $method="bioitimejobs/terminals";
+         if(count($response)>0){
+          $status="successful";
+         }
+         else{
+          $status="failed";
+         }
+         $this->cronjob_register($process,$method,$status);
+      
+  return($response);
 
     }
     //cron job
@@ -67,6 +90,15 @@ class Biotimejobs extends MX_Controller {
          $message= $this->biotimejobs_mdl->add_ihrisdata($response);
          $this->log($message);
         }
+        $process=2;
+        $method="bioitimejobs/get_ihrisdata";
+        if(count($response)>0){
+         $status="successful";
+        }
+        else{
+         $status="failed";
+        }
+        $this->cronjob_register($process,$method,$status);
        
 
     }
@@ -116,14 +148,23 @@ class Biotimejobs extends MX_Controller {
                             'att_status'=> $mydata->enable_att);
                 
                 array_push($rows,$data);
-            
-             
+   
         }
        }
       
-       $message=$this->biotimejobs_mdl->add_enrolled($rows);
-
+    $message=$this->biotimejobs_mdl->add_enrolled($rows);
      $this->log($message);
+     $process=3;
+     $method="bioitimejobs/save_Enrolled";
+     if(count($response)>0){
+      $status="successful";
+     }
+     else{
+      $status="failed";
+     }
+     $this->cronjob_register($process,$method,$status);
+    
+     
     }
 //get cron jobs from the server
     public function getTime($page=FALSE,$userdate=FALSE)
@@ -188,14 +229,47 @@ class Biotimejobs extends MX_Controller {
    $message=$this->biotimejobs_mdl->add_time_logs($rows);
 
    $this->logattendance($message);
+   $process=4;
+   $method="bioitimejobs/fetchBiotTimeLogs";
+   if(count($response)>0){
+    $status="successful";
+   }
+   else{
+    $status="failed";
+   }
+   $this->cronjob_register($process,$method,$status);
+  
 
  }
+//create multiple new users cronjob
+ public function multiple_new_users(){
+     $howmany=array();
+    $query=$this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id IN(SELECT area_code from biotime_devices) AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
+  $newusers=$query->result();
+  foreach ($newusers as $newuser):
+
+   $message=$this->create_new_biotimeuser($newuser->firstname,$newuser->surname,$newuser->card_number,$newuser->facility_id,$newuser->department_id,$newuser->job_id);
 
 
+  endforeach;
+   $process=5;
+   $method="bioitimejobs/multiple_new_users";
+   if($message){
+    $status="successful";
+   }
+   else{
+    $status="failed";
+    }
+    $this->cronjob_register($process,$method,$status);
+
+  
+  return $message;
+  
+  }
  //enroll new users (Front End Action that requires login);
  public function get_new_users($facility){
     $query=$this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
- return $query->result();
+  $query->result();
  }
  // create new user
  
@@ -248,6 +322,17 @@ class Biotimejobs extends MX_Controller {
      if($response){
     $this->log($response);
     }
+
+    $process=6;
+    $method="bioitimejobs/create_new_biotimeuser";
+    if($response){
+     $status="successful";
+    }
+    else{
+     $status="failed";
+     }
+     $this->cronjob_register($process,$method,$status);
+    
    
 
 }
@@ -261,6 +346,7 @@ public function logattendance($message){
 }
 public function getbiojobs($job){
  $query=$this->db->query("SELECT id from biotime_jobs where position_code='$job' LIMIT 1");
+ 
  return $query->result()[0]->id;
 
 }
@@ -309,6 +395,15 @@ public function biotimeFacilities()
          
          $message=$this->biotimejobs_mdl->save_facilities($j);
         //  print_r($response->data[0]->id);
+        $process=7;
+    $method="bioitimejobs/biotimeFacilities";
+    if($response){
+     $status="successful";
+    }
+    else{
+     $status="failed";
+     }
+     $this->cronjob_register($process,$method,$status);
          return $this->log($message);
    }
    public function biotime_jobs()
@@ -343,6 +438,15 @@ public function biotimeFacilities()
           }
           
           $message=$this->biotimejobs_mdl->save_jobs($j);
+          $process=8;
+    $method="bioitimejobs/biotime_jobs";
+    if($response){
+     $status="successful";
+    }
+    else{
+     $status="failed";
+     }
+     $this->cronjob_register($process,$method,$status);
     return $this->log($message);
    }
    public function biotimedepartments()
@@ -377,9 +481,91 @@ public function biotimeFacilities()
     }
     
     $message=$this->biotimejobs_mdl->save_department($j);
+    $process=9;
+    $method="bioitimejobs/biotimedepartments";
+    if($response){
+     $status="successful";
+    }
+    else{
+     $status="failed";
+     }
+     $this->cronjob_register($process,$method,$status);
+     
     return $this->log($message);
    
    }
+   //clean
+   public function create_jobs(){
+
+   }
+   public function facility_jobs(){
+
+   }
+   public function facility_departments(){
+
+   }
+   public function deleteEnrolled(){
+
+   }
+   public function updateEnrolled(){
+       
+   }
+   //clockin and out users depening on gthe biotime clock data
+   public function biotimeClockin(){
+    ignore_user_abort(true);
+    ini_set('max_execution_time',0);
+    $areas=$this->db->get('biotime_devices')->result();
+    foreach($areas as $area){
+    $query=$this->db->query("REPLACE INTO clk_log (
+      entry_id,
+      ihris_pid,
+      facility_id,
+      time_in,
+      date,
+      location,
+      source,
+      facility)
+      SELECT
+      
+     DISTINCT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
+      ihrisdata.ihris_pid,
+      facility_id, 
+      punch_time,
+      DATE(biotime_data.punch_time) as date,
+      area_alias,
+      'BIO-TIME',
+      ihrisdata.facility
+      from  biotime_data, ihrisdata where biotime_data.area_alias='$area->area_name' AND (biotime_data.emp_code=ihrisdata.card_number) AND (punch_state='Check In' OR punch_state='0') ");
+     
+   $message=$area->area_name. " Checkin " .$this->db->affected_rows();
+   $this->log($message);
+   $this->biotimeClockout();
+}
+  }
+
+  public function biotimeClockout(){
+  ignore_user_abort(true);
+  ini_set('max_execution_time',0);
+   $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state!=0 OR punch_state='Check Out') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT entry_id from clk_log) ");
+   $entry_id=$query->result();
+  
+   foreach($entry_id as $entry){
+  
+  $this->db->set('time_out', $entry->punch_time);
+  $this->db->where('entry_id', $entry->entry_id);
+  $query=$this->db->update('clk_log');
+  
+  }
+  echo $message=$this->db->affected_rows() ." Clocked Out";
+  $this->log($message);
+    
+  }
+
+
+   public function cronjob_register($process,$method,$status){
+       $data=array('process_id'=>$process,'process'=>$method,'status'=>$status);
+    $this->db->replace("cronjob_register",$data);
+  }
 
 
 

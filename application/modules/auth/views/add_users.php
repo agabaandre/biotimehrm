@@ -13,56 +13,44 @@ $variables=Modules::run("svariables/getAll");
 
 //print_r($departments);
 ?>
-<div class="dashtwo-order-area" style="padding-top: 10px;">
+
   <div class="container-fluid">
     <div class="row">
-          <div class="col-lg-12">
-<div class="panel" style="">
+
+<div class="panel">
 <div class="panel-heading">
-<p>Manage Users</p>
+    <h5>Add New User</h5>
 </div>
 <div class="panel-body">
 
     <form class="user_form" method="post" enctype="multipart/form-data">
 
-        <table>
+              
 
-        <tr>
-            <td colspan="7"><span></span></td>
-            
-            <td colspan="1"><button type="submit" class="btn btn-sm btn-success">Save</button></td>
-             <td colspan="1"><button type="reset" class="btn btn-sm btn-warning clear">Reset All</button></td>
-        </tr>
-
-        </table>
-
-    <table id="myTable" class="table" cellpadding="0" style="border-collapse: collapse;">
+   <table  style="border: none !important; padding:0px; ">
 
    
    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Username</th>
-            <th>User Group</th>
-            <th>Department</th>
-            <th>District</th>
-            <th>Facility</th>
+        <tr >
+            <th style="width:60%;">Name</th>
+            <th style="width:60%;">Username</th>
         </tr>
-    </thead>
-   
-    <tbody class="tb">
         <tr>
             <td data-label="Name:">
-                <input type="text" name="name"  class="form-control" placeholder="Full Name" style="max-width: 200px" required/>
+                <input type="text" name="name"  class="form-control" placeholder="Full Name" style="width: 60%" required/>
             </td>
             <td data-label="Username:">
-                <input type="text" required name="username"  class="form-control" placeholder="Username" style="max-width: 150px" required/>
+                <input type="text" required name="username"  class="form-control" placeholder="Username" style="width: 80%" required/>
             </td>
-
+        </tr>
+        <tr>
+            <th>User Group</th>
+            <th>Department</th>
+        </tr>
+        <tr>
               <td data-label="UserGroup">
-                <select name="role"  class="form-control" style="max-width: 100px" required>
-                    <option value="">_select_</option>
-                    <option></option>
+                <select name="role" onchange="$('.department').val(changeVal(this))"  class="form-control role select2" style="width: 60%" required>
+                    <option value="" disabled selected>USER GROUP</option>
                     <?php  foreach($usergroups as $usergroup): 
                                   ?>
                     <option value="<?php echo $usergroup->group_id; ?>"><?php echo $usergroup->group_name; ?>
@@ -74,8 +62,8 @@ $variables=Modules::run("svariables/getAll");
 
             <td data-label="Department">
                 <?php   ?>
-                <select onchange="$('.department').val(changeVal(this))" name="department_id"  class="form-control" style="max-width: 150px" required>
-                    <option value="" disabled selected>_select_</option>
+                <select onchange="$('.department').val(changeVal(this))" name="department_id"  class="form-control select2" style="width: 80%" required>
+                    <option value="" disabled selected>DEPARTMENT</option>
                     <?php  foreach($departments as $department): 
                                   ?>
                     <option value="<?php echo $department->department_id; ?>"><?php echo $department->department; ?></option>
@@ -83,22 +71,17 @@ $variables=Modules::run("svariables/getAll");
                 </select>
                 <input type="hidden" name="department" class="department">
             </td>
-            <td data-label="District">
-                <?php   ?>
-                <select onchange="$('.district').val(changeVal(this));" name="district_id"  class="form-control" style="max-width: 100px" required>
-                    <option value="">_select_</option>
-                    <?php  foreach($districts as $district): 
-                                  ?>
-                    <option value="<?php echo $district->district_id; ?>"><?php echo $district->district; ?></option>
-                                <?php endforeach; ?>
-                </select>
-                <input type="hidden" name="district" class="district">
-            </td>
-
+        </tr>
+        <tr>
+           
+            <th>Facility</th>
+            <th>District</th>
+        </tr>
+        <tr>
             <td data-label="Facility">
-                <select onchange="$('.facility').val(changeVal(this))" name="facility_id" class="form-control" style="max-width: 100px" required>
+                <select onchange="$('.facility').val(changeVal(this))" name="facility_id" class="form-control select2" style="width: 60%" required>
                     
-                    <option value="">_select_</option>
+                    <option value="" disabled selected>FACILITY</option>
                     <?php  foreach($facilities as $facility): 
                                   ?>
                     <option value="<?php echo $facility->facility_id; ?>">
@@ -111,30 +94,47 @@ $variables=Modules::run("svariables/getAll");
                 <input type="hidden" name="facility" class="facility">
 
             </td>
+            <td data-label="District">
+                <?php   ?>
+                <select onchange="$('.district').val(changeVal(this));" name="district_id"  class="form-control select2" style="width: 80%" required>
+                    <option value="" disabled selected>DISTRICT</option>
+                    <?php  foreach($districts as $district): 
+                                  ?>
+                    <option value="<?php echo $district->district_id; ?>"><?php echo $district->district; ?></option>
+                                <?php endforeach; ?>
+                </select>
+                <input type="hidden" name="district" class="district">
+            </td>
+
+           
         </tr>
-    </tbody>
+    </thead>
+  
 </table>
-    </form>
+<button type="submit" class="btn btn-info btn-outline">Save</button>
+<button type="reset" class="btn  btnkey bg-gray-dark color-pale ">Reset All</button>
+     
+</form>
 
 
       
 
 <div>
 
-<form class="form-horizontal" action="" method="post">
+<form class="form-horizontal" action="" method="post" style="margin-top: 4px !important;">
 
 <div class="form-group col-md-6">
+<label>Advanced User Search</label>
 <input type="text" name="search_key" class="form-control" placeholder="Username">
 </div>
 <div class="form-group col-md-2">
 <input type="submit" class="btn btn-default" value="Search">
 </div>
 </form>
-
-<table class="table">
+<?php echo $links; ?>
+<table id="mytab2" class="table table-bordered table-striped mytable">
     <thead>
 
-    </thead>
         <tr>
             <th style="width:2%;">#</th>
             <th>Name</th>
@@ -143,15 +143,17 @@ $variables=Modules::run("svariables/getAll");
             <th>District</th>
             <th>Department</th>
             <th>Facility</th>
+            <th>Actions</th>
+        
             
         </tr>
+     </thead>
         <?php 
-
-        //$users=Modules::run("auth/getAll");
 
         $no=1;
 
         foreach($users as $user): ?>
+        <tbody>
 
         <tr>
             <td data-label="#"><?php echo $no; ?>. </td>
@@ -189,7 +191,7 @@ $variables=Modules::run("svariables/getAll");
 
                     <h1><a href="#" style="color: #FFF;" class="pull-right" data-dismiss="modal">&times;</a></h1>
 
-                    <center><img class="img img-thumbnail" src="<?php echo base_url()."assets/images/sm/".$user->photo; ?>" alt="No Image"/></center>
+                   <img class="img img-thumbnail" src="<?php echo base_url()."assets/images/sm/".$user->photo; ?>" alt="No Image"/>
                     
                 </div>
             </div>
@@ -213,7 +215,7 @@ $variables=Modules::run("svariables/getAll");
     $no++;
     endforeach ?>
 
-    </tbody>
+</tbody>
    
 </table>
 
@@ -226,13 +228,39 @@ $variables=Modules::run("svariables/getAll");
 </div>
 </div>
 
-</div>
-</div>
+
 
 
 
 
 <script>
+
+$('.role').change(function(){
+    
+    
+    var role=$(this).val();
+    
+    if(role=="District-Officer"){
+        
+        $('.district').show();
+        $('.facility').hide();
+        
+    }
+    
+    else{
+        
+        $('.district').hide();
+        $('.facility').show();
+        
+        
+    }
+    
+    
+});
+
+
+
+  
 
 //get selected item
 function changeVal(selTag) {
@@ -242,25 +270,6 @@ function changeVal(selTag) {
 
 
 $(document).ready(function () {
-
-    //collapse menu on this page
-
-if(window.location.href=="<?php echo base_url(); ?>auth/users#" || window.location.href=="<?php echo base_url(); ?>auth/users"){
-
-
-}
-
-
-
-
-
-
-//delete a row from the form
-    $("table.order-list").on("click", ".del_btn", function (event) {
-        $(this).closest("tr").remove();       
-        counter -= 1
-    });
-
 
 
 //Submit new user data
@@ -318,10 +327,7 @@ $(".update_user").submit(function(e){
 
     e.preventDefault();
 
-
     $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/images/busy.gif">');
-
-
 
     var formData=new FormData(this);
 
@@ -359,9 +365,6 @@ $(".update_user").submit(function(e){
 });//form submit
 
 
-
-
-//reset user password
 
 $(".reset").submit(function(e){
 

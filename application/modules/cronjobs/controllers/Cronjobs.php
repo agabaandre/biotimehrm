@@ -119,52 +119,6 @@ endif;
   }
 }
 
-public function biotimeClockin(){
-  ignore_user_abort(true);
-  ini_set('max_execution_time',0);
-  $areas=$this->db->get('biotime_devices')->result();
-  foreach($areas as $area){
-  $query=$this->db->query("REPLACE INTO clk_log (
-    entry_id,
-    ihris_pid,
-    facility_id,
-    time_in,
-    date,
-    location,
-    source,
-    facility)
-    SELECT
-    
-   DISTINCT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
-    ihrisdata.ihris_pid,
-    facility_id, 
-    punch_time,
-    DATE(biotime_data.punch_time) as date,
-    area_alias,
-    'BIO-TIME',
-    ihrisdata.facility
-    from  biotime_data, ihrisdata where biotime_data.area_alias='$area->area_name' AND (biotime_data.emp_code=ihrisdata.card_number OR biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='Check In' OR punch_state='0') ");
-   
- $area->area_name. " Checkin " .$this->db->affected_rows();
-  }
-}
-public function biotimeClockout(){
-ignore_user_abort(true);
-ini_set('max_execution_time',0);
- $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state!=0 OR punch_state='Check Out') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT entry_id from clk_log) ");
- $entry_id=$query->result();
-
- foreach($entry_id as $entry){
-
-$this->db->set('time_out', $entry->punch_time);
-$this->db->where('entry_id', $entry->entry_id);
-$query=$this->db->update('clk_log');
-
-}
-echo $this->db->affected_rows();
-  
-}
-
 public function markAttendance(){
 ignore_user_abort(true);
 ini_set('max_execution_time',0);
@@ -184,6 +138,7 @@ $query=$this->db->query("REPLACE INTO actuals( entry_id, facility_id, department
          echo   $msg="<font color='red'>Failed to Mark</font><br>";
               
 }
+$this->log($msg);
 }
 //monthly
 public function rostatoAttend(){
@@ -210,6 +165,7 @@ public function rostatoAttend(){
     echo   $msg="<font color='red'>Failed to Mark</font><br>";
          
 }
+$this->log($msg);
 }
   
   $query=$this->db->query("Update actuals set schedule_id='25', color='#29910d' WHERE schedule_id IN(18,19,20,21)");
@@ -235,7 +191,7 @@ public function rostatoAttend(){
            echo   $msg="<font color='red'>No Off duty records found</font><br>";
                 
   }
-   
+  $this->log($msg);
   
 
 }
@@ -266,6 +222,7 @@ if($query){
        echo   $msg="<font color='red'>No public holidays set in attendance</font><br>";
             
 }
+$this->log($msg);
 
 }
 }
@@ -316,9 +273,9 @@ $insert=$this->db->insert_batch('public_holiday',$indata);
         else{
             
        echo   $msg="<font color='red'>No public holidays Added</font><br>";
-            
+      
 }
-
+$this->log($msg);   
 //remove seasons
 
 $this->db->where('type', 'season');
@@ -333,6 +290,8 @@ if($delete){
           
 }
 //print_r($indata);
+$this->log($msg);   
+
 
 }
 public function getAllEmployees(){
@@ -402,7 +361,7 @@ public function autoFillRosta(){
   
    );
   
-    $this->db->replace('duty_rosta',$data);
+    $query=$this->db->replace('duty_rosta',$data);
   
   }//
   
@@ -410,6 +369,9 @@ public function autoFillRosta(){
   }
   
   }//3000
+   $message="Created ".$this->db->affected_rows();
+   $this->log($message);
+  
   }
 
 
@@ -421,9 +383,7 @@ public function requesttoActuals(){
     //add some logic here when real data is available
     
   }
-  
-  print_r($data);
-
+ 
 }
 
 public function dutySums()
@@ -546,6 +506,11 @@ public function renderdutyCsv()
    //return $tbdata;
 
 	}
+  public function log($message){
+    //add double [] at the beggining and at the end of file contents
+   return file_put_contents('log.txt', "\n{".'"REQUEST DETAILS: '.date('Y-m-d H:i:s').' Time": '.json_encode($message).'},',FILE_APPEND);
+}
+
 
 
 }

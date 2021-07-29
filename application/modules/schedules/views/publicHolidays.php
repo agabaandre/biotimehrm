@@ -5,7 +5,7 @@
     position: fixed;
     margin-left:100px;
     margin-top:40px;
-    margin-bottom: :0;
+    margin-bottom: 0px;
     z-index: 10040;
     overflow-x: auto;
     overflow-y: auto;

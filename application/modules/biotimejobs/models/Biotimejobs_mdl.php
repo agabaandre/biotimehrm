@@ -144,6 +144,21 @@ public function save_facilities($data){
 
 return $message;
 }
+public function addMachines($data){
+
+  
+    $query=$this->db->replace('biotime_devices',$data);
+  
+    if ($query){
+        $message="Successful SYNC Biotime Devices ".$this->db->affected_rows();
+    }
+    else{
+        $message="Failed to SYNC Biotime Decices";
+
+    }
+    
+return $message;
+}
 //not working as expected. should return querytime
 public function exect(){
 return  $this->benchmark->elapsed_time();

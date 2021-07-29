@@ -29,15 +29,19 @@ $reasons_opt="";
               <div class="card-header">
 
                 <h4><?php echo (!empty($title)?$title:null) ?></h4>
+
+                <?php if(!empty($_SESSION['msg'])) echo $this->session->flashdata('msg'); ?>
               
-              <div class="card-tools">
+              <div class="card-tools" atyle="text-align:left;">
+               
+          
+              
               </div><!-- /.card-header -->
               </div>
               </div>
               <div class="card-body">
               <div class="row">
-              <p><?php if(!empty($_SESSION['msg'])) echo $this->session->flashdata('msg'); ?></p>
-               
+            
                <form method="post" class="requestForm" action="<?php echo base_url(); ?>requests/saveRequest"  enctype="multipart/form-data" autocomplete="off">
    
                 <div class="col-md-12">

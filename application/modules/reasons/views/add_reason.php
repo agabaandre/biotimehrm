@@ -23,8 +23,8 @@ $reasons=Modules::run('reasons/getAll');
                         <tr>
                             <td colspan="7"><span class="status"></span></td>
                             
-                            <td colspan="1"><button type="submit" class="btn btn-sm btn-success">Save</button></td>
-                             <td colspan="1"><button type="reset" class="btn btn-sm btn-warning clear">Reset All</button></td>
+                            <td colspan="1"><button type="submit" class="btn  btn-info">Save</button></td>
+                             <td colspan="1"><button type="reset" class="btn bg-gray-dark color-pale">Reset All</button></td>
                         </tr>
 
                         </table>
