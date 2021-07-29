@@ -539,9 +539,11 @@ public function biotimeFacilities()
       from  biotime_data, ihrisdata where biotime_data.area_alias='$area->area_name' AND (biotime_data.emp_code=ihrisdata.card_number) AND (punch_state='Check In' OR punch_state='0') ");
      
    $message=$area->area_name. " Checkin " .$this->db->affected_rows();
-   $this->log($message);
-   $this->biotimeClockout();
-}
+  
+  }
+  
+  $this->biotimeClockout();
+  $this->log($message);
   }
 
   public function biotimeClockout(){
