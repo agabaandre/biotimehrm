@@ -151,8 +151,9 @@
                                 <tr>
                                     <td><?php echo $no; ?></td>
                                     <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
-                                    <td><?php echo $timelog->time_in; ?></td>
-                                    <td><?php echo $timelog->time_out; ?></td>
+                                    <td><?php echo    date('H:i:s', strtotime($timelog->time_in)); ?></td>
+                                    <td><?php echo    date('H:i:s', strtotime($timelog->time_out)); ?></td>
+                                 
                                     <td>  
                                 <?php 
                                   $initial_time = strtotime( $timelog->time_in)/ 3600;

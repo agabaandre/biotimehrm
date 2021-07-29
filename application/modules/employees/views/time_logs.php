@@ -116,6 +116,7 @@
               </p>
 
                           <table class="table table-striped thistbl" id="timelogs">
+                            
                             <thead>
                               <tr>
                                   <th>#</th>
@@ -146,8 +147,8 @@
                                
                                 <td><?php echo $timelog->department; ?></td>
                                 <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
-                                <td><?php echo $time_in=$timelog->time_in; ?></td>
-                                <td><?php echo $time_out=$timelog->time_out; ?></td>
+                                <td><?php echo date('H:i:s', strtotime($time_in=$timelog->time_in)); ?></td>
+`                               <td><?php echo date('H:i:s', strtotime($time_out=$timelog->time_out)); ?></td>
                                 <td><?php 
                                  
                                   
