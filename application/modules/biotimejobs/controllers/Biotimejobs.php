@@ -560,7 +560,7 @@ public function biotimeFacilities()
   echo $message=$this->db->affected_rows() ." Clocked Out";
   $this->log($message);
   $this->markAttendance();
-  $this->rostatoAttend();
+  
     
   }
   public function markAttendance(){
@@ -598,7 +598,7 @@ public function rostatoAttend(){
  if(!empty($ymonth)){ 
 
   //poplulate actuals
-  $query=$this->db->query("INSERT INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color, actuals.date, actuals.end ) 
+  $query=$this->db->query("REPLACE INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color, actuals.date, actuals.end ) 
   SELECT entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_rosta.duty_date,duty_rosta.end from duty_rosta WHERE schedule_id 
   IN(17,18,19,20,21) AND duty_rosta.entry_id NOT IN(SELECT entry_id from actuals)");
   $rowsnow=$this->db->affected_rows();
