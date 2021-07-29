@@ -261,6 +261,7 @@ class Biotimejobs extends MX_Controller {
     $status="failed";
     }
     $this->cronjob_register($process,$method,$status);
+    $this->log($message);
 
   
   return $message;
@@ -558,9 +559,87 @@ public function biotimeFacilities()
   }
   echo $message=$this->db->affected_rows() ." Clocked Out";
   $this->log($message);
+  $this->markAttendance();
+  $this->rostatoAttend();
     
   }
+  public function markAttendance(){
+    ignore_user_abort(true);
+    ini_set('max_execution_time',0);
+    //poplulate actuals
+    $query=$this->db->query("REPLACE INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color,
+     actuals.date, actuals.end,stream ) SELECT DISTINCT CONCAT( clk_log.date, ihrisdata.ihris_pid ) AS entry_id, ihrisdata.facility_id, 
+     ihrisdata.department, ihrisdata.ihris_pid, schedules.schedule_id, schedules.color, clk_log.date, DATE_ADD(date, INTERVAL 01 DAY),clk_log.source FROM ihrisdata, 
+     clk_log, schedules WHERE ihrisdata.ihris_pid = clk_log.ihris_pid AND schedules.schedule_id =22 AND CONCAT( clk_log.date, ihrisdata.ihris_pid )
+      NOT IN (SELECT entry_id from actuals)");        
+      
+      $rowsnow=$this->db->affected_rows();
+      if($query){
+             echo  $msg="<font color='green'>".$rowsnow. "  Attendance Records Marked</font><br>";
+                 }
+              else{
+                  
+             echo   $msg="<font color='red'>Failed to Mark</font><br>";
+                  
+    }
+    $this->log($msg);
+    }
 
+    //monthly
+public function rostatoAttend(){
+  ignore_user_abort(true);
+  ini_set('max_execution_time',0);
+  //To set custom month uncomment below and set  ymonth of choice
+  //$ymonth="2019-08"."-";
+  // comment  the file below on line 145 if custom ymonth is set.
+  $ymonth=date('Y-m')."-";
+
+  
+ if(!empty($ymonth)){ 
+
+  //poplulate actuals
+  $query=$this->db->query("INSERT INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color, actuals.date, actuals.end ) 
+  SELECT entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_rosta.duty_date,duty_rosta.end from duty_rosta WHERE schedule_id 
+  IN(17,18,19,20,21) AND duty_rosta.entry_id NOT IN(SELECT entry_id from actuals)");
+  $rowsnow=$this->db->affected_rows();
+  if($query){
+    echo  $msg="<font color='green'>".$rowsnow. "  Attendance Records Marked</font><br>";
+        }
+     else{
+         
+    echo   $msg="<font color='red'>Failed to Mark</font><br>";
+         
+}
+$this->log($msg);
+}
+  
+  $query=$this->db->query("Update actuals set schedule_id='25', color='#29910d' WHERE schedule_id IN(18,19,20,21)");
+  
+    $rowsnow=$this->db->affected_rows();
+    if($query){
+           echo  $msg="<font color='green'>".$rowsnow. "  Leave records recognised by attendance </font><br>";
+               }
+            else{
+                
+           echo   $msg="<font color='red'>No leave records found</font><br>";
+                
+  }
+
+  $query=$this->db->query("Update actuals set schedule_id='24', color='#d1a110' WHERE schedule_id='17'");
+  
+    $rowsnow=$this->db->affected_rows();
+    if($query){
+           echo  $msg="<font color='green'>".$rowsnow. "  Offduty records recognised by attendance </font><br>";
+               }
+            else{
+                
+           echo   $msg="<font color='red'>No Off duty records found</font><br>";
+                
+  }
+  $this->log($msg);
+  
+
+}
 
    public function cronjob_register($process,$method,$status){
        $data=array('process_id'=>$process,'process'=>$method,'status'=>$status);

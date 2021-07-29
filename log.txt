@@ -44,3 +44,7 @@
 {"REQUEST DETAILS: 2021-07-28 01:33:16 Time": "1 save_jobs() Created jobs from Biotime 1051"},
 {"REQUEST DETAILS: 2021-07-28 01:34:22 Time": "Successful SYNC Biotime Devices 2"},
 {"REQUEST DETAILS: 2021-07-28 15:26:22 Time": {"emp_code":["Employee with this Employee ID already exists."]}},
+{"REQUEST DETAILS: 2021-07-29 15:12:15 Time": "<font color='red'>No public holidays set in attendance<\/font><br>"},
+{"REQUEST DETAILS: 2021-07-29 15:15:32 Time": "<font color='green'>127092 Public Holiday records set in attendance<\/font><br>"},
+{"REQUEST DETAILS: 2021-07-29 15:16:03 Time": "<font color='green'>0 Public Holiday records set in attendance<\/font><br>"},
+{"REQUEST DETAILS: 2021-07-29 15:23:43 Time": "<font color='green'>0 Public Holiday records set in attendance<\/font><br>"},
