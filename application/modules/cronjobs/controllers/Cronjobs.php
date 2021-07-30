@@ -151,7 +151,7 @@ if($query){
             
 }
 $this->log($msg);
-$this->addHolidays();
+
 
 }
 }
