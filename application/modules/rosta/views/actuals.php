@@ -66,6 +66,7 @@
 						<b class="ltab bg-gray-dark"> O=Off Duty </b>
 						<b class="ltab bg-gray-dark"> R=Official Request </b>
 						<b class="ltab bg-gray-dark"> L=Leave </b>
+						<b class="ltab bg-gray-dark"> H=Holiday </b>
 					
 						</p>
 					</span>
@@ -245,19 +246,10 @@ foreach($duties as $singleduty) {
 <b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $singleduty['fullname'];?></span></b>
 </span>
    <span class="cell" data-label="Name" style="text-align:left; padding-left:1em;" ><?php echo $singleduty['fullname'];?></span>
-	<span class="cell" data-label="Position" >
+	<span class="cell" data-label="Position" title="">
 	
-	<?php $words=explode(" ",$singleduty['job']);
+	<?php $singleduty['job']; ?>
 
-	$letters="";
-
-	foreach ($words as $word) {
-		$letters.=$word[0];
-	}
-
-	echo $letters;
-
-	?>
 		
 	</span>
 

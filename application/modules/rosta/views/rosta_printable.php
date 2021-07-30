@@ -186,18 +186,7 @@ foreach($duties as $singleduty) {
 <tr >
 	<td class='cost'><?php echo $no;?></td>
 	<td class='cost'><?php echo $singleduty['fullname'];?></td>
-	<td class='cost'><?php $words=explode(" ",$singleduty['job']);
-
-	$letters="";
-
-	foreach ($words as $word) {
-
-		$letters.=$word[0];
-	}
-
-	echo $letters;
-
-	?></td>
+	<td class='cost'><?php $singleduty['job']; ?></td>
 
 <?php 
 
