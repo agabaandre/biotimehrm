@@ -519,28 +519,7 @@ public function biotimeFacilities()
    public function biotimeClockin(){
     ignore_user_abort(true);
     ini_set('max_execution_time',0);
-    $this->db->query("REPLACE INTO clk_log (
-        entry_id,
-        ihris_pid,
-        facility_id,
-        time_in,
-        date,
-        location,
-        source,
-        facility)
-        SELECT
-        
-        concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
-        ihrisdata.ihris_pid,
-        facility_id, 
-        punch_time,
-        DATE(biotime_data.punch_time) as date,
-        area_alias,
-        'BIO-TIME',
-        ihrisdata.facility
-        from  biotime_data, ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='0' OR punch_state='Check In') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) NOT IN (SELECT DISTINCT(entry_id) from clk_log);
-    
-    ");
+    $this->db->query("CALL `clockin_users`();");
     
    $message=" Checkin " .$this->db->affected_rows();
   
@@ -589,7 +568,7 @@ public function biotimeFacilities()
   public function biotimeClockout(){
   ignore_user_abort(true);
   ini_set('max_execution_time',0);
-   $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state!=0 OR punch_state='Check Out') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT entry_id from clk_log) ");
+   $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state!=0 OR punch_state='Check Out') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
    $entry_id=$query->result();
   
    foreach($entry_id as $entry){

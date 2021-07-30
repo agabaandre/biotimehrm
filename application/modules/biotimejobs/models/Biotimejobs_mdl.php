@@ -74,7 +74,7 @@ public function add_time_logs($data){
 
     
     if($query){
-        $n=$this->db->query("select entry_id biotime_data");
+        $n=$this->db->query("select id biotime_data");
         
         $message=print_r($this->exect()) ." fetchBiotTimeLogs()  add_time_logs() Created Logs from Biotime ".$n->num_rows();
         // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows());
