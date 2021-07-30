@@ -79,6 +79,7 @@ class Dashboard_mdl extends CI_Model {
         $fac=$this->db->query("Select *  from requests where date like'$today%'");
         $data['requesting']= $fac->num_rows();
     return $data;
+    //
 
     }
 
