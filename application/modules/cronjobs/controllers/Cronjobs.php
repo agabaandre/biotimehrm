@@ -123,7 +123,6 @@ endif;
 
 //Annual
 public function publicdaystoAttend(){
- 
   ignore_user_abort(true);
   ini_set('max_execution_time',0);
   //uncomment and set $year on line 195
@@ -138,8 +137,7 @@ public function publicdaystoAttend(){
 $query=$this->db->query("REPLACE INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, actuals.date, actuals.end)
  SELECT DISTINCT CONCAT(holidaydate,ihrisdata.ihris_pid) AS entry_id, ihrisdata.facility_id,ihrisdata.department_id, ihrisdata.ihris_pid,schedules.schedule_id, 
 schedules.color,holidaydate as duty_date, DATE_ADD(holidaydate, INTERVAL 1 DAY) from public_holiday,ihrisdata,schedules 
-WHERE schedules.schedule_id=27 and year='$year' AND ihrisdata.facility_id='facility|787' ON DUPLICATE KEY IGNORE") ; 
-//and CONCAT(holidaydate,ihrisdata.ihris_pid) NOT IN (SELECT entry_id from actuals) 
+WHERE schedules.schedule_id=27 and year='$year' and CONCAT(holidaydate,ihrisdata.ihris_pid) NOT IN (SELECT entry_id from actuals) AND ihrisdata.facility_id='facility|787'") ; 
 
 $rowsnow=$this->db->affected_rows();
 if($query){
@@ -152,8 +150,8 @@ if($query){
 }
 $this->log($msg);
 
-
 }
+$this->addHolidays();
 }
 
 public function addHolidays(){
