@@ -1,7 +1,9 @@
 
 
 <style>
-  
+    	.atable {
+					zoom: 85%;
+			}
     @media only screen and (max-width: 980px)  {
     .field{
         
@@ -176,7 +178,7 @@
 
 </div>
 
-<div id="table" >   
+<div id="table" class="atable">   
 
 <div class="header-row tbrow ">
     <span class="cell tbprimary"><b id="name"></b>#</span>
