@@ -203,6 +203,7 @@ class Biotimejobs extends MX_Controller {
 
 
    public function fetchBiotTimeLogs($user_date=FALSE){
+    ini_set('max_execution_time',0);
     $resp=$this->getTime($page=1,$user_date);
     $count = $resp->count;
     $pages = (int)ceil($count/10);
@@ -238,8 +239,9 @@ class Biotimejobs extends MX_Controller {
    else{
     $status="failed";
    }
-   $this->cronjob_register($process,$method,$status);
    $this->biotimeClockin();
+   $this->cronjob_register($process,$method,$status);
+   
   
 
  }
@@ -513,42 +515,76 @@ public function biotimeFacilities()
    public function updateEnrolled(){
        
    }
-   //clockin and out users depening on gthe biotime clock data
+
    public function biotimeClockin(){
     ignore_user_abort(true);
     ini_set('max_execution_time',0);
-    $areas=$this->db->get('biotime_devices')->result();
-    foreach($areas as $area){
-    $query=$this->db->query("REPLACE INTO clk_log (
-      entry_id,
-      ihris_pid,
-      facility_id,
-      time_in,
-      date,
-      location,
-      source,
-      facility)
-      SELECT
-      
-     DISTINCT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
-      ihrisdata.ihris_pid,
-      facility_id, 
-      punch_time,
-      DATE(biotime_data.punch_time) as date,
-      area_alias,
-      'BIO-TIME',
-      ihrisdata.facility
-      from  biotime_data, ihrisdata where biotime_data.area_alias='$area->area_name' AND (biotime_data.emp_code=ihrisdata.card_number) AND (punch_state='Check In' OR punch_state='0') ");
-     
-   $message=$area->area_name. " Checkin " .$this->db->affected_rows();
-  
-  }
+    $this->db->query("REPLACE INTO clk_log (
+        entry_id,
+        ihris_pid,
+        facility_id,
+        time_in,
+        date,
+        location,
+        source,
+        facility)
+        SELECT
+        
+        concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
+        ihrisdata.ihris_pid,
+        facility_id, 
+        punch_time,
+        DATE(biotime_data.punch_time) as date,
+        area_alias,
+        'BIO-TIME',
+        ihrisdata.facility
+        from  biotime_data, ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='0' OR punch_state='Check In') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) NOT IN (SELECT DISTINCT(entry_id) from clk_log);
+    
+    ");
+    
+   $message=" Checkin " .$this->db->affected_rows();
   
   $this->biotimeClockout();
 
   
   $this->log($message);
   }
+   //clockin and out users depening on gthe biotime clock data
+//    public function biotimeClockin(){
+//     ignore_user_abort(true);
+//     ini_set('max_execution_time',0);
+//     $areas=$this->db->get('biotime_devices')->result();
+//     foreach($areas as $area){
+//     $query=$this->db->query("REPLACE INTO clk_log (
+//       entry_id,
+//       ihris_pid,
+//       facility_id,
+//       time_in,
+//       date,
+//       location,
+//       source,
+//       facility)
+//       SELECT
+      
+//      DISTINCT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
+//       ihrisdata.ihris_pid,
+//       facility_id, 
+//       punch_time,
+//       DATE(biotime_data.punch_time) as date,
+//       area_alias,
+//       'BIO-TIME',
+//       ihrisdata.facility
+//       from  biotime_data, ihrisdata where biotime_data.area_alias='$area->area_name' AND (biotime_data.emp_code=ihrisdata.card_number) AND (punch_state='Check In' OR punch_state='0') ");
+     
+//    $message=$area->area_name. " Checkin " .$this->db->affected_rows();
+  
+//   }
+  
+//   $this->biotimeClockout();
+
+  
+//   $this->log($message);
+//   }
 
   public function biotimeClockout(){
   ignore_user_abort(true);

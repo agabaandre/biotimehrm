@@ -2,6 +2,7 @@
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `biotime_clk`()
 BEGIN
+
 REPLACE INTO clk_log (
     entry_id,
     ihris_pid,
@@ -21,7 +22,8 @@ REPLACE INTO clk_log (
     area_alias,
     'BIO-TIME',
     ihrisdata.facility
-    from  biotime_data, ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state=0 OR punch_state='Check In') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) NOT IN (SELECT DISTINCT(entry_id) from clk_log);
+    from  biotime_data, ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='0' OR punch_state='Check In') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) NOT IN (SELECT DISTINCT(entry_id) from clk_log);
+
 END$$
 DELIMITER ;
 
