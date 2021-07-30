@@ -545,8 +545,7 @@ public function biotimeFacilities()
   
   $this->biotimeClockout();
 
-  $this->db->query("CALL `biotime_cache`()");
-  $this->db->query("TRUNCATE biotime_data");
+  
   $this->log($message);
   }
 
