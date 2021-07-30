@@ -243,19 +243,7 @@ foreach ($departments as $department) {
 				</span>
 				<span style="text-align:left; padding-left:1em;" class="cell" data-label="NAME" ><a href=""><?php echo $singleduty['fullname'];?></a></span>
 				<span class="cell" data-label="POSITION" >
-					
-					<?php $words=explode(" ",$singleduty['job']);
-
-					$letters="";
-
-					foreach ($words as $word) {
-
-						$letters.=$word[0];
-					}
-
-					echo $letters;
-
-					?></span>
+				<?php echo $singleduty['job']; ?></span>
 
 				<?php 
 
