@@ -1,4 +1,6 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php 
+
+defined('BASEPATH') OR exit('No direct script access allowed');
 
 Class Biotimejobs_mdl extends CI_Model
 {

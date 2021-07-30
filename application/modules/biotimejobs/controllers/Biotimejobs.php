@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Africa/Kampala');
 defined('BASEPATH') OR exit('No direct script access allowed');
 use \utils\HttpUtil;
 
@@ -169,7 +170,7 @@ class Biotimejobs extends MX_Controller {
 //get cron jobs from the server
     public function getTime($page=FALSE,$userdate=FALSE)
     {
-
+       date_default_timezone_set('Africa/Kampala');
        $http = new HttpUtil();
        $headers = [
            'Content-Type' => 'application/json',

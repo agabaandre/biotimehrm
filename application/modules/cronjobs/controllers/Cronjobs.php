@@ -1,10 +1,6 @@
 <?php
-
+date_default_timezone_set('Africa/Kampala');
 class Cronjobs extends MX_Controller{
-
-
-
-
 
 public function importMachineCSv(){
   // uncomment and set a custom file to upload
