@@ -63,16 +63,16 @@ class Dashboard_mdl extends CI_Model {
         $fac=$this->db->query("Select max(last_sync) as date  from biotime_data");
         $data['biotime_last']= date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
 
-        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 22 AND actuals.date = '$today'");
+        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 22 AND actuals.date = '$today' and facility_id='$facility'");
         $data['present']=  $fac->num_rows();
 
-        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 24 AND actuals.date = '$today'");
+        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 24 AND actuals.date = '$today' and facility_id='$facility'");
         $data['offduty']=  $fac->num_rows();
 
-        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 25 AND actuals.date = '$today'");
+        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 25 AND actuals.date = '$today' and facility_id='$facility'");
         $data['leave']=  $fac->num_rows();
 
-        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 24 AND actuals.date = '$today'");
+        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 24 AND actuals.date = '$today' and facility_id='$facility'");
         $data['request']= $fac->num_rows();
          //people requesting for offical requests
          
