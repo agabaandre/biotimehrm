@@ -54,10 +54,10 @@ class Dashboard_mdl extends CI_Model {
         $fac=$this->db->query("Select max(last_update) as date  from ihrisdata where facility_id='$facility'");
         $data['ihris_sync']= date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
             //Att gen
-        $fac=$this->db->query("Select max(last_gen) as date  from person_att_final where facility_id='$facility'");
+        $fac=$this->db->query("Select max(last_gen) as date  from person_att_final");
         $data['attendance']= date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
         //Roster gen
-        $fac=$this->db->query("Select max(last_gen) as date  from person_dut_final where facility_id='$facility'");
+        $fac=$this->db->query("Select max(last_gen) as date  from person_dut_final");
         $data['roster']= date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
           //Biotime att sync
         $fac=$this->db->query("Select max(last_sync) as date  from biotime_data");
