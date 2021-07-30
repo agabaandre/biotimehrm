@@ -123,7 +123,7 @@ endif;
 
 //Annual
 public function publicdaystoAttend(){
-  $this->addHolidays();
+ 
   ignore_user_abort(true);
   ini_set('max_execution_time',0);
   //uncomment and set $year on line 195
@@ -151,6 +151,7 @@ if($query){
             
 }
 $this->log($msg);
+$this->addHolidays();
 
 }
 }
