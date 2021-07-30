@@ -58,3 +58,6 @@
 {"REQUEST DETAILS: 2021-07-30 14:45:21 Time": "1 Clocked Out"},
 {"REQUEST DETAILS: 2021-07-30 14:45:21 Time": "<font color='green'>0  Attendance Records Marked<\/font><br>"},
 {"REQUEST DETAILS: 2021-07-30 14:45:21 Time": " Checkin 735"},
+{"REQUEST DETAILS: 2021-07-30 20:39:31 Time": "1 Clocked Out"},
+{"REQUEST DETAILS: 2021-07-30 20:39:31 Time": "<font color='green'>16  Attendance Records Marked<\/font><br>"},
+{"REQUEST DETAILS: 2021-07-30 20:39:31 Time": " Checkin 24"},
