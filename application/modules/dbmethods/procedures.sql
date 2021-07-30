@@ -2,7 +2,7 @@
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `biotime_clk`()
 BEGIN
-INSERT INTO clk_log (
+REPLACE INTO clk_log (
     entry_id,
     ihris_pid,
     facility_id,

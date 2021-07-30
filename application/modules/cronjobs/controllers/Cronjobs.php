@@ -264,8 +264,8 @@ public function autoFillRosta(){
   $tommorodate=date_create($dayDate);
   date_add($tommorodate,date_interval_create_from_date_string("1 days"));
   $end=date_format($tommorodate,'Y-m-d');
-  
-  if ($this->isWeekend($dayDate)){
+  //weekend for Ministry of health only
+  if ($this->isWeekend($dayDate)&& $facility_id='facility|787'){
       
       $duty="17";
       $color='#d1a110';

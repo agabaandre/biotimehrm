@@ -11,7 +11,7 @@ class Biotimejobs extends MX_Controller {
         $this->username=Modules::run('svariables/getSettings')->biotime_username;
         $this->password=Modules::run('svariables/getSettings')->biotime_password;
         $this->load->model('biotimejobs_mdl');
-        $this->facility=$_SESSION['facility'];
+        @$this->facility=$_SESSION['facility'];
 
 
     }
@@ -543,6 +543,9 @@ public function biotimeFacilities()
   }
   
   $this->biotimeClockout();
+
+  $this->db->query("CALL `biotime_cache`()");
+  $this->db->query("TRUNCATE biotime_data");
   $this->log($message);
   }
 
@@ -587,7 +590,7 @@ public function biotimeFacilities()
     $this->log($msg);
     }
 
-    //monthly
+    //every 30th day monthly
 public function rostatoAttend(){
   ignore_user_abort(true);
   ini_set('max_execution_time',0);
@@ -602,7 +605,7 @@ public function rostatoAttend(){
   //poplulate actuals
   $query=$this->db->query("REPLACE INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color, actuals.date, actuals.end ) 
   SELECT entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_rosta.duty_date,duty_rosta.end from duty_rosta WHERE schedule_id 
-  IN(17,18,19,20,21) AND duty_rosta.entry_id NOT IN(SELECT entry_id from actuals)");
+  IN(17,18,19,20,21) AND duty_rosta.entry_id NOT IN(SELECT entry_id from actuals) AND duty_rosta.duty_date<='$ymonth%'");
   $rowsnow=$this->db->affected_rows();
   if($query){
     echo  $msg="<font color='green'>".$rowsnow. "  Attendance Records Marked</font><br>";
