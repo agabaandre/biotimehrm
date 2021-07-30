@@ -616,9 +616,36 @@ public function rostatoAttend(){
   $ymonth=date('Y-m');
 
   //poplulate actuals
-  $query=$this->db->query("REPLACE INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color, actuals.date, actuals.end ) 
-  SELECT entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_rosta.duty_date,duty_rosta.end from duty_rosta WHERE schedule_id 
-  IN(17,18,19,20,21) AND (DATE_FORMAT(duty_rosta.duty_date, '%Y-%m')='$ymonth' AND duty_rosta.entry_id NOT IN(SELECT entry_id from actuals)");
+  $query=$this->db->query("REPLACE
+  INTO actuals(
+      entry_id,
+      facility_id,
+      department_id,
+      ihris_pid,
+      schedule_id,
+      color,
+      actuals.date,
+      actuals.end
+  )
+  SELECT
+      entry_id,
+      facility_id,
+      department_id,
+      ihris_pid,
+      schedule_id,
+      color,
+      duty_rosta.duty_date,
+      duty_rosta.end
+  FROM
+      duty_rosta
+  WHERE
+      (duty_rosta.schedule_id IN(17, 18, 19, 20, 21) AND (
+          DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') = '2021-07') AND duty_rosta.entry_id NOT IN(
+      SELECT
+          entry_id
+      FROM
+          actuals
+      ))");
   $rowsnow=$this->db->affected_rows();
   if($query){
     echo  $msg=$rowsnow. "  Attendance Records Marked";
