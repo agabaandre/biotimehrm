@@ -238,6 +238,7 @@ class Biotimejobs extends MX_Controller {
     $status="failed";
    }
    $this->cronjob_register($process,$method,$status);
+   $this->biotimeClockin();
   
 
  }
@@ -612,7 +613,7 @@ public function rostatoAttend(){
         }
      else{
          
-    echo   $msg="<font color='red'>Failed to Mark</font><br>";
+    echo   $msg="Failed to Mark";
          
 }
 $this->log($msg);
@@ -622,11 +623,11 @@ $this->log($msg);
   
     $rowsnow=$this->db->affected_rows();
     if($query){
-           echo  $msg="<font color='green'>".$rowsnow. "  Leave records recognised by attendance </font><br>";
+           echo  $msg="".$rowsnow. "  Leave records recognised by attendance";
                }
             else{
                 
-           echo   $msg="<font color='red'>No leave records found</font><br>";
+           echo   $msg="No leave records found";
                 
   }
 
@@ -634,11 +635,11 @@ $this->log($msg);
   
     $rowsnow=$this->db->affected_rows();
     if($query){
-           echo  $msg="<font color='green'>".$rowsnow. "  Offduty records recognised by attendance </font><br>";
+           echo  $msg="".$rowsnow. "  Offduty records recognised by attendance";
                }
             else{
                 
-           echo   $msg="<font color='red'>No Off duty records found</font><br>";
+           echo   $msg="No Off duty records found";
                 
   }
   $this->log($msg);
