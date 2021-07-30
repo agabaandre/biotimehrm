@@ -186,7 +186,7 @@ foreach($duties as $singleduty) {
 <tr >
 	<td class='cost'><?php echo $no;?></td>
 	<td class='cost'><?php echo $singleduty['fullname'];?></td>
-	<td class='cost'><?php $singleduty['job']; ?></td>
+	<td class='cost'><?php echo $singleduty['job']; ?></td>
 
 <?php 
 

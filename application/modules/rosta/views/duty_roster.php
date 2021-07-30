@@ -258,7 +258,7 @@ if(count($duties)>0)
 								<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $singleduty['fullname'];?></span></b>
 							</span>
 							<span class="cell  name" data-label="Name" ><?php echo $singleduty['fullname'];?></span>
-							<span class="cell" data-label="Position" ><?php $singleduty['job']; ?>
+							<span class="cell" data-label="Position" ><?php echo $singleduty['job']; ?>
 
 								
 							</span>

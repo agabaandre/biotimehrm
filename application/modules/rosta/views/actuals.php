@@ -248,7 +248,7 @@ foreach($duties as $singleduty) {
    <span class="cell" data-label="Name" style="text-align:left; padding-left:1em;" ><?php echo $singleduty['fullname'];?></span>
 	<span class="cell" data-label="Position" title="">
 	
-	<?php $singleduty['job']; ?>
+	<?php echo $singleduty['job']; ?>
 
 		
 	</span>
