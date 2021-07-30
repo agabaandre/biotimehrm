@@ -138,7 +138,8 @@ public function publicdaystoAttend(){
 $query=$this->db->query("REPLACE INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, actuals.date, actuals.end)
  SELECT DISTINCT CONCAT(holidaydate,ihrisdata.ihris_pid) AS entry_id, ihrisdata.facility_id,ihrisdata.department_id, ihrisdata.ihris_pid,schedules.schedule_id, 
 schedules.color,holidaydate as duty_date, DATE_ADD(holidaydate, INTERVAL 1 DAY) from public_holiday,ihrisdata,schedules 
-WHERE schedules.schedule_id=27 and year='$year' and CONCAT(holidaydate,ihrisdata.ihris_pid) NOT IN (SELECT entry_id from actuals) AND ihrisdata.facility_id='facility|787'"); 
+WHERE schedules.schedule_id=27 and year='$year' AND ihrisdata.facility_id='facility|787' ON DUPLICATE KEY IGNORE") ; 
+//and CONCAT(holidaydate,ihrisdata.ihris_pid) NOT IN (SELECT entry_id from actuals) 
 
 $rowsnow=$this->db->affected_rows();
 if($query){
