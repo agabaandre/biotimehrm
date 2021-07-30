@@ -640,7 +640,7 @@ public function rostatoAttend(){
       duty_rosta
   WHERE
       (duty_rosta.schedule_id IN(17, 18, 19, 20, 21) AND (
-          DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') = '2021-07') AND duty_rosta.entry_id NOT IN(
+          DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') <= '$ymonth') AND duty_rosta.entry_id NOT IN(
       SELECT
           entry_id
       FROM
