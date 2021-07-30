@@ -72,7 +72,7 @@ class Dashboard_mdl extends CI_Model {
         $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 25 AND actuals.date = '$today' and facility_id='$facility'");
         $data['leave']=  $fac->num_rows();
 
-        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 24 AND actuals.date = '$today' and facility_id='$facility'");
+        $fac=$this->db->query("SELECT * FROM actuals WHERE  schedule_id = 23 AND actuals.date = '$today' and facility_id='$facility'");
         $data['request']= $fac->num_rows();
          //people requesting for offical requests
          
