@@ -35,7 +35,7 @@
         <p style="color:#FEFFFF; font-size: 10px; height:20px; font-weight:bold; margin-top:1px;">
           <?php 
           echo $period="PERIOD:". $userdata['month'].'-'.$userdata['year'].'<br>';
-          echo date('Y-m-d H:i:s');
+          // echo date('Y-m-d H:i:s');
         ?>
         </p>
         <div class="image">
