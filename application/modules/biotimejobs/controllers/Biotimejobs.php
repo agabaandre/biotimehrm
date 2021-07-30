@@ -613,18 +613,15 @@ public function rostatoAttend(){
   //To set custom month uncomment below and set  ymonth of choice
   //$ymonth="2019-08"."-";
   // comment  the file below on line 145 if custom ymonth is set.
-  $ymonth=date('Y-m')."-";
-
-  
- if(!empty($ymonth)){ 
+  $ymonth=date('Y-m');
 
   //poplulate actuals
   $query=$this->db->query("REPLACE INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color, actuals.date, actuals.end ) 
   SELECT entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_rosta.duty_date,duty_rosta.end from duty_rosta WHERE schedule_id 
-  IN(17,18,19,20,21) AND duty_rosta.entry_id NOT IN(SELECT entry_id from actuals) AND duty_rosta.duty_date<='$ymonth%'");
+  IN(17,18,19,20,21) AND (DATE_FORMAT(duty_rosta.duty_date, '%Y-%m')='$ymonth' AND duty_rosta.entry_id NOT IN(SELECT entry_id from actuals)");
   $rowsnow=$this->db->affected_rows();
   if($query){
-    echo  $msg="<font color='green'>".$rowsnow. "  Attendance Records Marked</font><br>";
+    echo  $msg=$rowsnow. "  Attendance Records Marked";
         }
      else{
          
@@ -632,7 +629,7 @@ public function rostatoAttend(){
          
 }
 $this->log($msg);
-}
+
   
   $query=$this->db->query("Update actuals set schedule_id='25', color='#29910d' WHERE schedule_id IN(18,19,20,21)");
   
