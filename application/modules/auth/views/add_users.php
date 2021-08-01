@@ -177,7 +177,7 @@ $variables=Modules::run("svariables/getAll");
 
               |
 
-            <a data-toggle="modal" data-target="#reset<?php echo $user->user_id; ?>" href="#">Reset Pass</a>
+            <a data-toggle="modal" data-target="#reset<?php echo $user->user_id; ?>" href="#">Reset</a>
 
           </td>
             
