@@ -28,7 +28,7 @@
               </div>
               <div class="col-md-6">
                 <strong style="margin-right: 1em;">District </strong> 
-                    <select name="district_id"  class="form-control" style="max-width: 250px" required>
+                    <select name="district_id"  class="form-control" style="max-width: 250px" >
                         <option value="<?php echo $district->district_id; ?>"><?php echo $user->district; ?>
                         </option>
                             <?php  foreach($districts as $district):?>
@@ -37,7 +37,7 @@
                     </select> 
             
                 <strong style="margin-right: 1em;">Department </strong> 
-                    <select name="department"  class="form-control" style="max-width: 250px" required>
+                    <select name="department"  class="form-control" style="max-width: 250px" >
                       <option value="<?php echo $department->department_id; ?>"><?php echo $user->department; ?></option>
                       <?php  foreach($departments as $department): 
                                   ?>
@@ -45,7 +45,7 @@
                                 <?php endforeach; ?>
                     </select>
                 <strong style="margin-right: 1em;">Facility</strong> 
-                    <select name="facility" class="form-control" style="max-width: 250px" required>
+                    <select name="facility" class="form-control" style="max-width: 250px" >
                         <option value="<?php echo $facility->facility_id; ?>"><?php echo $user->facility; ?>
                         </option>
                           <?php  foreach($facilities as $facility):  ?>

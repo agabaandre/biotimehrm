@@ -279,7 +279,7 @@ $(".user_form").submit(function(e){
     e.preventDefault();
 
 
-    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/images/busy.gif">');
+    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/img/loading.gif">');
 
 
 
@@ -327,7 +327,7 @@ $(".update_user").submit(function(e){
 
     e.preventDefault();
 
-    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/images/busy.gif">');
+    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/img/loading.gif">');
 
     var formData=new FormData(this);
 
@@ -371,7 +371,7 @@ $(".reset").submit(function(e){
     e.preventDefault();
 
 
-    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/images/busy.gif">');
+    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/img/loading.gif">');
 
 
 
@@ -416,7 +416,7 @@ $(".block").submit(function(e){
     e.preventDefault();
 
 
-    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/images/busy.gif">');
+    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/img/loading.gif">');
 
 
 
@@ -461,7 +461,7 @@ $(".unblock").submit(function(e){
     e.preventDefault();
 
 
-    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/images/busy.gif">');
+    $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/img/loading.gif">');
 
 
 

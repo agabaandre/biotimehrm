@@ -8,9 +8,9 @@
 
 					<span></span>
 					
-
+                        
 						<input type="hidden" name="user_id" value="<?php echo $user->user_id; ?>">
-						<input type="hidden" name="password" value="<?php echo "ihris123";//$variables->Default_password; ?>"
+						<input type="hidden" name="password" value="<?php echo $setting->default_password; ?>" >
 
 
 		
