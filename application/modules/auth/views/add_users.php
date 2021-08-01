@@ -62,7 +62,7 @@ $variables=Modules::run("svariables/getAll");
 
             <td data-label="Department">
                 <?php   ?>
-                <select onchange="$('.department').val(changeVal(this))" name="department_id"  class="form-control select2" style="width: 80%" required>
+                <select onchange="$('.department').val(changeVal(this))" name="department_id"  class="form-control select2" style="width: 80%">
                     <option value="" disabled selected>DEPARTMENT</option>
                     <?php  foreach($departments as $department): 
                                   ?>
