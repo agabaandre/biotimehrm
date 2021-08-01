@@ -79,7 +79,7 @@ $variables=Modules::run("svariables/getAll");
         </tr>
         <tr>
             <td data-label="Facility">
-                <select onchange="$('.facility').val(changeVal(this))" name="facility_id" class="form-control select2" style="width: 60%" required>
+                <select onchange="$('.facility').val(changeVal(this))" name="facility_id" class="form-control select2" style="width: 60%" >
                     
                     <option value="" disabled selected>FACILITY</option>
                     <?php  foreach($facilities as $facility): 
@@ -96,7 +96,7 @@ $variables=Modules::run("svariables/getAll");
             </td>
             <td data-label="District">
                 <?php   ?>
-                <select onchange="$('.district').val(changeVal(this));" name="district_id"  class="form-control select2" style="width: 80%" required>
+                <select onchange="$('.district').val(changeVal(this));" name="district_id"  class="form-control select2" style="width: 80%">
                     <option value="" disabled selected>DISTRICT</option>
                     <?php  foreach($districts as $district): 
                                   ?>
