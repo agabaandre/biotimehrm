@@ -3,20 +3,20 @@
     <div class="modal-dialog" >
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="defaultModalLabel"><?php echo $user->name; ?></h4>
+                <h4 class="modal-title" id="defaultModalLabel">Update <?php echo $user->name; ?></h4>
             </div>
             <div class="modal-body"> 
 
               <form class="update_user" enctype="multipart/form-data" method="post" action="<?php echo base_url(); ?>auth/updateUser">
-            <div class="col-md-6">
+            <div class="col-md-12">
               <strong style="margin-right: 1em;"> Name </strong> 
-                  <input type="text" name="name" value="<?php echo $user->name; ?>" class="form-control" style="max-width: 250px" required/> 
+                  <input type="text" name="name" value="<?php echo $user->name; ?>" class="form-control" style="width:100%" required> 
                 
                 <strong style="margin-right: 1em;">User Name </strong> 
-                    <input type="text" name="username" value="<?php echo $user->username; ?>" class="form-control" style="max-width: 250px" required /> 
+                    <input type="text" name="username" value="<?php echo $user->username; ?>" class="form-control" style="width:100%" required> 
                 
                 <strong style="margin-right: 1em;">User Group </strong>  
-                    <select name="group_id"  class="form-control" style="max-width: 250px" required>
+                    <select name="group_id"  class="form-control" style="width:100%" required>
                       <option value="<?php echo $usergroup->group_id; ?>"><?php echo $user->group_name; ?></option>
                         <?php  foreach($usergroups as $usergroup): 
                                     ?>
@@ -26,9 +26,9 @@
                       <?php endforeach; ?>
                     </select>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-12" style="margin: 0 auto">
                 <strong style="margin-right: 1em;">District </strong> 
-                    <select name="district_id"  class="form-control" style="max-width: 250px" >
+                    <select name="district_id"  class="form-control" style="width:100%" >
                         <option value="<?php echo $district->district_id; ?>"><?php echo $user->district; ?>
                         </option>
                             <?php  foreach($districts as $district):?>
@@ -37,7 +37,7 @@
                     </select> 
             
                 <strong style="margin-right: 1em;">Department </strong> 
-                    <select name="department"  class="form-control" style="max-width: 250px" >
+                    <select name="department"  class="form-control" style="width:100%" >
                       <option value="<?php echo $department->department_id; ?>"><?php echo $user->department; ?></option>
                       <?php  foreach($departments as $department): 
                                   ?>
@@ -45,7 +45,7 @@
                                 <?php endforeach; ?>
                     </select>
                 <strong style="margin-right: 1em;">Facility</strong> 
-                    <select name="facility" class="form-control" style="max-width: 250px" >
+                    <select name="facility" class="form-control" style="width:100%" >
                         <option value="<?php echo $facility->facility_id; ?>"><?php echo $user->facility; ?>
                         </option>
                           <?php  foreach($facilities as $facility):  ?>
