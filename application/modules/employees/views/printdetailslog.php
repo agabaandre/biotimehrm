@@ -138,10 +138,10 @@ table.minimalistBlack tfoot td {
                               $totalHours=0;
 
                               foreach($timelogs as $timelog) {
-                                $no++;
+                                $wdays++;
                                ?>
                               <tr>
-                                <td><?php echo $no; ?></td>
+                                <td><?php echo $wdays; ?></td>
                                 <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
                                 <td><?php echo $timelog->time_in; ?></td>
                                 <td><?php echo $timelog->time_out; ?></td>
