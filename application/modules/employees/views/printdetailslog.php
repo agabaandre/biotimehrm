@@ -335,14 +335,14 @@ table.minimalistBlack tfoot td {
                             <tfoot>
                                 <tr>
                                     <th colspan="2">TOTAL DUTY DAYS</th>
-                                    <th><?=$totalDuty?> Day(s)  / <?php echo $totalDuty*8 ?> Estimate Hours</th>
+                                    <th><?=$totalDuty?> Day(s)</th>
                                 </tr>
                                 
                             </tfoot>
                         </table>
                         <table class="table table-striped thistbl" id="timelogs">
                         <tr><th>SUMMARY OF THE NUMBER DAYS WORKED</th></tr>
-                        <tr><th>Worked for <?php echo $wdays.'out of '. $totalDuty;?> days</th><tr>
+                        <tr><th>Worked for <?php echo $wdays.' days out of '. $totalDuty;?> days</th><tr>
 
 
                         </table>
