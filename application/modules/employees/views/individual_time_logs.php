@@ -27,7 +27,7 @@
                             <i class="far fa-calendar-alt"></i>
                         </span>
                         </div>
-                        <input type="text"  name="date_from" class="form-control datepicker" value="<?php echo date("Y-m-d",strtotime("-1 month")); ?>" autocomplete="off">
+                        <input type="text"  name="date_from" class="form-control datepicker" value="<?php echo date("Y-m")."-01"; ?>" autocomplete="off">
                     </div>
                     <!-- /.input group -->
                     </div>
