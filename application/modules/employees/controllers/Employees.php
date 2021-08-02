@@ -464,8 +464,8 @@ class Employees extends MX_Controller{
       
       else{
           
-      $data['from']='10/01/2019';
-      $data['to']=date('m/d/Y');
+      $data['from']= date('Y-m-').'01';
+      $data['to']=date('Y-m-d');
       $search_data['date_from']= $data['from'];
       $search_data['date_to']= $data['to'];
           
@@ -492,9 +492,9 @@ class Employees extends MX_Controller{
         public function printindividualTimeLogs($ihris_pid,$from=false,$to=false,$flag){
           if($from){
             // $from= str_replace('-','/',$from);
-            $from=date("m/d/Y", strtotime($from));
+            $from=date("Y-m-d", strtotime($from));
             // $to= str_replace('-','/',$to);
-            $to=date("m/d/Y", strtotime($to));
+            $to=date("Y-m-d", strtotime($to));
             $search_data2['date_from']=$from;
             $search_data2['date_to']=$to;
             //print_r($search_data2);
