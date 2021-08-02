@@ -146,7 +146,7 @@
                               $totalHours=0;
 
                               foreach($timelogs as $timelog) {
-                                $nowdays++;
+                                $wdays++;
                                ?>
                                 <tr>
                                     <td><?php echo $wdays; ?></td>
@@ -276,7 +276,7 @@
                                 </tr>
                                 <tr>
                                     <td colspan="4" style="font-weight:bold;">TOTAL DAYS WORKED</td>
-                                    <td style="font-weight:bold;"><?php echo $wdays=$nodays;?> Days out of <?php echo totalDutys($totalDuty); ?></td>
+                                    <td style="font-weight:bold;"><?php echo $wdays;?> Days out of <?php echo totalDutys($totalDuty); ?></td>
                                  
                                 </tr>
                               

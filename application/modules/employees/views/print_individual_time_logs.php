@@ -178,7 +178,8 @@ table.minimalistBlack tfoot td {
 
                               // $values= unique_array($timelog->date);
                               // print_r($values);
-
+                              $twdays=array();
+                             array_push($twdays,$wdays);
 
                               } ?>
                             </tbody>
@@ -269,7 +270,7 @@ table.minimalistBlack tfoot td {
                                 </tr>
                                 <tr>
                                     <td colspan="4" style="font-weight:bold;">TOTAL DAYS WORKED</td>
-                                    <td style="font-weight:bold;"><?php echo $wdays?> out of <?php echo totalDutys($totalDuty). " "; ?> Days</td>
+                                    <td style="font-weight:bold;"><?php echo count($twdays); ?> out of <?php echo totalDutys($totalDuty). " "; ?> Days</td>
                                  
                                 </tr>
                               
