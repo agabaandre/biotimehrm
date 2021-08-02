@@ -134,7 +134,7 @@ table.minimalistBlack tfoot td {
 
                               <?php 
 
-                              $no=0;
+                              $wdays=0;
                               $totalHours=0;
 
                               foreach($timelogs as $timelog) {
@@ -340,13 +340,13 @@ table.minimalistBlack tfoot td {
                                 
                             </tfoot>
                         </table>
-                        <!-- <table class="table table-striped thistbl" id="timelogs">
+                        <table class="table table-striped thistbl" id="timelogs">
                         <tr><th>SUMMARY OF THE NUMBER DAYS WORKED</th></tr>
-                        <tr><th>Worked for <?php //echo $wdays.'out of '. $totalDuty;?> days</th><tr>
+                        <tr><th>Worked for <?php echo $wdays.'out of '. $totalDuty;?> days</th><tr>
 
 
                         </table>
-   -->
+  
 
 
                         

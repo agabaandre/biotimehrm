@@ -136,11 +136,11 @@ table.minimalistBlack tfoot td {
 
                                 <?php 
 
-                              $no=0;
+                              $wdays=0;
                               $totalHours=0;
 
                               foreach($timelogs as $timelog) {
-                                $no++;
+                                $wdays++;
                                ?>
                                 <tr>
                                     <td><?php echo $no; ?></td>
@@ -269,7 +269,7 @@ table.minimalistBlack tfoot td {
                                 </tr>
                                 <tr>
                                     <td colspan="4" style="font-weight:bold;">TOTAL DAYS WORKED</td>
-                                    <td style="font-weight:bold;"><?php echo $wdays=$no;?> out of <?php echo totalDutys($totalDuty). " "; ?> Days</td>
+                                    <td style="font-weight:bold;"><?php echo $wdays?> out of <?php echo totalDutys($totalDuty). " "; ?> Days</td>
                                  
                                 </tr>
                               
