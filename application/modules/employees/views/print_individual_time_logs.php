@@ -145,7 +145,7 @@ table.minimalistBlack tfoot td {
                                 <tr>
                                     <td><?php echo $wdays; ?></td>
                                     <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
-                                    <td><?php echo $timelog->time_in; ?></td>
+                                    <td><?php echo date('H:i:s', strtotime($timelog->time_in)); ?></td>
                                     <td><?php if (!empty($time_out=$timelog->time_out)) { echo date('H:i:s', strtotime($time_out=$timelog->time_out));} ?></td>
                                     <td>
                                     <?php
