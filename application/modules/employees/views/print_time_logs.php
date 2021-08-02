@@ -139,7 +139,7 @@ td{
                       <td><?php echo $timelog->facility; ?></td>
                       <td><?php echo $timelog->date; ?></td>
                       <td><?php echo date('H:i:s', strtotime($timelog->time_in)); ?></td>
-`                     <td><?php echo date('H:i:s', strtotime($timelog->time_out)); ?></td>
+`                     <td><?php  if (!empty($time_out=$timelog->time_out)) { echo date('H:i:s', strtotime($time_out=$timelog->time_out));} ?></td>
                       <td> <?php  
                       
                                $initial_time = strtotime( $timelog->time_in)/ 3600;
