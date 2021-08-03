@@ -203,6 +203,7 @@ class Biotimejobs extends MX_Controller {
 
 
    public function fetchBiotTimeLogs($user_date=FALSE){
+    ignore_user_abort(true);
     ini_set('max_execution_time',0);
     $resp=$this->getTime($page=1,$user_date);
     $count = $resp->count;
@@ -573,9 +574,12 @@ public function biotimeFacilities()
   
    foreach($entry_id as $entry){
   
-  $this->db->set('time_out', $entry->punch_time);
-  $this->db->where('entry_id', $entry->entry_id);
-  $query=$this->db->update('clk_log');
+    $this->db->set('time_out', "$entry->punch_time");
+    $this->db->where('entry_id', "$entry->entry_id");
+    $this->db->where("CAST(time_out AS DATETIME) < ","$entry->punch_time");
+    $query=$this->db->update('clk_log');
+
+//   $this->db->query("UPDATE clk_log SET clk_log.time_out = '$entry->punch_time' WHERE entry_id='$entry->entry_id' AND CAST(time_out AS DATETIME) < '$entry->punch_time' ");
   
   }
   echo $message=$this->db->affected_rows() ." Clocked Out";

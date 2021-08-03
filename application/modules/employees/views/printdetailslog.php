@@ -143,8 +143,8 @@ table.minimalistBlack tfoot td {
                               <tr>
                                 <td><?php echo $wdays; ?></td>
                                 <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
-                                <td><?php echo $timelog->time_in; ?></td>
-                                <td><?php echo $timelog->time_out; ?></td>
+                                <td><?php echo date('H:i:s', strtotime($time_in=$timelog->time_in)); ?></td>
+                                <td><?php if (!empty($time_out=$timelog->time_out)) { echo date('H:i:s', strtotime($time_out=$timelog->time_out));} ?></td>
                                 <td><?php 
 
                                     $initial_time = strtotime( $timelog->time_in)/ 3600;
@@ -180,7 +180,7 @@ table.minimalistBlack tfoot td {
                             </tbody>
                             <tfoot>
                               <tr>
-                                <th colspan="4">TOTAL HOURS WORKED</th><th><?=abs($totalHours)?> Hours in <?=$no;?>day (s)</th>
+                                <th colspan="4">Worked for <?php echo $wdays.' days out of '. $totalDuty;?> days</th>
                               </tr>
                             </tfoot>
                           </table>
@@ -340,13 +340,7 @@ table.minimalistBlack tfoot td {
                                 
                             </tfoot>
                         </table>
-                        <table class="table table-striped thistbl" id="timelogs">
-                        <tr><th>SUMMARY OF THE NUMBER DAYS WORKED</th></tr>
-                        <tr><th>Worked for <?php echo $wdays.' days out of '. $totalDuty;?> days</th><tr>
-
-
-                        </table>
-  
+                        
 
 
                         
