@@ -20,7 +20,6 @@ require_once("includes/sidenav.php");
           <div class="col-md-12">
             <!-- <h1>Fixed Layout</h1> -->
 
-           <p> test </p>
           </div>
        
         </div>
@@ -29,11 +28,11 @@ require_once("includes/sidenav.php");
     <!-- /.container-fluid -->
 
     <!-- Main content -->
-    <section class="content" style="font-size:12px;" >
+    <section class="content"  >
 
       <div class="container-fluid">
 
-        <div class="row">
+        <div class="row" style="font-size:12px; min-height: 680px !important;">
           <div class="col-12" style="margin-bottom:3px;">
              <div class="card">
                 <div class="">
