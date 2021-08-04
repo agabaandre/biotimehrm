@@ -139,8 +139,7 @@ else{
 
 <?php 
 
-$no=1;
-
+$no=0;
 foreach($sums as $sum) {?>
 
 
