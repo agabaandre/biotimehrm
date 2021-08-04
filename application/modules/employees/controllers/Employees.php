@@ -95,7 +95,7 @@ class Employees extends MX_Controller{
     }
     public function attCsv($datef,$datet,$person,$job)
 	{
-    $datas=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode($job)),$this->filters);
+    $datas=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode(str_replace('_',' ',$job))),$this->filters);
     $csv_file = "Attend_TimeLogs" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
 	header("Content-Type: text/csv");
 	header("Content-Disposition: attachment; filename=\"$csv_file\"");	

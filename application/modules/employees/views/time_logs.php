@@ -84,7 +84,7 @@
                         
               </div><!-- /.card-header -->
               <?php if($this->input->post('date_from')) { ?>
-              <a href="<?php echo base_url()?>employees/attCsv/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name').'/'.'position-'.urlencode($this->input->post('job')); ?>" target="" class="btn bt-sm bg-gray-dark color-pale"  style="width:100px;" ><i class="fa fa-file-excel"></i>CSV</a>
+              <a href="<?php echo base_url()?>employees/attCsv/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name').'/'.'position-'.urlencode(str_replace(' ','_',$this->input->post('job'))); ?>" target="" class="btn bt-sm bg-gray-dark color-pale"  style="width:100px;" ><i class="fa fa-file-excel"></i>CSV</a>
 
               <?php } ?>
               <p class="pagination"><?php echo $links;
@@ -133,7 +133,7 @@
 
                               <?php 
 
-                              $no=0;
+                            $no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):0;
 
                               foreach($timelogs as $timelog) {
                                 $no++;
