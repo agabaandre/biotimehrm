@@ -100,7 +100,7 @@
               </p>
 
 
-                <div class="row" style="float: left;">
+                <div class="row">
                     <div class="col-md-4">
                         <h4><?php echo $employee->surname." ".$employee->firstname; ?></h4>
                     </div>
