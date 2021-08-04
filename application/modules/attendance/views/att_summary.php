@@ -139,7 +139,7 @@ else{
 
 <?php 
 
-$no=0;
+$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):0;
 foreach($sums as $sum) {?>
 
 
