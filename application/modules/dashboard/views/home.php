@@ -20,8 +20,11 @@
         <!-- Main row -->
        
         <?php
-         $permissions=$userdata['permissions'];
-        if(in_array('33', $permissions)){ ?>
+         $permissions=$this->session->userdata('permissions');
+        //  print_r($permissions);
+        if(in_array('33', $permissions)){ 
+         
+          ?>
         <div class="row">
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box info-box-main">
