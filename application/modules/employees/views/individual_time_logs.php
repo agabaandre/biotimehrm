@@ -125,7 +125,7 @@
 
                                 $totalDuty++; } 
                           ?>
-
+<div class="row">
 
                         <table class="table table-striped thistbl" id="timelogs">
                             <thead>
@@ -299,6 +299,7 @@
 
                 </div>
  </div>
+</div>
        
   
 <?php 
