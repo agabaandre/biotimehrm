@@ -93,7 +93,7 @@
               </div>
               </div>
               <div class="card-body">
-              <p class="panel-title" style="font-weight:bold; font-size:16px; text-align:center;">	ATTENDANCE LOG FOR
+              <div class="panel-title" style="font-weight:bold; font-size:16px; text-align:center;">	ATTENDANCE LOG FOR
 
                         <?php
                         echo " - ".$_SESSION['facility_name']." BEWTWEEN "; 
@@ -102,18 +102,16 @@
                           echo $_SESSION['date_from'] ." AND ";
                         }
                         else{
-                          //echo date("Y-m-d",strtotime("-1 month"))." AND ";
+                    
                         }
                         if(!empty($this->input->post('date_from'))){
                           echo $_SESSION['date_to'] ;
                         }
-                        else{
-                          //echo date("Y-m-d");
-                        }
+                        
 
 
                         ?>
-              </p>
+              </div>
 
                           <table class="table table-striped thistbl" id="timelogs">
                             
@@ -122,11 +120,11 @@
                                   <th>#</th>
                                   <th>NAME</th>
                                   <th>POSITION</th>
-                                  <th>DEPARTMENT</th>
-                                  <th>DATE</th>
+                                
+                                  <th style="width:20%;">DATE</th>
                                   <th>TIME IN</th>
                                   <th>TIME OUT</th>
-                                  <th width="30%">HOURS WORKED</th>
+                                  <th width="10%;">HOURS WORKED</th>
                                 
                               </tr>
                             </thead>
@@ -145,7 +143,7 @@
                                 <td><?php echo $timelog->surname." ".$timelog->firstname; ?></td>
                                 <td><?php echo $timelog->job; ?></td>
                                
-                                <td><?php echo $timelog->department; ?></td>
+                          
                                 <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
                                 <td><?php echo date('H:i:s', strtotime($time_in=$timelog->time_in)); ?></td>
 `                               <td><?php  if (!empty($time_out=$timelog->time_out)) { echo date('H:i:s', strtotime($time_out=$timelog->time_out));} ?></td>

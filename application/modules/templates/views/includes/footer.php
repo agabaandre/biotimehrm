@@ -125,6 +125,22 @@ Highcharts.setOptions({
 });
 </script>
 
+<script>
+ $(document).ready(function() {
+    $('#timelogs').DataTable( {
+    
+        "paging": false,
+        "lengthChange": true,
+        "searching": false,
+        "ordering": true,
+        "info": true,
+        "autoWidth": false,
+        "responsive": true,
+     
+    } );
+});
+</script>
+
 
 <script type="text/javascript">
         
