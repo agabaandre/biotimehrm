@@ -30,9 +30,9 @@ require_once("includes/sidenav.php");
     <!-- Main content -->
     <section class="content"  >
 
-      <div class="container-fluid">
+      <div class="container-fluid" style="font-size:12px; min-height:940px; margin-top:40px;">
 
-        <div class="row" style="font-size:12px; min-height: 680px !important;">
+        <div class="row">
           <div class="col-12" style="margin-bottom:3px;">
              <div class="card">
                 <div class="">
