@@ -110,6 +110,9 @@
                     <div class="col-md-4">
                         <h4><?php echo $employee->facility; ?></h4>
                     </div>
+                    <div class="col-md-4">
+                      
+                    </div>
                 </div>
                            
                         <?php 
