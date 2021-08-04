@@ -186,7 +186,7 @@ class Biotimejobs extends MX_Controller {
      
        //if las sync is empty
       
-       $sdate=date("Y-m-d H:i:s",strtotime("-8 hours"));
+       $sdate=date("Y-m-d H:i:s",strtotime("-48 hours"));
        $query=array('page'=>$page,'start_time'=>$sdate,
        'end_time'=>$edate,
        );
@@ -573,14 +573,12 @@ public function biotimeFacilities()
    $entry_id=$query->result();
   
    foreach($entry_id as $entry){
-  
     $this->db->set('time_out', "$entry->punch_time");
+    $this->db->where("time_in <","$entry->punch_time");
     $this->db->where('entry_id', "$entry->entry_id");
-    $this->db->where("CAST(time_out AS DATETIME) < ","$entry->punch_time");
     $query=$this->db->update('clk_log');
 
-//   $this->db->query("UPDATE clk_log SET clk_log.time_out = '$entry->punch_time' WHERE entry_id='$entry->entry_id' AND CAST(time_out AS DATETIME) < '$entry->punch_time' ");
-  
+   
   }
   echo $message=$this->db->affected_rows() ." Clocked Out";
   $this->log($message);
