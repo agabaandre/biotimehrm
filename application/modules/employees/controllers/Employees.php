@@ -255,7 +255,7 @@ class Employees extends MX_Controller{
         $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
         $this->m_pdf->pdf->showWatermarkImage = true;
         date_default_timezone_set("Africa/Kampala");
-        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b>"."Source: iHRIS - HRM Attend " .base_url());
+        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."<b/>"."Source: iHRIS - HRM Attend " .base_url());
         $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
         $this->m_pdf->showWatermarkImage = true;
         ini_set('max_execution_time',0);
@@ -274,7 +274,7 @@ class Employees extends MX_Controller{
         $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
         $this->m_pdf->pdf->showWatermarkImage = true;
         date_default_timezone_set("Africa/Kampala");
-        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b>"."Source: iHRIS - HRM Attend " .base_url());
+        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."<b/>"."Source: iHRIS - HRM Attend " .base_url());
         $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
         $this->m_pdf->showWatermarkImage = true; 
         ini_set('max_execution_time',0);
@@ -301,7 +301,7 @@ class Employees extends MX_Controller{
         $this->ml_pdf->pdf->showWatermarkImage = true;
         date_default_timezone_set("Africa/Kampala");
         $userdata=$this->session->get_userdata(); 
-        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b>"."Source: iHRIS - HRM Attend " .base_url());
+        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."<b/>"."Source: iHRIS - HRM Attend " .base_url());
            ini_set('max_execution_time', 0);
         $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
         //download it D save F.
@@ -528,7 +528,7 @@ class Employees extends MX_Controller{
             $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
             $this->m_pdf->pdf->showWatermarkImage = true;
             date_default_timezone_set("Africa/Kampala"); 
-            $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b>"."Source: iHRIS - HRM Attend " .base_url());
+            $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."<b/>"."Source: iHRIS - HRM Attend " .base_url());
             $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
             $this->m_pdf->showWatermarkImage = true;
             ini_set('max_execution_time',0);
