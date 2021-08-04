@@ -18,7 +18,10 @@
  <section class="content">
       <div class="container-fluid">
         <!-- Main row -->
-        <?php if(in_array('33', $permissions)){ ?>
+       
+        <?php
+         $permissions=$userdata['permissions'];
+        if(in_array('33', $permissions)){ ?>
         <div class="row">
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box info-box-main">
