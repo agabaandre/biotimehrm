@@ -302,7 +302,7 @@ public function AutoMohRoster(){
   //duty roster for other facilities
   public function getOtherEmployees(){
 
-    $qry=$this->db->query("SELECT distinct ihris_pid,department_id,facility_id FROM ihrisdata WHERE ihrisdata.facility_id IN (SELECT facility_id from clk_log where facility_id='facility|787')");
+    $qry=$this->db->query("SELECT distinct ihris_pid,department_id,facility_id FROM ihrisdata WHERE ihrisdata.facility_id IN (SELECT facility_id from clk_log where facility_id!='facility|787')");
     
       $employees=$qry->result();
       return $employees;
