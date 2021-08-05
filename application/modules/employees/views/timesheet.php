@@ -211,7 +211,8 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 								<span class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color; ?>"><?php echo $i; ?></span>
 							
 							<?php } ?>
-							<span class="cell" style="width:10%;">Total</span>
+							<span class="cell" style="width:10%;">Total Hrs</span>
+							<span class="cell" style="width:10%;">Total Days</span>
 							<!-- <span class="cell" style="width:10%;">Expected Hours</span>
 							<span class="cell" style="width:10%;">%ge Presence</span> -->
 
@@ -314,6 +315,7 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 							<?php }//repeat days ?>
 
 							<span class="cell" style="width:5%;"><?php  echo array_sum($personhrs); ?></span>
+							<span class="cell" style="width:5%;"><?php  echo count($personhrs); ?></span>
 							<!-- <span class="cell" style="width:10%;">Expected Hours</span>
 							<span class="cell" style="width:10%;">%ge Presence</span> -->
 

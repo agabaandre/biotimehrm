@@ -156,7 +156,8 @@ td{
 <th class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color; ?>"><?php echo $i; ?></th>
 
 <?php } ?>
-<th class="cell" style="width:10%;">Total</th>
+<th class="cell" style="width:10%;">Total Hours</th>
+<th class="cell" style="width:10%;">Total Days</th>
 </tr> 	
 
 </thead>
@@ -262,6 +263,7 @@ foreach($workinghours as $hours) {
 							<?php }//repeat days ?>
 
 							<td class="cell" style="width:5%;"><?php  echo array_sum($personhrs); ?></td>
+							<td class="cell" style="width:5%;"><?php  echo count($personhrs); ?></td>
 
 
 	
