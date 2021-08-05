@@ -156,8 +156,8 @@ td{
 <th class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color; ?>"><?php echo $i; ?></th>
 
 <?php } ?>
-<th class="cell" style="width:10%;">Total Hours</th>
-<th class="cell" style="width:10%;">Total Days</th>
+<th class="cell" style="width:10%;">Hours</th>
+<th class="cell" style="width:10%;">Days</th>
 </tr> 	
 
 </thead>

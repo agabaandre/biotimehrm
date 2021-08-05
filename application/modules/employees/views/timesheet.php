@@ -211,8 +211,8 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 								<span class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color; ?>"><?php echo $i; ?></span>
 							
 							<?php } ?>
-							<span class="cell" style="width:10%;">Total Hrs</span>
-							<span class="cell" style="width:10%;">Total Days</span>
+							<span class="cell" style="width:10%;">Hrs</span>
+							<span class="cell" style="width:10%;">Days</span>
 							<!-- <span class="cell" style="width:10%;">Expected Hours</span>
 							<span class="cell" style="width:10%;">%ge Presence</span> -->
 
