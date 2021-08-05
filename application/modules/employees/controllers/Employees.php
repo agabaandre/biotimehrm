@@ -263,12 +263,15 @@ class Employees extends MX_Controller{
         //download it D save F.
         $this->m_pdf->pdf->Output($filename,'I');
     }
-    Public function print_timelogs(){  
+    public function print_timelogs($datef,$datet,$person,$job)
+    {
+        $data=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode(str_replace('_',' ',$job))),$this->filters);
+     
         $this->load->library('M_pdf');
-        $data=$this->empModel->get_printableTimeLogs();
+       // $data=$this->empModel->get_printableTimeLogs();
         $html=$this->load->view('print_time_logs',$data,true);
-        //$fac=$_SESSION['facility'];
-        $filename="timelogs_report_"."pdf";
+        $fac=$_SESSION['facility'];
+        $filename=$fac.' '."timelogs_report_"."pdf";
         ini_set('max_execution_time',0);
         $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
         $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
