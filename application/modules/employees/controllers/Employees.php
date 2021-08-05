@@ -297,7 +297,7 @@ class Employees extends MX_Controller{
         $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,str_replace("emp","",urldecode($employee)),$this->filters,str_replace("job","",$job));     
         $this->load->library('ML_pdf');
         $fac=$_SESSION['facility_name'];
-        $filename=$fac." Timesheet_Report_".".pdf";
+        $filename=$fac." Timesheet_Report_".$date.".pdf";
         ini_set('max_execution_time',0);
         $html=$this->load->view('print_timesheet',$data,true); 
         $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
