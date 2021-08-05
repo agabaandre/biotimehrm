@@ -296,7 +296,7 @@ class Employees extends MX_Controller{
         }
         $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,str_replace("emp","",urldecode($employee)),$this->filters,str_replace("job","",$job));     
         $this->load->library('ML_pdf');
-        $filename="Timesheet_Report_"."pdf";
+        $filename="Timesheet_Report_".".pdf";
         ini_set('max_execution_time',0);
         $html=$this->load->view('print_timesheet',$data,true); 
         $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
@@ -310,21 +310,9 @@ class Employees extends MX_Controller{
         $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not ml_pdf
         //download it D save F.
         $this->ml_pdf->pdf->Output($filename,'I');
+     
+   
         
-        // $html=$this->load->view('print_timesheet',$data);
-        // $fac=$_SESSION['facility_name'];
-        // $filename=$fac."_timesheet_report_".$date.".pdf";
-        // ini_set('max_execution_time', 0);
-        // $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-        // $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-        // $this->ml_pdf->pdf->showWatermarkImage = true;
-        // date_default_timezone_set("Africa/Kampala");
-        // $userdata=$this->session->get_userdata(); 
-        // $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b><br style='font-size: 9px !imporntant;'>"."Source: iHRIS - HRM Attend " .base_url());
-        //    ini_set('max_execution_time', 0);
-        // $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
-        // //download it D save F.
-        // $this->ml_pdf->pdf->Output($filename, 'I');
     }
     Public function csv_timesheet($month,$year,$employee,$job){  
         $date=$year.'-'.$month;
