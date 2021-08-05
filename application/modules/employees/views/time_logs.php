@@ -85,7 +85,7 @@
               </div><!-- /.card-header -->
               <?php if($this->input->post('date_from')) { ?>
               <a href="<?php echo base_url()?>employees/attCsv/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name').'/'.'position-'.urlencode(str_replace(' ','_',$this->input->post('job'))); ?>" target="" class="btn bt-sm bg-gray-dark color-pale"  style="width:100px; margin-right:2px;" ><i class="fa fa-file-excel"></i>CSV</a>
-              <a href="<?php echo base_url()?>employees/print_timelogs/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name').'/'.'position-'.urlencode(str_replace(' ','_',$this->input->post('job'))); ?>" target="" class="btn bt-sm bg-gray-dark color-pale"  style="width:100px;" traget="_blank" ><i class="fa fa-file-pdf-o"></i>PDF</a>
+              <a href="<?php echo base_url()?>employees/print_timelogs/<?php echo $this->input->post('date_from').'/'.$this->input->post('date_to').'/'.'person'.$this->input->post('name').'/'.'position-'.urlencode(str_replace(' ','_',$this->input->post('job'))); ?>" target="" class="btn bt-sm bg-gray-dark color-pale"  style="width:100px;" traget="_blank" ><i class="fa fa-file-pdf"></i>PDF</a>
 
               <?php } ?>
               <p class="pagination"><?php echo $links;
