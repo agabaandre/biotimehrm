@@ -99,15 +99,15 @@ td{
     
     ?>
 
-    <td colspan=<?php //echo $allcols; ?> style="border-right: 0; border-left: 0; border-top: 0;">
+    <td colspan=4 style="border-right: 0; border-left: 0; border-top: 0;">
       <h2>
 
-      TIME LOGS REPORT <br>
+      STAFF TIME LOG REPORT <br>
 
       <?php
-       //echo //$duties[0]['facility']."<br>"; 
+      echo $_SESSION['facility_name']."<br>"; 
 
-      //echo date('F, Y',strtotime(date()));
+
 
       ?>
 
@@ -116,7 +116,7 @@ td{
                     <tr>
                         <th>#</th>
                         <th>NAME</th>
-                        <th>FACILITY</th>
+                        <th>JOB</th>
                         <th>DATE</th>
                         <th>TIME IN</th>
                         <th>TIME OUT</th>
@@ -127,16 +127,17 @@ td{
                   <tbody>
 
                     <?php 
-
+                   
+                   //print_r($logs);
                     $no=0;
 
-                    foreach($timelogs as $timelog) {
+                    foreach($logs as $timelog) {
                       $no++;
                      ?>
                     <tr>
                       <td><?php echo $no; ?></td>
                       <td><?php echo $timelog->surname." ".$timelog->firstname; ?></td>
-                      <td><?php echo $timelog->facility; ?></td>
+                      <td><?php echo $timelog->job; ?></td>
                       <td><?php echo $timelog->date; ?></td>
                       <td><?php echo date('H:i:s', strtotime($timelog->time_in)); ?></td>
 `                     <td><?php  if (!empty($time_out=$timelog->time_out)) { echo date('H:i:s', strtotime($time_out=$timelog->time_out));} ?></td>

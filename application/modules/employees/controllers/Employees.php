@@ -268,21 +268,18 @@ class Employees extends MX_Controller{
     }
     public function print_timelogs($datef,$datet,$person,$job)
     {
-        $data['timelogs']=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode(str_replace('_',' ',$job))),$this->filters);
-     
+        $data['logs']=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode(str_replace('_',' ',$job))),$this->filters);
         $this->load->library('ML_pdf');
-       // $data=$this->empModel->get_printableTimeLogs();
-        $html=$this->load->view('print_time_logs',$data,true);
-        $fac=$_SESSION['facility'];
-        $filename=$fac.' '."timelogs_report_"."pdf";
+        $filename="Staff_Timelog_Report_"."pdf";
         ini_set('max_execution_time',0);
+        $html=$this->load->view('print_time_logs',$data,true); 
         $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
         $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
         $this->ml_pdf->pdf->showWatermarkImage = true;
-        date_default_timezone_set("Africa/Kampala");
-        $this->ml_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b><br style='font-size: 9px !imporntant;'>"."Source: iHRIS - HRM Attend " .base_url());
+        date_default_timezone_set("Africa/Kampala"); 
+        $this->ml_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b><br style='font-size: 9px !imporntant;'>"." Source: iHRIS - HRM Attend " .base_url());
         $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-        $this->ml_pdf->showWatermarkImage = true; 
+        $this->ml_pdf->showWatermarkImage = true;
         ini_set('max_execution_time',0);
         $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not ml_pdf
         //download it D save F.
