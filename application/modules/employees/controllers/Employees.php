@@ -123,7 +123,10 @@ class Employees extends MX_Controller{
       } 
       if(!empty($hours_worked)){
       }
-        $days =array("NAME"=>$data->surname." ".$data->firstname." ". $data->othername,"JOB"=>$data->job, "FACILITY"=>$data->fac,"DEPARTMENT"=>$data->department, "DATE"=>$data->date, "TIME IN"=>$data->time_in,"TIME OUT"=>$data->time_out,"HOURS WORKED"=>$hours);
+
+      if (!empty($time_out=$data->time_out)) { $dtimeout=date('H:i:s', strtotime($time_out=$data->time_out)); }
+       $dtimein=date('H:i:s', strtotime($time_in=$data->time_in));
+        $days =array("NAME"=>$data->surname." ".$data->firstname." ". $data->othername,"JOB"=>$data->job, "FACILITY"=>$data->fac,"DEPARTMENT"=>$data->department, "DATE"=>$data->date, "TIME IN"=>$dtimein,"TIME OUT"=>$dtimeout,"HOURS WORKED"=>$hours);
         array_push($records,$days);
     }
     $is_coloumn = true;
@@ -265,25 +268,25 @@ class Employees extends MX_Controller{
     }
     public function print_timelogs($datef,$datet,$person,$job)
     {
-        $data=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode(str_replace('_',' ',$job))),$this->filters);
+        $data['timelogs']=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode(str_replace('_',' ',$job))),$this->filters);
      
-        $this->load->library('M_pdf');
+        $this->load->library('ML_pdf');
        // $data=$this->empModel->get_printableTimeLogs();
         $html=$this->load->view('print_time_logs',$data,true);
         $fac=$_SESSION['facility'];
         $filename=$fac.' '."timelogs_report_"."pdf";
         ini_set('max_execution_time',0);
         $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-        $this->m_pdf->pdf->showWatermarkImage = true;
+        $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+        $this->ml_pdf->pdf->showWatermarkImage = true;
         date_default_timezone_set("Africa/Kampala");
-        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b><br style='font-size: 9px !imporntant;'>"."Source: iHRIS - HRM Attend " .base_url());
-        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-        $this->m_pdf->showWatermarkImage = true; 
+        $this->ml_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b><br style='font-size: 9px !imporntant;'>"."Source: iHRIS - HRM Attend " .base_url());
+        $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+        $this->ml_pdf->showWatermarkImage = true; 
         ini_set('max_execution_time',0);
-        $this->m_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
+        $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not ml_pdf
         //download it D save F.
-        $this->m_pdf->pdf->Output($filename,'I');
+        $this->ml_pdf->pdf->Output($filename,'I');
     }
     Public function print_timesheet($month,$year,$employee,$job){  
         $this->load->library('ML_pdf');
