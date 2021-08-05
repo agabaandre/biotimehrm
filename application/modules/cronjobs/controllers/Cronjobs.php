@@ -218,9 +218,9 @@ $this->log($msg);
 
 
 }
-public function getAllEmployees(){
+public function getMohEmployees(){
 
-$qry=$this->db->query("SELECT distinct ihris_pid,department_id,facility_id FROM ihrisdata WHERE ihrisdata.facility_id IN (SELECT distinct(facility_id) FROM clk_log)");
+$qry=$this->db->query("SELECT distinct ihris_pid,department_id,facility_id FROM ihrisdata WHERE ihrisdata.facility_id IN ('facility|787')");
 
 	$employees=$qry->result();
 	return $employees;
@@ -230,13 +230,14 @@ public function isWeekend($date) {
   return ($day>= 6);
  }
  
-public function autoFillRosta(){
+ //duty roster moh
+public function AutoMohRoster(){
 
   date_default_timezone_set('Africa/Kampala');
   ignore_user_abort(true);
   ini_set('max_execution_time',0);
   
-  $employees=$this->getAllEmployees();
+  $employees=$this->getMohEmployees();
   
   $year=date('Y');
   
@@ -261,7 +262,7 @@ public function autoFillRosta(){
   date_add($tommorodate,date_interval_create_from_date_string("1 days"));
   $end=date_format($tommorodate,'Y-m-d');
   //weekend for Ministry of health only
-  if ($this->isWeekend($dayDate)&& $facility_id='facility|787'){
+  if ($this->isWeekend($dayDate)){
       
       $duty="17";
       $color='#d1a110';
@@ -297,6 +298,81 @@ public function autoFillRosta(){
    $this->log($message);
   
   }
+
+  //duty roster for other facilities
+  public function getOtherEmployees(){
+
+    $qry=$this->db->query("SELECT distinct ihris_pid,department_id,facility_id FROM ihrisdata WHERE ihrisdata.facility_id IN (SELECT facility_id from clk_log where facility_id='facility|787')");
+    
+      $employees=$qry->result();
+      return $employees;
+    }
+   
+     
+    public function AutoRosterOthers(){
+    
+      date_default_timezone_set('Africa/Kampala');
+      ignore_user_abort(true);
+      ini_set('max_execution_time',0);
+      
+      $employees=$this->getOtherEmployees();
+      
+      $year=date('Y');
+      
+      foreach($employees as $employee){
+      
+      
+      for($m=1;$m<=12;$m++){
+          
+      $month_days = cal_days_in_month(CAL_GREGORIAN, $m,$year); 
+      
+      for($d=1;$d<=$month_days;$d++){//
+      
+      $dDate = $year."-".$m."-".$d;
+      $date = strtotime($dDate);
+      $dayDate= date('Y-m-d', $date);
+      $hris_pid=$employee->ihris_pid;
+      $facility_id=$employee->facility_id;
+      $entry_id=$dayDate.$hris_pid;
+      $department_id=$employee->department_id;
+      $duty_date=$dayDate;
+      $tommorodate=date_create($dayDate);
+      date_add($tommorodate,date_interval_create_from_date_string("1 days"));
+      $end=date_format($tommorodate,'Y-m-d');
+      //weekend for Ministry of health only
+      if ($dayDate){
+          
+        $duty="14";
+        $color="#297bb2";
+      }
+  
+      
+      $data = array(
+        'entry_id' =>$entry_id ,
+        'facility_id'=>$facility_id,
+        'department_id'=>$department_id,
+        'ihris_pid'=>$hris_pid,
+        'schedule_id'=>$duty,
+        'color'=>$color,
+        'duty_date'=>$duty_date,
+        'end'=>$end,
+        'allDay'=>'true'
+      
+       );
+      
+        $query=$this->db->replace('duty_rosta',$data);
+      
+      }//
+      
+      
+      }
+      
+      }//3000
+       $message="Created ".$this->db->affected_rows();
+       $this->log($message);
+      
+      }
+    
 
 
 public function requesttoActuals(){ 
