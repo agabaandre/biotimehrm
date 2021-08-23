@@ -151,3 +151,4 @@
 {"REQUEST DETAILS: 2021-08-04 23:13:00 Time": "<font color='green'>6  Attendance Records Marked<\/font><br>"},
 {"REQUEST DETAILS: 2021-08-04 23:13:00 Time": " Checkin 61"},
 {"REQUEST DETAILS: 2021-08-05 00:21:17 Time": "Created 2"},
+{"REQUEST DETAILS: 2021-08-19 16:18:54 Time": "1 saveEnrolled() add_enrolled() Created Enrolled users from Biotime 788"},
