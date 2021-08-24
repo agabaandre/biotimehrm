@@ -49,7 +49,7 @@ defined('FOPEN_WRITE_CREATE_STRICT')            OR define('FOPEN_WRITE_CREATE_ST
 defined('FOPEN_READ_WRITE_CREATE_STRICT')       OR define('FOPEN_READ_WRITE_CREATE_STRICT', 'x+b');
 //defined('BIO_URL')  OR define('BIO_URL', 'http://172.27.1.101:8095/');
 defined('BIO_URL')  OR define('BIO_URL', 'http://attendance.health.go.ug:8095/');
-defined('iHRIS_URL')  OR define('iHRIS_URL', 'http://172.27.1.110/');
+defined('iHRIS_URL')  OR define('iHRIS_URL', 'http://154.72.198.134/');
 
 /*
 |--------------------------------------------------------------------------
