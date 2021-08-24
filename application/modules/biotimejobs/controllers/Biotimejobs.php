@@ -85,7 +85,7 @@ class Biotimejobs extends MX_Controller {
             'Accept' => 'application/json',
         ];
         
-        $response = $http->sendiHRISRequest('apiv1/ihrisdata',"GET",$headers,[]);
+        $response = $http->sendiHRISRequest('apiv1/api/ihrisdata/',"GET",$headers,[]);
 
         if($response){
          $message= $this->biotimejobs_mdl->add_ihrisdata($response);
