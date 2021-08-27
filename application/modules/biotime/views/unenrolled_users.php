@@ -24,7 +24,7 @@
                       <th>Job</th>
       
                       <th>Card Number</th>
-                      <th>Enroll</th>
+
                     
                   </tr>
                   </thead>
@@ -36,7 +36,7 @@
                                               <tr>
                                               <td data-label="No"><?php echo $i++; ?> </td>
                                               <td data-label="Staff iHRIS ID"><?php echo str_replace('person|','',$staff->ihris_pid); ?></td>
-                                              <td data-label="NAME"><?php echo $staff->surname." ".$staff->firstname; ?> 
+                                              <td data-label="NAME"><?php echo $staff->fullname." ".$staff->othername; ?> 
                                               </td>
 
                      
@@ -50,8 +50,7 @@
                                                    $surname=$staff->surname;
                                                    $firstname=$staff->firstname
                                              ?>
-                                              <td data-label="ATT STATUS"><a href="<?php echo base_url("biotimejobs/create_new_biotimeuser/").$firstname.'/'.$surname.'/'.$card_number.'/'.urlencode($facility_id).'/'.urlencode('dep'.$dep).'/'.urlencode($job_id); ?>" class="btn btn-default" target="_blank"><i class="fa fa-fingerprint"></i>Enroll</button></t)d>
-                                              
+                                               
                                              
                                               </tr>
                                               <?php   } ?>
