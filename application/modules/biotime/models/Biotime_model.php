@@ -31,12 +31,12 @@ return $this->db->get('biotime_devices')->result();
 
 }
 public function get_enrolled(){
-  $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility'");
+  $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device IS NOT NULL");
 return $query->result(); 
 }
 public function get_new_users(){
     $facility=$_SESSION['facility'];
-    $query=$this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
+    $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device IS NULL");
  return $query->result();
  }
  public function get_new_deps(){
