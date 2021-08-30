@@ -116,7 +116,7 @@ Highcharts.setOptions({
         "responsive": true,
         lengthMenu: [
             [ 25, 50, 100,150, -1 ],
-            [ '25 rows', '50 rows', '100 rows','150 rows','200 rows', 'Show all' ]
+            [ '25', '50', '100','150','200', 'Show all' ]
         ],
       
         buttons: [
