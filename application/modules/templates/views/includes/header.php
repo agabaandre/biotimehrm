@@ -129,7 +129,14 @@ body::-webkit-scrollbar-thumb
     font-size: 12px !important;
   }
 
-  .buttons-html5 .buttons-page-length{
+  .buttons-html5 {
+    font-size: 12px !important;
+    background:#343a40!important;
+    margin:6px;
+    border-radius:4px;
+
+  }
+  .buttons-page-length {
     font-size: 12px !important;
     background:#343a40!important;
     margin:6px;
