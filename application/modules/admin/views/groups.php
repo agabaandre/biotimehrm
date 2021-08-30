@@ -4,6 +4,8 @@
 
 $groups=Modules::run('auth/getUserGroups');
 $permissions=Modules::run('auth/getPermissions');
+$gpermissions=Modules::run('auth/groupPermissions',$this->session->flashdata('group'));
+
 
 $this->load->view('auth/add_perm_modal');
 //include('add_perm_modal.php');
@@ -32,13 +34,13 @@ $this->load->view('auth/add_perm_modal');
   <div class="container-fluid">
       <div class="row">
 <div class="row col-lg-12">
-
           <div class="col-md-6 pull-left" >
               <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title">Select Group <h3>
                       
                 </div>
+                <?php //print_r($gpermissions); ?>
                 <div class="panel-body">
 
                   <a href="#newgrp" class="btn btn-info btn-sm" data-toggle="modal" >Create a group</a>
@@ -51,16 +53,16 @@ $this->load->view('auth/add_perm_modal');
                   <form id="group_form" method="post" action="<?php echo base_url(); ?>auth/assignPermissions">
                     
                   <div class="form-group">
-
+                  <?php   $selgroup=$this->session->flashdata('group');?>
                     <div class="input-group">
 
-                  <select  class="form-control" name="group" style="min-width:300px; text-transform:capitalize;" >
+                  <select  class="form-control" name="group" style="min-width:300px; text-transform:capitalize;"  onchange="this.form.submit()">
                   <?php
 
 
                   foreach($groups as $group){  ?>
 
-                  <option value="<?php echo $group->group_id; ?>"><?php echo $group->group_name; ?></option>
+                  <option value="<?php echo $group->group_id; ?>" <?php if($group->group_id==$selgroup){ echo "selected";} ?>><?php echo $group->group_name; ?></option>
 
                   <?php } ?>
                   </select>
@@ -73,7 +75,7 @@ $this->load->view('auth/add_perm_modal');
                     <?php foreach ($permissions as $perm): ?>
                     
                       <tr>
-                      <td><?php echo $perm->definition; ?></td><td><input style="display: block; "  name="permissions[]" value="<?php echo $perm->id; ?>" type="checkbox"></td>
+                      <td><?php echo $perm->definition; ?></td><td><input style="display: block; "  name="permissions[]" value="<?php echo $perm->id; ?>" type="checkbox" <?php if (in_array($perm->id,$gpermissions)) echo "checked"; ?>></td>
                       
                       </tr>
 

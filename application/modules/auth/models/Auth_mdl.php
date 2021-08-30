@@ -377,6 +377,12 @@ public function blockUser($postdata){
 		return $perms;
 	}
 
+	public function groupPermissions($group){
+		$query=$this->db->query("SELECT permissions.id, name, definition,group_id,group_permissions.permission_id from permissions,group_permissions where permissions.id=group_permissions.permission_id and group_id='$group'");
+		$perms=$query->result_array();
+		return $perms;
+	}
+
 	public function getGroupPerms($groupId=FALSE){
 
     $this->db->where('group_id',$groupId);

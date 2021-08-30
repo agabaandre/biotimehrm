@@ -574,6 +574,17 @@ public function getPermissions(){
     return $perms;
 
 }
+public function groupPermissions($group=FALSE){
+   $fperms=array();
+  $perms=$this->auth_mdl->groupPermissions($group);
+  foreach($perms as $perm){
+    $perm['id'];
+    array_push($fperms,$perm['id']);
+  }
+
+  return $fperms;
+
+}
 
 public function getGroupPerms($groupId=FALSE){
 
@@ -586,10 +597,11 @@ public function getGroupPerms($groupId=FALSE){
 
     public function savePermissions(){
       $data=$this->input->post();
+     
       $post_d=$this->auth_mdl->savePermissions($data);
 
         if($post_d){
-          $msg ="Permission is Saved successfully";
+          $msg ="PermissionassignPermissions is Saved successfully";
 
           Modules::run('utility/setFlash',$msg);
           redirect('admin/groups');
@@ -598,6 +610,9 @@ public function getGroupPerms($groupId=FALSE){
     }
 
     public function assignPermissions(){
+      $this->session->set_flashdata('group',$this->input->post('group'));
+
+       if(!empty($this->input->post('assign'))){
        $data=$this->input->post();
        
         $groupId=$data['group'];
@@ -619,9 +634,11 @@ public function getGroupPerms($groupId=FALSE){
         $msg ="Assignments have been Saved successfully";
 
         Modules::run('utility/setFlash',$msg);
+        }}
         redirect('admin/groups');
+        
 
-        }
+        
        
     }
 
