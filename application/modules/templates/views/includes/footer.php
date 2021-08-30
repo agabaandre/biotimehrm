@@ -114,6 +114,7 @@ Highcharts.setOptions({
         "info": true,
         "autoWidth": false,
         "responsive": true,
+        "lengthMenu": [10, 25, 50, "All"],
         buttons: [
             'copyHtml5',
             'excelHtml5',
