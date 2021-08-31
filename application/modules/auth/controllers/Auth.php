@@ -355,7 +355,7 @@ echo  $res;
  public function blockUser(){
 
 $postdata=$this->input->post();
-print_r ($postdata);
+//print_r ($postdata);
 
 
 $res=$this->auth_mdl->blockUser($postdata);

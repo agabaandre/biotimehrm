@@ -29,6 +29,9 @@ $variables=Modules::run("svariables/getSettings");
                       <button type="submit" class="btn btn-info btn-outline">Save</button>
                     <button type="reset" class="btn  btnkey bg-gray-dark color-pale ">Reset All</button>
                 </div>
+                <div class="col-md-12" style="margin:0 auto;">
+					<span class="status"></span>
+                </div>
                     <div class="col-sm-4">
                       <!-- text input -->
                       <div class="form-group">
@@ -39,7 +42,7 @@ $variables=Modules::run("svariables/getSettings");
                     <div class="col-sm-4">
                       <div class="form-group">
                         <label>User Group</label>
-                    <select name="role"  style="width:100%;" class="form-control role select2"  required>
+                    <select name="role"  style="width:100%;" class="role form-control select2"  required>
                     <option value="" disabled selected>USER GROUP</option>
                     <?php  foreach($usergroups as $usergroup): 
                                   ?>
@@ -74,7 +77,7 @@ $variables=Modules::run("svariables/getSettings");
                     <div class="col-sm-4">
                       <div class="form-group">
                         <label>District</label>
-                        <select onchange="$('.district').val(changeVal(this));" name="district_id"  class="form-control select2" style="width:100%;">
+                        <select onchange="$('.district').val(changeVal(this));" name="district_id"  class="form-control select2 district" style="width:100%;">
                     <option value="" disabled selected>DISTRICT</option>
                     <?php  foreach($districts as $district): 
                                   ?>
@@ -88,7 +91,7 @@ $variables=Modules::run("svariables/getSettings");
                     <div class="col-sm-4">
                       <div class="form-group">
                         <label>Facility</label>
-                        <select onchange="$('.facility').val(changeVal(this))" name="facility_id" class="form-control select2" style="width:100%;" >
+                        <select onchange="$('.facility').val(changeVal(this))" name="facility_id" class="form-control select2 facility" style="width:100%;" >
                     
                             <option value="" disabled selected>FACILITY</option>
                             <?php  foreach($facilities as $facility): 
@@ -106,7 +109,7 @@ $variables=Modules::run("svariables/getSettings");
                     <div class="col-sm-4">
                       <div class="form-group">
                         <label>Department</label>
-                        <select onchange="$('.department').val(changeVal(this))" name="department_id"  class="form-control select2" style="width:100%;">
+                        <select onchange="$('.department').val(changeVal(this))" name="department_id"  class="form-control select2 department" style="width:100%;">
                     <option value="" disabled selected>DEPARTMENT</option>
                     <?php  foreach($departments as $department): 
                                   ?>
@@ -257,11 +260,12 @@ $('.role').change(function(){
     
     
     var role=$(this).val();
-    
-    if(role=="District-Officer"){
+    //show or hide fields
+    if(role=="District"){
         
         $('.district').show();
         $('.facility').hide();
+        $('.department').hide();
         
     }
     
@@ -269,6 +273,7 @@ $('.role').change(function(){
         
         $('.district').hide();
         $('.facility').show();
+        $('.department').show();
         
         
     }

@@ -6,7 +6,7 @@
 
 					<h4>Block user <b><?php echo $user->name; ?></b> ?</h4>
 
-					<span class="status"></span>
+					<span class="status" style="margin:0 auto;"></span>
 
 						<input type="hidden" name="user_id" value="<?php echo $user->user_id; ?>">
 						

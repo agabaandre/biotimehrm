@@ -7,12 +7,8 @@ $permissions=Modules::run('auth/getPermissions');
 $gpermissions=Modules::run('auth/groupPermissions',$this->session->flashdata('group'));
 
 
-$this->load->view('auth/add_perm_modal');
-//include('add_perm_modal.php');
+$this->load->view('admin/add_perm_modal');
 
-//print_r($groups);
-
-//print_r($permissions);
 
 
 ?>
@@ -130,8 +126,9 @@ $this->load->view('auth/add_perm_modal');
 
                         <div class="modal-content">
                           <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                           
                             <h4 class="modal-title">Permissions for <?php echo ucwords($group->group_name); ?></h4>
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
                           </div>
                           <div class="modal-body" style="padding-left:3em;">
                            <?php  
@@ -181,8 +178,9 @@ $this->load->view('auth/add_perm_modal');
     <!-- Modal content-->
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+  
         <h4 class="modal-title">Add group</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
       </div>
       <div class="modal-body" style="padding-left:3em;">
     

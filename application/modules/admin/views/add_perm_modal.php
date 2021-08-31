@@ -7,8 +7,9 @@
         <form action="<?php echo base_url(); ?>auth/savePermissions" method="post">
           
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        
         <h4 class="modal-title" style="text-align: center;">Add permission</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
       </div>
       <div class="modal-body" style="padding-left:3em;">
      
