@@ -241,9 +241,6 @@ $variables=Modules::run("svariables/getSettings");
 </div>
 </div>
 
-1
-
-
 
 
 <script>
