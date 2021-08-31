@@ -104,6 +104,7 @@ $variables=Modules::run("svariables/getSettings");
 
                     </select>
                     <input type="hidden" name="facility" class="facility">
+                   
                       </div>
                     </div>
                     <div class="col-sm-4">
@@ -113,10 +114,10 @@ $variables=Modules::run("svariables/getSettings");
                     <option value="" disabled selected>DEPARTMENT</option>
                     <?php  foreach($departments as $department): 
                                   ?>
-                    <option value="<?php echo $department->department_id; ?>"><?php echo $department->department; ?></option>
+                    <option value="<?php echo $department->department_id; ?>"><?php echo $department->department_id; ?></option>
                                 <?php endforeach; ?>
                 </select>
-                <input type="hidden" name="department" class="department">
+              
                       </div>
                     </div>
 

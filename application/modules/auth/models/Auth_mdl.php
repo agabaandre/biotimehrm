@@ -222,11 +222,38 @@ public function addUser($postdata){
 
 public function updateUser($postdata){
 
+	$distid=$postdata['district_id'];
+	$facid=$postdata['facility_id'];
+	$depid=$postdata['user_id'];
+
+	//get district
+	$distname=$this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
+    $distn=$distname->row()->district;
+	//get facility
+	$facname=$this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
+    $facn=$facname->row()->facility;
+
+
+	$savedata=array(
+		"name"=>$postdata['name'],
+		"district"=>$distn,
+		"district_id"=>$postdata['district_id'],
+		"facility_id"=>$postdata['facility_id'],
+		"facility"=>$facn,
+		'email'=>$postdata['email'],
+		"department"=>$postdata['department_id'],
+		"department_id"=>$postdata['department_id'],
+		"role"=>$postdata['role']
+
+
+
+	);
+
     $uid=$postdata['user_id'];
 
 	$this->db->where('user_id',$uid);
 
-	$this->db->update($this->table,$postdata);
+	$this->db->update($this->table,$savedata);
 	$rows=$this->db->affected_rows();
 
 	if($rows>0){

@@ -37,39 +37,40 @@
               <div class="col-md-12" style="margin: 0 auto">
                 <strong style="margin-right: 1em;">District </strong> 
                 <select onchange="$('.district').val(changeVal(this));" name="district_id"  class="form-control select2" style="width:100%;">
-                <option value="<?php echo $user->district_id; ?>"><?php echo $user->district; ?>
+          
                     <?php  foreach($districts as $district): 
                                   ?>
-                    <option value="<?php echo $district->district_id; ?>"><?php echo $district->district; ?></option>
+                    <option value="<?php echo $district->district_id; ?>" <?php if($user->district==$district->district){ echo "selected";} ?> ><?php echo $district->district; ?></option>
                                 <?php endforeach; ?>
                     </select>
-                    <input type="hidden" name="district" class="district">
+                   
                     <br>
                 <strong style="margin-right: 1em;">Facility</strong> 
                 <select onchange="$('.facility').val(changeVal(this))" name="facility_id" class="form-control select2" style="width:100%;" >
-                    
-                <option value="<?php echo $user->facility_id; ?>"><?php echo $user->facility; ?>
+              
                     <?php  foreach($facilities as $facility): 
+
                                 ?>
-                    <option value="<?php echo $facility->facility_id; ?>">
+                                
+                    <option value="<?php echo $facility->facility_id; ?>"  <?php if($user->facility_id==$facility->facility_id){ echo "selected"; } ?>>
                         <?php echo $facility->facility; ?>
                     
                 </option>
                 <?php endforeach; ?>
 
             </select>
-            <input type="hidden" name="facility" class="facility">
+         
 
                 <br><br>
                 <strong style="margin-right: 1em;">Department </strong> 
-                <select onchange="$('.department').val(changeVal(this))" name="department_id"  class="form-control select2" style="width:100%;">
+                <select name="department_id"  class="form-control select2" style="width:100%;">
                     <option value="" disabled selected>DEPARTMENT</option>
                     <?php  foreach($departments as $department): 
                                   ?>
-                    <option value="<?php echo $department->department_id; ?>"><?php echo $department->department; ?></option>
+                    <option value="<?php echo $department->department_id; ?>"  <?php if($user->department_id==$department->department_id){ echo "selected";} ?>><?php echo $department->department_id; ?></option>
                                 <?php endforeach; ?>
                 </select>
-                <input type="hidden" name="department" class="department">
+        
              
             
                   <input type="hidden" name="user_id" value="<?php echo $user->user_id; ?>">
