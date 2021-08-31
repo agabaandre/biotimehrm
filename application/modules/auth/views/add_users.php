@@ -141,7 +141,7 @@ $variables=Modules::run("svariables/getSettings");
                 <div class="form-group col-md-5">
                 <label>Advanced User Search</label>
                 <div class="input-group mb-3">
-                  <input type="text" name="search_key" class="form-control" placeholder="Username">
+                  <input type="text" name="search_key" class="form-control" placeholder="Username or Name">
                   <div class="input-group-append">
                     <button class="btn btn-default" type="submit">Search</button>
                   </div>
