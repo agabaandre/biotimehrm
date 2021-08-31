@@ -13,7 +13,7 @@ Class Department_model extends CI_Model
     //gets all departments from the department table
     public function getAll_departments(){
       
-      $qry=$this->db->get($this->table);
+      $qry=$this->db->query("SELECT distinct department from ihrisdata  where department='' order by department ASC");
 
       return $qry->result();
 

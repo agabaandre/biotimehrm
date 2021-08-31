@@ -238,62 +238,11 @@ class Auth extends MX_Controller {
 
      	$postdata=$this->input->post();
 
-
- //     	$userfile=$postdata['username'];
-
-
- //     	//CHECK whether user upload a photo
-
- //     	if(!empty($_FILES['photo']['tmp_name'])){
-
-
- //      $config['upload_path']   = './assets/images/sm/'; 
-
- //      $config['allowed_types'] = 'gif|jpg|png'; 
-
- //      $config['max_size']      = 15000;
- //      $config['file_name']      = $userfile;
-
- //      $this->load->library('upload', $config);
-
-	
-	// if ( ! $this->upload->do_upload('photo')) {
-
- //         $error = $this->upload->display_errors(); 
-
- //         echo strip_tags($error);
-
- //      }else { 
-
- //         $data = $this->upload->data();
-
- //         $photofile =$data['file_name'];
-
- //         $path=$config['upload_path'].$photofile;
-
- //         //water mark the photo
- //         $this->photoMark($path);
-
- //         $postdata['photo']=$photofile;
-
- //         $res=$this->auth_mdl->addUser($postdata);
-
- //      } 
-
-
- //     }//user uploaded with a photo
-
-     //else{
-
        $res=$this->auth_mdl->addUser($postdata);
-       //$res=$this->auth_mdl->insert_user($postdata);
-
-     //}//no photo
-
-      
+     
      echo $res;
 
- }//ftn end
+ }
 
 
 public function updateUser(){

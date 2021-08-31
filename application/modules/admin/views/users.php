@@ -189,7 +189,8 @@ foreach($groups as $group){  ?>
 
 
 
-<div class="col-md-8">
+
+<div class="col-md-12">
    <!-- general form elements -->
           <div class="box">
             <div class="box-header with-border">
@@ -499,7 +500,7 @@ $('#user_form').submit(function(e){
   var data=$(this).serialize();
   var url='<?php echo base_url(); ?>admin/add_user'
 
-  $.ajax({url:url,
+$.ajax({url:url,
 method:"post",
 data:data,
 dataType:'json',
