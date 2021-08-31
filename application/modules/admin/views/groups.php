@@ -49,10 +49,11 @@ $this->load->view('admin/add_perm_modal');
                   <form id="" method="post" action="<?php echo base_url(); ?>auth/assignPermissions">
                     
                   <div class="form-group">
+                
                   <?php   $selgroup=$this->session->flashdata('group');?>
-                    <div class="input-group">
+                  <div class="input-group">
 
-                  <select  class="form-control" name="group" style="min-width:300px; text-transform:capitalize;"  onchange="this.form.submit()">
+                  <select  id="changeugroup" class="form-control" name="group" style="min-width:300px; text-transform:capitalize;"  onchange="this.form.submit()">
                   <?php
 
 
@@ -66,13 +67,14 @@ $this->load->view('admin/add_perm_modal');
 
                   </div>
                   
-                
+                  <button type="submit" class="btn btn-info" >Save Group Permissions</button>
+                   <br>
                   <table border="0" class="table">
-                      <tr style="background: #343a40; color:#fff; border-radius:4px;">
-                      <td><?php echo "<p style='color:17a2b8;'>Turn on/off Permission Assignment</p>"; ?></td><td><input style="display: block; "  name="assign" value="assign" type="checkbox" class="btn btn-primary" checked></td>
+                      <tr style="background: #dee2e6; color:#17a2b8; border-radius:4px;">
+                      <td><?php echo "<p style='color:;'>Turn on/off Permission Assignment</p>"; ?></td><td><input style="display: block; "  name="assign" value="assign" type="checkbox" class="btn btn-primary" checked></td>
                       
                     </tr>
-                    <tr style="background: #343a40; color:#fff; border-radius:4px;">
+                    <tr style="background: #dee2e6; color:#17a2b8; border-radius:4px;">
                       <td><?php echo "<p style='color:17a2b8;'>Grant All Permissions</p>"; ?></td><td><input style="display: block;" id="checkAll"  type="checkbox"  class="btn btn-primary"></td>
                   </tr>
 
@@ -198,9 +200,8 @@ $this->load->view('admin/add_perm_modal');
     </div>
       
       </div>
-      <div class="modal-footer">
-          <button type="submit" class="btn btn-default" >Save Group</button>
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      
+        
       </div>
       </form>
     </div>
@@ -225,23 +226,7 @@ $('#group_form').submit(function(e){
 
   var data=$(this).serialize();
   var url='<?php echo base_url(); ?>admin/groupAllow'
-  
-  
-  /* var allperms = [];
-
-     $('input[type="checkbox"]:checked').each(function () {
-     
-       allperms.push($(this).val());
-     });
-     
-   
-     
-     var group=  $('input[name="group"]').val();
-    
-    
-      alert(allperms+group);
-      */
-      
+ 
 
 $.ajax({url:url,
 method:"post",
@@ -267,143 +252,6 @@ success:function(res){
 
 
 });//form submit
-
-
-
-
-
-$('.user_edit').submit(function(e){
-
-  e.preventDefault();
-
- var fac=$('#facility').val();
-
- if(fac==''){
-
-$('.suc2').html("<center><font color='red'> Select New Facility</font></center>");
-
- }
-
- else
-
- {
-
-  var data=$(this).serialize();
-  var url='<?php echo base_url(); ?>admin/edit_user'
-
-  $.ajax({url:url,
-method:"post",
-data:data,
-dataType:'json',
-success:function(res){
-
-  console.log(res.status);
-
-  if(res.status==="success")
-  {
-
-  $('.suc2').html("<center><font color='green'>User Details Updated</font></center>");
-
-  $('#reset2').click();
-
-}
-else  if(res.status==="fail"){
-
-$('.suc2').html("<center><font color='red'> Update Failed</font></center>");
-
-}
-
-}//success
-
-}); // ajax
-
-
-}//check
-
-
-});//form submit
-
-
-$('.block').click(function(e){
-
-  e.preventDefault();
-
-  var id=$(this).attr('id');
-  var url='<?php echo base_url(); ?>admin/deactivate_user/'+id;
-
-  console.log(id);
-console.log(url);
-
-  $.ajax({url:url,
-success:function(res){
-
-  console.log(res);
-
-  $(".suc").html("<font color='green'>"+res+"</font>");
-
-
- setTimeout(function(){
-
-    window.location.reload();
-
-
-  },3000);
-
-
-}//success
-
-}); // ajax
-
-
-
-});//btn click
-
-
-
-
-//activate
-
-$('.activate').click(function(e){
-
-  e.preventDefault();
-
-  var id=$(this).attr('id');
-  var url='<?php echo base_url(); ?>admin/activate_user/'+id;
-
-  console.log(id);
-console.log(url);
-
-  $.ajax({url:url,
-success:function(res){
-
-  console.log(res);
-
-  $(".suc").html("<font color='green'>"+res+"</font>");
-
-  setTimeout(function(){
-
-    window.location.reload();
-
-
-  },3000);
-
-
-
-}//success
-
-}); // ajax
-
-
-
-});//btn click
-
-
-
-
-
-  });//doc
-  
-
 
 
 </script>
