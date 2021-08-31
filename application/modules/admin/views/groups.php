@@ -46,7 +46,7 @@ $this->load->view('admin/add_perm_modal');
                   <?php  echo $this->session->flashdata("msg"); ?><hr>
 
 
-                  <form id="group_form" method="post" action="<?php echo base_url(); ?>auth/assignPermissions">
+                  <form id="" method="post" action="<?php echo base_url(); ?>auth/assignPermissions">
                     
                   <div class="form-group">
                   <?php   $selgroup=$this->session->flashdata('group');?>
@@ -65,9 +65,18 @@ $this->load->view('admin/add_perm_modal');
                   </div>
 
                   </div>
-
+                  
+                
                   <table border="0" class="table">
+                      <tr style="background: #343a40; color:#fff; border-radius:4px;">
+                      <td><?php echo "<p style='color:17a2b8;'>Turn on/off Permission Assignment</p>"; ?></td><td><input style="display: block; "  name="assign" value="assign" type="checkbox" class="btn btn-primary" checked></td>
+                      
+                    </tr>
+                    <tr style="background: #343a40; color:#fff; border-radius:4px;">
+                      <td><?php echo "<p style='color:17a2b8;'>Grant All Permissions</p>"; ?></td><td><input style="display: block;" id="checkAll"  type="checkbox"  class="btn btn-primary"></td>
+                  </tr>
 
+                   <hr>
                     <?php foreach ($permissions as $perm): ?>
                     
                       <tr>
@@ -201,22 +210,14 @@ $this->load->view('admin/add_perm_modal');
 </div>
 
 
-
+<script>
+   $("#checkAll").click(function () {
+     $('input:checkbox').not(this).prop('checked', this.checked);
+ });
+</script>
 
 <script type="text/javascript">
-
-  $(document).ready(function(){
-
-$('#scheduletbl').slimscroll({
-  height: '400px',
-  size: '5px'
-});
-
-
-$('.timepicker').timepicker({showInputs:false});
-
-
-
+ 
 
 $('#group_form').submit(function(e){
 
@@ -242,7 +243,7 @@ $('#group_form').submit(function(e){
       */
       
 
-  $.ajax({url:url,
+$.ajax({url:url,
 method:"post",
 data:data,
 success:function(res){

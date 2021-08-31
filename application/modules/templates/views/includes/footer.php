@@ -205,12 +205,12 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
       <div class="col-md-12">
                 
                     <label>District</label>
+                   
                     
-                    <select class="form-control select2dist" id="district" name="district" onChange="getFacs($(this).val());">
-                    <option value="" >SELECT District</option>
+                    <select class="sdistrict form-control select2dist" id="district" name="district" onChange="getFacs($(this).val());"  <?php if(!(in_array('34', $permissions))){ echo "disabled"; }?>>
+                    <option value="<?php echo urlencode($_SESSION['district_id'])."_".urlencode($_SESSION['district']); ?>" ><?php echo $_SESSION['district']; ?></option>
                             <?php
-                                // onchange="this.form.submit()" 
-                            //."_".$department->department
+                           
                             $districts=Modules::run("districts/getDistricts");
                                foreach ($districts as $district){
                             ?>
@@ -380,7 +380,9 @@ $(function () {
 </script>
 
 <script>
-
+$("document").ready(function() {
+    $(".sdistrict").change();
+});
 function getFacs(val) {
    
    $.ajax({          
