@@ -10,7 +10,6 @@ $districts=Modules::run("auth/getDistricts");
 $facilities=Modules::run("auth/getFacilities"); 
 $variables=Modules::run("svariables/getSettings"); 
 
-
 //print_r($variables);
 ?>
 
