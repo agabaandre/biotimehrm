@@ -36,7 +36,7 @@
               </div>
               <div class="col-md-12" style="margin: 0 auto">
                 <strong style="margin-right: 1em;">District </strong> 
-                <select onchange="$('.district').val(changeVal(this));" name="district_id"  class="form-control select2" style="width:100%;">
+                <select onchange="getFacs($(this).val());" name="district_id"  class="form-control select2 sditrict" style="width:100%;">
           
                     <?php  foreach($districts as $district): 
                                   ?>
@@ -46,29 +46,25 @@
                    
                     <br>
                 <strong style="margin-right: 1em;">Facility</strong> 
-                <select onchange="$('.facility').val(changeVal(this))" name="facility_id" class="form-control select2" style="width:100%;" >
+                <select onchange="getDeps($(this).val());" name="facility_id" class="form-control select2 sfacility" style="width:100%;" >
               
-                    <?php  foreach($facilities as $facility): 
-
-                                ?>
-                                
-                    <option value="<?php echo $facility->facility_id; ?>"  <?php if($user->facility_id==$facility->facility_id){ echo "selected"; } ?>>
-                        <?php echo $facility->facility; ?>
-                    
+         
+                    <option value="<?php echo $user->facility_id; ?>" >
+                        <?php echo $user->facility; ?>
+      
                 </option>
-                <?php endforeach; ?>
+           
 
             </select>
          
 
                 <br><br>
                 <strong style="margin-right: 1em;">Department </strong> 
-                <select name="department_id"  class="form-control select2" style="width:100%;">
-                    <option value="" disabled selected>DEPARTMENT</option>
-                    <?php  foreach($departments as $department): 
-                                  ?>
-                    <option value="<?php echo $department->department_id; ?>"  <?php if($user->department_id==$department->department_id){ echo "selected";} ?>><?php echo $department->department_id; ?></option>
-                                <?php endforeach; ?>
+                <select name="department_id"  class="form-control select2 sdepartment" style="width:100%;">
+                    
+                <option value="<?php echo $user->department_id; ?>" >
+                        <?php echo $user->department_id; ?>
+                </option>
                 </select>
         
              

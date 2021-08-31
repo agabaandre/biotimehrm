@@ -224,7 +224,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
       <div class="col-md-12">
                 <div class="form-group" >
                     <label>Facility</label>
-                    <select id="facility" name="facility" onChange="getDeps($(this).val());" class="form-control select2dist" required>
+                    <select  name="facility" onChange="getDeps($(this).val());" class="sfacility form-control select2dist" required>
                     <option value="" disabled>All</option>
     
                     </select>
@@ -236,7 +236,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
             <div class="col-md-12">
                 <div class="form-group" >
                     <label>Department</label>
-                    <select id="depart" name="department" onChange="getDivisions($(this).val());" class="form-control select2dist">
+                    <select  name="department" onChange="getDivisions($(this).val());" class="sdepartment form-control select2dist">
                     <option value="">All</option>
                     </select>
                 </div>
@@ -247,7 +247,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
             <div class="col-md-12" style="display:none;">
                 <div class="form-group">
                     <label>Division</label>
-                    <select id="division" class="form-control select2dist" onChange="getUnits($(this).val());" name="division">
+                    <select id="division" class="sdivison form-control select2dist" onChange="getUnits($(this).val());" name="division">
                     <option value="">All</option>
                     </select>
               </div>
@@ -259,7 +259,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                 <!-- < needs fixing> -->
                 <div class="form-group">
                     <label>Section</label>
-                    <select id="section" class="form-control select2dist" onChange="getUnits($(this).val());" name="section">
+                    <select id="section" class="ssection form-control select2dist" onChange="getUnits($(this).val());" name="section">
                     <option value="">All</option>
                     </select>
               </div>
@@ -270,7 +270,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
             <div class="col-md-6">
                   <div class="form-group">
                           <label>Unit</label>
-                    <select id="unit" name="unit" onchange="this.form.submit()" class="form-control select2dist">
+                    <select id="unit" name="unit" onchange="this.form.submit()" class="sunit form-control select2dist">
                     <option value="">All</option>
                          
                     </select>
@@ -377,5 +377,61 @@ $(function () {
       theme: 'bootstrap4'
     })
 });
+</script>
+
+<script>
+
+function getFacs(val) {
+   
+   $.ajax({          
+           method: "GET",
+           url: "<?php echo base_url(); ?>departments/get_facilities",
+           data:'dist_data='+val,
+           success: function(data){
+               //alert(data);
+               $(".sfacility").html(data);
+           }
+   });
+}
+
+function getDeps(val) {
+   
+   $.ajax({          
+           method: "GET",
+           url: "<?php echo base_url(); ?>departments/get_departments",
+           data:'fac_data='+val,
+           success: function(data){
+               //alert(data);
+               $(".sdepartment").html(data);
+           }
+   });
+}
+function getDivisions(val) {
+   
+    $.ajax({          
+            method: "GET",
+            url: "<?php echo base_url(); ?>departments/get_divisions",
+            data:'depart_data='+val,
+            success: function(data){
+                // alert(data);
+                $(".sdivision").html(data);
+            }
+    });
+}
+
+
+function getUnits(val) {
+   
+    $.ajax({          
+            method: "GET",
+            url: "<?php echo base_url(); ?>departments/get_units",
+            data:'division='+val,
+            success: function(data){
+                //alert(data);
+                $(".sunit").html(data);
+            }
+    });
+}
+
 </script>
 

@@ -76,45 +76,36 @@ $variables=Modules::run("svariables/getSettings");
                     <div class="col-sm-4">
                       <div class="form-group">
                         <label>District</label>
-                        <select onchange="$('.district').val(changeVal(this));" name="district_id"  class="form-control select2 district" style="width:100%;">
+                    <select onChange="getFacs($(this).val());" name="district_id"  class="form-control select2 sdistrict" style="width:100%;">
                     <option value="" disabled selected>DISTRICT</option>
                     <?php  foreach($districts as $district): 
                                   ?>
                     <option value="<?php echo $district->district_id; ?>"><?php echo $district->district; ?></option>
                                 <?php endforeach; ?>
                     </select>
-                    <input type="hidden" name="district" class="district">
+                  
                       </div>
                     </div>
 
                     <div class="col-sm-4">
                       <div class="form-group">
                         <label>Facility</label>
-                        <select onchange="$('.facility').val(changeVal(this))" name="facility_id" class="form-control select2 facility" style="width:100%;" >
+                        <select id="facility" onChange="getDeps($(this).val());" name="facility_id" class="form-control select2 sfacility" style="width:100%;" >
                     
                             <option value="" disabled selected>FACILITY</option>
-                            <?php  foreach($facilities as $facility): 
-                                        ?>
-                            <option value="<?php echo $facility->facility_id; ?>">
-                                <?php echo $facility->facility; ?>
-                            
-                        </option>
-                        <?php endforeach; ?>
+              
 
                     </select>
-                    <input type="hidden" name="facility" class="facility">
+                 
                    
                       </div>
                     </div>
                     <div class="col-sm-4">
                       <div class="form-group">
                         <label>Department</label>
-                        <select onchange="$('.department').val(changeVal(this))" name="department_id"  class="form-control select2 department" style="width:100%;">
+                        <select id="department" name="department_id"   class="form-control select2 sdepartment" style="width:100%;">
                     <option value="" disabled selected>DEPARTMENT</option>
-                    <?php  foreach($departments as $department): 
-                                  ?>
-                    <option value="<?php echo $department->department_id; ?>"><?php echo $department->department_id; ?></option>
-                                <?php endforeach; ?>
+                 
                 </select>
               
                       </div>
@@ -188,8 +179,6 @@ $variables=Modules::run("svariables/getSettings");
             <td><?php echo $user->district; ?></td>
             <td><?php echo $user->facility; ?></td>
             <td><?php echo $user->department; ?></td>
-            
-            
             <td><a data-toggle="modal" data-target="#user<?php echo $user->user_id; ?>" href="#">Edit</a>
                 
             <?php if($user->status==1){ ?>
@@ -252,38 +241,13 @@ $variables=Modules::run("svariables/getSettings");
 </div>
 </div>
 
+1
+
+
 
 
 <script>
 
-$('.role').change(function(){
-    
-    
-    var role=$(this).val();
-    //show or hide fields
-    if(role=="District"){
-        
-        $('.district').show();
-        $('.facility').hide();
-        $('.department').hide();
-        
-    }
-    
-    else{
-        
-        $('.district').hide();
-        $('.facility').show();
-        $('.department').show();
-        
-        
-    }
-    
-    
-});
-
-
-
-  
 
 //get selected item
 function changeVal(selTag) {
@@ -301,63 +265,37 @@ $(".user_form").submit(function(e){
 
     e.preventDefault();
 
-
     $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/img/loading.gif">');
-
-
-
     var formData=$(this).serialize();
-    //new FormData(this);
-
-    console.log(formData);
-
+   // console.log(formData);
     var url="<?php echo base_url(); ?>auth/addUser";
-
     $.ajax({
         url: url,
         method:'post',
-        // contentType:false,
-        // processData:false,
         data:formData,
      success: function(result){
-
         console.log(result);
-
         setTimeout(function(){
-
             $('.status').html(result);
-
             $.notify(result,'info');
-
             $('.status').html('');
-
             $('.clear').click();
-
-        },3000);
+        },1000);
         
      
     }
     });//ajax
 
-
 });//form submit
 
 
-
 //Submit user update
-
 $(".update_user").submit(function(e){
-
     e.preventDefault();
-
     $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/img/loading.gif">');
-
     var formData=new FormData(this);
-
     console.log(formData);
-
     var url="<?php echo base_url(); ?>auth/updateUser";
-
     $.ajax({
         url: url,
         method:'post',
@@ -390,34 +328,20 @@ $(".update_user").submit(function(e){
 
 
 $(".reset").submit(function(e){
-
     e.preventDefault();
-
-
     $('.status').html('<img style="max-height:50px" src="<?php echo base_url();?>assets/img/loading.gif">');
-
-
-
     var formData=$(this).serialize();
-
     console.log(formData);
-
     var url="<?php echo base_url(); ?>auth/resetPass";
-
     $.ajax({
         url: url,
         method:'post',
         data:formData,
      success: function(result){
-
-        console.log(result);
-
+       // console.log(result);
         setTimeout(function(){
-
             $('.status').html(result);
-
             $.notify(result,'info');
-
             $('.status').html('');
 
             $('.clear').click();
@@ -522,12 +446,7 @@ $(".unblock").submit(function(e){
 });//form submit
 
 
-
 });//doc ready
-
-
-
-
 
 
 </script>

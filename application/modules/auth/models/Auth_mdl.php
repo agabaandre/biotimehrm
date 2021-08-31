@@ -198,9 +198,19 @@ public function count_Users($key=FALSE){
 
 
 public function addUser($postdata){
+	$distid=$postdata['district_id'];
+	$facid=$postdata['facility_id'];
 	
-
+	//get district
+	$distname=$this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
+    $distn=$distname->row()->district;
+	//get facility
+	$facname=$this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
+    $facn=$facname->row()->facility;
 	$postdata['password']=md5($this->password);
+	$postdata['facility']=$facn;
+	$postdata['department']=$postdata['department_id'];
+	$postdata['district']=$distn;
 
 	$postdata['status']=1;
 	$qry=$this->db->insert($this->table,$postdata);
