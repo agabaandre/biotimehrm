@@ -123,7 +123,7 @@ public function getUser($id){
 
 public function getAll($start,$limit,$key=FALSE){
 	if(!empty($key)){
-	$this->db->like('username','$key','both');
+	$this->db->like("username","$key","after");
 	}
 	//$this->db->limit($start,$start);
 	$this->db->join('user_groups','user_groups.group_id=user.role','left');

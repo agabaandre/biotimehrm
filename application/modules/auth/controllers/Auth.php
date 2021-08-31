@@ -193,7 +193,7 @@ class Auth extends MX_Controller {
 
       $searchkey=$this->input->post('search_key');
       if(empty($searchkey)){
-        $searchkey=NULL;
+        $searchkey="";
       }
 
         $this->load->library('pagination');
@@ -203,29 +203,29 @@ class Auth extends MX_Controller {
         $config['per_page']=20; //records per page
         $config['uri_segment']=3; //segment in url  
             //pagination links styling
-        $config['full_tag_open'] = '<ul class="pagination">';
-        $config['full_tag_close'] = '</ul>';
-        $config['attributes'] = ['class' => 'page-link'];
-        $config['first_link'] = false;
-        $config['last_link'] = false;
-        $config['first_tag_open'] = '<li class="page-item">';
-        $config['first_tag_close'] = '</li>';
-        $config['prev_link'] = '&laquo';
-        $config['prev_tag_open'] = '<li class="page-item">';
-        $config['prev_tag_close'] = '</li>';
-        $config['next_link'] = '&raquo';
-        $config['next_tag_open'] = '<li class="page-item">';
-        $config['next_tag_close'] = '</li>';
-        $config['last_tag_open'] = '<li class="page-item">';
-        $config['last_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-        $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-        $config['num_tag_open'] = '<li class="page-item">';
-        $config['num_tag_close'] = '</li>';
-        $config['use_page_numbers'] = false;
-        $this->pagination->initialize($config);
-        $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
-        $data['links']=$this->pagination->create_links();
+            $config['full_tag_open'] = '<ul class="pagination">';
+            $config['full_tag_close'] = '</ul>';
+            $config['attributes'] = ['class' => 'page-link'];
+            $config['first_link'] = false;
+            $config['last_link'] = false;
+            $config['first_tag_open'] = '<li class="page-item">';
+            $config['first_tag_close'] = '</li>';
+            $config['prev_link'] = '&laquo';
+            $config['prev_tag_open'] = '<li class="page-item">';
+            $config['prev_tag_close'] = '</li>';
+            $config['next_link'] = '&raquo';
+            $config['next_tag_open'] = '<li class="page-item">';
+            $config['next_tag_close'] = '</li>';
+            $config['last_tag_open'] = '<li class="page-item">';
+            $config['last_tag_close'] = '</li>';
+            $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+            $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+            $config['num_tag_open'] = '<li class="page-item">';
+            $config['num_tag_close'] = '</li>';
+            $config['use_page_numbers'] = false;
+            $this->pagination->initialize($config);
+            $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
+            $data['links']=$this->pagination->create_links();
         $data['users']=$this->auth_mdl->getAll($config['per_page'],$page,$searchkey);
         $data['module']="auth";
 		    $data['view']="add_users";

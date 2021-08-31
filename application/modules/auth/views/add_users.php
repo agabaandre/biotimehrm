@@ -136,7 +136,7 @@ $variables=Modules::run("svariables/getSettings");
             <div class="card card-default">
               <div class="card-header">
                 <h3 class="card-title">User List</h3><br>
-                <form class="form-horizontal" action="" method="post" style="margin-top: 4px !important;">
+                <form class="form-horizontal" action="<?php echo base_url()?>auth/users" method="post" style="margin-top: 4px !important;">
 
                 <div class="form-group col-md-5">
                 <label>Advanced User Search</label>
