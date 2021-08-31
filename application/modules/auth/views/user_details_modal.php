@@ -11,6 +11,8 @@
             </div>
             <div class="modal-body"> 
 
+            <span class="status" style="margin:0 auto;"></span>
+
               <form class="update_user" enctype="multipart/form-data" method="post" action="<?php echo base_url(); ?>auth/updateUser">
             <div class="col-md-12">
               <strong style="margin-right: 1em;"> Name </strong> 
