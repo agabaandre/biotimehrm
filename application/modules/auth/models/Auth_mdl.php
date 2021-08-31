@@ -13,42 +13,90 @@ class Auth_mdl extends CI_Model {
 
 	
 public function loginChecker($postdata){
-
 	$username=$postdata['username'];
 	$password=md5($postdata['password']);
 
-	$this->db->where("username",$username);
-	$this->db->where("password",$password);
-	$this->db->where("status",1);
-	$this->db->join('user_groups','user_groups.group_id=user.role');
+	if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
+	 //login using username
+	
+	 $this->db->where("username",$username);
+	 $this->db->where("password",$password);
+	 $this->db->where("status",1);
+	 $this->db->join('user_groups','user_groups.group_id=user.role');
+ 
+	 $qry=$this->db->get($this->table);
+ 
+	 $rows=$qry->num_rows();
+ 
+	 if($rows!==0){
+ 
+	 $person=$qry->row();
+ 
+ 
+	 return $person;
+ 
+	}
+ 
+	else{
+ 
+		$newuser=$this->checkNewUser($username); //check wther person id exists
+ 
+		if($newuser){ //check if new user was added
+ 
+			return "new";
+		}
+		else{
+ 
+			return "failed";
+		}
+ 
+	}
 
-	$qry=$this->db->get($this->table);
 
-	$rows=$qry->num_rows();
-
-	if($rows!==0){
-
-	$person=$qry->row();
+	  }
+	  else{
 
 
-	return $person;
+		//login using email
+	
+		$this->db->where("email",$username);
+		$this->db->where("password",$password);
+		$this->db->where("status",1);
+		$this->db->join('user_groups','user_groups.group_id=user.role');
+	
+		$qry=$this->db->get($this->table);
+	
+		$rows=$qry->num_rows();
+	
+		if($rows!==0){
+	
+		$person=$qry->row();
+	
+	
+		return $person;
+	
+	   }
+	
+	   else{
+	
+		   $newuser=$this->checkNewUser($username); //check wther person id exists
+	
+		   if($newuser){ //check if new user was added
+	
+			   return "new";
+		   }
+		   else{
+	
+			   return "failed";
+		   }
+	
+	   }
 
-   }
 
-   else{
+	  }
 
-   	$newuser=$this->checkNewUser($username); //check wther person id exists
 
-   	if($newuser){ //check if new user was added
 
-   		return "new";
-   	}
-   	else{
-
-   		return "failed";
-   	}
-
-   }
 }
 
 public function checkNewUser($personid){
@@ -77,7 +125,9 @@ public function checkNewUser($personid){
 			"district"=>$userRow->district,
 			"district_id"=>$userRow->district_id,
 			"password"=>md5($this->password),
-			"role"=>"17"
+			"role"=>"17",
+			"status"=>"0"
+			
 		   );
 		$res=$this->db->insert($this->table,$newUser);
 

@@ -97,7 +97,7 @@ class Auth extends MX_Controller {
 
 
       if($person=="new"){
-          $msg=$this->session->set_flashdata('msg',"First time access detected, Retry with your ID");
+          $msg=$this->session->set_flashdata('msg',"First time access detected, Contact the Admin for Activation");
         } else{
            $msg=$this->session->set_flashdata('msg',"Login Failed, Wrong credentials");
      
