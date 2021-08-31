@@ -19,7 +19,7 @@
                   <input type="text" name="name" value="<?php echo $user->name; ?>" class="form-control" style="width:100%" required> 
                 
                 <strong style="margin-right: 1em;">User Name </strong> 
-                    <input type="text" name="username" value="<?php echo $user->username; ?>" class="form-control" style="width:100%" required> 
+                    <input type="text" name="username" value="<?php echo $user->username; ?>" class="form-control" style="width:100%" readonly> 
                     <strong style="margin-right: 1em;">Email </strong> 
                     <input type="text" name="email" value="<?php echo $user->email; ?>" class="form-control" style="width:100%"> 
                 
