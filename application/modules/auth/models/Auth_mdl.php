@@ -127,7 +127,7 @@ public function checkNewUser($personid){
 			"password"=>md5($this->password),
 			"role"=>"17",
 			"status"=>"0"
-			
+
 		   );
 		$res=$this->db->insert($this->table,$newUser);
 
@@ -231,12 +231,12 @@ public function updateUser($postdata){
 
 	if($rows>0){
 
-		return "User details for".$postdata['lastname']." ".$postdata['firstname']." have been updated";
+		return "User details updated";
 	}
 
 	else{
 
-		return "No Operation made, seems like no changes made";
+		return "No changes made";
 	}
 
 }
