@@ -148,7 +148,7 @@ $variables=Modules::run("svariables/getSettings");
 
               <?php echo $links; ?>
 
-              <table id="mytab2" class="table table-bordered table-striped mytable">
+              <table id="mytab2" class="table table-striped mytable">
     <thead>
 
         <tr>
