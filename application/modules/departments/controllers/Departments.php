@@ -194,9 +194,9 @@ class Departments extends MX_Controller{
       $facname=$facquery->row();
       $this->session->set_userdata('facility_name', $facname->facility);
       $depart_id=$this->input->post('department');
-      if(!empty($depart_id)){
+     
       $_SESSION['department_id']=$depart_id;
-      }
+      
       $depquery=$this->db->query("SELECT department from ihrisdata where department_id='$depart_id'");
       $depname=$depquery->row();
       $_SESSION['department']=$depname->department;
