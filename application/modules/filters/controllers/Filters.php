@@ -6,12 +6,13 @@ class Filters extends MX_Controller{
 	
 	public  function __construct(){
 		parent:: __construct();
-        $this->district_id=$this->session->userdata['district_id'];
-        $this->facility_id=$this->session->userdata['facility'];
-        $this->department_id="";
-        $this->division="";
-        $this->section="";
-        $this->unit="";
+        
+        $this->district_id=$this->session->userdata('district_id');
+        $this->facility_id=$this->session->userdata('facility');
+        $this->department_id=$this->session->userdata('department_id');
+        $this->division=$this->session->userdata('division');
+        $this->section=$this->session->userdata('section');
+        $this->unit=$this->session->userdata('unit');
        
      
 	}
@@ -33,7 +34,7 @@ class Filters extends MX_Controller{
         }
         
         if(!empty($department_id)){
-            $department="and ihrisdata.department_id='$department_id'";
+            $department="and ihrisdata.department='$department_id'";
         }
         else{
             $department="";
