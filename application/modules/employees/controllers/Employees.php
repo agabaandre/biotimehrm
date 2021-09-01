@@ -15,7 +15,7 @@ class Employees extends MX_Controller{
         $this->distfilters=Modules::run('filters/districtfilters');
 	}
     public function filters(){
-    print_r ($this->filters);
+    //print_r ($this->filters);
     }
    public function get_employees()
     {

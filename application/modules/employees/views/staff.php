@@ -20,9 +20,8 @@
                       <th> Staff iHRIS ID</th>
                       <th >Name</th>
                       <th >Facility</th>
-                     
+                      <th >Department</th>
                       <th>Job</th>
-                
                       <th>Card Number</th>
                     
                   </tr>
@@ -38,6 +37,7 @@
                                               <td data-label="NAME"><?php echo $staff->surname. " ". $staff->firstname." ".$staff->othername; ?> 
                                               </td>
                                               <td data-label="FACILITY"><?php echo $staff->facility; ?></td>
+                                              <td data-label="DEPARTMENT"><?php echo $staff->department; ?></td>
                                              
                                               <td data-label="JOB"><?php echo $staff->job; ?></td>
                                             
