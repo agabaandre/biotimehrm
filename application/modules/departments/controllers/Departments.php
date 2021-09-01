@@ -181,16 +181,15 @@ class Departments extends MX_Controller{
 
       $district_id=$distdata[0];
       $district_name=$distdata[1];
-      unset(
-        $_SESSION['facility'],
-        $_SESSION['favility_name']
-       );
-
+      if(!empty($district_name)){
       $_SESSION['district']=$district_name;
       $_SESSION['district_id']=$district_id;
+      }
       $redirect=$this->input->post('direct');
       $facility_id = $this->input->post('facility');
+      if(!empty($facility_id)){
       $this->session->set_userdata('facility', $facility_id);
+      }
       $facquery=$this->db->query("SELECT facility from ihrisdata where facility_id='$facility_id'");
       $facname=$facquery->row();
       $this->session->set_userdata('facility_name', $facname->facility);
