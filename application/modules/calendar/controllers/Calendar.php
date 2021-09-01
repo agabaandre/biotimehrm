@@ -22,12 +22,12 @@ class Calendar extends MX_Controller {
 
 	Public function getEvents()
 	{
-		$result=$this->calendar_model->getEvents();
+		$result=$this->calendar_model->getEvents($this->filters);
 		echo json_encode($result);
 	}
 	Public function getattEvents()
 	{
-		$result=$this->calendar_model->getattEvents($this->ufilters);
+		$result=$this->calendar_model->getattEvents($this->filters);
 		echo json_encode($result);
 	}
 	

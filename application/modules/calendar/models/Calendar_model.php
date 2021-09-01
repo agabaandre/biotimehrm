@@ -18,48 +18,13 @@ class Calendar_model extends CI_Model {
 
 	}
 
-	Public function getattEvents()
+	Public function getattEvents($filters)
 	{       
-		$facility_id=$this->facility_id;
-        $department_id=$this->department_id;
-        $division=$this->division;
-        $unit=$this->unit;
-        $section=$this->section;
-		if(!empty($facility_id)){
-            $facility=" actuals.facility_id='$facility_id'";
-        }
-        else{
-            $facility="";
-        }
-        
-        if(!empty($department_id)){
-            $department="and ihrisdata.department_id='$department_id'";
-        }
-        else{
-            $department="";
-        }
-        if(!empty($division)){
-            $division="and ihrisdata.division='$division'";
-        }
-        else{
-            $division="";
-        }
-        if(!empty($section)){
-            $section="and ihrisdata.section='$section'";
-        }
-        else{
-            $section="";
-        }
-
-        if(!empty($unit)){
-            $unit="and ihrisdata.unit='$unit'";
-        }
-        else{
-            $unit="";
-        }
+	
+	
 			$start=$_GET["start"];
 			$end=$_GET["end"];
-            $filters= $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
+          
 			$query=$this->db->query("SELECT entry_id as id, actuals.end,actuals.ihris_pid as person_id,schedules.schedule as duty,actuals.facility_id,
            CONCAT(COALESCE(surname,'','')
 				,' ',
@@ -71,46 +36,8 @@ class Calendar_model extends CI_Model {
 
 	}
 /*Read the data from DB */
-	Public function getEvents()
+	Public function getEvents($filters)
 	{
-		$facility_id=$this->facility_id;
-        $department_id=$this->department_id;
-        $division=$this->division;
-        $unit=$this->unit;
-        $section=$this->section;
-		if(!empty($facility_id)){
-            $facility=" duty_rosta.facility_id='$facility_id'";
-        }
-        else{
-            $facility="";
-        }
-        
-        if(!empty($department_id)){
-            $department="and ihrisdata.department_id='$department_id'";
-        }
-        else{
-            $department="";
-        }
-        if(!empty($division)){
-            $division="and ihrisdata.division='$division'";
-        }
-        else{
-            $division="";
-        }
-        if(!empty($section)){
-            $section="and ihrisdata.section='$section'";
-        }
-        else{
-            $section="";
-        }
-
-        if(!empty($unit)){
-            $unit="and ihrisdata.unit='$unit'";
-        }
-        else{
-            $unit="";
-        }
-            $filters= $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
 
 
             $start=$_GET["start"];
