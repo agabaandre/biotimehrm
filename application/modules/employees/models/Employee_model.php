@@ -665,7 +665,7 @@ Class Employee_model extends CI_Model
      
 
 
-    Public function fetch_TimeSheet($date_range=NULL,$start=NULL,$limit=NULL,$employee=NULL,$filter,$job=NULL){    
+    Public function fetch_TimeSheet($date_range=NULL,$start=NULL,$limit=NULL,$employee=NULL,$filters,$job=NULL){    
 
         $month=$this->input->post('month');
         $year=$this->input->post('year');
@@ -706,7 +706,7 @@ Class Employee_model extends CI_Model
        
                 $query=$this->db->query("
                 SELECT
-                timesheet.ihris_pid,
+                time_sheet.ihris_pid,
                 MAX(day1) AS day1,
                 MAX(day2) AS day2,
                 MAX(day3) AS day3,
@@ -738,15 +738,15 @@ Class Employee_model extends CI_Model
                 MAX(day29) AS day29,
                 MAX(day30) AS day30,
                 MAX(day31) AS day31,
-                timesheet.fullname,
-                timesheet.job,
-                timesheet.facility,
-                timesheet.department
+                time_sheet.fullname,
+                time_sheet.job,
+                time_sheet.facility,
+                time_sheet.department
             FROM
                 time_sheet,ihrisdata
             WHERE
                 (
-                    $filters and DATE_FORMAT(time_sheet.date, '%Y-%m') = '$valid_range' and ihris_pid IS NOT NULL $search $jsearch and timesheet.ihris_pid=ihrisdata.ihris_pid
+                    $filters and DATE_FORMAT(time_sheet.date, '%Y-%m') = '$valid_range' and time_sheet.ihris_pid IS NOT NULL $search $jsearch and time_sheet.ihris_pid=ihrisdata.ihris_pid
                 )
                  GROUP BY  time_sheet.ihris_pid ORDER BY fullname ASC  $limit");
             $data=$query->result_array();

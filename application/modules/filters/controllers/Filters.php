@@ -76,7 +76,7 @@ return $facility.' '.$department.' '.$division.' '.$section.' '.$unit;
         }
         
         if(!empty($department_id)){
-            $department="and department_id='$department_id'";
+            $department="and department='$department_id'";
         }
         else{
             $department="";
