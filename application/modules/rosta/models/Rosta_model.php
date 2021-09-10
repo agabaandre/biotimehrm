@@ -382,7 +382,7 @@ public function __Construct(){
 			dutyreport,ihrisdata
 		WHERE
 			(
-				$filters period = '$valid_range' $search AND ihrisdata.ihrispid=dutyreport.ihris_pid
+				$filters AND period = '$valid_range' $search AND ihrisdata.ihrispid=dutyreport.ihris_pid
 			)
 		GROUP BY
 			dutyreport.ihris_pid order by surname ASC $limits");
@@ -460,7 +460,7 @@ public function __Construct(){
 			dutyreport,ihrisdata
 		WHERE
 			(
-				$filters period = '$valid_range' $search AND ihrisdata.ihrispid=dutyreport.ihris_pid
+				$filters AND period = '$valid_range' $search AND ihrisdata.ihrispid=dutyreport.ihris_pid
 			)
 		GROUP BY
 			dutyreport.ihris_pid order by surname ASC $limits");
