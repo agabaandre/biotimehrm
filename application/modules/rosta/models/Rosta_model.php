@@ -312,7 +312,7 @@ public function __Construct(){
 			$limits=" ";
 		}
 		//dutyroster count
-		$qry1=$this->db->query("SELECT distinct(ihris_pid) from ihrisdata where facility_id='$facility' ");
+		$qry1=$this->db->query("SELECT distinct(ihris_pid) from ihrisdata where $filters ");
 		$rowno1=$qry1->num_rows();
 		//facility count
         $qry=$this->db->query("SELECT distinct(ihris_pid) from duty_rosta where facility_id='$facility' and  DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range'");
@@ -338,6 +338,8 @@ public function __Construct(){
 			district_id,
 			district,
 			job,
+			ihrisdata.department,
+			ihrisdata.facility_id,
 			CONCAT(
 				COALESCE(surname,'','')
 				,' ',
@@ -377,10 +379,10 @@ public function __Construct(){
 			MAX(dutyreport.day30) AS day30,
 			MAX(dutyreport.day31) AS day31
 		FROM
-			dutyreport
+			dutyreport,ihrisdata
 		WHERE
 			(
-				period = '$valid_range' AND dutyreport.facility_id = '$facility' $search
+				$filters period = '$valid_range' $search AND ihrisdata.ihrispid=dutyreport.ihris_pid
 			)
 		GROUP BY
 			dutyreport.ihris_pid order by surname ASC $limits");
@@ -414,6 +416,8 @@ public function __Construct(){
 			district_id,
 			district,
 			job,
+			ihrisdata.department,
+			ihrisdata.facility_id,
 			CONCAT(
 				COALESCE(surname,'','')
 				,' ',
@@ -453,10 +457,10 @@ public function __Construct(){
 			MAX(dutyreport.day30) AS day30,
 			MAX(dutyreport.day31) AS day31
 		FROM
-			dutyreport
+			dutyreport,ihrisdata
 		WHERE
 			(
-				period = '$valid_range' AND dutyreport.facility_id = '$facility' $search
+				$filters period = '$valid_range' $search AND ihrisdata.ihrispid=dutyreport.ihris_pid
 			)
 		GROUP BY
 			dutyreport.ihris_pid order by surname ASC $limits");
