@@ -335,17 +335,17 @@ public function __Construct(){
 			dutyreport.duty_date,
 			dutyreport.entry_id,
 			dutyreport.facility_id,
-			district_id,
-			district,
-			job,
+			dutyreport.district_id,
+			dutyreport.district,
+			dutyreport.job,
 			ihrisdata.department,
 			ihrisdata.facility_id,
 			CONCAT(
-				COALESCE(surname,'','')
+				COALESCE(ihrisdata.surname,'','')
 				,' ',
-				COALESCE(firstname,'','')
+				COALESCE(ihrisdata.firstname,'','')
 				,' ',
-				COALESCE(othername,'','')
+				COALESCE(ihrisdata.othername,'','')
 			) AS fullname,
 			MAX(dutyreport.day1) AS day1,
 			MAX(dutyreport.day2) AS day2,
@@ -382,10 +382,10 @@ public function __Construct(){
 			dutyreport,ihrisdata
 		WHERE
 			(
-				$filters AND period = '$valid_range' $search AND ihrisdata.ihrispid=dutyreport.ihris_pid
+				$filters AND period = '$valid_range' $search AND ihrisdata.ihris_pid=dutyreport.ihris_pid
 			)
 		GROUP BY
-			dutyreport.ihris_pid order by surname ASC $limits");
+			dutyreport.ihris_pid order by ihrisdata.surname ASC $limits");
 
 			// $this->db->query("SET @p0='$valid_range'"); 
 			// $this->db->query("SET @p1='$facility'"); 
@@ -413,17 +413,17 @@ public function __Construct(){
 			dutyreport.duty_date,
 			dutyreport.entry_id,
 			dutyreport.facility_id,
-			district_id,
-			district,
-			job,
+			dutyreport.district_id,
+			dutyreport.district,
+			dutyreport.job,
 			ihrisdata.department,
 			ihrisdata.facility_id,
 			CONCAT(
-				COALESCE(surname,'','')
+				COALESCE(ihrisdata.surname,'','')
 				,' ',
-				COALESCE(firstname,'','')
+				COALESCE(ihrisdata.firstname,'','')
 				,' ',
-				COALESCE(othername,'','')
+				COALESCE(ihrisdata.othername,'','')
 			) AS fullname,
 			MAX(dutyreport.day1) AS day1,
 			MAX(dutyreport.day2) AS day2,
@@ -460,10 +460,10 @@ public function __Construct(){
 			dutyreport,ihrisdata
 		WHERE
 			(
-				$filters AND period = '$valid_range' $search AND ihrisdata.ihrispid=dutyreport.ihris_pid
+				$filters AND period = '$valid_range' $search AND ihrisdata.ihris_pid=dutyreport.ihris_pid
 			)
 		GROUP BY
-			dutyreport.ihris_pid order by surname ASC $limits");
+			dutyreport.ihris_pid order by ihrisdata.surname ASC $limits");
 			$ddata=$query->result_array();
 			$query=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters  $search AND ihrisdata.ihris_pid NOT IN (SELECT distinct(ihris_pid) from duty_rosta where facility_id='$facility' and  DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range') order by surname ASC $limits");
 			$notscheduled=$query->result_array();
