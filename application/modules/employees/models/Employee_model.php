@@ -706,7 +706,7 @@ Class Employee_model extends CI_Model
        
                 $query=$this->db->query("
                 SELECT
-                ihris_pid,
+                timesheet.ihris_pid,
                 MAX(day1) AS day1,
                 MAX(day2) AS day2,
                 MAX(day3) AS day3,
@@ -738,15 +738,15 @@ Class Employee_model extends CI_Model
                 MAX(day29) AS day29,
                 MAX(day30) AS day30,
                 MAX(day31) AS day31,
-                fullname,
-                job,
-                facility,
-                department
+                timesheet.fullname,
+                timesheet.job,
+                timesheet.facility,
+                timesheet.department
             FROM
-                time_sheet
+                time_sheet,ihrisdata
             WHERE
                 (
-                    DATE_FORMAT(time_sheet.date, '%Y-%m') = '$valid_range' AND time_sheet.facility_id = '$facility' and ihris_pid IS NOT NULL $search $jsearch 
+                    $filters and DATE_FORMAT(time_sheet.date, '%Y-%m') = '$valid_range' and ihris_pid IS NOT NULL $search $jsearch and timesheet.ihris_pid=ihrisdata.ihris_pid
                 )
                  GROUP BY  time_sheet.ihris_pid ORDER BY fullname ASC  $limit");
             $data=$query->result_array();
