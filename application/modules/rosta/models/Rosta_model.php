@@ -151,26 +151,84 @@ public function __Construct(){
 		else if ($rowno==$rowno1){
 		 // if there are schedules
 
-			$this->db->query("SET @p0='$valid_range'"); 
-			$this->db->query("SET @p1='$facility'"); 
-			$this->db->query("SET @p2='$limit'"); 
-			$this->db->query("SET @p3='$start'"); 
-			$this->db->query("SET @p4='$psearch'");
-			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3, @p4)");
+			// $this->db->query("SET @p0='$valid_range'"); 
+			// $this->db->query("SET @p1='$facility'"); 
+			// $this->db->query("SET @p2='$limit'"); 
+			// $this->db->query("SET @p3='$start'"); 
+			// $this->db->query("SET @p4='$psearch'");
+			// $query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3, @p4)");
 			$data=$query->result_array();
-			$query->next_result(); 
-			$query->free_result(); 
+			// $query->next_result(); 
+			// $query->free_result(); 
 		   }
 		   else{
-			$this->db->query("SET @p0='$valid_range'"); 
-			$this->db->query("SET @p1='$facility'"); 
-			$this->db->query("SET @p2='$limit'"); 
-			$this->db->query("SET @p3='$start'"); 
-			$this->db->query("SET @p4='$psearch'");
-			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3, @p4)");
+			// $this->db->query("SET @p0='$valid_range'"); 
+			// $this->db->query("SET @p1='$facility'"); 
+			// $this->db->query("SET @p2='$limit'"); 
+			// $this->db->query("SET @p3='$start'"); 
+			// $this->db->query("SET @p4='$psearch'");
+			// $query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3, @p4)");
+			// $ddata=$query->result_array();
+			// $query->next_result(); 
+			// $query->free_result(); 
+			$query=$this->db->query("SELECT
+			dutyreport.ihris_pid,
+			schedule_id,
+			dutyreport.duty_date,
+			dutyreport.entry_id,
+			dutyreport.facility_id,
+			dutyreport.district_id,
+			dutyreport.district,
+			dutyreport.job,
+			ihrisdata.department,
+			ihrisdata.facility_id,
+			CONCAT(
+				COALESCE(ihrisdata.surname,'','')
+				,' ',
+				COALESCE(ihrisdata.firstname,'','')
+				,' ',
+				COALESCE(ihrisdata.othername,'','')
+			) AS fullname,
+			MAX(dutyreport.day1) AS day1,
+			MAX(dutyreport.day2) AS day2,
+			MAX(dutyreport.day3) AS day3,
+			MAX(dutyreport.day4) AS day4,
+			MAX(dutyreport.day5) AS day5,
+			MAX(dutyreport.day6) AS day6,
+			MAX(dutyreport.day7) AS day7,
+			MAX(dutyreport.day8) AS day8,
+			MAX(dutyreport.day9) AS day9,
+			MAX(dutyreport.day10) AS day10,
+			MAX(dutyreport.day11) AS day11,
+			MAX(dutyreport.day12) AS day12,
+			MAX(dutyreport.day13) AS day13,
+			MAX(dutyreport.day14) AS day14,
+			MAX(dutyreport.day15) AS day15,
+			MAX(dutyreport.day16) AS day16,
+			MAX(dutyreport.day17) AS day17,
+			MAX(dutyreport.day18) AS day18,
+			MAX(dutyreport.day19) AS day19,
+			MAX(dutyreport.day20) AS day20,
+			MAX(dutyreport.day21) AS day21,
+			MAX(dutyreport.day22) AS day22,
+			MAX(dutyreport.day23) AS day23,
+			MAX(dutyreport.day24) AS day24,
+			MAX(dutyreport.day25) AS day25,
+			MAX(dutyreport.day26) AS day26,
+			MAX(dutyreport.day27) AS day27,
+			MAX(dutyreport.day28) AS day28,
+			MAX(dutyreport.day29) AS day29,
+			MAX(dutyreport.day30) AS day30,
+			MAX(dutyreport.day31) AS day31
+		FROM
+			dutyreport,ihrisdata
+		WHERE
+			(
+				$filters AND period = '$valid_range' $search AND ihrisdata.ihris_pid=dutyreport.ihris_pid
+			)
+		GROUP BY
+			dutyreport.ihris_pid order by ihrisdata.surname ASC $limits");
 			$ddata=$query->result_array();
-			$query->next_result(); 
-			$query->free_result(); 
 			$query=$this->db->query("select distinct ihrisdata.ihris_pid,concat(ihrisdata.surname,' ',ihrisdata.firstname) as fullname,ihrisdata.job from ihrisdata where $filters  $search AND ihrisdata.ihris_pid NOT IN (SELECT distinct(ihris_pid) from duty_rosta where facility_id='$facility' and  DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range') order by surname ASC $limits");
 			$notscheduled=$query->result_array();
 			$final=array_merge_recursive($ddata,$notscheduled);
