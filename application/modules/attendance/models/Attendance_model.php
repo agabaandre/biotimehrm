@@ -409,7 +409,7 @@ class 	Attendance_model extends CI_Model {
 		else{
 			$limits=" ";
 		}
-		  $query=$this->db->query("SELECT p.* from person_att_final p, ihrisdata WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
+		  $query=$this->db->query("SELECT p.* from person_att_final p, ihrisdata WHERE facility_id='$facility'  and duty_date='$valid_range' and ihrisdata.ihris_pid=p.ihris_pid $search  $limits");
 		  $data=$query->result_array();
 
 		return $data;
