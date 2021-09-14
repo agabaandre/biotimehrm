@@ -32,7 +32,7 @@ class Departments extends MX_Controller{
           if(!empty($facilities)){
 
              foreach($facilities as $facility) {
-             $opt .= "<option value='".$facility->facility_id."'>".ucwords($facility->facility)."</option>";
+             $opt .= "<option value='".$facility->facility_id.'-'.$facility->facility"'>".ucwords($facility->facility)."</option>";
            
             }
         
@@ -182,8 +182,8 @@ class Departments extends MX_Controller{
       $district_id=$distdata[0];
       $district_name=$distdata[1];
       if(!empty($district_name)){
-      $_SESSION['district']=$district_name;
-      $_SESSION['district_id']=$district_id;
+      $_SESSION['district']=urldecode($district_name);
+      $_SESSION['district_id']=urldecode($district_id);
       }
 
          // facility data
@@ -193,8 +193,8 @@ class Departments extends MX_Controller{
          $facility_id=$facdata[0];
          $facility_name=$facdata[1];
          if(!empty($facility_name)){
-         $_SESSION['facility_name']= $facility_name;
-         $_SESSION['facility']=$facility_id;
+         $_SESSION['facility_name']= urldecode($facility_name);
+         $_SESSION['facility']=urldecode($facility_id);
          }
       $redirect=$this->input->post('direct');
       // $facility_id = $this->input->post('facility');
