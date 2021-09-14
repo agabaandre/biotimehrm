@@ -218,42 +218,21 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                             <?php }   ?>
 
                     </select>
-                 </div>
-    
-   
+                </div>
 
-    <?php if(in_array('38', $permissions)){ ?>
+       
       <div class="col-md-12">
                 <div class="form-group" >
                     <label>Facility</label>
-                         <select  name="facility" onChange="getDeps($(this).val());" class="sfacility form-control select2dist" required>
-                 
+                    <select  name="facility" onChange="getDeps($(this).val());" class="sfacility form-control select2dist" required>
                     <option value="" disabled>All</option>
     
                     </select>
                 </div>
             </div>
     </div>
-    <?php } else { ?>
-        <div class="col-md-12">
-                <div class="form-group" >
-                    <label>Facility</label>
-                    <select  name="facility" onChange="getDeps($(this).val());" class="onefacility form-control select2dist" required>
-                   
-                    <option value="<?php echo urlencode($_SESSION['facility'])."_".urlencode($_SESSION['facility_name']); ?>" ><?php echo $_SESSION['facility_name']; ?></option>
-   
-
-    
-                    </select>
-                </div>
-            </div>
-    </div>
-
-    <?php //end change facility 
-     } ?>
-   
     <div class="row">
-    <?php if(in_array('37', $permissions)){ ?>
+     
             <div class="col-md-12">
                 <div class="form-group" >
                     <label>Department</label>
@@ -262,7 +241,6 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                     </select>
                 </div>
             </div>
-    <?php } ?>
             <input type="hidden" name="direct" value="<?php echo $linkquery; ?>" >
            
 
@@ -404,8 +382,7 @@ $(function () {
 <script>
 $("document").ready(function() {
     $(".sdistrict").change();
-    $(".onefacility").change();
-    //console.log(time);
+    console.log(time);
  
 });
 function getFacs(val) {
