@@ -412,6 +412,7 @@ function getDeps(val) {
                //alert(data);
                $(".sdepartment").html(data);
            }
+         //  console.log('iwioowiiwoow');
    });
 }
 function getDivisions(val) {

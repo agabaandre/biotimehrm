@@ -66,7 +66,7 @@ class Departments extends MX_Controller{
         $fac_id=$facdata[0];
         $facname=$facdata[1]; 
        
-        $sql = "SELECT DISTINCT department_id,department FROM ihrisdata WHERE facility_id LIKE '$fac_id' ORDER BY division ASC";
+        $sql = "SELECT DISTINCT department_id,department FROM ihrisdata WHERE facility_id LIKE '$fac_id' AND department IS NOT NULL ORDER BY department ASC        ";
 
         $departments = $this->db->query($sql)->result();
       
