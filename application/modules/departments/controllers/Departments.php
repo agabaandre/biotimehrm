@@ -21,9 +21,17 @@ class Departments extends MX_Controller{
 
         $dist_id=$distdata[0];
         $district=$distdata[1]; 
-       
-       
-        $sql = "SELECT DISTINCT facility_id,facility FROM ihrisdata WHERE district_id LIKE '$dist_id' ORDER BY division ASC";
+        $userdata=$this->session->get_userdata(); 
+        $permissions=$userdata['permissions'];
+        //view all facilities
+        if(in_array('38', $permissions)){ 
+        $sql = "SELECT DISTINCT facility_id,facility FROM ihrisdata WHERE district_id LIKE '$dist_id' facilty ASC";
+        }
+        else{
+          $facility=$_SESSION['facility'];
+          $sql = "SELECT DISTINCT facility_id,facility FROM ihrisdata WHERE facility_id LIKE '$facility'";
+
+        }
 
         $facilities = $this->db->query($sql)->result();
       
@@ -32,7 +40,7 @@ class Departments extends MX_Controller{
           if(!empty($facilities)){
 
              foreach($facilities as $facility) {
-             $opt .= "<option value='".$facility->facility_id.'-'.$facility->facility"'>".ucwords($facility->facility)."</option>";
+             $opt .= "<option value='".$facility->facility_id."-".$facility->facility."'>".ucwords($facility->facility)."</option>";
            
             }
         
@@ -192,7 +200,7 @@ class Departments extends MX_Controller{
    
          $facility_id=$facdata[0];
          $facility_name=$facdata[1];
-         if(!empty($facility_name)){
+         if(!empty($facility_id)){
          $_SESSION['facility_name']= urldecode($facility_name);
          $_SESSION['facility']=urldecode($facility_id);
          }
