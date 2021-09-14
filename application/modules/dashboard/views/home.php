@@ -23,9 +23,13 @@
          $permissions=$this->session->userdata('permissions');
         //  print_r($permissions);
         if(in_array('33', $permissions)){ 
-         
+           $display="active";
+           else{
+             $display="none";
+           }
+          }>
           ?>
-        <div class="row">
+        <div class="row" style="display:<?php echo $display;">
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box info-box-main">
               <span class="info-box-icon  elevation-1"><i class="fas fa-sync"></i></span>
@@ -84,7 +88,7 @@
           </div>
           <!-- /.col -->
         </div>
-        <?php } ?>
+      
 
         <div class="row">
           <div class="col-12 col-sm-6 col-md-3">
