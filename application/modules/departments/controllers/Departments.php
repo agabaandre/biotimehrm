@@ -25,7 +25,7 @@ class Departments extends MX_Controller{
         $permissions=$userdata['permissions'];
         //view all facilities
         if(in_array('38', $permissions)){ 
-        $sql = "SELECT DISTINCT facility_id,facility FROM ihrisdata WHERE district_id LIKE '$dist_id' facilty ASC";
+        $sql = "SELECT DISTINCT facility_id,facility FROM ihrisdata WHERE district_id LIKE '$dist_id' ORDER BY facility ASC";
         }
         else{
           $facility=$_SESSION['facility'];
