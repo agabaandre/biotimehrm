@@ -29,7 +29,7 @@
            }
           }>
           ?>
-        <div class="row" style="display:<?php echo $display;">
+        <div class="row" style="display:<?php echo $display; ?>">
           <div class="col-12 col-sm-6 col-md-3">
             <div class="info-box info-box-main">
               <span class="info-box-icon  elevation-1"><i class="fas fa-sync"></i></span>
