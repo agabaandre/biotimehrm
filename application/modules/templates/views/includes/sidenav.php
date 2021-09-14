@@ -178,7 +178,7 @@
             <?php } ?>
           
         
-           <?php if(in_array('32', $permissions)){ ?>
+           <?php if(in_array('17', $permissions)){ ?>
           <li class="nav-item has-treeview">
             <a href="<?php echo base_url(); ?>reports" class="nav-link">
               <i class="fa fa-th"></i>
