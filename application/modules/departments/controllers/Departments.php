@@ -58,13 +58,16 @@ class Departments extends MX_Controller{
     
       if(!empty($_GET['fac_data'])){
 
-        $fac = urldecode($_GET["fac_data"]); 
+        $fac = $_GET["fac_data"]; 
+   
 
         $facdata= array();
-        $facdata=explode("_",$fac);
+        $facdata=explode("-",$fac);
 
         $fac_id=$facdata[0];
         $facname=$facdata[1]; 
+        
+        //print_r($fac_id);
        
         $sql = "SELECT DISTINCT department_id,department FROM ihrisdata WHERE facility_id LIKE '$fac_id' AND department IS NOT NULL ORDER BY department ASC        ";
 
