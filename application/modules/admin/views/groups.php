@@ -71,7 +71,7 @@ $this->load->view('admin/add_perm_modal');
                    <br>
                   <table border="0" class="table">
                       <tr style="background: #dee2e6; color:#17a2b8; border-radius:4px;">
-                      <td><?php echo "<p style='color:;'>Turn on/off Permission Assignment</p>"; ?></td><td><input style="display: block; "  name="assign" value="assign" type="checkbox" class="btn btn-primary" checked></td>
+                      <td><?php echo "<p style='color:;'>Turn on/off Permission Assignment</p>"; ?></td><td><input style="display: block; "  name="assign" value="assign" type="checkbox" class="btn btn-primary"></td>
                       
                     </tr>
                     <tr style="background: #dee2e6; color:#17a2b8; border-radius:4px;">
