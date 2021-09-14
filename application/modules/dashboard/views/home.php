@@ -520,7 +520,7 @@ $(document).ready(function(){
                      $('#request').text(data.request);
                      $('#requesting').text(data.requesting);
                      knobgauge(data.avg_hours);
-                    console.log(data);
+                   // console.log(data);
                
                 
             }
