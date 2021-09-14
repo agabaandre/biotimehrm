@@ -224,6 +224,8 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
       <div class="col-md-12">
                 <div class="form-group" >
                     <label>Facility</label>
+                    <?php if(!(in_array('37', $permissions))){ echo "disabled"; }?>>
+                    <option value="<?php echo urlencode($_SESSION['facility'])."_".urlencode($_SESSION['facility_name']); ?>" ><?php echo $_SESSION['facility_name']; ?></option>
                     <select  name="facility" onChange="getDeps($(this).val());" class="sfacility form-control select2dist" required>
                     <option value="" disabled>All</option>
     

@@ -175,7 +175,7 @@ class Departments extends MX_Controller{
 
 
     public function switchDepartment(){
- 
+     // district data
       $distdata= array();
       $distdata=explode("_",$this->input->post('district'));
 
@@ -185,14 +185,25 @@ class Departments extends MX_Controller{
       $_SESSION['district']=$district_name;
       $_SESSION['district_id']=$district_id;
       }
+
+         // facility data
+         $facdata= array();
+         $facdata=explode("_",$this->input->post('facility'));
+   
+         $facility_id=$facdata[0];
+         $facility_name=$facdata[1];
+         if(!empty($facility_name)){
+         $_SESSION['facility_name']= $facility_name;
+         $_SESSION['facility']=$facility_id;
+         }
       $redirect=$this->input->post('direct');
-      $facility_id = $this->input->post('facility');
-      if(!empty($facility_id)){
-      $this->session->set_userdata('facility', $facility_id);
-      }
-      $facquery=$this->db->query("SELECT facility from ihrisdata where facility_id='$facility_id'");
-      $facname=$facquery->row();
-      $this->session->set_userdata('facility_name', $facname->facility);
+      // $facility_id = $this->input->post('facility');
+      // if(!empty($facility_id)){
+      // $this->session->set_userdata('facility', $facility_id);
+      // }
+      // $facquery=$this->db->query("SELECT facility from ihrisdata where facility_id='$facility_id'");
+      // $facname=$facquery->row();
+      // $this->session->set_userdata('facility_name', $facname->facility);
       $depart_id=$this->input->post('department');
      
       $_SESSION['department_id']=$depart_id;
