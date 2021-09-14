@@ -23,11 +23,12 @@
          $permissions=$this->session->userdata('permissions');
         //  print_r($permissions);
         if(in_array('33', $permissions)){ 
-           $display="active";
-           else{
-             $display="none";
+          $display="active";
            }
-          }>
+           else{
+          $display="none";
+           }
+          >
           ?>
         <div class="row" style="display:<?php echo $display; ?>">
           <div class="col-12 col-sm-6 col-md-3">
