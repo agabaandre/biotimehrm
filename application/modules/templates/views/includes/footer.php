@@ -384,7 +384,9 @@ $(function () {
 <script>
 $("document").ready(function() {
     $(".sdistrict").change();
-    console.log(time);
+    $(".sfacility").change();
+    
+   // console.log(time);
  
 });
 function getFacs(val) {
