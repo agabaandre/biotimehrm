@@ -199,7 +199,7 @@ class Departments extends MX_Controller{
 
          // facility data
          $facdata= array();
-         $facdata=explode("_",$this->input->post('facility'));
+         $facdata=explode("__",$this->input->post('facility'));
    
          $facility_id=$facdata[0];
          $facility_name=$facdata[1];
