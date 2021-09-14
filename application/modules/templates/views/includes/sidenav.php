@@ -59,7 +59,7 @@
             </a>
           </li>
        
-          <?php if(in_array('15', $permissions)){ ?>
+          <?php if(in_array('13', $permissions)){ ?>
          <li class="nav-item">
             <a href="<?php echo base_url(); ?>employees" class="nav-link">
               <i class="fa fa-users"></i>
@@ -94,7 +94,7 @@
           <?php } ?> -->
 
 
-          <?php if(in_array('14', $permissions)){ ?>
+          <?php if(in_array('19', $permissions)){ ?>
           <li class="nav-item">
             <a href="<?php echo base_url(); ?>rosta/actuals" class="nav-link">
               <i class="fa fa-clock"></i>
@@ -178,7 +178,7 @@
             <?php } ?>
           
         
-
+           <?php if(in_array('32', $permissions)){ ?>
           <li class="nav-item has-treeview">
             <a href="<?php echo base_url(); ?>reports" class="nav-link">
               <i class="fa fa-th"></i>
@@ -188,9 +188,10 @@
               </p>
             </a>
           </li>
+ <?php } ?>
 
           <!--user perm 14-->
- <?php if(in_array('15', $permissions)){ ?>
+ <?php if(in_array('35', $permissions)){ ?>
           <li class="nav-item has-treeview ">
             <a href="#" class="nav-link">
               <i class="fa fa-cog"></i>
@@ -208,7 +209,7 @@
                   </li>
                 <li class="nav-item">
 
-   
+                <?php if(in_array('15', $permissions)){ ?>
                 <a href="<?php echo base_url();?>auth/users" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Manage User</p>
@@ -226,6 +227,7 @@
                   <p>Activity Logs</p>
                 </a>
                 </li>
+                <?php } ?>
                 <li class="nav-item">
                 <a href="<?php echo base_url();?>schedules/all_schedules" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
