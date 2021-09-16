@@ -220,7 +220,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                     </select>
                 </div>
 
-    <?php if(in_array('38', $permissions)){ ?>
+ 
       <div class="col-md-12">
                 <div class="form-group" >
                     <label>Facility</label>
@@ -231,9 +231,9 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                 </div>
             </div>
     </div>
-      <?php } ?>
+    
     <div class="row">
-    <?php if(in_array('37', $permissions)){ ?>
+   
             <div class="col-md-12">
                 <div class="form-group" >
                     <label>Department</label>
@@ -242,7 +242,7 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                     </select>
                 </div>
             </div>
-    <?php } ?>
+  
             <input type="hidden" name="direct" value="<?php echo $linkquery; ?>" >
            
 
