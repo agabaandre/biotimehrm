@@ -96,7 +96,7 @@ class Employees extends MX_Controller{
     public function attCsv($datef,$datet,$person,$job)
 	{
     $datas=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode(str_replace('_',' ',$job))),$this->filters);
-    $csv_file = "Attend_TimeLogs" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
+    $csv_file = "Attend_TimeLogs" . date('Y-m-d') .'_'.$_SESSION['facility_name'] .".csv";	
 	header("Content-Type: text/csv");
 	header("Content-Disposition: attachment; filename=\"$csv_file\"");	
 	$fh = fopen( 'php://output', 'w' );
@@ -270,7 +270,8 @@ class Employees extends MX_Controller{
     {
         $data['logs']=$this->empModel->timelogscsv($datef,$datet,str_replace("person","",$person),str_replace("position-","",urldecode(str_replace('_',' ',$job))),$this->filters);
         $this->load->library('ML_pdf');
-        $filename="Staff_Timelog_Report_"."pdf";
+        $fac=$_SESSION['facility_name'];
+        $filename=$fac. " Staff_Timelog_Report_"."pdf";
         ini_set('max_execution_time',0);
         $html=$this->load->view('print_time_logs',$data,true); 
         $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
@@ -325,7 +326,8 @@ class Employees extends MX_Controller{
         }
         ini_set('max_execution_time', 0);
         $datas= $data['workinghours']=$this->empModel->fetch_TimeSheet($date,$perpage=FALSE,$page=FALSE,str_replace("emp","",urldecode($employee)),$this->filters,str_replace("job","",$job));
-        $csv_file = "Attend_TimeLogs" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
+        $fac=$_SESSION['facility_name'];
+        $csv_file = $fac." Attend_TimeLogs" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
         header("Content-Type: text/csv");
         header("Content-Disposition: attachment; filename=\"$csv_file\"");	
         $fh = fopen( 'php://output', 'w' );
@@ -454,7 +456,7 @@ class Employees extends MX_Controller{
     public function getdata(){
          //$data['duties'][0]
          $data['duties']=$this->empModel->fetch_TimeSheet();
-         print_r($data['duties']);
+        // print_r($data['duties']);
     }
     public function employeeTimeLogs($ihris_pid=false,$print=false,$from=false,$to=false){
 
