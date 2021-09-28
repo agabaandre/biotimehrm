@@ -305,7 +305,7 @@ class Employees extends MX_Controller{
         $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
         $this->ml_pdf->pdf->showWatermarkImage = true;
         date_default_timezone_set("Africa/Kampala"); 
-        $this->ml_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <br style='font-size: 8px !imporntant;'>".date('d F,Y h:i A').", Source: iHRIS - HRM Attend ");
+        $this->ml_pdf->pdf->SetHTMLFooter("<br style='font-size: 8px !imporntant;'>Printed/ Accessed on: <br style='font-size: 8px !imporntant;'>".date('d F,Y h:i A').", Source: iHRIS - HRM Attend " .base_url());
         $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
         $this->ml_pdf->showWatermarkImage = true;
         ini_set('max_execution_time',0);
