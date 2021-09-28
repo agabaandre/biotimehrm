@@ -322,7 +322,7 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 							  $night=$roster['Night'][0]->days;
 							?>
 							<span class="cell" style="width:5%;"><?php  echo $workedfor=count($personhrs)."/".$twdays=($day+$eve+$night); ?></span>
-							<span class="cell" style="width:10%;"><?php echo round(($workedfor/$twdays)*100,1); ?></span>
+							<span class="cell" style="width:10%;"><?php echo round(($workedfor/$twdays)*100,0)."%"; ?></span>
 
 						</div>
 

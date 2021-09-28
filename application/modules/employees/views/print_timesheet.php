@@ -158,7 +158,7 @@ td{
 <?php } ?>
 <th class="cell" style="width:10%;">Hours</th>
 <th class="cell" style="width:10%;">Days</th>
-<th class="cell" style="width:10%;">% Worked</th>
+<th class="cell" style="width:10%;">% Present</th>
 </tr> 	
 
 </thead>
@@ -272,7 +272,7 @@ foreach($workinghours as $hours) {
 							  $night=$roster['Night'][0]->days;
 							?>
 							<td class="cell" style="width:6%;"><?php  echo $workedfor=count($personhrs)."/".$twdays=($day+$eve+$night); ?></td>
-							<td class="cell" style="width:7%;"><?php echo round(($workedfor/$twdays)*100,1); ?></td>
+							<td class="cell" style="width:7%;"><?php echo round(($workedfor/$twdays)*100,0) ."%"; ?></td>
 
 
 	
