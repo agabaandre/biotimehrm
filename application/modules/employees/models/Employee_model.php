@@ -687,10 +687,10 @@ Class Employee_model extends CI_Model
       $search="";
 
 		if(!empty($employee)){
-            $search="and timesheet.ihris_pid='".$employee."'";
+            $search="and time_sheet.ihris_pid='".$employee."'";
 		 }
          if(!empty($job)){
-            $jsearch="and timesheet.job like '$job' ";
+            $jsearch="and time_sheet.job like '$job' ";
 		 }
          else{
              $jsearch="";
