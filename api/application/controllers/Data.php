@@ -116,6 +116,9 @@ Class Data extends REST_Controller
         $this->response($result);
     
   }
+    public function index_get(){
+        "HRM ATTEND API"
+    }
 
     //GET PENDING REQUESTS
     public function pending_requests_get($personId = null) 
