@@ -117,7 +117,7 @@ Class Data extends REST_Controller
     
   }
     public function index_get(){
-        "HRM ATTEND API"
+        "HRM ATTEND API";
     }
 
     //GET PENDING REQUESTS
