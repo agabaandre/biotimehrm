@@ -59,6 +59,16 @@ Class Request_Model extends CI_Model
                 return $response;
             }
     }
+    public function get_attendance(){
+        $query=$this->get('person_att_final');
+    return $query->result();
+
+    }
+    public function get_roster(){
+        $query=$this->get('person_dut_final');
+    return $query->result();
+
+    }
 
     public function get_leave_requests($personId)
     {

@@ -213,8 +213,7 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 							<?php } ?>
 							<span class="cell" style="width:10%;">Hrs</span>
 							<span class="cell" style="width:10%;">Days</span>
-							<!-- <span class="cell" style="width:10%;">Expected Hours</span>
-							<span class="cell" style="width:10%;">%ge Presence</span> -->
+							<span class="cell" style="width:10%;">% Present</span>
 
 						</div>
 
@@ -315,9 +314,15 @@ echo "              ".date('F, Y',strtotime($year."-".$month));
 							<?php }//repeat days ?>
 
 							<span class="cell" style="width:5%;"><?php  echo array_sum($personhrs); ?></span>
-							<span class="cell" style="width:5%;"><?php  echo count($personhrs); ?></span>
-							<!-- <span class="cell" style="width:10%;">Expected Hours</span>
-							<span class="cell" style="width:10%;">%ge Presence</span> -->
+							<?php
+							   $mydate=$year."-".$month;
+							  $roster=Modules::run('attendance/attrosta',$mydate,urlencode($hours['ihris_pid']));
+							  $day=$roster['Day'][0]->days;
+							  $eve=$roster['Evening'][0]->days;
+							  $night=$roster['Night'][0]->days;
+							?>
+							<span class="cell" style="width:5%;"><?php  echo $workedfor=count($personhrs)."/".$twdays=($day+$eve+$night); ?></span>
+							<span class="cell" style="width:10%;"><?php echo round(($workedfor/$twdays)*100,1); ?></span>
 
 						</div>
 

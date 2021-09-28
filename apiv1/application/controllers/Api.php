@@ -14,6 +14,14 @@ Class Api extends REST_Controller
         $this->load->model('Workshop_Model', 'workshopHandler');
         $this->load->model('Message_Model', 'messageHandler');
     }
+    public function person_attend_get() 
+    {
+        $this->response($this->requestHandler->get_attendance());
+    }
+    public function person_roster_get() 
+    {
+        $this->response($this->requestHandler->get_roster());
+    }
     public function login_post()
     {
         $username = $this->post('username');

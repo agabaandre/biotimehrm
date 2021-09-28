@@ -165,7 +165,7 @@ else{
 </div>
 <?php  $mydate=$year."-".$month ?>
 <?php 
-$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):0;
+$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):1;
 foreach($sums as $sum) {?>
 <div class="table-row tbrow strow">
     <input type="radio" name="expand" class="fa fa-angle-double-down trigger">
