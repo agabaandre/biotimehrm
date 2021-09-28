@@ -16,11 +16,11 @@ Class Data extends REST_Controller
     }
     public function person_attend_get($from,$to) 
     {
-        $this->response($this->requestHandler->get_attendance());
+        $this->response($this->requestHandler->get_attendance($from,$to));
     }
     public function person_roster_get($from,$to) 
     {
-        $this->response($this->requestHandler->get_roster());
+        $this->response($this->requestHandler->get_roster($from,$to));
     }
     public function login_post()
     {
