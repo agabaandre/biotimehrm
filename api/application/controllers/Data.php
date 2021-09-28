@@ -14,11 +14,11 @@ Class Data extends REST_Controller
         $this->load->model('Workshop_Model', 'workshopHandler');
         $this->load->model('Message_Model', 'messageHandler');
     }
-    public function person_attend_get() 
+    public function person_attend_get($from,$to) 
     {
         $this->response($this->requestHandler->get_attendance());
     }
-    public function person_roster_get() 
+    public function person_roster_get($from,$to) 
     {
         $this->response($this->requestHandler->get_roster());
     }

@@ -59,13 +59,14 @@ Class Request_Model extends CI_Model
                 return $response;
             }
     }
-    public function get_attendance(){
-        $query=$this->get('person_att_final');
+    public function get_attendance($from,$to){
+        $query=$this->db->query("SELECT * FROM person_att_final WHERE duty_date between '$from' AND '$to'");
     return $query->result();
 
     }
-    public function get_roster(){
-        $query=$this->get('person_dut_final');
+    public function get_roster($from,$to){
+      
+        $query=$this->db->query("SELECT * FROM person_dut_final WHERE duty_date between '$from' AND '$to'");
     return $query->result();
 
     }
