@@ -158,7 +158,7 @@ td{
 <?php } ?>
 <th class="cell" style="width:10%;">Hours</th>
 <th class="cell" style="width:10%;">Days</th>
-<span class="cell" style="width:10%;">% Present</span>
+<th class="cell" style="width:10%;">% Worked</th>
 </tr> 	
 
 </thead>
@@ -263,7 +263,7 @@ foreach($workinghours as $hours) {
 							
 							<?php }//repeat days ?>
 
-							<td class="cell" style="width:5%;"><?php  echo array_sum($personhrs); ?></td>
+							<td class="cell" style="width:6%;"><?php  echo array_sum($personhrs); ?></td>
 							<?php
 							   $mydate=$year."-".$month;
 							  $roster=Modules::run('attendance/attrosta',$mydate,urlencode($hours['ihris_pid']));
@@ -271,8 +271,8 @@ foreach($workinghours as $hours) {
 							  $eve=$roster['Evening'][0]->days;
 							  $night=$roster['Night'][0]->days;
 							?>
-							<td class="cell" style="width:5%;"><?php  echo $workedfor=count($personhrs)."/".$twdays=($day+$eve+$night); ?></td>
-							<td class="cell" style="width:10%;"><?php echo round(($workedfor/$twdays)*100,1); ?></td>
+							<td class="cell" style="width:6%;"><?php  echo $workedfor=count($personhrs)."/".$twdays=($day+$eve+$night); ?></td>
+							<td class="cell" style="width:7%;"><?php echo round(($workedfor/$twdays)*100,1); ?></td>
 
 
 	
