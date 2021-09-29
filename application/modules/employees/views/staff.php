@@ -41,7 +41,7 @@
                                               <td data-label="DEPARTMENT"><?php echo $staff->department; ?></td>
                                              
                                               <td data-label="JOB"><?php echo $staff->job; ?></td>
-                                              <td data-label="JOB"><?php echo $staff->employment_terms; ?></td>
+                                              <td data-label="TERMS"><?php echo str_replace("employment_terms|","",$staff->employment_terms); ?></td>
                                             
                                               <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
                                              
