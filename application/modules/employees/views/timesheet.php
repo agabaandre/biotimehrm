@@ -137,8 +137,8 @@
 							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-tasks" aria-hidden="true"></i>Apply</button>
 							 <?php 
 							 if($this->input->post('month')){ ?>
-							 <a target="_blank" href="<?php echo base_url();?>employees/print_timesheet/<?php echo $this->input->post('month').'/'.$this->input->post('year').'/'.'emp'.urlencode($this->input->post('employee')).'/'.'job'.$this->input->post('job') ?>"  class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-print" aria-hidden="true"></i>Print</a>
-                             <a target="_blank" href="<?php echo base_url();?>employees/csv_timesheet/<?php echo $this->input->post('month').'/'.$this->input->post('year').'/'.'emp'.urlencode($this->input->post('employee')).'/'.'job'.$this->input->post('job') ?>"  class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-file-excel" aria-hidden="true"></i>Excel</a>
+							 <a target="_blank" href="<?php echo base_url();?>employees/print_timesheet/<?php echo $this->input->post('month').'/'.$this->input->post('year').'/'.'emp'.urlencode($this->input->post('empid')).'/'.'job'.$this->input->post('job') ?>"  class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-print" aria-hidden="true"></i>Print</a>
+                             <a target="_blank" href="<?php echo base_url();?>employees/csv_timesheet/<?php echo $this->input->post('month').'/'.$this->input->post('year').'/'.'emp'.urlencode($this->input->post('empid')).'/'.'job'.$this->input->post('job') ?>"  class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-file-excel" aria-hidden="true"></i>Excel</a>
 							 <?php } ?>
 						 </div>
 						 <?php //echo $this->uri->segment(2); ?>
