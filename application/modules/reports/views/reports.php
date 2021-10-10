@@ -1,24 +1,18 @@
- <!-- Main content -->
  <style>
  li{
    text-decoration: none;
-
  }
  </style>
  <section class="content">
       <div class="container-fluid">
         <!-- Main row -->
-
         <div class="row">
           <section class="col-lg-12 connectedSortable">
             <!-- Custom tabs (Charts with tabs)-->
-
-
-           <?php 
+          <?php 
              $userdata=$this->session->get_userdata();
              $permissions=$userdata['permissions'];
-           ?>
-
+          ?>
             <div class="callout callout-success">
               <h5><i class="fas fa-file"></i> Attendance Reports</h5>
               
@@ -47,26 +41,13 @@
 
             <div class="callout callout-info">
               <h5><i class="fas fa-file"></i> Schedule Reports</h5>
-              
             </div>
             <div class="card">
-
-
             <ol>
-                      <li><a href="<?php echo base_url()?>rosta/fetch_report">Monthly Duty Roster Report</a></p>-Monthly Health Worker Schedule Sheet</li>
-                      <li><a href="<?php echo base_url()?>rosta/summary">Duty Roster Summary</a><p> - Summarised duty roster report</p></li>
-                       
-                      
-					 
-                     			
+                      <li><a href="<?php echo base_url()?>rosta/fetch_report">Monthly Duty Roster Report</a></p> - Monthly Health Worker Schedule Sheet</li>
+                      <li><a href="<?php echo base_url()?>rosta/summary">Duty Roster Summary</a><p> - Summarised duty roster report</p></li>   			
 				   </ol>
-
-
-              
-
-
-
-            </div>
+           </div>
             <!-- /.card -->
 
             <div class="callout callout-warning">
