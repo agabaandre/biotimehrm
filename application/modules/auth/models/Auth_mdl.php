@@ -233,14 +233,18 @@ public function addUser($postdata){
 public function updateUser($postdata){
 
 	$distid=$postdata['district_id'];
-	$facid=$postdata['facility_id'];
+	$facdata=$postdata['facility_id'];
 	$depid=$postdata['user_id'];
 
 	//get district
 	$distname=$this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
     $distn=$distname->row()->district;
 	//get facility
-	$facname=$this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
+	$facd=explode("_",$facdata);
+
+        $fac_id=$facd[0];
+        $facility=$facd[1]; 
+	$facname=$this->db->query("SELECT distinct facility from ihrisdata where facility_id='$fac_id'");
     $facn=$facname->row()->facility;
 
 

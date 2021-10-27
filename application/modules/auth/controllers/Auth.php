@@ -302,7 +302,7 @@ public function updateUser(){
      }//no photo
 
 
-     echo $res;
+     //echo $res;
 
      //print_r($postdata);
 
