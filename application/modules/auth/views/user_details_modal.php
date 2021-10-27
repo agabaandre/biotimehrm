@@ -13,7 +13,7 @@
 
             <span class="status" style="margin:0 auto;"></span>
 
-              <form class="" enctype="multipart/form-data" method="post" action="<?php echo base_url(); ?>auth/updateUser">
+              <form class="update_user" enctype="multipart/form-data" method="post" action="<?php echo base_url(); ?>auth/updateUser">
             <div class="col-md-12">
               <strong style="margin-right: 1em;"> Name </strong> 
                   <input type="text" name="name" value="<?php echo $user->name; ?>" class="form-control" style="width:100%" required> 
