@@ -252,7 +252,7 @@ public function updateUser($postdata){
 		"name"=>$postdata['name'],
 		"district"=>$distn,
 		"district_id"=>$postdata['district_id'],
-		"facility_id"=>$postdata['facility_id'],
+		"facility_id"=>$fac_id,
 		"facility"=>$facn,
 		'email'=>$postdata['email'],
 		"department"=>$postdata['department_id'],
