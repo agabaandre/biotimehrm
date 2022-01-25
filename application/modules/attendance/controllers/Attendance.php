@@ -35,74 +35,6 @@ class Attendance extends MX_Controller {
 
 		return $widgets;
 	}
-
-	
-	Public function department_summary(){	
-	 	    
-		$month=$this->input->post('month');
-		$year=$this->input->post('year');
-		$empid=$this->input->post('empid');
-		if(!empty($month)){
-			$_SESSION['month']=$month;
-			$_SESSION['year']=$year;
-			$date=$_SESSION['year'].'-'.$_SESSION['month'];
-
-		}
-	
-
-	     if (!empty($_SESSION['year'])){
-			$date=$_SESSION['year'].'-'.$_SESSION['month'];
-			$data['month']=$_SESSION['month'];
-			$data['year']=$_SESSION['year'];
-
-		 }
-		 else{
-			
-			$_SESSION['month']=date('m');
-			$_SESSION['year']=date('Y');
-			$date=$_SESSION['year'].'-'.$_SESSION['month'];
-			$data['month']=$_SESSION['month'];
-			$data['year']=$_SESSION['year'];
-		 }
-		
-        
-		$config=array();
-	    $config['base_url']=base_url()."attendance/department_summary";
-	    $config['total_rows']=$this->attendance_model->countDepartmentSummary($date,$this->filters);
-	    $config['per_page']=30; //records per page
-	    $config['uri_segment']=3; //segment in url
-	    //pagination links styling
-		$config['full_tag_open'] = '<ul class="pagination">';
-		$config['full_tag_close'] = '</ul>';
-		$config['attributes'] = ['class' => 'page-link'];
-		$config['first_link'] = false;
-		$config['last_link'] = false;
-		$config['first_tag_open'] = '<li class="page-item">';
-		$config['first_tag_close'] = '</li>';
-		$config['prev_link'] = '&laquo';
-		$config['prev_tag_open'] = '<li class="page-item">';
-		$config['prev_tag_close'] = '</li>';
-		$config['next_link'] = '&raquo';
-		$config['next_tag_open'] = '<li class="page-item">';
-		$config['next_tag_close'] = '</li>';
-		$config['last_tag_open'] = '<li class="page-item">';
-		$config['last_tag_close'] = '</li>';
-		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-		$config['num_tag_open'] = '<li class="page-item">';
-		$config['num_tag_close'] = '</li>';
-        $config['use_page_numbers'] = false;
-	    $this->pagination->initialize($config);
-	    $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits
-	    $data['links']=$this->pagination->create_links();
-		$data['sums']=$this->attendance_model->department_summary($date,$this->filters,$config['per_page'],$page,$empid);
-		$data['view']='attendance_by_department_web';
-		$data['title']='Department Attendance Summary';
-		$data['uptitle']='Department Attendance Summary';
-		$data['module']=$this->attendModule;
-		echo Modules::run('templates/main',$data);
-
-	}
 	
 
 	Public function attendance_summary(){	
@@ -854,7 +786,7 @@ class Attendance extends MX_Controller {
 
 	    $this->excel->setActiveSheetIndex(0);
 
-	    //name the worksheetat
+	    //name the worksheet
 
 	    $this->excel->getActiveSheet()->setTitle('MachineCsv');
 		//set cell A1 content with some text

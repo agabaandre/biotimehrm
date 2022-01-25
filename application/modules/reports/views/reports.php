@@ -22,7 +22,6 @@
 
             <ol>
                       
-                      <!-- <li><a href="<?php echo base_url()?>attendance/department_summary">Monthly Attendance by Department </a></p>-Department Monthly Attendance </li>          -->
                       <li><a href="<?php echo base_url()?>rosta/attfrom_report">Monthly Daily Attendance Report</a></p>-Monthly Health Worker Attendance Sheet</li>
                       <li><a href="<?php echo base_url()?>attendance/attendance_summary">Attendance Summary </a><p> -Aggregated by P - Present, O - Off Duty, L - Leave, X - Absent </p></li>
                       <li><a href="<?php echo base_url()?>employees/timesheet">Monthly Timesheet</a><p> -Number of hours worked by each employee in a month</p></li>
@@ -83,7 +82,6 @@
                       <li><a href="<?php echo base_url()?>workshops/checkins">Out of Station Checkin  </a></p>-Log showing the field staff who are attending to their activities </li>        
                       <li><a href="<?php echo base_url()?>workshops/linkedDevices">Mobile Check In Devices </a></p>-Out of station Mobile Check In Devices </li>
                       <li><a href="<?php echo base_url()?>requests/viewMySubmittedRequests">Out of Station Requests Sent</a><p> - Requests for out of station</p></li>
-                      
                       <?php if(in_array('30', $permissions)){ ?>
                       <li><a href="<?php echo base_url()?>requests/leaveRequests">Leave Requests</a><p> - Leave Requests</p></li>
                       <?php } ?>
