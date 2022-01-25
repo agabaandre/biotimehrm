@@ -22,8 +22,8 @@
 
             <ol>
                       
-                      <li><a href="<?php echo base_url()?>attendance/department_summary">Monthly Daily Attendance Report</a></p>-Monthly Health Worker Attendance Sheet</li>         
-                      <li><a href="<?php echo base_url()?>rosta/attfrom_report">Monthly Attendance by Department</a></p>-Department Monthly Attendance</li>
+                      <!-- <li><a href="<?php echo base_url()?>attendance/department_summary">Monthly Attendance by Department </a></p>-Department Monthly Attendance </li>          -->
+                      <li><a href="<?php echo base_url()?>rosta/attfrom_report">Monthly Daily Attendance Report</a></p>-Monthly Health Worker Attendance Sheet</li>
                       <li><a href="<?php echo base_url()?>attendance/attendance_summary">Attendance Summary </a><p> -Aggregated by P - Present, O - Off Duty, L - Leave, X - Absent </p></li>
                       <li><a href="<?php echo base_url()?>employees/timesheet">Monthly Timesheet</a><p> -Number of hours worked by each employee in a month</p></li>
                       <li><a href="<?php echo base_url()?>employees/personlogs">Person Attendnce</a><p> - Printable Summary of Attedance to Duty by Employee</p></li>
