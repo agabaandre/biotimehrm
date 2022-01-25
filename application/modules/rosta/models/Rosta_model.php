@@ -151,15 +151,15 @@ public function __Construct(){
 		else if ($rowno==$rowno1){
 		 // if there are schedules
 
-			// $this->db->query("SET @p0='$valid_range'"); 
-			// $this->db->query("SET @p1='$facility'"); 
-			// $this->db->query("SET @p2='$limit'"); 
-			// $this->db->query("SET @p3='$start'"); 
-			// $this->db->query("SET @p4='$psearch'");
-			// $query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3, @p4)");
-			$data=$query->result_array();
-			// $query->next_result(); 
-			// $query->free_result(); 
+			$this->db->query("SET @p0='$valid_range'"); 
+			$this->db->query("SET @p1='$facility'"); 
+			$this->db->query("SET @p2='$limit'"); 
+			$this->db->query("SET @p3='$start'"); 
+			$this->db->query("SET @p4='$psearch'");
+			$query=$this->db->query("CALL `duty_report`(@p0, @p1, @p2, @p3, @p4)");
+			$data=$query->db->result_array();
+			$query->next_result(); 
+			$query->free_result(); 
 		   }
 		   else{
 			// $this->db->query("SET @p0='$valid_range'"); 
