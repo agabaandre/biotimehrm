@@ -373,8 +373,16 @@ class Employees extends MX_Controller{
                     array_push($personhrs,$hours_worked);
                  }
             }
+
+            
+            $roster=Modules::run('attendance/attrosta',$date,urlencode($data['ihris_pid']));
+            $day=$roster['Day'][0]->days;
+            $eve=$roster['Evening'][0]->days;
+            $night=$roster['Night'][0]->days;
+            $days_scheduled = $day+$eve+$night;
+
            // print_r($data['fullname']);
-            $days =array("NAME"=>$data['fullname'],"JOB"=>$data['job'], "FACILITY"=>$data['facility'],"DEPARTMENT"=>$data['department'], "PERIOD"=>$date, "DAYS WORKED"=>array_sum($days_worked), "HOURS WORKED"=>array_sum($personhrs));
+            $days =array("NAME"=>$data['fullname'],"JOB"=>$data['job'], "FACILITY"=>$data['facility'],"DEPARTMENT"=>$data['department'], "PERIOD"=>$date, "DAYS WORKED"=>array_sum($days_worked),"DAYS SCHEDULED"=>$days_scheduled, "HOURS WORKED"=>array_sum($personhrs));
             array_push($records,$days);
         }
         $is_coloumn = true;
