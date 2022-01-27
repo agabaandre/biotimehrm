@@ -533,7 +533,12 @@ public function biotimeFacilities()
    public function create_jobs(){
 
    }
-   public function facility_jobs(){
+   public function facilities(){
+       //get biotime_facilities
+       //get ihris_facilities
+       //if not exits in biotime_facilities create
+       //method
+       //personnel/api/areas/{area_code	area_name}
 
    }
    public function facility_departments(){
@@ -543,6 +548,9 @@ public function biotimeFacilities()
 
    }
    public function updateEnrolled(){
+       //check local enrolled against server enrolled for change in facility or job.
+       //update info
+       //endpoint /personnel/api/employees/adjust_area/ {employees,	,areas}
        
    }
 
