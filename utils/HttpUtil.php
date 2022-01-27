@@ -13,6 +13,7 @@ class HttpUtil{
         $this->CI = & get_instance();
         $this->client = new Client(['base_uri' => BIO_URL]);
         $this->ihrisclient = new Client(['base_uri' => iHRIS_URL]);
+        $this->ucmbihrisclient = new Client(['base_uri' => UCMBiHRIS_URL]);
     }
 
     public function sendRequest($endpoint = "",$method="",$headers = [],$body = []){
@@ -28,6 +29,14 @@ class HttpUtil{
         return json_decode( (string) $response->getBody()->getContents());
         //$result = json_decode($response->getBody()->getContents());
     }
+    public function sendUCMBiHRISRequest($endpoint = "",$method="",$headers = [],$body = []){
+       
+        $request = new Request($method,$endpoint."/", $headers,json_encode($body));
+        $response =  $this->ucmbihrisclient->send($request);
+        return json_decode( (string) $response->getBody()->getContents());
+        //$result = json_decode($response->getBody()->getContents());
+    }
+    
    
     public function getData($endpoint, $method="",$headers = [],$options)
     {

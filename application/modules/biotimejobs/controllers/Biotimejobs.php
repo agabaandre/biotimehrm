@@ -104,6 +104,33 @@ class Biotimejobs extends MX_Controller {
 
     }
    //employees all enrolled users before creating new ones.
+
+
+   public function get_ucmbdata(){
+    $http = new HttpUtil();
+    $headers = [
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+    ];
+    
+    $response = $http->sendUCMBiHRISRequest('apiv1/index.php/api/ihrisdata',"GET",$headers,[]);
+
+    if($response){
+     $message= $this->biotimejobs_mdl->add_ihrisdata($response);
+     $this->log($message);
+    }
+    $process=2;
+    $method="bioitimejobs/get_ihrisdata";
+    if(count($response)>0){
+     $status="successful";
+    }
+    else{
+     $status="failed";
+    }
+    $this->cronjob_register($process,$method,$status);
+   
+
+}
    
    public function get_Enrolled($page=FALSE)
    {
