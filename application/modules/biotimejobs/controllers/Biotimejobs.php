@@ -116,7 +116,7 @@ class Biotimejobs extends MX_Controller {
     $response = $http->sendUCMBiHRISRequest('apiv1/index.php/api/ihrisdata',"GET",$headers,[]);
 
     if($response){
-     $message= $this->biotimejobs_mdl->add_ihrisdata($response);
+     $message= $this->biotimejobs_mdl->add_ucmbdata($response);
      $this->log($message);
     }
     $process=2;

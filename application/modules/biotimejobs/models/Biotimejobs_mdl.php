@@ -36,6 +36,27 @@ return $message;
 
 }
 
+public function add_ucmbdata($data){
+ 
+    $query = $this->db->insert_batch('ihrisdata',$data);
+
+    if($query){
+        $n=$this->db->query("select ihris_pid from ihrisdata");
+        
+        
+        $message=print_r($this->exect()) ." get_ihrisdata() add_ihrisdata()  IHRIS HRH ".$n->num_rows();
+
+
+
+    }
+    else{
+        $message=print_r($this->exect()) ." get_ihrisdata() add_ihrisdata()  IHRIS HRH FAILED ";
+
+    }
+
+return $message;
+
+}
  
 public function add_enrolled($data){
     if($count=count($data)>1){
