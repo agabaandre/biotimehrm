@@ -208,13 +208,13 @@ $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                    
                     
                     <select class="sdistrict form-control select2dist" id="district" name="district" onChange="getFacs($(this).val());"  <?php if(!(in_array('34', $permissions))){ echo "disabled"; }?>>
-                    <option value="<?php echo urlencode($_SESSION['district_id'])."_".urlencode($_SESSION['district']); ?>" ><?php echo $_SESSION['district']; ?></option>
+                    <option value="<?php echo urlencode(str_replace(" ","",($_SESSION['district_id'])))."_".urlencode(str_replace(" ","",$_SESSION['district'])); ?>" ><?php echo $_SESSION['district']; ?></option>
                             <?php
                            
                             $districts=Modules::run("districts/getDistricts");
                                foreach ($districts as $district){
                             ?>
-                            <option value="<?php echo urlencode($district->district_id)."_".urlencode($district->district); ?>"><?php echo ucwords($district->district); ?></option>
+                            <option value="<?php echo urlencode(str_replace(" ","",$district->district_id))."_".urlencode(str_replace(" ","",$district->district)); ?>"><?php echo ucwords($district->district); ?></option>
                             <?php }   ?>
 
                     </select>
