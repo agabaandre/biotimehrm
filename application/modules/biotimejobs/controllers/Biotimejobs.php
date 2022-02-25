@@ -637,19 +637,20 @@ public function biotimeFacilities()
     $nights=$this->db->query("SELECT duty_date,ihris_pid,entry_id from duty_rosta where schedule_id='14' and duty_date between  '$today' and  '$tommorow'")->result();
     foreach($nights as $night):
 
-        print_r($nights=$night->duty_date.$night->ihris_pid);
+        $nights=$night->duty_date.$night->ihris_pid;
   
-    //   $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
-    //    $entry_id=$query->result();
+        $query=$this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log where entry_id='$nights') ");
+        $entry_id=$query->result();
     
-    //  foreach($entry_id as $entry){
+        foreach($entry_id as $entry){
+            print_r($entry);
     //   $this->db->set('time_out', "$entry->punch_time");
     //   $this->db->where("time_in <","$entry->punch_time");
     //   $this->db->where('entry_id', "$entry->entry_id");
     //   $query=$this->db->update('clk_log');
   
      
-    // }
+      }
 
     endforeach;
     //night shift
