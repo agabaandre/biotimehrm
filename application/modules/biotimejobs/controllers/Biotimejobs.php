@@ -634,7 +634,7 @@ public function biotimeFacilities()
     $today = date('Y-m-d');
     $yesterday = date("Y-m-d", strtotime("-1 day"));
 
-    $nights=$this->db->query("SELECT duty_date,ihris_pid,entry_id,card_number from duty_rosta,ihrisdata where schedule_id='14' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
+    $nights=$this->db->query("SELECT duty_date,duty_rosta.ihris_pid as ihris_pid,entry_id,card_number from duty_rosta,ihrisdata where schedule_id='14' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
     )")->result();
     foreach($nights as $night):
 
