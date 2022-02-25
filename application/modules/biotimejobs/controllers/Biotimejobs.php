@@ -640,7 +640,7 @@ public function biotimeFacilities()
          //yesterdays entry_id 
         $nights=$night->duty_date.$night->person_id;
         
-        $querys=$this->db->query("SELECT punch_time from biotime_data_history,ihrisdata where (biotime_data_history.emp_code='$night->card_number') AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND DATE(biotime_data_history.punch_time)='$today' ");
+        $querys=$this->db->query("SELECT punch_time from biotime_data,ihrisdata where (biotime_data.emp_code='$night->card_number') AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND DATE(biotime_data.punch_time)='$today' ");
         $entry_id=$querys->row();
    
          $this->db->set('time_out', "$entry->punch_time");
