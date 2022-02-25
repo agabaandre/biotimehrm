@@ -625,7 +625,7 @@ public function biotimeFacilities()
   
     
   }
-
+//clockout night people
   public function biotimeClockoutnight(){
     ignore_user_abort(true);
     ini_set('max_execution_time',0);
@@ -637,21 +637,19 @@ public function biotimeFacilities()
     $nights=$this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,card_number from duty_rosta,ihrisdata where schedule_id='14' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
     )")->result();
     foreach($nights as $night):
-
+         //yesterdays entry_id 
         $nights=$night->duty_date.$night->person_id;
         
-         //$query=$this->db->query("SELECT punch_time from biotime_data_history,ihrisdata where (biotime_data_history.emp_code='$night->card_number') AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND DATE(biotime_data_history.punch_time)='$today' ");
-        // $entry_id=$query->result();
-    
-        //  foreach($entry_id as $entry){
-             print_r($nights);
-    //   $this->db->set('time_out', "$entry->punch_time");
-    //   $this->db->where("time_in <","$entry->punch_time");
-    //   $this->db->where('entry_id', "$entry->entry_id");
-    //   $query=$this->db->update('clk_log');
+        $querys=$this->db->query("SELECT punch_time from biotime_data_history,ihrisdata where (biotime_data_history.emp_code='$night->card_number') AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND DATE(biotime_data_history.punch_time)='$today' ");
+        $entry_id=$querys->row();
+   
+         $this->db->set('time_out', "$entry->punch_time");
+         $this->db->where("time_in <","$entry->punch_time");
+         //todays entry
+         $this->db->where('entry_id', "$nights");
+         $query=$this->db->update('clk_log');
   
-     
-     // }
+   
 
     endforeach;
     //night shift
