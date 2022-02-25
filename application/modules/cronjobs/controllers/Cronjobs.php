@@ -360,9 +360,9 @@ public function AutoMohRoster(){
       
        );
       
-        $query=$this->db->replace('duty_rosta',$data);
+        $query=$this->db->insert('duty_rosta',$data);
       
-      }//
+      }
       
       
       }
