@@ -562,6 +562,7 @@ public function biotimeFacilities()
    $message=" Checkin " .$this->db->affected_rows();
   
    $this->biotimeClockout();
+   $this->biotimeClockoutnight();
 
   
   $this->log($message);
