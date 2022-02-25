@@ -634,11 +634,11 @@ public function biotimeFacilities()
     $today = date('Y-m-d');
     $yesterday = date("Y-m-d", strtotime("-1 day"));
 
-    $nights=$this->db->query("SELECT duty_date,duty_rosta.ihris_pid as ihris_pid,entry_id,card_number from duty_rosta,ihrisdata where schedule_id='14' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
+    $nights=$this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,card_number from duty_rosta,ihrisdata where schedule_id='14' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
     )")->result();
     foreach($nights as $night):
 
-        $nights=$night->duty_date.$night->ihris_pid;
+        $nights=$night->duty_date.$night->person_id;
         
          //$query=$this->db->query("SELECT punch_time from biotime_data_history,ihrisdata where (biotime_data_history.emp_code='$night->card_number') AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND DATE(biotime_data_history.punch_time)='$today' ");
         // $entry_id=$query->result();
