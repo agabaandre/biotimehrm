@@ -2,7 +2,7 @@
  <style>
 .info-box-main {
     box-shadow:rgba(110, 68, 68, 0.2);
-    background: #005662;
+    background: #00838f;
     text-align: center;
     display: -ms-flexbox;
     display: flex;
