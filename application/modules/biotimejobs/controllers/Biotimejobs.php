@@ -650,6 +650,7 @@ public function biotimeFacilities()
         //  $this->db->where('entry_id', "$nights");
         //  $query=$this->db->update('clk_log');
         print_r($night->card_number);
+        echo "<br>";
   
    
 
