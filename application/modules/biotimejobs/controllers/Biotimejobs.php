@@ -639,18 +639,18 @@ public function biotimeFacilities()
     )")->result();
     foreach($nights as $night):
          //yesterdays entry_id 
-        // $nights=$night->duty_date.$night->person_id;
+        $nights=$night->$yesterday.$night->person_id;
         
-        // $querys=$this->db->query("SELECT punch_time from biotime_data,ihrisdata where (biotime_data.emp_code='$night->card_number') AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND DATE(biotime_data.punch_time)='$today' ");
-        // $entry_id=$querys->row();
+        $querys=$this->db->query("SELECT punch_time,punch_state from biotime_data,ihrisdata where (biotime_data.emp_code='') AND DATE(biotime_data.punch_time)='$today' ");
+        $entry_id=$querys->row();
    
-        //  $this->db->set('time_out', "$entry->punch_time");
-        //  $this->db->where("time_in <","$entry->punch_time");
-        //  //todays entry
-        //  $this->db->where('entry_id', "$nights");
-        //  $query=$this->db->update('clk_log');
-        print_r($night->card_number);
-        echo "<br>";
+         $this->db->set('time_out', "$entry->punch_time");
+         $this->db->where("time_in <","$entry->punch_time");
+         //todays entry
+         $this->db->where('entry_id', "$nights");
+         $query=$this->db->update('clk_log');
+        // print_r($night->card_number);
+        // echo "<br>";
   
    
 
