@@ -649,7 +649,7 @@ public function biotimeFacilities()
         //  //todays entry
         //  $this->db->where('entry_id', "$nights");
         //  $query=$this->db->update('clk_log');
-        print_r($yesterday);
+        print_r($night);
   
    
 
