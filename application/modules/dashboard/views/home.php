@@ -2,7 +2,7 @@
  <style>
 .info-box-main {
     box-shadow: 0 0 1px rgba(86, 76, 76, 0.13),0 1px 3px rgba(110, 68, 68, 0.2);
-    border-radius: .25rem;
+    border-radius: 0rem;
     background: linear-gradient( 135deg, rgb(56 54 54) 0%, rgb(11 155 206 / 78%) 100%);
     text-align: center;
     display: -ms-flexbox;
