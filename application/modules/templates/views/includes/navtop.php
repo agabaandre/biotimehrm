@@ -1,5 +1,5 @@
 <!-- Navbar -->
-<nav class="main-header navbar navbar-expand navbar-dark" style="background: rgb(12, 106, 142);
+<nav class="main-header navbar navbar-expand navbar-dark" style="background: #005662;
     color:inherit; text-align:center;" >
     <!-- Left navbar links -->
     <ul class="navbar-nav">
