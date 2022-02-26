@@ -4,7 +4,7 @@
  
  <aside class="main-sidebar sidebar-dark-primary elevation-4" >
     <!-- Brand Logo -->
-    <a href="<?php echo base_url();?>" class="brand-link" style="background: linear-gradient( 135deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
+    <a href="<?php echo base_url();?>" class="brand-link" style="background: rgb(12, 106, 142);
     color: #FFFFFF; text-align:center;">
       <!-- <img src="../../dist/img/AdminLTELogo.png"
            alt="AdminLTE Logo"
