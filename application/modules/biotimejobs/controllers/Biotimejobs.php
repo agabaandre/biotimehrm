@@ -645,11 +645,11 @@ public function biotimeFacilities()
         $entry=$querys->row();
    
          $this->db->set('time_out', "$entry->punch_time");
-         $this->db->where("time_in <","$entry->punch_time");
+        //  $this->db->where("time_in <","$entry->punch_time");
          //todays entry
          $this->db->where('entry_id', "$nights");
          $query=$this->db->update('clk_log');
-        // print_r($night->card_number);
+         print_r($entry);
         // echo "<br>";
   
    
