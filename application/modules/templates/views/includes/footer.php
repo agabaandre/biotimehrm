@@ -1,7 +1,7 @@
 </div>
   <!-- /.content-wrapper -->
 
-  <footer class="main-footer" style="background: rgb(27 131 173) 100%);
+  <footer class="main-footer" style="background: linear-gradient( 135deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
     color: #FFFFFF; text-align:center;" >
                 <div class="col-lg-12">
                     <div class="footer-copy-right">
