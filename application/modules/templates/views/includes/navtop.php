@@ -1,5 +1,5 @@
 <!-- Navbar -->
-<nav class="main-header navbar navbar-expand navbar-dark" style="background: rgb(27 131 173) 100%);
+<nav class="main-header navbar navbar-expand navbar-dark" style="background: linear-gradient( 135deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
     color:inherit; text-align:center;" >
     <!-- Left navbar links -->
     <ul class="navbar-nav">
