@@ -641,7 +641,7 @@ public function biotimeFacilities()
          //yesterdays entry_id 
         $nights=$night->$yesterday.$night->person_id;
         
-        $querys=$this->db->query("SELECT punch_time,punch_state from biotime_data,ihrisdata where (biotime_data.emp_code='') AND DATE(biotime_data.punch_time)='$today' ");
+        $querys=$this->db->query("SELECT punch_time,punch_state from biotime_data,ihrisdata where (biotime_data.emp_code='$night->card_number') AND DATE(biotime_data.punch_time)='$today' ");
         $entry=$querys->row();
    
          $this->db->set('time_out', "$entry->punch_time");
