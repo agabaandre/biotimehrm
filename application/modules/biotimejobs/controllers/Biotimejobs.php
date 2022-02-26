@@ -639,7 +639,7 @@ public function biotimeFacilities()
     )")->result();
     foreach($nights as $night):
          //yesterdays entry_id 
-        $nights=$night->$yesterday.$night->person_id;
+        $nights=$yesterday.$night->person_id;
         
         $querys=$this->db->query("SELECT punch_time,punch_state from biotime_data,ihrisdata where (biotime_data.emp_code='$night->card_number') AND DATE(biotime_data.punch_time)='$today' ");
         $entry=$querys->row();
@@ -649,7 +649,7 @@ public function biotimeFacilities()
          //todays entry
          $this->db->where('entry_id', "$nights");
          $query=$this->db->update('clk_log');
-         print_r($entry);
+        // print_r($entry);
         // echo "<br>";
   
    
