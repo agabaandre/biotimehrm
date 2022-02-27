@@ -650,7 +650,7 @@ public function biotimeFacilities()
         $initial_time = strtotime( $timein)/ 3600;
         $final_time = strtotime( $entry->punch_time)/ 3600;
         $hours_worked = round(($final_time - $initial_time), 1); 
-        echo $hours_worked;
+        echo $final_time;
         if($final_time>=0):
         $this->db->set('time_out', "$entry->punch_time");
         //  $this->db->where("time_in <","$entry->punch_time");
