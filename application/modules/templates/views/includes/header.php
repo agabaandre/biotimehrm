@@ -114,6 +114,7 @@ body::-webkit-scrollbar-thumb
   height:70%;
 	border: 1px solid #555555;
   border-radius:4px;
+  scrollbar-width: thin;
 }
 .sido{
   clear:both;
@@ -124,6 +125,7 @@ body::-webkit-scrollbar-thumb
 	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3) !important;
        box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3); 
 	background-color: #F5F5F5;
+  scrollbar-width: thin;
 }
   .btn{
     font-size: 12px !important;
@@ -153,6 +155,7 @@ body::-webkit-scrollbar-thumb
 {
 	width: 0.5em;
 	background-color: #F5F5F5 !important;
+  scrollbar-width: thin;
 }
 
 .sido::-webkit-scrollbar-thumb
