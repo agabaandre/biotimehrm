@@ -648,10 +648,10 @@ public function biotimeFacilities()
         $entry->punch_time;
         
         $initial_time = strtotime( $timein)/ 3600;
-        $final_time = strtotime($entry->time_out)/ 3600;
+        $final_time = strtotime( $entry->punch_time)/ 3600;
         $hours_worked = round(($final_time - $initial_time), 1); 
         
-        if((($hours_worked<=14)|| ($hours_worked<=-14)) && ($entry->punch_time>=0)):
+        if($hours_worked<=14):
         $this->db->set('time_out', "$entry->punch_time");
         //  $this->db->where("time_in <","$entry->punch_time");
          //todays entry
