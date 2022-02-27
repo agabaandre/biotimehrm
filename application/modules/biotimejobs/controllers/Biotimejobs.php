@@ -632,8 +632,9 @@ public function biotimeFacilities()
     ini_set('max_execution_time',0);
 
     //get night shift people.
-    $today = date('Y-m-d');
-    $yesterday = date("Y-m-d", strtotime("-1 day"));
+   // $today = date('Y-m-d');
+    $today = date("Y-m-d", strtotime("-1 day"));
+    $yesterday = date("Y-m-d", strtotime("-2 day"));
 
     $nights=$this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,card_number from duty_rosta,ihrisdata where schedule_id='16' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
     )")->result();
@@ -641,7 +642,7 @@ public function biotimeFacilities()
          //yesterdays entry_id 
         $nights=$yesterday.$night->person_id;
         
-        $querys=$this->db->query("SELECT punch_time,punch_state from biotime_data,ihrisdata where (biotime_data.emp_code='$night->card_number') AND DATE(biotime_data.punch_time)='$today' ");
+        $querys=$this->db->query("SELECT punch_time,punch_state from biotime_data_history,ihrisdata where (biotime_data_history.emp_code='$night->card_number') AND DATE(biotime_data_history.punch_time)='$today' ");
         $entry=$querys->row();
         //get time in for the log
         $timein=$this->db->query("select time_in from clk_log WHERE entry_id='$nights'")->row()->time_in;
