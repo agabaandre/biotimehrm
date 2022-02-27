@@ -643,14 +643,23 @@ public function biotimeFacilities()
         
         $querys=$this->db->query("SELECT punch_time,punch_state from biotime_data,ihrisdata where (biotime_data.emp_code='$night->card_number') AND DATE(biotime_data.punch_time)='$today' ");
         $entry=$querys->row();
-   
-         $this->db->set('time_out', "$entry->punch_time");
+        //get time in for the log
+        $timein=$this->db->query("select time_in from clk_log WHERE entry_id='$nights'")->row()->time_in;
+        $entry->punch_time;
+        
+        $initial_time = strtotime( $timein)/ 3600;
+        $final_time = strtotime($entry->time_out)/ 3600;
+        $hours_worked = round(($final_time - $initial_time), 1); 
+        
+        if($hours_worked<=14):
+        $this->db->set('time_out', "$entry->punch_time");
         //  $this->db->where("time_in <","$entry->punch_time");
          //todays entry
          $this->db->where('entry_id', "$nights");
          $query=$this->db->update('clk_log');
         // print_r($entry);
         // echo "<br>";
+        endif;
   
    
 
