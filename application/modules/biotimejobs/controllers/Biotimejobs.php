@@ -611,10 +611,13 @@ public function biotimeFacilities()
    $entry_id=$query->result();
   
    foreach($entry_id as $entry){
+    $final_time = strtotime( $entry->punch_time)/ 3600;
+    if($final_time>0):
     $this->db->set('time_out', "$entry->punch_time");
     $this->db->where("time_in <","$entry->punch_time");
     $this->db->where('entry_id', "$entry->entry_id");
     $query=$this->db->update('clk_log');
+    endif;
 
    
   }
