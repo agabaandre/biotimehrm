@@ -352,7 +352,7 @@ public function __Construct(){
 		
 
 		if(!empty($employee)){
-            $search="and ihris_pid='$employee'";
+            $search="and dutyreport.ihris_pid='$employee'";
 		}
 		else{
 			$search="";
