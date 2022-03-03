@@ -85,10 +85,10 @@ td{
 <table class="items" style="font-size: 12pt; border-collapse: collapse; " cellpadding="8" width="100%">
 
            
-                    <tr style="border-right: 0; border-left: 0; border-top: 0;">
+<tr style="border-right: 0; border-left: 0; border-top: 0;">
 	<td colspan=2 style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></td>
 
-	<td colspan=4 style="border-right: 0; border-left: 0; border-top: 0;">
+	<td colspan=12 style="border-right: 0; border-left: 0; border-top: 0;">
 		<h4>
 <?php 
 
