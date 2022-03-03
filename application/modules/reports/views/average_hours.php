@@ -38,7 +38,7 @@
 					 <div class="col-md-4">
 						 <div class="control-group">
 
-					
+					          
 
 							 <select class="form-control select2" name="year" onchange="this.form.submit()">
 							         <option disabled>SELECT YEAR</option>
@@ -60,7 +60,7 @@
 							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
 				
            
-			<a href="<?php echo base_url() ?>reports/print_average/<?php echo $year?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
+			<a href="<?php echo base_url() ?>reports/print_average/<?php echo $this->input->post('year');?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
 				
 
                 </div>
