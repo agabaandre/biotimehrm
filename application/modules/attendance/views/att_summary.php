@@ -104,7 +104,7 @@ else{
 	<p style="text-align:left;">MONTHLY ATTENDANCE TO DUTY SUMMARY FOR
 
 		<?php
-		 echo $sums[0]['facility']." ".date('F, Y',strtotime($dates));
+		 echo $_SESSION['facility']." ".date('F, Y',strtotime($dates));
 
 		?>
 	</p>
