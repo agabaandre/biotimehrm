@@ -86,9 +86,9 @@ td{
 
            
                     <tr style="border-right: 0; border-left: 0; border-top: 0;">
-	<td colspan=2 style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></td>
+	<td colspan=1 style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></td>
 
-	<td colspan=3 style="border-right: 0; border-left: 0; border-top: 0;">
+	<td colspan=2 style="border-right: 0; border-left: 0; border-top: 0;">
 		<h4>
 
 
