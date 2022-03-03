@@ -97,7 +97,7 @@ td{
 	<h4">
 
 		<?php
-		 echo 'MONTHLY ATTENDANCE TO DUTY SUMMARY FOR'. $_SESSION['facility_name']." ".date('F, Y',strtotime($dates));
+		 echo 'MONTHLY ATTENDANCE TO DUTY SUMMARY' .date('F, Y',strtotime($dates));
 		?>
 	</h4>
 
@@ -117,7 +117,6 @@ td{
 	<th>Official Request</th>
 	<th>Leave</th>
 	<th>Holiday</th>
-	<th>Absent</th>
 	<th>Day Schedule</th>
 	<th>Evening Schedule</th>
 	<th> Night Schedule</th>
@@ -132,7 +131,7 @@ td{
 
 <?php 
 
-$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):0;
+$no=1;
 foreach($sums as $sum):
 //print_r($sums); 
 ?>
@@ -146,7 +145,6 @@ foreach($sums as $sum):
 	<td data-label="R"><?php if(!empty($R=$sum['R'])){ echo $R; } else{ echo 0; }?></td>
 	<td data-label="L"><?php if(!empty($L=$sum['L'])){ echo $L; } else{ echo 0; }?></td>
 	<td data-label="H"><?php if(!empty($H=$sum['H'])){ echo $H; } else{ echo 0; }?></td>
-	<td data-label="A"></td>
 	<td data-label="D"><?php $roster=Modules::run('attendance/attrosta',$dates,urlencode($sum['ihris_pid'])); ?><?php echo $day=$roster['Day'][0]->days; ?></td>
 	<td data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></td>
 	<td data-label="N"><?php echo $night=$roster['Night'][0]->days;?></td>
