@@ -95,13 +95,13 @@ class Reports extends MX_Controller {
 		$facility= $_SESSION['facility'];
 
 		$year=$this->input->post('year');
-      if(!empty($year)){
+       if(!empty($year)){
         $fyear=$this->input->post('year');
         
-       }
+        }
 	   else{
-		$fyear=$syear;
-	   }
+		$fyear="";
+	    }
          
         $this->load->library('pagination');
         $config=array();
@@ -139,9 +139,9 @@ class Reports extends MX_Controller {
 
 		
 	 }
-	 public function print_average(){
+	 public function print_average($syear=false){
 		$this->load->library('M_pdf');
-		$data['sums']=$this->reports_mdl->average_hours($fyear);
+		$data['sums']=$this->reports_mdl->average_hours($syear);
         $html=$this->load->view('averagehours_pdf',$data,true);
         $fac=$_SESSION['facility_name'];
         $filename=$fac."_Average_Hours"."pdf";
