@@ -81,6 +81,19 @@ class Reports extends MX_Controller {
 	echo  json_encode($data,JSON_NUMERIC_CHECK);
 	}
 
+	public function  person_attendance_all(){
+		$data=$this->reports_mdl->person_attendance_all();
+        print_r($data);
+		
+	
+	}
+	public function  average_hours(){
+		$data=$this->reports_mdl->person_attendance_all();
+        print_r($data);
+		
+	
+	}
+
 
 	
 
