@@ -109,8 +109,8 @@ td{
 
 <tr>
 	<th>#</th>
-	<th>Month and Year</th>
-	<th>Average Hours</th>
+	<th style="width:400px;">Month and Year</th>
+	<th style="width:400px;">Average Hours</th>
 	
 	
 
