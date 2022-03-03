@@ -123,16 +123,16 @@ class Attendance extends MX_Controller {
         $filename="Attendance_Symmary_".$fac."pdf";
         ini_set('max_execution_time',0);
         $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-        $this->m_pdf->pdf->showWatermarkImage = true;
+        $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+        $this->ml_pdf->pdf->showWatermarkImage = true;
         date_default_timezone_set("Africa/Kampala");
-        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b><br style='font-size: 9px !imporntant;'>"."Source: iHRIS - HRM Attend " .base_url());
-        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-        $this->m_pdf->showWatermarkImage = true;
+        $this->ml_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b><br style='font-size: 9px !imporntant;'>"."Source: iHRIS - HRM Attend " .base_url());
+        $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+
         ini_set('max_execution_time',0);
-        $this->m_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
+        $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
         //download it D save F.
-        $this->m_pdf->pdf->Output($filename,'I');
+        $this->ml_pdf->pdf->Output($filename,'I');
 
 	}
 	
