@@ -397,7 +397,7 @@ class 	Attendance_model extends CI_Model {
 	Public function attendance_summary($valid_range,$filters,$start=NULL,$limit=NULL,$employee=NULL){
         $facility=$_SESSION['facility'];
 		if(!empty($employee)){
-            $search="and ihris_pid='$employee";
+            $search="and ihrisdata.ihris_pid='$employee";
 		}
 		else{
 			$search="";
