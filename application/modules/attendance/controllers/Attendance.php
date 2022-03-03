@@ -140,7 +140,7 @@ class Attendance extends MX_Controller {
 	public function attsums_csv($valid_range)
 	{
 	$datas=$this->attendance_model->attendance_summary($valid_range,$this->filters,$config['per_page']=NULL,$page=NULL,$empid=FALSE);
-    $csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') .'_'.$_SESSION['facility'] .".csv";	
+    $csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') .'_'.$_SESSION['facility_name'] .".csv";	
 	header("Content-Type: text/csv");
 	header("Content-Disposition: attachment; filename=\"$csv_file\"");	
 	$fh = fopen( 'php://output', 'w' );
