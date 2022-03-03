@@ -124,7 +124,7 @@ class Attendance extends MX_Controller {
 		$fac=$_SESSION['facility'];
 		$filename=$fac."att_summary_report_".$date.".pdf";
  		ini_set('max_execution_time',0);
- 		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+ 		$PDFContent = mb_convert_encoding($html);
 		 $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
 		 $this->ml_pdf->pdf->showWatermarkImage = true;
  		ini_set('max_execution_time',0);
