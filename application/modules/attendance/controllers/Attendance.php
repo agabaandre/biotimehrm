@@ -119,7 +119,7 @@ class Attendance extends MX_Controller {
 
 
 
-		$html=$this->load->view('att_summary',$data,false);
+		$html=$this->load->view('att_summary');
 
 		$fac=$_SESSION['facility'];
 		$filename=$fac."att_summary_report_".$date.".pdf";
