@@ -92,7 +92,7 @@ td{
 		<h4>
 
 
-	<p style="text-align:left;">MONTHLY ATTENDANCE TO DUTY SUMMARY FOR
+	<p style="text-align:left;">MONTHLY STAFF AVERAGE WORKING HOURS FOR - 
 
 		<?php
 		 echo $_SESSION['facility_name'];
