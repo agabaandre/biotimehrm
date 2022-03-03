@@ -89,7 +89,7 @@ class Reports extends MX_Controller {
 	}
 	public function average_hours($syear=FALSE){		
 		$data['title']='Average Hours';
-		$data['uptitle']="Average Hours";
+		$data['uptitle']="Average Monthly Hours";
 		$data['view']='average_hours';
 		$data['module']=$this->module;
 		$facility= $_SESSION['facility'];
@@ -135,8 +135,10 @@ class Reports extends MX_Controller {
         $data['links']=$this->pagination->create_links();
 	    $data['hours']=$this->reports_mdl->average_hours($fyear);
 
-		print_r($data['hours']);
-	}
+		echo Modules::run('templates/main', $data);
+
+		
+	 }
 
 
 	

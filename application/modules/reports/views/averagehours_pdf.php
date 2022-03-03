@@ -118,18 +118,9 @@ else{
 
 <tr>
 	<th>#</th>
-	<th>Name</th>
-	<th>Job</th>
-	<th>Present</th>
-	<th>Off Duty</th>
-	<th>Official Request</th>
-	<th>Leave</th>
-	<th>Holiday</th>
-	<th>Absent</th>
-	<th>Day Schedule</th>
-	<th>Evening Schedule</th>
-	<th> Night Schedule</th>
-	<th> Present %</th>
+	<th>Month and Year</th>
+	<th>Average Hours</th>
+	
 	
 
 
@@ -141,34 +132,15 @@ else{
 <?php 
 
 $no=1;
+$sums=$average_hours;
 foreach($sums as $sum) {?>
 
 
 <tr>
-	<td data-label="no"><?php echo $no;?></td>
-	<td data-label="Name"><?php echo $sum['fullname'].' '.$sum['othername'];?></td>
-	<td data-label="Job"><?php echo $sum['job']?></td>
-    <td data-label="P"><?php if(!empty($present=$sum['P'])){ echo $present; } else{ echo 0; }?></td>
-    <td data-label="O"><?php if(!empty($O=$sum['O'])){ echo $present; } else{ echo 0; }?></td>
-	<td data-label="R"><?php if(!empty($R=$sum['R'])){ echo $present; } else{ echo 0; }?></td>
-	<td data-label="L"><?php if(!empty($L=$sum['L'])){ echo $present; } else{ echo 0; }?></td>
-	<td data-label="H"><?php if(!empty($H=$sum['H'])){ echo $present; } else{ echo 0; }?></td>
-	<td>
-	<?php $roster=Modules::run('attendance/attrosta',$dates,urlencode($sum['ihris_pid'])); 
+	<td data-label="no"><?php echo $no++;?></td>
+	<td data-label="Name"><?php echo $sum['month_year'];?></td>
+	<td data-label="Job"><?php echo $sum['avg_hours']?></td>
 	
-			$day=$roster['Day'][0]->days;
-			$eve=$roster['Evening'][0]->days;
-			$night=$roster['Night'][0]->days;
-			$r_days=$day+$eve+$night;
-			echo days_absent_helper($present,$r_days);
-	
-	?>
-
-	</td>
-	<td data-label="D"><?php echo $day=$roster['Day'][0]->days; ?></td>
-	<td data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></td>
-	<td data-label="N"><?php echo $night=$roster['Night'][0]->days;?></td>
-	<td data-label="Percentage Pr"><?php $per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } ?> % </td>	
 </tr>
 
 <?php

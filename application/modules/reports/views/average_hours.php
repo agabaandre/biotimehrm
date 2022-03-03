@@ -99,15 +99,16 @@ else{
 <div id="table">
 <div class="header-row tbrow">
     <span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
-    <span class="cell stcell   cname">Month</span>
-	<span class="cell stcell">Hours</span>
+    <span class="cell stcell   cname">Month and Year</span>
+	<span class="cell stcell">Average Hours</span>
    
 	
 
 </div>
 <?php  $mydate=$year."-".$month ?>
 <?php 
-$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):1;
+$no=1;
+$sums=$average_hours;
 foreach($sums as $sum) {?>
 <div class="table-row tbrow strow">
     <input type="radio" name="expand" class="fa fa-angle-double-down trigger">
@@ -115,7 +116,7 @@ foreach($sums as $sum) {?>
 	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['month_year'];?></span></b>
 </span>
     <span class="cell stcell  cname" data-label="Month"><?php echo $sum['month_year']?></span>
-	<span class="cell stcell  cname" data-label="Hours"><?php echo $sum['hours'] ?></span>
+	<span class="cell stcell  cname" data-label="Hours"><?php echo $sum['_avg_hours'] ?></span>
     
 </div>
 <?php
