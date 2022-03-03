@@ -29,7 +29,7 @@
                       <li><a href="<?php echo base_url()?>reports/person_attendance_all">District Person Attendnce All</a><p> - Printable Summary of Attedance to Duty by Employee</p></li>
                       <li><a href="<?php echo base_url()?>employees/viewTimeLogs">Daily Time Log Report </a><p> -Daily Time Logs </p></li>
                       <li><a href="<?php echo base_url()?>employees/groupedTimeLogs">Monthly Time Log Report </a><p> -Monthly Time Logs </p></li>
-                      
+                      <li><a href="<?php echo base_url()?>reports/average_hours">Average Monthly Hours </a><p> - Facility Monthly Average Time Logs </p></li>
 					 
                      			
 				   </ol>
