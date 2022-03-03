@@ -61,7 +61,7 @@
 
 							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
 				
-               ?>
+           
 			<a href="<?php echo base_url() ?>reports/print_average/<?php echo $year?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
 				
 
@@ -108,7 +108,7 @@ else{
 <?php  $mydate=$year."-".$month ?>
 <?php 
 $no=1;
-$sums=$average_hours;
+
 foreach($sums as $sum) {?>
 <div class="table-row tbrow strow">
     <input type="radio" name="expand" class="fa fa-angle-double-down trigger">

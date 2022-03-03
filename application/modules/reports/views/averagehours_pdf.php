@@ -132,7 +132,7 @@ else{
 <?php 
 
 $no=1;
-$sums=$average_hours;
+
 foreach($sums as $sum) {?>
 
 

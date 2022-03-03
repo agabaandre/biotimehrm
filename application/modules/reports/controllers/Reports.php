@@ -133,7 +133,7 @@ class Reports extends MX_Controller {
         $this->pagination->initialize($config);
         $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
         $data['links']=$this->pagination->create_links();
-	    $data['hours']=$this->reports_mdl->average_hours($fyear);
+	    $data['sums']=$this->reports_mdl->average_hours($fyear);
 
 		echo Modules::run('templates/main', $data);
 
