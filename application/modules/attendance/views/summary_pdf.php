@@ -134,7 +134,7 @@ td{
 
 $no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):0;
 foreach($sums as $sum):
-print_r($sums); 
+//print_r($sums); 
 ?>
 
 <tr>
