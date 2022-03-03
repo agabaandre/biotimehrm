@@ -124,7 +124,7 @@ td{
 
 $no=1;
 
-foreach($sums as $sum) {?>
+foreach($sums as $sum):?>
 
 
 <tr>
@@ -134,11 +134,7 @@ foreach($sums as $sum) {?>
 	
 </tr>
 
-<?php
-
-$no++; 
-
-} ?>
+<?php endforeach;?>
 
 
 
