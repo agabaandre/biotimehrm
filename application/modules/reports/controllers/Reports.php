@@ -16,7 +16,7 @@ class Reports extends MX_Controller {
         $this->ufilters=Modules::run('filters/universalfilters');
         // requires a join on ihrisdata with district level
         $this->distfilters=Modules::run('filters/districtfilters');
-
+		$this->watermark=FCPATH."assets/img/MOH.png";
 
 	}
 
