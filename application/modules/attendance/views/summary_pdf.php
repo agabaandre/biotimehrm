@@ -147,14 +147,7 @@ foreach($sums as $sum):
 	<td data-label="L"><?php if(!empty($L=$sum['L'])){ echo $L; } else{ echo 0; }?></td>
 	<td data-label="H"><?php if(!empty($H=$sum['H'])){ echo $H; } else{ echo 0; }?></td>
 	<td data-label="A">
-    <?php $roster=Modules::run('attendance/attrosta',$mydate,urlencode($sum['ihris_pid']));
-								$day=$roster['Day'][0]->days;
-								$eve=$roster['Evening'][0]->days;
-								$night=$roster['Night'][0]->days;
-								$r_days=$day+$eve+$night;
-								echo days_absent_helper($present,$r_days);
-	 ?>
-
+  
 	</td>
 	<td data-label="D"><?php $roster=Modules::run('attendance/attrosta',$dates,urlencode($sum['ihris_pid'])); ?><?php echo $day=$roster['Day'][0]->days; ?></td>
 	<td data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></td>
