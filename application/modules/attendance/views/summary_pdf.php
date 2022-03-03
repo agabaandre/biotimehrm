@@ -1,1 +1,1 @@
-<?php echo print_r($data);?>
+My nname
