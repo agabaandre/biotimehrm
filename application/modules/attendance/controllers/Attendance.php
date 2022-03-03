@@ -121,17 +121,17 @@ class Attendance extends MX_Controller {
 
 		$html=$this->load->view('summary_pdf',$data);
 
-		$fac=$_SESSION['facility'];
-		$filename=$fac."att_summary_report_".$date.".pdf";
- 		ini_set('max_execution_time',0);
- 		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-		 $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		 $this->ml_pdf->pdf->showWatermarkImage = true;
- 		ini_set('max_execution_time',0);
-		$this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
+		// $fac=$_SESSION['facility'];
+		// $filename=$fac."att_summary_report_".$date.".pdf";
+ 		// ini_set('max_execution_time',0);
+ 		// $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+		//  $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		//  $this->ml_pdf->pdf->showWatermarkImage = true;
+ 		// ini_set('max_execution_time',0);
+		// $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
  
-		//download it D save F.
-		$this->ml_pdf->pdf->Output($filename,'I');
+		// //download it D save F.
+		// $this->ml_pdf->pdf->Output($filename,'I');
 
 
 	}
