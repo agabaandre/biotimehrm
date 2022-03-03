@@ -29,7 +29,7 @@
 <div class="callout callout-success">
              
 
-			 <form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>attendance/attendance_summary" method="post">
+			 <form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>reports/average_hours" method="post">
 			 <div class="row">
 					 
 
