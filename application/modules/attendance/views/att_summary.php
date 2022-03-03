@@ -133,8 +133,9 @@ td{
 <?php 
 
 $no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):0;
-foreach($sums as $sum) {?>
-
+foreach($sums as $sum) 
+print_r($sums); 
+?>
 
 <tr>
 	<td data-label="no"><?php echo $no;?></td>
