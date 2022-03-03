@@ -94,14 +94,12 @@ td{
 
 
 ?>
-	<p style="text-align:left;">MONTHLY ATTENDANCE TO DUTY SUMMARY FOR
+	<h4">
 
 		<?php
-		 echo $_SESSION['facility_name']." ".date('F, Y',strtotime($dates));
-		
-
+		 echo 'MONTHLY ATTENDANCE TO DUTY SUMMARY FOR'. $_SESSION['facility_name']." ".date('F, Y',strtotime($dates));
 		?>
-	</p>
+	</h4>
 
 
 
