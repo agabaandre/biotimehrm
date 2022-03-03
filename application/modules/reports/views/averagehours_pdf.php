@@ -129,7 +129,7 @@ foreach($sums as $sum) {?>
 
 <tr>
 	<td data-label="no"><?php echo $no++;?></td>
-	<td data-label="Name"><?php echo date("j, F", strtotime($sum['month_year']));?></td>
+	<td data-label="Name"><?php echo date("F, Y", strtotime($sum['month_year']));?></td>
 	<td data-label="Job"><?php echo $sum['avg_hours']?></td>
 	
 </tr>
