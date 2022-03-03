@@ -135,7 +135,7 @@ class Reports extends MX_Controller {
         $data['links']=$this->pagination->create_links();
 	    $data['hours']=$this->reports_mdl->average_hours();
 
-		print_r($$data['hours']);
+		print_r($data['hours']);
 	}
 
 
