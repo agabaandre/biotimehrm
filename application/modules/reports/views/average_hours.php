@@ -33,18 +33,16 @@
 			 <div class="row">
 					 
 
-							 <input type="hidden" id="month" value="<?php echo $month; ?>">
-
-				
 
 
 					 <div class="col-md-4">
 						 <div class="control-group">
 
-							 <input type="hidden" id="year" value="<?php echo $year; ?>">
+					
 
 							 <select class="form-control select2" name="year" onchange="this.form.submit()">
-									 <option><?php echo $year; ?></option>
+							         <option disabled>SELECT YEAR</option>
+									 <option ><?php echo date('Y'); ?></option>
 
 									 <?php for($i=-5;$i<=25;$i++){  ?>
 
