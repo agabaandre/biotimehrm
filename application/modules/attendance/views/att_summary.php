@@ -158,8 +158,6 @@ foreach($sums as $sum) {?>
 	
 	?></td>
 	<td data-label="Percentage Pr"><?php $per= round(($present/($r_days))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } 
-	
-		
 	  
 	
 	?> % </td>	
