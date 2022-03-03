@@ -104,12 +104,18 @@ class Reports_mdl extends CI_Model {
 	  return array('aperiod'=>$aperiod, 'adata'=>$adata,'dperiod'=>$rperiod,'ddata'=>$rdata);
 
 	}
-	public function average_hours(){
+	public function average_hours($fyear){
 		$facility = $_SESSION['facility'];
-		
-		$fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg,facility, FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m'),facility_id")->result_array();
-        
-		return $fac;
+		if(!empty($fyear)){
+			
+			$filter="and date_format(date,'%Y')='$fyear'";
+
+		}
+		else{
+			$filter="";
+		}
+		$fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg,facility, FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m'),facility_id");
+        return $fac;
 	}
 
 
