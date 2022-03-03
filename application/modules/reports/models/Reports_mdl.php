@@ -114,7 +114,7 @@ class Reports_mdl extends CI_Model {
 		else{
 			$filter="";
 		}
-		$fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg_hours,facility,date_format(date,'%Y-%m') as month_year FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m'),facility_id")->result_array();
+		$fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg_hours,facility,date_format(date,'%Y-%m') as month_year FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m')")->result_array();
         return $fac;
 	}
 
