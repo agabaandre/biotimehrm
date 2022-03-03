@@ -103,10 +103,10 @@ class Reports extends MX_Controller {
 		$fyear=$syear;
 	   }
          
-     
+        $this->load->library('pagination');
         $config=array();
         $config['base_url']=base_url()."employees/viewTimeLogs";
-        $config['total_rows']=$this->db->query("SELECT pid FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m')")->num_rows();
+        $config['total_rows']=$this->db->query("SELECT pid FROM clk_diff WHERE facility_id='$facility' group by date_format(date,'%Y-%m')")->num_rows();
         $config['per_page']=200; //records per page
         $config['uri_segment']=3; //segment in url  
         //pagination links styling
