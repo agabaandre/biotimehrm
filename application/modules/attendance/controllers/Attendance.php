@@ -117,22 +117,22 @@ class Attendance extends MX_Controller {
 
 		$data['sums']=$this->attendance_model->attendance_summary($date,$this->filters,$config['per_page']=FALSE,$page=FALSE,$empid=FALSE);
 
-
-
+		$fac=$_SESSION['facility_name'];
 		$html=$this->load->view('summary_pdf',$data,true);
-
-		$fac=$_SESSION['facility'];
-		$filename=$fac."att_summary_report_".$date.".pdf";
- 		ini_set('max_execution_time',0);
- 		$PDFContent = mb_convert_encoding($html);
-		 $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		 $this->ml_pdf->pdf->showWatermarkImage = true;
- 		ini_set('max_execution_time',0);
-		$this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
- 
-		//download it D save F.
-		$this->ml_pdf->pdf->Output($filename,'I');
-
+        //$fac=$_SESSION['facility'];
+        $filename="Attendance_Symmary_".$fac."pdf";
+        ini_set('max_execution_time',0);
+        $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+        $this->m_pdf->pdf->showWatermarkImage = true;
+        date_default_timezone_set("Africa/Kampala");
+        $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>".date('d F,Y h:i A')."</b><br style='font-size: 9px !imporntant;'>"."Source: iHRIS - HRM Attend " .base_url());
+        $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+        $this->m_pdf->showWatermarkImage = true;
+        ini_set('max_execution_time',0);
+        $this->m_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
+        //download it D save F.
+        $this->m_pdf->pdf->Output($filename,'I');
 
 	}
 	
