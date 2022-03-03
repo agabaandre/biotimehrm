@@ -92,7 +92,7 @@ echo "<font color='red'> No Schedule Data</font>";
 else{
 ?>
 	MONTHLY AVERAGE STAFF WOKRING HOURS
-		<?php  echo " - ".$_SESSION['facility_name']." ".date('F, Y',strtotime($year."-".$month));
+		<?php  echo " - ".$_SESSION['facility_name'];
 		?>
 <?php } ?>
 	</p></div>
