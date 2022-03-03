@@ -121,17 +121,17 @@ class Attendance extends MX_Controller {
 
 		$html=$this->load->view('att_summary',$data,true);
 
-		$fac=$_SESSION['facility'];
-		$filename=$fac."att_summary_report_".$date.".pdf";
- 		ini_set('max_execution_time',0);
- 		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-		 $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		 $this->ml_pdf->pdf->showWatermarkImage = true;
- 		ini_set('max_execution_time',0);
-		$this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
+		// $fac=$_SESSION['facility'];
+		// $filename=$fac."att_summary_report_".$date.".pdf";
+ 		// ini_set('max_execution_time',0);
+ 		// $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+		//  $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		//  $this->ml_pdf->pdf->showWatermarkImage = true;
+ 		// ini_set('max_execution_time',0);
+		// $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
  
-		//download it D save F.
-		$this->ml_pdf->pdf->Output($filename,'I');
+		// //download it D save F.
+		// $this->ml_pdf->pdf->Output($filename,'I');
 
 
 	}
@@ -157,12 +157,12 @@ class Attendance extends MX_Controller {
 		$day=$roster['Day'][0]->days;
 		$night=$roster['Night'][0]->days;
 		$scheduled=$eve+$night+$night;
-		$absent=days_absent_helper($present,$scheduled);
+		$absent=days_absent_helper($present,$r_days);
 		$per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ $per = 0; } else{  $per; }
         $days =array("Name"=>$data['fullname'],"Job"=>$data['job'],"Department"=>$data['department'], "Present"=>$present, "Off
 		Duty"=>$off,
 		"Official
-		Request"=>$request, "Leave"=>$leave,"Holiday"=>$holiday,"Absent"=>$absent, "Day Schedule"=>$day, "Evening Schedule"=>$eve,"Night Schedule"=>$night,"% Present"=>$per);
+		Request"=>$request, "Leave"=>$leave,"Holiday"=>$holiday,"Absent"=>'$absent', "Day Schedule"=>$day, "Evening Schedule"=>$eve,"Night Schedule"=>$night,"% Present"=>$per);
         array_push($records,$days);
     }
     $is_coloumn = true;
