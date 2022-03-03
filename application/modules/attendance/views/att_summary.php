@@ -117,6 +117,7 @@ td{
 	<th>Official Request</th>
 	<th>Leave</th>
 	<th>Holiday</th>
+	<th>Absent</th>
 	<th>Day Schedule</th>
 	<th>Evening Schedule</th>
 	<th> Night Schedule</th>
@@ -144,10 +145,14 @@ foreach($sums as $sum) {?>
 	<td data-label="R"><?php if(!empty($R=$sum['R'])){ echo $R; } else{ echo 0; }?></td>
 	<td data-label="L"><?php if(!empty($L=$sum['L'])){ echo $L; } else{ echo 0; }?></td>
 	<td data-label="H"><?php if(!empty($H=$sum['H'])){ echo $H; } else{ echo 0; }?></td>
+	<td data-label="H"><?php if(!empty($H=$sum['H'])){ echo $H; } else{ echo 0; }?></td>
 	<td data-label="D"><?php $roster=Modules::run('attendance/attrosta',$dates,urlencode($sum['ihris_pid'])); ?><?php echo $day=$roster['Day'][0]->days; ?></td>
 	<td data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></td>
 	<td data-label="N"><?php echo $night=$roster['Night'][0]->days;?></td>
-	<td data-label="Percentage Pr"><?php $per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } ?> % </td>	
+	<td data-label="Percentage Pr"><?php $per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } 
+	
+	
+	?> % </td>	
 </tr>
 
 <?php
