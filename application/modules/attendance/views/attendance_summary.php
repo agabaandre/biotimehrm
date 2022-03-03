@@ -158,7 +158,7 @@ else{
 	<span class="cell stcell ">Official Request</span>
 	<span class="cell stcell ">Leave</span>
 	<span class="cell stcell ">Holiday</span>
-	<span class="cell stcell ">Days Absent</span>
+	<span class="cell stcell ">Absent</span>
 	<span class="cell stcell ">Day Schedule</span>
 	<span class="cell stcell ">Evening Schedule</span>
 	<span class="cell stcell ">Night Schedule</span>
@@ -182,7 +182,7 @@ foreach($sums as $sum) {?>
 	<span class="cell stcell " data-label="R"><?php if(!empty($R=$sum['R'])){ echo $R; } else{ echo 0; }?></span>
 	<span class="cell stcell " data-label="L"><?php if(!empty($L=$sum['L'])){ echo $L; } else{ echo 0; }?></span>
 	<span class="cell stcell " data-label="H"><?php if(!empty($H=$sum['H'])){ echo $H; } else{ echo 0; }?></span>
-	<span data-label="cell stcell" data-label="AB">
+	<span class="cell stcell" data-label="AB">
 	<?php $roster=Modules::run('attendance/attrosta',$mydate,urlencode($sum['ihris_pid']));
 								$day=$roster['Day'][0]->days;
 								$eve=$roster['Evening'][0]->days;
