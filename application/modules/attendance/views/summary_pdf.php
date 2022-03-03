@@ -132,7 +132,7 @@ td{
 
 <?php 
 
-$no=0;
+$no=1;
 foreach($sums as $sum):
 //print_r($sums); 
 ?>
