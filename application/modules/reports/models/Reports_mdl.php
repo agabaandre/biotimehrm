@@ -107,8 +107,9 @@ class Reports_mdl extends CI_Model {
 	public function average_hours(){
 		$facility = $_SESSION['facility'];
 		
-		$fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg,facility, FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m'),facility_id");
-        return $fac;
+		$fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg,facility, FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m'),facility_id")->result_array();
+        
+		return $fac;
 	}
 
 
