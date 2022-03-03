@@ -119,7 +119,7 @@ class Attendance extends MX_Controller {
 
 
 
-		$html=$this->load->view('att_summary',$data,true);
+		$html=$this->load->view('att_summary',$data,false);
 
 		$fac=$_SESSION['facility'];
 		$filename=$fac."att_summary_report_".$date.".pdf";
@@ -156,11 +156,13 @@ class Attendance extends MX_Controller {
         $eve=$roster['Evening'][0]->days;
 		$day=$roster['Day'][0]->days;
 		$night=$roster['Night'][0]->days;
+		$scheduled=$eve+$night+$night;
+		$absent=days_absent_helper($present,$scheduled);
 		$per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ $per = 0; } else{  $per; }
         $days =array("Name"=>$data['fullname'],"Job"=>$data['job'],"Department"=>$data['department'], "Present"=>$present, "Off
 		Duty"=>$off,
 		"Official
-		Request"=>$request, "Leave"=>$leave,"Holiday"=>$holiday, "Day Schedule"=>$day, "Evening Schedule"=>$eve,"Night Schedule"=>$night,"% Present"=>$per);
+		Request"=>$request, "Leave"=>$leave,"Holiday"=>$holiday,"Absent"=>$absent, "Day Schedule"=>$day, "Evening Schedule"=>$eve,"Night Schedule"=>$night,"% Present"=>$per);
         array_push($records,$days);
     }
     $is_coloumn = true;
