@@ -141,7 +141,7 @@ class Reports extends MX_Controller {
 	 }
 	 public function print_average(){
 		$this->load->library('M_pdf');
-		$data=$this->reports_mdl->average_hours($fyear);
+		$data['sums']=$this->reports_mdl->average_hours($fyear);
         $html=$this->load->view('averagehours_pdf',$data,true);
         $fac=$_SESSION['facility_name'];
         $filename=$fac."_Average_Hours"."pdf";

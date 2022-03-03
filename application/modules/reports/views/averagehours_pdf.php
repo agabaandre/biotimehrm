@@ -90,17 +90,8 @@ td{
 
 	<td colspan=12 style="border-right: 0; border-left: 0; border-top: 0;">
 		<h4>
-<?php 
-if(count($sums)<1)
-{
-
-echo "<font color='red'> No Usable Data</font>";
 
 
-}
-else{
-
-?>
 	<p style="text-align:left;">MONTHLY ATTENDANCE TO DUTY SUMMARY FOR
 
 		<?php
@@ -109,7 +100,7 @@ else{
 		?>
 	</p>
 
-<?php } ?>
+
 
 	</h4></td>
 </tr>
