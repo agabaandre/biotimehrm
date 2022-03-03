@@ -134,6 +134,8 @@ class Reports extends MX_Controller {
         $page=($this->uri->segment(3))? $this->uri->segment(3):0; //default starting point for limits 
         $data['links']=$this->pagination->create_links();
 	    $data['hours']=$this->reports_mdl->average_hours();
+
+		print_r($$data['hours']);
 	}
 
 
