@@ -12,11 +12,3 @@ if (!function_exists('days_absent_helper')) {
 
     }
 }
-    if (!function_exists('days_absent_percent')) {
-    function days_absent_percent($present,$scheduled){
-        $per=(($present/$scheduled)*100);
-        
-    if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; }
-    return $per;
-    }
-}

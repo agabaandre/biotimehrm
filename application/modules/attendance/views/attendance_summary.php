@@ -162,6 +162,8 @@ else{
 	<span class="cell stcell ">Evening Schedule</span>
 	<span class="cell stcell ">Night Schedule</span>
 	<span class="cell stcell ">% Present</span>
+	<span class="cell stcell ">Days Absent</span>
+
 </div>
 <?php  $mydate=$year."-".$month ?>
 <?php 
@@ -183,6 +185,7 @@ foreach($sums as $sum) {?>
 	<span class="cell stcell " data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></span>
 	<span class="cell stcell " data-label="N"><?php echo $night=$roster['Night'][0]->days;?></span>
 	<span class="cell stcell " data-label="Percentage Pr"><?php $per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ echo  0; } else{ echo $per; } ?> % </span>
+	<span class="cell stcell " data-label="N"><?php ?></span>
 </div>
 <?php
 $no++; 
