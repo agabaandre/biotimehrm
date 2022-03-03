@@ -107,7 +107,7 @@ foreach($sums as $sum) {?>
     <span class="cell stcell  tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no;?>
 	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['month_year'];?></span></b>
 </span>
-    <span class="cell stcell  cname" data-label="Month"><?php echo $sum['month_year']?></span>
+    <span class="cell stcell  cname" data-label="Month"><?php echo date("j, F", strtotime($sum['month_year']));?></span>
 	<span class="cell stcell  cname" data-label="Hours"><?php echo $sum['avg_hours'] ?></span>
     
 </div>
