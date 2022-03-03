@@ -41,8 +41,8 @@
 					          
 
 							 <select class="form-control select2" name="year" onchange="this.form.submit()">
-							         <option disabled>SELECT YEAR</option>
-									 <option ><?php echo date('Y'); ?></option>
+							         <option value="">ALL YEARS</option>
+									 <option ><?php $year=date('Y'); echo $year; ?></option>
 
 									 <?php for($i=-5;$i<=25;$i++){  ?>
 
