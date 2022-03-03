@@ -97,7 +97,7 @@ td{
 	<h4">
 
 		<?php
-		 echo 'MONTHLY ATTENDANCE TO DUTY SUMMARY FOR'. $_SESSION['facility_name']." ".date('F, Y',strtotime($dates));
+		 echo 'MONTHLY ATTENDANCE TO DUTY SUMMARY FOR '. $_SESSION['facility_name']." ".date('F, Y',strtotime($dates));
 		?>
 	</h4>
 
@@ -132,7 +132,7 @@ td{
 
 <?php 
 
-$no=(!empty($this->uri->segment(3)))?$this->uri->segment(3):0;
+$no=0;
 foreach($sums as $sum):
 //print_r($sums); 
 ?>
