@@ -97,8 +97,8 @@ td{
 	<p style="text-align:left;">MONTHLY ATTENDANCE TO DUTY SUMMARY FOR
 
 		<?php
-		 echo $_SESSION['facility_name']." ".date('F, Y',strtotime($dates));
-		 print_r($this->session->usersdata());
+		 echo $_SESSION['facility']." ".date('F, Y',strtotime($dates));
+		
 
 		?>
 	</p>
@@ -142,10 +142,10 @@ foreach($sums as $sum) {?>
 	<td data-label="Name"><?php echo $sum['fullname'].' '.$sum['othername'];?></td>
 	<td data-label="Job"><?php echo $sum['job']?></td>
     <td data-label="P"><?php if(!empty($present=$sum['P'])){ echo $present; } else{ echo 0; }?></td>
-    <td data-label="O"><?php if(!empty($O=$sum['O'])){ echo $present; } else{ echo 0; }?></td>
-	<td data-label="R"><?php if(!empty($R=$sum['R'])){ echo $present; } else{ echo 0; }?></td>
-	<td data-label="L"><?php if(!empty($L=$sum['L'])){ echo $present; } else{ echo 0; }?></td>
-	<td data-label="H"><?php if(!empty($H=$sum['H'])){ echo $present; } else{ echo 0; }?></td>
+    <td data-label="O"><?php if(!empty($O=$sum['O'])){ echo $O; } else{ echo 0; }?></td>
+	<td data-label="R"><?php if(!empty($R=$sum['R'])){ echo $R; } else{ echo 0; }?></td>
+	<td data-label="L"><?php if(!empty($L=$sum['L'])){ echo $L; } else{ echo 0; }?></td>
+	<td data-label="H"><?php if(!empty($H=$sum['H'])){ echo $H; } else{ echo 0; }?></td>
 	<td data-label="D"><?php $roster=Modules::run('attendance/attrosta',$dates,urlencode($sum['ihris_pid'])); ?><?php echo $day=$roster['Day'][0]->days; ?></td>
 	<td data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></td>
 	<td data-label="N"><?php echo $night=$roster['Night'][0]->days;?></td>

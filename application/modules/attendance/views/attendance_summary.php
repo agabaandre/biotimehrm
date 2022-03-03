@@ -144,7 +144,7 @@ echo "<font color='red'> No Schedule Data</font>";
 else{
 ?>
 	MONTHLY ATTENDANCE TO DUTY SUMMARY
-		<?php  echo " - ".$sums[0]['facility']." ".date('F, Y',strtotime($year."-".$month));
+		<?php  echo " - ".$_SESSION['facility']." ".date('F, Y',strtotime($year."-".$month));
 		?>
 <?php } ?>
 	</p></div>
@@ -175,10 +175,10 @@ foreach($sums as $sum) {?>
     <span class="cell stcell  cname" data-label="Name"><?php echo $sum['fullname'].' '.$sum['othername'];?></span>
 	<span class="cell stcell  cname" data-label="Name"><?php echo $sum['job'] ?></span>
     <span class="cell stcell " data-label="P"><?php if(!empty($present=$sum['P'])){ echo $present; } else{ echo 0; }?></span>
-    <span class="cell stcell " data-label="O"><?php if(!empty($O=$sum['O'])){ echo $present; } else{ echo 0; }?></span>
-	<span class="cell stcell " data-label="R"><?php if(!empty($R=$sum['R'])){ echo $present; } else{ echo 0; }?></span>
-	<span class="cell stcell " data-label="L"><?php if(!empty($L=$sum['L'])){ echo $present; } else{ echo 0; }?></span>
-	<span class="cell stcell " data-label="L"><?php if(!empty($H=$sum['H'])){ echo $present; } else{ echo 0; }?></span>
+    <span class="cell stcell " data-label="O"><?php if(!empty($O=$sum['O'])){ echo $O; } else{ echo 0; }?></span>
+	<span class="cell stcell " data-label="R"><?php if(!empty($R=$sum['R'])){ echo $R; } else{ echo 0; }?></span>
+	<span class="cell stcell " data-label="L"><?php if(!empty($L=$sum['L'])){ echo $L; } else{ echo 0; }?></span>
+	<span class="cell stcell " data-label="L"><?php if(!empty($H=$sum['H'])){ echo $H; } else{ echo 0; }?></span>
 	<span class="cell stcell " data-label="D"><?php $roster=Modules::run('attendance/attrosta',$mydate,urlencode($sum['ihris_pid'])); ?><?php echo $day=$roster['Day'][0]->days; ?></span>
 	<span class="cell stcell " data-label="E"><?php echo $eve=$roster['Evening'][0]->days; ?></span>
 	<span class="cell stcell " data-label="N"><?php echo $night=$roster['Night'][0]->days;?></span>
