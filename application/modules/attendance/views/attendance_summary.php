@@ -158,11 +158,12 @@ else{
 	<span class="cell stcell ">Official Request</span>
 	<span class="cell stcell ">Leave</span>
 	<span class="cell stcell ">Holiday</span>
+	<span class="cell stcell ">Days Absent</span>
 	<span class="cell stcell ">Day Schedule</span>
 	<span class="cell stcell ">Evening Schedule</span>
 	<span class="cell stcell ">Night Schedule</span>
 	<span class="cell stcell ">% Present</span>
-	<span class="cell stcell ">Days Absent</span>
+	
 
 </div>
 <?php  $mydate=$year."-".$month ?>
