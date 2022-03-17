@@ -38,6 +38,7 @@ class Attendance extends MX_Controller {
 	
 
 	Public function attendance_summary(){	
+	
 	 	    
 		$month=$this->input->post('month');
 		$year=$this->input->post('year');
@@ -63,6 +64,11 @@ class Attendance extends MX_Controller {
 			$date=$_SESSION['year'].'-'.$_SESSION['month'];
 			$data['month']=$_SESSION['month'];
 			$data['year']=$_SESSION['year'];
+		 }
+
+		 $valid_rangeto=$this->input->post('yearto')."-".$this->input->post('monthto');
+		 if(empty($valid_rangeto)){
+			 $valid_rangeto = $date;
 		 }
 		
         
@@ -109,13 +115,19 @@ class Attendance extends MX_Controller {
 	Public function print_attsummary($date)
 	{	
 
+	
+
         $data['dates']=$date;
         
 		$this->load->library('ML_pdf');
 
+		$valid_rangeto=$this->input->post('yearto')."-".$this->input->post('monthto');
+		if(empty($valid_rangeto)){
+			$valid_rangeto = $date;
+		}
 		//$data['username']=$this->username;
 
-		$data['sums']=$this->attendance_model->attendance_summary($date,$this->filters,$config['per_page']=FALSE,$page=FALSE,$empid=FALSE);
+		$data['sums']=$this->attendance_model->attendance_summary($date,$valid_rangeto,$this->filters,$config['per_page']=FALSE,$page=FALSE,$empid=FALSE);
 
 		$fac=$_SESSION['facility_name'];
 		$html=$this->load->view('summary_pdf',$data,true);
@@ -137,8 +149,9 @@ class Attendance extends MX_Controller {
 	}
 	
 
-	public function attsums_csv($valid_range,$valid_rangeto)
+	public function attsums_csv($valid_range)
 	{
+		$valid_rangeto=$this->input->post('yearto')."-".$this->input->post('monthto');
 		if(empty($valid_rangeto)){
 			$valid_rangeto = $valid_range;
 		}
