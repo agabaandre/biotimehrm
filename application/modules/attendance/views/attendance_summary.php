@@ -155,7 +155,7 @@
 		if(count($sums)>0)
 		{
 ?>
-			<a href="<?php echo base_url() ?>attendance/print_attsummary/<?php echo $year."-".$month; ?>/<?php echo $this->input->post('yearto')."-".$this->input->post('monthto'); ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
+			<a href="<?php echo base_url() ?>attendance/print_attsummary/<?php echo $year."-".$month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
 					<?php } ?>
 
 					<?php 
