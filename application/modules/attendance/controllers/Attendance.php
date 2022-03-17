@@ -137,9 +137,12 @@ class Attendance extends MX_Controller {
 	}
 	
 
-	public function attsums_csv($valid_range)
+	public function attsums_csv($valid_range,$valid_rangeto)
 	{
-	$datas=$this->attendance_model->attendance_summary($valid_range,$this->filters,$config['per_page']=NULL,$page=NULL,$empid=FALSE);
+		if(empty($valid_rangeto)){
+			$valid_rangeto = $valid_range;
+		}
+	$datas=$this->attendance_model->attendance_summary($valid_range,$valid_rangeto, $this->filters,$config['per_page']=NULL,$page=NULL,$empid=FALSE);
     $csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') .'_'.$_SESSION['facility_name'] .".csv";	
 	header("Content-Type: text/csv");
 	header("Content-Disposition: attachment; filename=\"$csv_file\"");	
@@ -153,13 +156,14 @@ class Attendance extends MX_Controller {
 		if(!empty($data['R'])){$request=$data['R']; } else{$request=0;};
 		if(!empty($data['P'])){$present=$data['P']; } else{$present=0;};
 		if(!empty($data['H'])){$holiday=$data['H']; } else{$holiday=0;};
+		$duty_date=$data['duty_date'];
         $eve=$roster['Evening'][0]->days;
 		$day=$roster['Day'][0]->days;
 		$night=$roster['Night'][0]->days;
 		$r_days=($eve+$day+$night);
 		$absent=days_absent_helper($present,$r_days);
 		$per= round(($present/($day+$night+$eve))*100,1); if(is_infinite($per)||is_nan($per)){ $per = 0; } else{  $per; }
-        $days =array("Name"=>$data['fullname'],"Job"=>$data['job'],"Department"=>$data['department'], "Present"=>$present, "Off
+        $days =array("Name"=>$data['fullname'],"Job"=>$data['job'],"Department"=>$data['department'], "Duty Date"=>$duty_date, "Present"=>$present, "Off
 		Duty"=>$off,
 		"Official
 		Request"=>$request, "Leave"=>$leave,"Holiday"=>$holiday,"Absent"=>$absent, "Day Schedule"=>$day, "Evening Schedule"=>$eve,"Night Schedule"=>$night,"% Present"=>$per);

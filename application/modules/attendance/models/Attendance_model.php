@@ -394,7 +394,7 @@ class 	Attendance_model extends CI_Model {
 		return $query->num_rows();
 	}
     
-	Public function attendance_summary($valid_range,$filters,$start=NULL,$limit=NULL,$employee=NULL){
+	Public function attendance_summary($valid_range, $valid_rangeto,$filters,$start=NULL,$limit=NULL,$employee=NULL){
         $facility=$_SESSION['facility'];
 		if(!empty($employee)){
             $search="and ihrisdata.ihris_pid='$employee'";
@@ -409,7 +409,7 @@ class 	Attendance_model extends CI_Model {
 		else{
 			$limits=" ";
 		}
-		  $query=$this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date='$valid_range' and ihrisdata.ihris_pid=p.ihris_pid $search  $limits");
+		  $query=$this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date between '$valid_range'and $valid_rangeto and ihrisdata.ihris_pid=p.ihris_pid $search  $limits");
 		  $data=$query->result_array();
 
 		return $data;

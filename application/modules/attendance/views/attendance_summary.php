@@ -37,7 +37,7 @@
 
 							 <input type="hidden" id="month" value="<?php echo $month; ?>">
 
-							 <select class="form-control select2" name="month"  onchange="this.form.submit()">
+							 <label>From</label><select class="form-control select2" name="month"  onchange="this.form.submit()">
 
 								 <option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
 								 
@@ -77,7 +77,54 @@
 				
 						 </div>
 					 </div>
-					 <div class="col-md-4">
+
+					 <div class="col-md-2">
+
+						 <div class="control-group">
+
+							 <input type="hidden" id="month" value="<?php echo $month; ?>">
+
+							 <label>To</label><select class="form-control select2" name="monthto"  onchange="this.form.submit()">
+
+								 <option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
+								 
+								 <option value="01">JANUARY</option>
+								 <option value="02">FEBRUARY</option>
+								 <option value="03">MARCH</option>
+								 <option value="04">APRIL</option>
+								 <option value="05">MAY</option>
+								 <option value="06">JUNE</option>
+								 <option value="07">JULY</option>
+								 <option value="08">AUGUST</option>
+								 <option value="09">SEPTEMBER</option>
+								 <option value="10">OCTOBER</option>
+								 <option value="11">NOVEMBER</option>
+								 <option value="12">DECEMBER</option>
+							 </select>
+
+						 </div>
+
+					 </div>
+
+
+					 <div class="col-md-2">
+						 <div class="control-group">
+
+							 <input type="hidden" id="year" value="<?php echo $year; ?>">
+
+							 <select class="form-control select2" name="yearto" onchange="this.form.submit()">
+									 <option><?php echo $year; ?></option>
+
+									 <?php for($i=-5;$i<=25;$i++){  ?>
+
+									 <option><?php echo 2017+$i; ?></option>
+
+									 <?php }  ?>
+							 </select>
+				
+						 </div>
+					 </div>
+					 <div class="col-md-2">
 						 <div class="control-group">
 					   
 
@@ -99,7 +146,7 @@
 						 </div>
 					 </div>
 
-					 <div class="col-md-4">
+					 <div class="col-md-2">
 
 						 <div class="control-group">
 
@@ -108,7 +155,7 @@
 		if(count($sums)>0)
 		{
 ?>
-			<a href="<?php echo base_url() ?>attendance/print_attsummary/<?php echo $year."-".$month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
+			<a href="<?php echo base_url() ?>attendance/print_attsummary/<?php echo $year."-".$month; ?>/<?php echo $this->input->post('yearto')."-".$this->input->post('month'); ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
 					<?php } ?>
 
 					<?php 
