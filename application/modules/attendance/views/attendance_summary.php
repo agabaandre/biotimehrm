@@ -37,7 +37,7 @@
 
 							 <input type="hidden" id="month" value="<?php echo $month; ?>">
 
-							 <label>From</label><select class="form-control select2" name="month"  onchange="this.form.submit()">
+							 <select class="form-control select2" name="month"  onchange="this.form.submit()">
 
 								 <option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
 								 
@@ -84,9 +84,9 @@
 
 							 <input type="hidden" id="month" value="<?php echo $month; ?>">
 
-							 <label>To</label><select class="form-control select2" name="monthto"  onchange="this.form.submit()">
-
-								 <option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10)))."(Showing below)"; ?></option>
+							 <select class="form-control select2" name="monthto"  onchange="this.form.submit()">
+							     
+								 <option value="<?php echo $monthto; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $monthto, 10)))."(Showing below)"; ?></option>
 								 
 								 <option value="01">JANUARY</option>
 								 <option value="02">FEBRUARY</option>
