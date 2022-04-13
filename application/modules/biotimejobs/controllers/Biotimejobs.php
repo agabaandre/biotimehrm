@@ -278,7 +278,7 @@ class Biotimejobs extends MX_Controller {
 //create multiple new users cronjob
  public function multiple_new_users(){
      $howmany=array();
-    $query=$this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='facility|770' OR ihrisdata.facility_id='facility|771' AND ihrisdata.facility_id IN(SELECT area_code from biotime_devices) AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
+    $query=$this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='facility|770' OR ihrisdata.facility_id='facility|771'  OR ihrisdata.facility_id='facility|Ghospital-313-1' AND ihrisdata.facility_id IN(SELECT area_code from biotime_devices) AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
   $newusers=$query->result();
   foreach ($newusers as $newuser):
 
