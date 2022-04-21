@@ -23,10 +23,11 @@
 
       <?php  
 
-          echo strtoupper($userdata['names']); 
+          //echo strtoupper($userdata['names']); 
 
 
           ?>
+          <a href="#" class="on_off"><i class="fa fa-circle text-success"></i>Online</a>
          
           
 
