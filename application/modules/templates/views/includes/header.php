@@ -119,6 +119,7 @@ body::-webkit-scrollbar-thumb
 .sido{
   clear:both;
   overflow:auto;
+  background:#222d32;
 }
 .sido::-webkit-scrollbar-track
 {
