@@ -100,7 +100,7 @@ class Biotimejobs extends MX_Controller {
          $status="failed";
         }
         $this->cronjob_register($process,$method,$status);
-       
+        $this->get_ucmbdata();
 
     }
    //employees all enrolled users before creating new ones.
