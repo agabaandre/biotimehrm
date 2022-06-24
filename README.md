@@ -1,4 +1,4 @@
-# biotimehrm
+# Biotime HRM Attendance Management
 Manage Attendance with distributed biometric devices.
 Implements the biotime Api and manual attendance Tracking.
 Suitable for Hospitals, Schools and industries with multiple sites.
