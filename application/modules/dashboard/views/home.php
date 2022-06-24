@@ -616,7 +616,7 @@ $graph=Modules::run("reports/dutygraphData");
          type: 'line'
      },
       title: {
-         text: 'Duty Roster Reporting Rate'
+         text: 'Average Number of Employees Scheduled per Month'
      },
      subtitle: {
          text: ''
@@ -658,7 +658,7 @@ Highcharts.chart('line_graph_att', {
         type: 'line'
     },
     title: {
-        text: 'Attendace Reporting Rate'
+        text: 'Average Number of Employees Attending per Month'
     },
     subtitle: {
         text: ''
