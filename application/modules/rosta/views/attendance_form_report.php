@@ -230,7 +230,7 @@ foreach ($departments as $department) {
 									//$nonworkables contains non duty days
 									//$workeddays contains  worked days
 
-									foreach ($duties as $singleduty) {
+									foreach ($actualrows as $singleduty) {
 
 										$no++;
 

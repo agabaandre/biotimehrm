@@ -924,7 +924,7 @@ class Rosta extends MX_Controller
 		$data['title'] = "Monthly Attendance Form";
 		$data['uptitle'] = "Monthly Attendance Form Report";
 		$data['module'] = $this->rostamodule;
-		//echo Modules::run('templates/main',$data);
+		echo Modules::run('templates/main', $data);
 	}
 
 
