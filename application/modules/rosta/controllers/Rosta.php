@@ -905,7 +905,7 @@ class Rosta extends MX_Controller
 		$actualrows = $this->rosta_model->getActuals($date, $this->filters);
 		$actuals = array();
 
-		print_r($actualrows);
+		print_r($data['duties']);
 		// foreach ($actualrows as $actual) {
 
 		// 	$entry = $actual['entry_id'];
