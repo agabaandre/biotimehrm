@@ -902,10 +902,10 @@ class Rosta extends MX_Controller
 		$data['facilities'] = Modules::run("facilities/getFacilities");
 		$empid = $this->input->post('empid');
 		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'], $page, $empid, $this->filters);
-		$actualrows = $this->rosta_model->getActuals($date, $this->filters);
+		$data['actualrows'] = $this->rosta_model->getActuals($date, $this->filters);
 		$actuals = array();
 
-		print_r($data['duties']);
+		//print_r($data['duties']);
 		// foreach ($actualrows as $actual) {
 
 		// 	$entry = $actual['entry_id'];
