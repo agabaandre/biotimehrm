@@ -232,6 +232,8 @@ foreach ($departments as $department) {
 
 									foreach ($actualrows as $singleduty) {
 
+										print($actualrows);
+
 										$no++;
 
 										if ($singleduty['ihris_pid'] != '') { //if id is not empty
