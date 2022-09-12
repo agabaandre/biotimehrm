@@ -152,3 +152,4 @@
 {"REQUEST DETAILS: 2021-08-04 23:13:00 Time": " Checkin 61"},
 {"REQUEST DETAILS: 2021-08-05 00:21:17 Time": "Created 2"},
 {"REQUEST DETAILS: 2021-08-19 16:18:54 Time": "1 saveEnrolled() add_enrolled() Created Enrolled users from Biotime 788"},
+{"REQUEST DETAILS: 2022-09-12 23:32:04 Time": "1 get_ihrisdata() add_ihrisdata()  IHRIS HRH 11407"},
