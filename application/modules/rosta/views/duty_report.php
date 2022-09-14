@@ -81,6 +81,7 @@ if (count($duties) > 0) {
 								<div class="col-md-3">
 									<div class="control-group">
 										<button type="submit" name="" class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
+										<a href="<?php echo base_url() ?>rosta/print_roster/<?php echo $year . "/" . $month; ?>" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
 									</div>
 								</div>
 							</div>

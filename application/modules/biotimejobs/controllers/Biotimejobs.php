@@ -685,8 +685,7 @@ class Biotimejobs extends MX_Controller
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
         //To set custom month uncomment below and set  ymonth of choice
-        //$ymonth="2019-08"."-";
-        // comment  the file below on line 145 if custom ymonth is set.
+        //$ymonth="2019-08"."-";   
         $ymonth = date('Y-m');
 
         //poplulate actuals
