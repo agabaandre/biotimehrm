@@ -200,8 +200,6 @@ class Rosta extends MX_Controller
 		$data['links'] = $this->pagination->create_links();
 		ini_set('max_execution_time', 0);
 		$data['schedules'] = Modules::run("schedules/getSchedules", "r");
-		//$data['checks']=$this->getChecks();
-		//$data['departments']=$this->departments;
 		$data['duties'] = $this->rosta_model->fetch_tabs($date, $config['per_page'], $page, $employee, $this->filters);
 		$data['matches'] = $this->rosta_model->matches($date);
 		$data['tab_schedules'] = $this->rosta_model->tab_matches();
@@ -210,15 +208,14 @@ class Rosta extends MX_Controller
 		$data['uptitle'] = "Duty Roster";
 		$data['title'] = "Duty Roster";
 
-		//print_r($data['duties']);
 
 		echo Modules::run("templates/main", $data);
 	}
-
-
-
-
-
+	public function getrosterschedules($date = "2022-09-01", $person = "person|1320128")
+	{
+		$data = $this->rosta_model->get_roster_schedules($person, $date);
+		print_r($data);
+	}
 
 	public function fetch_report()
 	{
@@ -281,9 +278,6 @@ class Rosta extends MX_Controller
 		$data['departments'] = $this->departments;
 
 		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'], $page, $employee = NULL, $this->filters);
-
-		$data['matches'] = $this->rosta_model->matches($date);
-		$data['checks'] = $this->getChecks();
 
 		$data['facilities'] = Modules::run("facilities/getFacilities");
 
@@ -902,24 +896,6 @@ class Rosta extends MX_Controller
 		$data['facilities'] = Modules::run("facilities/getFacilities");
 		$empid = $this->input->post('empid');
 		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'], $page, $empid, $this->filters);
-		$actualrows = $this->rosta_model->getActuals($date, $this->filters);
-		$actuals = array();
-
-		print_r($data['duties']);
-		foreach ($actualrows as $actual) {
-
-			$entry = $actual['entry_id'];
-			$duty = $actual['actual'];
-
-			$actuals[$entry] = $duty;
-		}
-
-
-		$data['actuals'] = $actuals;
-
-		//$data['matches']=$this->rosta_model->matches($date);
-		$data['checks'] = $this->getChecks();
-		//$data['switches']=$this->switches();
 		$data['view'] = "attendance_form_report";
 		$data['title'] = "Monthly Attendance Form";
 		$data['uptitle'] = "Monthly Attendance Form Report";

@@ -27,5 +27,14 @@ http://yourdomain.com/projectname
 ```
 
 
+# Biotime HRM Attendance Management 2.1
+CHANGE LOG
 
+Changed data access methods for 
+<li>
+ Duty roster
+ Attendance 
+ Added a helper to display attendance
+</li>
+The result is a 10x increase in perfomance for the duty roster and attendance.
 

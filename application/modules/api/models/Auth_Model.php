@@ -1,58 +1,24 @@
-<?php 
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-CLass Auth_Model extends CI_Model
+class Auth_model extends CI_Model
 {
-    public function login($username, $password)
+    public function validate_login($userdata)
     {
-        $response = array();
+        $this->load->database();
 
-        $this->db->select('ihris_pid, username, name, department, department_id, facility, facility_id, role');
+        $username = $userdata['username'];
+        $password = $userdata['password'];
+        $this->db->select('user.facility_id, user.username, user.role,facility');
         $this->db->from('user');
-        $this->db->where(array('username'=>$username, 'password'=> md5($password)));
+        $this->db->join('facilities', 'facilities.facility_id = user.facility_id');
+        $this->db->where('username', $username);
+        $this->db->where('password', md5($password));
         $query = $this->db->get();
-        if($query->num_rows() === 1) {
-           
-            $userdata = $query->row();
-            
-            $response['status'] = 'AUTH_SUCCESS';
-            $response['message'] = 'Successfuly authenticated';
-            $response['error'] = FALSE;
-            $response['user'] = $userdata;
-
-            return $response;
-        
+        if ($query->num_rows() > 0) {
+            return $query->row();
         } else {
-            $response['status'] = 'AUTH_FAILED';
-            $response['message'] = 'Invalid username or password';
-            $response['error'] = TRUE;
-
-            return $response;
+            return null;
         }
-
-    }
-
-    public function get_profile($personId) 
-    {
-        $response = array();
-        
-        $this->db->select('email, mobile AS mobile1, telephone AS mobile2');
-        $this->db->from('ihrisdata');
-        $this->db->where('user.ihris_pid', urldecode($personId));
-        $this->db->join('user', 'user.ihris_pid=ihrisdata.ihris_pid');
-        $query = $this->db->get();
-        if($query->num_rows() > 0) {
-            $profile = $query->row();
-            $response['status'] = "SUCCESS";
-            $response['message'] = "Data loaded";
-            $response['error'] = FALSE;
-            $response['profile'] = $profile;
-        } else {
-            $response['status'] = "FAILED";
-            $response['message'] = "No profile info";
-            $response['error'] = TRUE;
-            $response['profile'] = NULL;
-        }
-
-        return $response;
     }
 }

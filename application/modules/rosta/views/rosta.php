@@ -108,41 +108,32 @@ $facilities=Modules::run("facilities/getFacilities");
 $('#duty').change(function(){
 
         var duty=$('#duty').val();
-
 //day
 if(duty=='14'){
-
     var kala='#d1a110';
 }
-
 else
     if(duty=='15'){
 //even
     var kala='#49b229';
 }
-
 else
-
 //night
 if(duty=='16'){
-
     var kala='#29b299';
 }
 else
-
 //off
 if(duty=='17'){
 
     var kala='#297bb2';
 }
-
 else
 //annual leave
 if(duty=='18'){
 
     var kala='#603e1f';
 }
-
 
 else
 
