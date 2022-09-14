@@ -16,7 +16,6 @@
  <section class="content">
    <div class="container-fluid">
      <!-- Main row -->
-
      <?php
       $permissions = $this->session->userdata('permissions');
       //  print_r($permissions);
@@ -25,132 +24,7 @@
       } else {
         $display = "none";
       }
-
       ?>
-
-     <div class="row" style="display:<?php echo $display; ?>">
-       <div class="col-xl-4 col-md-12">
-         <div class="card card-">
-           <div class="card-header border-0">
-             <h3 class="card-title">Synchronisation Status</h3>
-
-           </div>
-           <div class="card-body">
-             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
-               <p class="text-success text-xl">
-                 <i class="ion ion-android-globe-outline text-info"></i>
-               </p>
-               <p class="d-flex flex-column text-right">
-                 <span class="font-weight-bold">
-                   <i class="ion ion-android-alarm-clock text-info"></i> 12%
-                 </span>
-                 <span class="text-muted">iHRIS</span>
-               </p>
-             </div>
-
-             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
-               <p class="text-warning text-xl">
-                 <i class="ion ion-android-alarm-clock-outline"></i>
-               </p>
-               <p class=" d-flex flex-column text-right">
-                 <span class="font-weight-bold">
-                   <i class="ion ion-android-alarm-clock text-info"></i> 0.8%
-                 </span>
-                 <span class="text-muted">BIO TIME</span>
-               </p>
-             </div>
-
-             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom mb-3 border-info">
-               <p class=" text-danger text-xl">
-                 <i class="ion ion-ios-people-outline"></i>
-               </p>
-               <p class="d-flex flex-column text-right">
-                 <span class="font-weight-bold">
-                   <i class="ion ion-android-phone-landscape text-warning"></i> 1%
-                 </span>
-                 <span class="text-muted">MOBILE DEVICES</span>
-               </p>
-             </div>
-             <div class="d-flex justify-content-between align-items-center mb-2">
-               <p class="text-danger text-xl">
-                 <i class="ion ion-ios-people-outline"></i>
-               </p>
-               <p class="d-flex flex-column text-right">
-                 <span class="font-weight-bold">
-                   <i class="ion ion-calendar text-danger"></i> 1%
-                 </span>
-                 <span class="text-muted">DUTY ROSTER & ATTENDANCE</span>
-               </p>
-             </div>
-
-
-
-           </div>
-         </div>
-       </div>
-
-       <div class="col-xl-4 col-md-12">
-         <div class="card">
-           <div class="card-header border-0">
-             <h3 class="card-title">Attendance Status</h3>
-
-           </div>
-           <div class="card-body">
-             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
-               <p class="text-success text-xl">
-                 <i class="ion ion-android-globe-outline text-info"></i>
-               </p>
-               <p class="d-flex flex-column text-right">
-                 <span class="font-weight-bold">
-                   <i class="ion ion-android-alarm-clock text-info"></i> 12%
-                 </span>
-                 <span class="text-muted">iHRIS</span>
-               </p>
-             </div>
-
-             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
-               <p class="text-warning text-xl">
-                 <i class="ion ion-android-alarm-clock-outline"></i>
-               </p>
-               <p class=" d-flex flex-column text-right">
-                 <span class="font-weight-bold">
-                   <i class="ion ion-android-alarm-clock text-info"></i> 0.8%
-                 </span>
-                 <span class="text-muted">BIO TIME</span>
-               </p>
-             </div>
-
-             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom mb-3 border-info">
-               <p class=" text-danger text-xl">
-                 <i class="ion ion-ios-people-outline"></i>
-               </p>
-               <p class="d-flex flex-column text-right">
-                 <span class="font-weight-bold">
-                   <i class="ion ion-android-phone-landscape text-warning"></i> 1%
-                 </span>
-                 <span class="text-muted">MOBILE DEVICES</span>
-               </p>
-             </div>
-             <div class="d-flex justify-content-between align-items-center mb-2">
-               <p class="text-danger text-xl">
-                 <i class="ion ion-ios-people-outline"></i>
-               </p>
-               <p class="d-flex flex-column text-right">
-                 <span class="font-weight-bold">
-                   <i class="ion ion-calendar text-danger"></i> 1%
-                 </span>
-                 <span class="text-muted">DUTY ROSTER & ATTENDANCE</span>
-               </p>
-             </div>
-
-
-
-           </div>
-         </div>
-       </div>
-     </div>
-     <!-- </div> endrow -->
-
      <div class="row" style="display:<?php echo $display; ?>">
        <div class="col-12 col-sm-6 col-md-3">
          <div class="info-box info-box-main">
@@ -169,7 +43,6 @@
        <div class="col-12 col-sm-6 col-md-3">
          <div class="info-box info-box-main mb-3">
            <span class="info-box-icon  elevation-1"><i class="fas fa-clock"></i></span>
-
            <div class="info-box-content">
              <span class="info-box-text">Last Attendance Sum </span>
              <span class="info-box-number" id="attendance"></span>
@@ -179,14 +52,11 @@
          <!-- /.info-box -->
        </div>
        <!-- /.col -->
-
        <!-- fix for small devices only -->
        <div class="clearfix hidden-md-up"></div>
-
        <div class="col-12 col-sm-6 col-md-3">
          <div class="info-box info-box-main mb-3">
            <span class="info-box-icon  elevation-1"><i class="fas fa-calendar"></i></span>
-
            <div class="info-box-content">
              <span class="info-box-text"> Last Roster Sum </span>
              <span class="info-box-number" id="roster"></span>
@@ -199,7 +69,6 @@
        <div class="col-12 col-sm-6 col-md-3">
          <div class="info-box info-box-main mb-3">
            <span class="info-box-icon  elevation-1"><i class="fas fa-fingerprint"></i></span>
-
            <div class="info-box-content">
              <span class="info-box-text">BioTime Last Sync</span>
              <span class="info-box-number" id="biotime_last"></span>
@@ -210,209 +79,193 @@
        </div>
        <!-- /.col -->
      </div>
-
-
-     <div class="row">
-       <div class="col-12 col-sm-6 col-md-3">
-         <div class="info-box info-box-main">
-           <span class="info-box-icon  elevation-1"><i class="fas fa-calendar-check"></i></span>
-
-           <div class="info-box-content">
-             <span class="info-box-text">Present</span>
-             <span class="info-box-number" id="present">
-             </span>
-             <small>Staff</small>
+     <!-- End of Admin section -->
+     <div class="row" style="display:<?php echo $display; ?>">
+       <div class="col-xl-4 col-md-12">
+         <div class="card card-">
+           <div class="card-header border-0">
+             <h3 class="card-title">Daily Attendnce Status</h3>
            </div>
-           <!-- /.info-box-content -->
-         </div>
-         <!-- /.info-box -->
-       </div>
-       <!-- /.col -->
-
-       <div class="col-12 col-sm-6 col-md-3">
-         <div class="info-box mb-3 info-box-main">
-           <span class="info-box-icon elevation-1"><i class="fa fa-home"></i></span>
-
-           <div class="info-box-content">
-             <span class="info-box-text">Off Duty</span>
-             <span class="info-box-number" id="offduty"></span>
-
-             <small>Staff</small>
+           <div class="card-body">
+             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
+               <p class="text-xl" style="color:#4169E1;">
+                 <i class="fas fa-calendar-check"></i>
+               </p>
+               <p class="h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">Off Duty</span>
+                 <span class="info-box-number font-weight-bold" id="offduty"></span>
+                 <small>Staff</small>
+               </p>
+             </div>
+             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
+               <p class="text-warning text-xl">
+                 <i class="fa fa-home warning"></i>
+               </p>
+               <p class=" h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">on Leave</span>
+                 <span class="info-box-number font-weight-bold" id="leave"></span>
+                 <small>Staff</small>
+               </p>
+             </div>
+             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom mb-3 border-info">
+               <p class=" text-info text-xl">
+                 <i class="fa fa-paper-plane"></i>
+               </p>
+               <p class="h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">On Official Request</span>
+                 <span class="info-box-number font-weight-bold" id="request"></span>
+                 <small>Staff</small>
+               </p>
+             </div>
+             <div class="d-flex justify-content-between align-items-center mb-2">
+               <p class=" text-xl" style="color:#c2e258;">
+                 <i class="fas fa-bed"></i>
+               </p>
+               <p class="h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">On Leave</span>
+                 <span class="info-box-number font-weight-bold" id="leave"></span>
+                 <small>Staff</small>
+               </p>
+             </div>
            </div>
-           <!-- /.info-box-content -->
          </div>
-         <!-- /.info-box -->
        </div>
-       <!-- /.col -->
-
-
-       <!-- fix for small devices only -->
-       <div class="clearfix hidden-md-up"></div>
-
-       <div class="col-12 col-sm-6 col-md-3">
-         <div class="info-box mb-3 info-box-main">
-           <span class="info-box-icon elevation-1"><i class="fas fa-bed"></i></span>
-
-           <div class="info-box-content">
-             <span class="info-box-text">on Leave</span>
-             <span class="info-box-number" id="leave"></span>
-
-
-             <small>Staff</small>
+       <div class="col-xl-4 col-md-12">
+         <div class="card">
+           <div class="card-header border-0">
+             <h3 class="card-title">Out of Station Requests</h3>
            </div>
-           <!-- /.info-box-content -->
-         </div>
-         <!-- /.info-box -->
-       </div>
-       <!-- /.col -->
-       <div class="col-12 col-sm-6 col-md-3">
-         <div class="info-box mb-3 info-box-main">
-           <span class="info-box-icon  elevation-1"><i class="fa fa-paper-plane"></i></span>
-
-           <div class="info-box-content">
-             <span class="info-box-text">On Official Request</span>
-             <span class="info-box-number" id="request"></span>
-
-             <small>Staff</small>
+           <div class="card-body">
+             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
+               <p class="text-warning text-xl">
+                 <i class="ion ion-ios-book text-warning"></i>
+               </p>
+               <p class="h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">Requests Submitted</span>
+                 <span class="info-box-number font-weight-bold" id="rsent"></span>
+                 <small>Requests</small>
+               </p>
+             </div>
+             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
+               <p class="text-success text-xl">
+                 <i class="fa fa-check"></i>
+               </p>
+               <p class=" h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">Requests Approved</span>
+                 <span class="info-box-number font-weight-bold" id="rapproved"></span>
+                 <small>Requests</small>
+               </p>
+             </div>
+             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom mb-3 border-info">
+               <p class=" text-danger text-xl">
+                 <i class="fa fa-times"></i>
+               </p>
+               <p class="h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">Requests Rejected</span>
+                 <span class="info-box-number font-weight-bold" id="rrejected"></span>
+                 <small>Requests</small>
+               </p>
+             </div>
+             <div class="d-flex justify-content-between align-items-center mb-2">
+               <p class="text-info text-xl">
+                 <i class="ion ion-ios-briefcase"></i>
+               </p>
+               <p class="h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">Total Requests</span>
+                 <span class="info-box-number font-weight-bold" id="trequests"></span>
+                 <small>Total Requests</small>
+               </p>
+             </div>
            </div>
-           <!-- /.info-box-content -->
          </div>
-         <!-- /.info-box -->
        </div>
-       <!-- /.col -->
+       <div class="col-xl-4 col-md-12">
+         <div class="card card-">
+           <div class="card-header border-0">
+             <h3 class="card-title">Facility Status</h3>
+           </div>
+           <div class="card-body">
+             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
+               <p class="text-success text-xl">
+                 <i class="ion ion-ios-people text-info"></i>
+               </p>
+               <p class="h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">My Staff</span>
+                 <span class="info-box-number font-weight-bold" id="mystaff"></span>
+                 <small>Staff</small>
+               </p>
+             </div>
+             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
+               <p class="text-warning text-xl">
+                 <i class="fa fa-building"></i>
+               </p>
+               <p class=" h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">Departments</span>
+                 <span class="info-box-number font-weight-bold" id="departments"></span>
+                 <small>department(s)</small>
+               </p>
+             </div>
+             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom mb-3 border-info">
+               <p class=" text-danger text-xl">
+                 <i class="fa fa-tasks"></i>
+               </p>
+               <p class="h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">Jobs</span>
+                 <span class="info-box-number font-weight-bold" id="jobs"></span>
+                 <small>Jobs</small>
+               </p>
+             </div>
+             <div class="d-flex justify-content-between align-items-center mb-2">
+               <p class="text-danger text-xl">
+                 <i class="ion ion-ios-people"></i>
+               </p>
+               <p class="h6 d-flex flex-column text-right">
+                 <span class="info-box-text h6 text-muted">Cadres</span>
+                 <span class="info-box-number font-weight-bold" id="cadreS"></span>
+                 <small>Cadres</small>
+               </p>
+             </div>
+           </div>
+         </div>
+       </div>
      </div>
-
-
+     <!-- </div> endrow -->
 
      <div class="row">
-
        <!-- Left col -->
-       <section class="col-lg-9 connectedSortable">
+       <section class="col-lg-12 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
            <div class="card-header">
              <h3 class="card-title">
                Daily Attendance Calendar
-
              </h3>
-
              <div class="card-body">
-
                <ul class="nav nav-pills" style="margin: 0 auto; margin-top:4px;">
                  <p></p>
-
                  <?php $colors = Modules::run('schedules/getattKey'); ?>
                  <div class="row">
-
-
                    <?php foreach ($colors as $color) { ?>
                      <li class="nav-item">
                        <a class="btn btn-flat btnkey" style="background-color:<?php echo $color->color;  ?>;"><?php echo $color->schedule; ?></a>
                      </li>
                    <?php  } ?>
-
                  </div>
-
-
                </ul>
              </div>
              <div id="attcalendar">
-
-
              </div>
            </div><!-- /.card-body -->
          </div>
          <!-- /.card -->
-
-
          <!-- calender key -->
        </section>
-
-
-
-       <div class="col-md-3">
-         <div class="info-box mb-3 info-box-main">
-           <span class="info-box-icon"><i class="fa fa-road"></i></span>
-
-           <div class="info-box-content">
-             <span class="info-box-text">Out of Station Requests</span>
-             <span class="info-box-number" id="requesting"></span>
-             <small>Staff Requests</small>
-           </div>
-           <!-- /.info-box-content-->
-         </div>
-         <!-- Info Boxes Style 2 -->
-         <div class="info-box mb-3 bg-secondary">
-           <span class="info-box-icon"><i class="fas fa-users"></i></span>
-
-           <div class="info-box-content">
-             <span class="info-box-text">iHRIS Total Staff Matched</span>
-             <span class="info-box-number" id="workers"></span>
-           </div>
-           <!-- /.info-box-content-->
-         </div>
-         <!-- /.info-box -->
-         <div class="info-box mb-3 bg-green">
-           <span class="info-box-icon"><i class="far fa-building"></i></span>
-
-           <div class="info-box-content">
-             <span class="info-box-text">Total Facilities</span>
-             <span class="info-box-number" id="facilities"></span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-         <!-- /.info-box -->
-         <div class="info-box mb-3 bg-danger">
-           <span class="info-box-icon"><i class="fas fa-school"></i></span>
-
-           <div class="info-box-content">
-             <span class="info-box-text">Departments</span>
-             <span class="info-box-number" id="departments"></span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-
-         <!-- /.info-box -->
-         <div class="info-box mb-3 bg-yellow">
-           <span class="info-box-icon"><i class="fas fa-tasks"></i></span>
-
-           <div class="info-box-content">
-             <span class="info-box-text">Jobs</span>
-             <span class="info-box-number" id="jobs"></span>
-           </div>
-           <!-- /.info-box-content-->
-         </div>
-         <div class="info-box mb-3 bg-cyan">
-           <span class="info-box-icon"><i class="fa fa-users"></i></span>
-
-           <div class="info-box-content" style="color:#FFF !important;">
-             <span class="info-box-text">My Facility Staff</span>
-             <span class="info-box-number" id="mystaff"></span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-
-         <div class="info-box mb-3 bg-orange" style="min-height:85px;">
-           <span class="info-box-icon"><i class="fas fa-fingerprint" style="color:#FFF !important;"></i></span>
-
-           <div class="info-box-content" style="color:#FFF !important;">
-             <span class="info-box-text">Biotime Devices</span>
-             <span class="info-box-number" id="biometrics"></span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-
-
-
-       </div>
-       </idv>
 
 
        <section class="col-lg-6 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
            <div class="card-header">
-
              <div class="card-tools">
                <ul class="nav nav-pills ml-auto">
                  <!-- <li class="nav-item">
@@ -429,16 +282,12 @@
            </div><!-- /.card-body -->
          </div>
          <!-- /.card -->
-
-
        </section>
        <!-- right col -->
-
        <section class="col-lg-6 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
            <div class="card-header">
-
              <div class="card-tools">
                <ul class="nav nav-pills ml-auto">
                  <!-- <li class="nav-item">
@@ -455,47 +304,31 @@
            </div><!-- /.card-body -->
          </div>
          <!-- /.card -->
-
-
        </section>
-
        <section class="col-lg-8 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
            <div class="card-header">
              <h3 class="card-title">
                Duty Roster Calendar
-
              </h3>
-
              <div class="card-body">
-
                <ul class="nav nav-pills" style="margin: 0 auto; margin-top:4px;">
                  <p></p>
-
                  <?php $colors = Modules::run('schedules/getrosterKey'); ?>
                  <div class="row">
-
-
                    <?php foreach ($colors as $color) { ?>
                      <li class="nav-item">
                        <a class="btn btn-flat rbtnkey" style="background-color:<?php echo $color->color;  ?>;" data-toggle="tab"><?php echo $color->schedule; ?></a>
                      </li>
                    <?php  } ?>
-
                  </div>
-
-
                </ul>
              </div>
              <div id="dutycalendar">
-
-
              </div>
            </div><!-- /.card-body -->
          </div>
-
-
        </section>
        <section class="col-lg-4 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->
@@ -503,107 +336,28 @@
            <div class="card-header">
              <h3 class="card-title">
                Average Monthly Hours
-
              </h3>
            </div>
-
            <div class="card-body">
-
-
              <div id="container-hours">
-
-
              </div>
            </div>
            <!-- /.card-body -->
          </div>
-
-
-
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
            <div class="card-header">
              <h3 class="card-title">
                Checkin Methods
-
              </h3>
            </div>
-
            <div class="card-body">
-
-
-             <div id="attendance_methods">
-
-
+             <div id="">
              </div>
            </div>
            <!-- /.card-body -->
          </div>
-
-
        </section>
-
-
-
-
-
-
-       <!-- Info Boxes Style 2 -->
-       <!-- <div class="col-md-3">
-                <div class="info-box mb-3 bg-warning">
-                <span class="info-box-icon"><i class="fas fa-bed"></i></span>
-
-                  <div class="info-box-content">
-                    <span class="info-box-text">On Leave this Month</span>
-                    <span class="onleave"></span>
-                  </div>
-                  
-                </div>
-          
-             
-              <div class="info-box mb-3 bg-success">
-                <span class="info-box-icon"><i class="far fa-heart"></i></span>
-      
-                <div class="info-box-content">
-                  <span class="info-box-text">On Official Request</span>
-                  <span class="info-box-number">92,050</span>
-                  </div>
-            
-              </div>
-
-          
-            </div> -->
-
-
-       <!-- <div class="col-md-3">
-                <div class="info-box mb-3 bg-warning">
-                <span class="info-box-icon"><i class="fas fa-bed"></i></span>
-
-                  <div class="info-box-content">
-                    <span class="info-box-text">On Leave this Month</span>
-                    <span class="onleave"></span>
-                  </div>
-                  
-                </div>
-          
-            
-              <div class="info-box mb-3 bg-success">
-                <span class="info-box-icon"><i class="far fa-heart"></i></span>
-      
-                <div class="info-box-content">
-                  <span class="info-box-text">On Official Request</span>
-                  <span class="info-box-number">92,050</span>
-                  </div>
-           
-              </div>
-
-          
-            </div> -->
-
-
-
-
-
      </div>
      <!-- /.row (main row) -->
    </div><!-- /.container-fluid -->
@@ -624,7 +378,6 @@
        dataType: "json",
        data: '',
        success: function(data) {
-
          $('#workers').text(data.workers);
          $('#facilities').text(data.facilities);
          $('#departments').text(data.departments);
@@ -642,18 +395,11 @@
          $('#requesting').text(data.requesting);
          knobgauge(data.avg_hours);
          // console.log(data);
-
-
        }
-
      });
-
-
-
    });
    //duty roster calendar
    var base_url = $('.base_url').html();
-
    $('#attcalendar').fullCalendar({
      defaultView: 'basicWeek',
      header: {
@@ -667,13 +413,10 @@
      selectable: false,
      selectHelper: true,
      editable: false,
-
      // Mouse over
      eventMouseover: function(calEvent, jsEvent, view) {
-
        var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
        $("body").append(tooltip);
-
        $(this).mouseover(function(e) {
          $(this).css('z-index', 10000);
          $('.event-tooltip').fadeIn('500');
@@ -687,12 +430,9 @@
        $(this).css('z-index', 8);
        $('.event-tooltip').remove();
      },
-
    });
-
    //attendance calendar
    var base_url = $('.base_url').html();
-
    $('#dutycalendar').fullCalendar({
      defaultView: 'basicWeek',
      header: {
@@ -706,13 +446,10 @@
      selectable: false,
      selectHelper: true,
      editable: false,
-
      // Mouse over
      eventMouseover: function(calEvent, jsEvent, view) {
-
        var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
        $("body").append(tooltip);
-
        $(this).mouseover(function(e) {
          $(this).css('z-index', 10000);
          $('.event-tooltip').fadeIn('500');
@@ -730,9 +467,7 @@
    });
    //duty roster graph
    <?php
-
     $graph = Modules::run("reports/dutygraphData");
-
     ?>
    Highcharts.chart('line_graph_roster', {
      chart: {
@@ -768,14 +503,9 @@
        data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
      }]
    });
-
-
    <?php
-
     $graph = Modules::run("reports/graphData");
-
     ?>
-
    Highcharts.chart('line_graph_att', {
      chart: {
        type: 'line'
@@ -810,10 +540,7 @@
        data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
      }]
    });
-
-
    // Average  Hours Gauge
-
    //chart options
    function knobgauge(gvalue) {
      var gaugeOptions = {
@@ -822,9 +549,7 @@
          height: 203,
          width: 273
        },
-
        title: null,
-
        pane: {
          center: ['50%', '50%'],
          size: '100%',
@@ -837,24 +562,18 @@
            shape: 'arc'
          }
        },
-
        exporting: {
          enabled: false
        },
-
        tooltip: {
          enabled: false
        },
-
        // the value axis
        yAxis: {
          stops: [
-
            [0.1, '#DF5353'], // red
            [0.2, '#DDDF0D'], // yellow
            [0.3, '#55BF3B'] // green
-
-
          ],
          lineWidth: 0,
          tickWidth: 0,
@@ -867,7 +586,6 @@
            y: 16
          }
        },
-
        plotOptions: {
          solidgauge: {
            dataLabels: {
@@ -878,11 +596,7 @@
          }
        }
      };
-
-
      //gauge
-
-
      var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptions, {
        yAxis: {
          min: 0,
@@ -891,11 +605,9 @@
            text: 'Hours'
          }
        },
-
        credits: {
          enabled: false
        },
-
        series: [{
          name: 'Hours',
          data: [parseInt(gvalue)],
@@ -909,12 +621,8 @@
            valueSuffix: ' Hours'
          }
        }]
-
      }))
-
    };
-
-
    // clockin method
    Highcharts.chart('attendance_methods', {
      chart: {
@@ -965,14 +673,11 @@
            name: 'None',
            y: 20
          },
-
        ]
      }],
      credits: [{
-         enabled: 'false',
-       }
-
-     ],
+       enabled: 'false',
+     }],
      exporting: {
        buttons: {
          contextButton: {
@@ -980,10 +685,7 @@
          }
        }
      }
-
    });
  </script>
-
  <script>
-
  </script>

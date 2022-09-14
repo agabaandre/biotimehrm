@@ -13,7 +13,6 @@
         } ?>
     </li>
     <li class="nav-item d-none d-sm-inline-block">
-
     </li>
   </ul>
   <!-- SEARCH FORM -->
@@ -46,7 +45,6 @@
         </a>
       </li>
     <?php } ?>
-
     <li class="nav-item dropdown show" style="margin-right:20px; margin-left:20px; animation: growDown 300ms ease-in-out forwards;">
       <a href="#" data-toggle="dropdown" role="button" aria-expanded="false" class="nav-link dropdown-toggle">
         <span style="clear:both; color:#FFFFFF !important;">
@@ -59,10 +57,8 @@
           <img src="<?php echo base_url(); ?>assets/img/user.jpg" alt="" class="img-circle elevation-2" style="max-width:20px;" /></span>
       </a>
       <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-
         <div class="dropdown-divider"></div>
         <a href="#" class="dropdown-item" data-toggle="modal" data-target="#profile"><i class="fa fa-user"></i> Profile</a>
-
         <div class="dropdown-divider"></div>
         <a href="<?php echo base_url(); ?>auth/logout" class="dropdown-item"><i class="fa fa-arrow-left"></i> Logout</a>
     </li>

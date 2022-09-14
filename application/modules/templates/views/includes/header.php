@@ -3,9 +3,7 @@ $userdata = $this->session->get_userdata();
 if (!isset($userdata['names'])) {
   redirect('auth');
 }
-
 $permissions = $userdata['permissions'];
-
 ?>
 <!DOCTYPE html>
 <html>
@@ -16,12 +14,10 @@ $permissions = $userdata['permissions'];
   <title><?php echo $setting->title ?> - <?php echo (!empty($title) ? $title : null) ?></title>
   <!-- Favicon and touch icons -->
   <link rel="shortcut icon" href="<?php echo base_url(!empty($settings->favicon) ? $settings->favicon : "assets/images/icons/favicon.png"); ?>">
-
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="<?php echo base_url() ?>assets/css/responsive2.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/fontawesome-free/css/all.min.css">
-
   <!-- fullCalendar -->
   <link rel="stylesheet" href="<?php echo base_url() ?>assets/bower_components/fullcalendar/dist/fullcalendar.min.css">
   <link rel="stylesheet" href="<?php echo base_url() ?>assets/bower_components/fullcalendar/dist/fullcalendar.print.min.css" media="print">
@@ -38,7 +34,6 @@ $permissions = $userdata['permissions'];
   <script src="https://code.highcharts.com/modules/exporting.js"></script>
   <script src="https://code.highcharts.com/modules/export-data.js"></script>
   <script src="https://code.highcharts.com/modules/accessibility.js"></script>
-
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
@@ -92,14 +87,11 @@ $permissions = $userdata['permissions'];
       font-weight: 560;
       text-overflow: ellipsis;
       overflow: hidden;
-
-
     }
 
     .nav-item {
       font-weight: 570;
     }
-
 
     body::-webkit-scrollbar-track {
       -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
@@ -142,7 +134,6 @@ $permissions = $userdata['permissions'];
       background: #343a40 !important;
       margin: 6px;
       border-radius: 4px;
-
     }
 
     .buttons-page-length {
@@ -150,7 +141,6 @@ $permissions = $userdata['permissions'];
       background: #343a40 !important;
       margin: 6px;
       border-radius: 4px;
-
     }
 
     .page-item.active .page-link {
@@ -178,7 +168,6 @@ $permissions = $userdata['permissions'];
       color: #fff !important;
       margin: 2px;
       border-radius: 2px;
-
     }
 
     .rbtnkey {
@@ -187,12 +176,10 @@ $permissions = $userdata['permissions'];
       color: #fff !important;
       margin: 2px;
       border-radius: 2px;
-
     }
 
     .fc-content {
       color: #fff !important;
-
     }
   </style>
 </head>

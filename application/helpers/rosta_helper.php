@@ -22,3 +22,12 @@ if (!function_exists('retrieve_attendance_schedule')) {
         return $ci->rosta_model->get_attendance_schedules($pid, $date);
     }
 }
+
+if (!function_exists('gettimedata')) {
+    function gettimedata($pid, $date)
+    {
+        $ci = &get_instance();
+        $ci->load->model('employee_model');
+        return $ci->employee_model->gettimedata($pid, $date);
+    }
+}

@@ -163,12 +163,8 @@
 					?>
 						<td class='cost'>
 							<?php
-
 							echo $duty_letter;
-
 							?>
-
-
 						</td>
 					<?php
 					} //repeat days 
