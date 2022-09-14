@@ -33,8 +33,10 @@ CHANGE LOG
 Changed data access methods for 
 <li>
  Duty roster
+ <li>
  Attendance 
+ <li>
  Added a helper to display attendance
-</li>
+
 The result is a 10x increase in perfomance for the duty roster and attendance.
 
