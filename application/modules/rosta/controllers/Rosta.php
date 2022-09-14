@@ -913,30 +913,17 @@ class Rosta extends MX_Controller
 		$this->load->library('ML_pdf');
 
 
-		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'] = 2000, $page = 0, $empid = FALSE, $this->filters);
-
-		$actualrows = $this->rosta_model->getActuals($date);
-		$actuals = array();
-
-		foreach ($actualrows as $actual) {
-
-			$entry = $actual['entry_id'];
-			$duty = $actual['actual'];
-
-			$actuals[$entry] = $duty;
-		}
-
-		$data['actuals'] = $actuals;
+		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'] = 50, $page = 0, $empid = FALSE, $this->filters);
 		$data['month'] = $month;
 		$data['year'] = $year;
 
 
 		$html = $this->load->view('actual_printable', $data, true);
 
-		$fac = $data['duties'][0]['facility'];
+
 		$date = date('F-Y', strtotime($data['duties'][0]['day1']));
 
-		$filename = $fac . "_actuals_report_" . $date . ".pdf";
+		$filename = $_SESSION['facility'] . "_actuals_report_" . $date . ".pdf";
 
 
 		ini_set('max_execution_time', 0);

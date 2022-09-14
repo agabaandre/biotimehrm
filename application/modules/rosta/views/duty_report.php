@@ -31,7 +31,7 @@ if (count($duties) > 0) {
 			<div class="panel panel-default">
 				<div class="panel-body" style="overflow-x: scroll;">
 					<div class="callout callout-success">
-						<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/tabular" method="post">
+						<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/fetch_report" method="post">
 							<div class="row">
 								<div class="col-md-3">
 									<div class="control-group">

@@ -1,3 +1,4 @@
 backup.sql
 application/logs
 /vendor/
+database.php
