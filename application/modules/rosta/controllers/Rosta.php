@@ -306,17 +306,13 @@ class Rosta extends MX_Controller
 		$data['checks'] = $this->checks;
 
 
-		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'] = 1000, $page = 0, $employee = NULL, $this->filters);
-
-		$data['matches'] = $this->rosta_model->matches($date);
-		$data['checks'] = $this->getChecks();
+		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'] = 10000, $page = 0, $employee = NULL, $this->filters);
 
 		$html = $this->load->view('rosta/rosta_printable', $data, true);
 
-		$fac = $data['duties'][0]['facility_name'];
 		$date = date('F-Y', strtotime($data['duties'][0]['day1']));
 
-		$filename = $fac . "_rota_report_" . $date . ".pdf";
+		$filename = $_SESSION['facility_name'] . "_rota_report_" . $date . ".pdf";
 
 
 		ini_set('max_execution_time', 0);
@@ -913,7 +909,7 @@ class Rosta extends MX_Controller
 		$this->load->library('ML_pdf');
 
 
-		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'] = 50, $page = 0, $empid = FALSE, $this->filters);
+		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'] = 10000, $page = 0, $empid = FALSE, $this->filters);
 		$data['month'] = $month;
 		$data['year'] = $year;
 

@@ -165,11 +165,11 @@ if (count($duties) > 0) {
 						?>
 							<div class="table-row tbrow">
 								<input type="radio" name="expand" class="fa fa-angle-double-down trigger">
-								<span class="cell tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no; ?>
+								<span class="cell tbprimary text-left" style="cursor:pointer;" data-label="#"><?php echo $no; ?>
 									<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $singleduty['fullname']; ?></span></b>
 								</span>
-								<span class="cell  name" data-label="Name"><?php echo $singleduty['fullname']; ?></span>
-								<span class="cell" data-label="Position"><?php echo $singleduty['job']; ?>
+								<span class="cell  text-left name" data-label="Name"><?php echo $singleduty['fullname']; ?></span>
+								<span class="cell text-left" data-label="Position"><?php echo character_limiter($singleduty['job'], 15); ?>
 								</span>
 								<?php
 								for ($i = 1; $i < ($monthdays + 1); $i++) {
