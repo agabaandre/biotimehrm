@@ -92,8 +92,8 @@
                  <i class="fas fa-calendar-check"></i>
                </p>
                <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Off Duty</span>
-                 <span class="info-box-number font-weight-bold" id="offduty"></span>
+                 <span class="info-box-text h6 text-muted">Present</span>
+                 <span class="info-box-number font-weight-bold" id="Present"></span>
                  <small>Staff</small>
                </p>
              </div>
@@ -102,8 +102,8 @@
                  <i class="fa fa-home warning"></i>
                </p>
                <p class=" h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">on Leave</span>
-                 <span class="info-box-number font-weight-bold" id="leave"></span>
+                 <span class="info-box-text h6 text-muted">Off Duty</span>
+                 <span class="info-box-number font-weight-bold" id="offduty"></span>
                  <small>Staff</small>
                </p>
              </div>
