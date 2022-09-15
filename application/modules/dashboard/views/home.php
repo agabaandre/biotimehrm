@@ -112,7 +112,7 @@
                  <i class="fa fa-paper-plane"></i>
                </p>
                <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">On Official Request</span>
+                 <span class="info-box-text h6 text-muted">Workshop/ Official Request</span>
                  <span class="info-box-number font-weight-bold" id="request"></span>
                  <small>Staff</small>
                </p>
