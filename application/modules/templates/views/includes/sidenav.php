@@ -12,7 +12,7 @@
    <!-- Sidebar -->
    <div class="sidebar  sido" style="width:100% !important;">
      <!-- Sidebar user (optional) -->
-     <div class="user-panel mt-3 pb-3 mb-3" style="text-align:center; line-height:0.2cm;">
+     <div class="user-panel mt-2 pb-0 mb-0" style="text-align:center; line-height:0.2cm;">
        <p class="brand-image img-circle elevation" style="color:#FEFFFF; font-size: 11px; height:20px; font-weight:bold; margin-top:2px; opacity: .8;">
          <?php
           //echo strtoupper($userdata['names']); 
