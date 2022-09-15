@@ -26,9 +26,7 @@
           // echo date('Y-m-d H:i:s');
           ?>
        </p>
-       <div class="image">
-         <p><img src="<?php echo base_url(); ?>assets/img/user.jpg" class="img-circle elevation-2" alt="User Image" style="width:35px; height:35px;"></p>
-       </div>
+
      </div>
      <!-- Sidebar Menu -->
      <nav class="mt-2" style="overflow:hidden; font-size:14px;">
