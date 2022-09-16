@@ -240,7 +240,7 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$limits = " ";
 		}
-		$query = $this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date between '$valid_range'and $valid_rangeto and ihrisdata.ihris_pid=p.ihris_pid $search  $limits");
+		$query = $this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date = '$valid_range' and ihrisdata.ihris_pid=p.ihris_pid $search  $limits");
 		$data = $query->result_array();
 		return $data;
 	} //summary
@@ -258,7 +258,7 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$limits = " ";
 		}
-		$query = $this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date between '$valid_range'and $valid_rangeto and ihrisdata.ihris_pid=p.ihris_pid $search");
+		$query = $this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date = '$valid_range' and ihrisdata.ihris_pid=p.ihris_pid $search");
 		$data = $query->num_rows();
 		return $data;
 	} //summary
