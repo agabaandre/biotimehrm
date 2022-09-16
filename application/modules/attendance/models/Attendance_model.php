@@ -226,12 +226,7 @@ class 	Attendance_model extends CI_Model
 		$rows = $query->result();
 		return $rows;
 	}
-	public function countAttendanceSummary($valid_range)
-	{
-		$facility = $_SESSION['facility'];
-		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range'");
-		return $query->num_rows();
-	}
+
 	public function attendance_summary($valid_range, $valid_rangeto, $filters, $start = NULL, $limit = NULL, $employee = NULL)
 	{
 		$facility = $_SESSION['facility'];
@@ -247,6 +242,24 @@ class 	Attendance_model extends CI_Model
 		}
 		$query = $this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date between '$valid_range'and $valid_rangeto and ihrisdata.ihris_pid=p.ihris_pid $search  $limits");
 		$data = $query->result_array();
+		return $data;
+	} //summary
+
+	public function countAttendanceSummary($valid_range, $valid_rangeto, $filters, $start = NULL, $limit = NULL, $employee = NULL)
+	{
+		$facility = $_SESSION['facility'];
+		if (!empty($employee)) {
+			$search = "and ihrisdata.ihris_pid='$employee'";
+		} else {
+			$search = "";
+		}
+		if (!empty($start)) {
+			$limits = " LIMIT $limit,$start";
+		} else {
+			$limits = " ";
+		}
+		$query = $this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date between '$valid_range'and $valid_rangeto and ihrisdata.ihris_pid=p.ihris_pid $search");
+		$data = $query->num_rows();
 		return $data;
 	} //summary
 	public function attrosta($valid_range, $person)
