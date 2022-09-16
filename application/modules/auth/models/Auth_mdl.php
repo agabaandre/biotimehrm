@@ -101,22 +101,22 @@ class Auth_mdl extends CI_Model
 		$qry = $this->db->get($this->table);
 		return $qry->row();
 	}
-	public function getAll($start, $limit, $key = FALSE)
+	public function getAll($start, $limit, $key)
 	{
 		if (!empty($key)) {
-			$this->db->like("username", "$key", "after");
-			$this->db->or_like("name", "$key", "after");
+			$this->db->like("username", "$key", "both");
+			$this->db->or_like("name", "$key", "both");
 		}
-		//$this->db->limit($start,$start);
+		$this->db->limit($start, $limit);
 		$this->db->join('user_groups', 'user_groups.group_id=user.role', 'left');
 		$qry = $this->db->get($this->table);
 		return $qry->result();
 	}
-	public function count_Users($key = FALSE)
+	public function count_Users($key)
 	{
 		if (!empty($key)) {
-			$this->db->where("username like '$key%'");
-			$this->db->or_where("name like '$key%'");
+			$this->db->like("username", "$key", "both");
+			$this->db->or_like("name", "$key", "both");
 		}
 		$qry = $this->db->get($this->table);
 		return $qry->num_rows();
