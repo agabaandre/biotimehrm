@@ -35,7 +35,7 @@
 
 					<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>attendance/attendance_summary" method="post">
 						<div class="row">
-							<div class="col-md-2">
+							<div class="col-md-3">
 
 								<div class="control-group">
 
@@ -64,7 +64,7 @@
 							</div>
 
 
-							<div class="col-md-2">
+							<div class="col-md-3">
 								<div class="control-group">
 
 									<input type="hidden" id="year" value="<?php echo $year; ?>">
@@ -81,24 +81,8 @@
 
 								</div>
 							</div>
-							<div class="col-md-2">
-								<div class="control-group">
 
-									<input type="hidden" id="year" value="<?php echo $year; ?>">
-
-									<select class="form-control select2" name="yearto" onchange="this.form.submit()">
-										<option><?php echo $year; ?></option>
-
-										<?php for ($i = -5; $i <= 25; $i++) {  ?>
-
-											<option><?php echo 2017 + $i; ?></option>
-
-										<?php }  ?>
-									</select>
-
-								</div>
-							</div>
-							<div class="col-md-2">
+							<div class="col-md-3">
 								<div class="control-group">
 
 
@@ -120,7 +104,7 @@
 								</div>
 							</div>
 
-							<div class="col-md-2">
+							<div class="col-md-3">
 
 								<div class="control-group">
 
