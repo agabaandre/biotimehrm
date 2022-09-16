@@ -525,7 +525,8 @@ class Rosta extends MX_Controller
 		$this->load->library('pagination');
 		$config = array();
 		$config['base_url'] = base_url() . "rosta/actuals";
-		$config['total_rows'] = $this->rosta_model->countActuals($date);
+		$empid = $this->input->post('empid');
+		$config['total_rows'] = $this->rosta_model->countActuals($date, $config['per_page'] = 0, $page = 0, $empid, $this->filters);
 		$config['per_page'] = 15; //records per page
 		$config['uri_segment'] = 3; //segment in url
 		//pagination links styling
@@ -552,7 +553,7 @@ class Rosta extends MX_Controller
 		$this->pagination->initialize($config);
 		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits
 		$data['links'] = $this->pagination->create_links();
-		$empid = $this->input->post('empid');
+
 		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'], $page, $empid, $this->filters);
 		$nonworkables = $this->rosta_model->nonworkables();
 		$data['facilities'] = Modules::run('facilities/getFacilities');
@@ -653,7 +654,8 @@ class Rosta extends MX_Controller
 		$this->load->library('pagination');
 		$config = array();
 		$config['base_url'] = base_url() . "rosta/attfrom_report";
-		$config['total_rows'] = $this->rosta_model->countActuals($date);
+		$empid = $this->input->post('empid');
+		$config['total_rows'] = $this->rosta_model->countActuals($date, $config['per_page'] = 0, $page = 0, $empid, $this->filters);
 		$config['per_page'] = 50; //records per page
 		$config['uri_segment'] = 3; //segment in url
 		//pagination links styling
@@ -682,7 +684,6 @@ class Rosta extends MX_Controller
 		$data['links'] = $this->pagination->create_links();
 		$data['departments'] = $this->departments;
 		$data['facilities'] = Modules::run("facilities/getFacilities");
-		$empid = $this->input->post('empid');
 		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'], $page, $empid, $this->filters);
 		$data['view'] = "attendance_form_report";
 		$data['title'] = "Monthly Attendance Form";

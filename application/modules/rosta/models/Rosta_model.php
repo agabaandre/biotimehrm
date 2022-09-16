@@ -120,12 +120,29 @@ class Rosta_model extends CI_Model
 		}
 		return $schedules;
 	}
-	public function countActuals($valid_range)
+	public function countActuals($valid_range, $start = NULL, $limit = NULL, $employee = NULL, $filters)
 	{
 		$facility = $this->session->userdata['facility'];
-		$all = $this->db->query("select distinct(ihris_pid) from duty_rosta where duty_rosta.facility_id='$facility' and duty_rosta.duty_date LIKE '$valid_range-%'");
-		$rows = $all->num_rows();
-		return $rows;
+		$employee = $this->input->post('empid');
+		if (!empty($employee)) {
+			$search = "and ihrisdata.ihris_pid='$employee";
+		} else {
+			$search = "";
+		}
+		if (!empty($employee)) {
+			$psearch = $employee;
+		} else {
+			$psearch = "";
+		}
+		$all = $this->db->query("select distinct ihrisdata.ihris_pid,CONCAT(
+				COALESCE(surname,'','')
+				,' ',
+				COALESCE(firstname,'','')
+				,' ',
+				COALESCE(othername,'','')
+			) AS fullname,ihrisdata.job from ihrisdata where $filters $search ");
+		$data = $all->num_rows();
+		return $data;
 	}
 	public function count_tabs()
 	{
