@@ -33,7 +33,7 @@
     <li class="nav-item" style="position:relative; float:left; margin-right:50px; margin-top:7px; font-size:13px; color:#FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">
       <a>
         <?php if (isset($_SESSION['district'])) {
-          echo  $_SESSION['district'];
+          echo  $_SESSION['district'] . ' - ';
         } ?> <b><span style="color: #FFFFFF;"></span></b> <?php if (isset($_SESSION['facility_name'])) {
                                                             echo $_SESSION['facility_name'];
                                                           } ?>
