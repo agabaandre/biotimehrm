@@ -28,7 +28,7 @@
             foreach ($staffs as $staff) {
             ?>
               <tr>
-                <td data-label="Staff iHRIS ID" style="background-image:url('<?php echo base_url() ?>/assets/images/user.png'); width:30px !imporntant; background-size: contain;background-position: center center;background-repeat: no-repeat; font-weight:bold; color:grey; font-size:13px; margin:0 auto; "><?php echo str_replace('person|', '', $staff->ihris_pid); ?></td>
+                <td data-label="Staff iHRIS ID" style="background-image:url('<?php echo base_url() ?>/assets/images/user.png'); width:30px !imporntant; background-size: contain;background-position: center center;background-repeat: no-repeat; font-weight:bold; color:#000; font-size:13px; margin:0 auto; "><?php echo str_replace('person|', '', $staff->ihris_pid); ?></td>
                 <td data-label=" NATIONAL ID NUMBER"><?php echo $staff->nin; ?></td>
                 <td data-label="NAME"><?php echo $staff->surname . " " . $staff->firstname . " " . $staff->othername; ?>
                 </td>
