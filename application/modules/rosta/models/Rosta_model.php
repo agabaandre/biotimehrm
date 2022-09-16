@@ -73,7 +73,7 @@ class Rosta_model extends CI_Model
 		$facility = $this->session->userdata['facility'];
 		$employee = $this->input->post('empid');
 		if (!empty($employee)) {
-			$search = "and ihrisdata.ihris_pid='$employee";
+			$search = "and ihrisdata.ihris_pid='$employee'";
 		} else {
 			$search = "";
 		}
@@ -125,7 +125,7 @@ class Rosta_model extends CI_Model
 		$facility = $this->session->userdata['facility'];
 		$employee = $this->input->post('empid');
 		if (!empty($employee)) {
-			$search = "and ihrisdata.ihris_pid='$employee";
+			$search = "and ihrisdata.ihris_pid='$employee'";
 		} else {
 			$search = "";
 		}
