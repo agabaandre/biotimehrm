@@ -35,6 +35,7 @@
         <?php if (isset($_SESSION['district'])) {
           echo  $_SESSION['district'];
         } ?> <b><span style="color: #FFFFFF;"></span></b> <?php if (isset($_SESSION['facility_name'])) {
+                                                            echo $_SESSION['facility_name'];
                                                           } ?>
       </a>
     </li>
