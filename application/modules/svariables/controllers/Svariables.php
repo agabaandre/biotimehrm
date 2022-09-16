@@ -24,7 +24,7 @@ class Svariables extends MX_Controller
 		$postdata = $this->input->post();
 		if ($this->input->post('language')) {
 			$data['message'] = $this->svariables_mdl->update_variables($postdata);
-			redirect("Svariables/");
+			redirect("svariables/");
 		} else {
 			echo Modules::run('templates/main', $data);
 		}
