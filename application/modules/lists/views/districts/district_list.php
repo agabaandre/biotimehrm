@@ -1,96 +1,51 @@
 
 <div class="container" style="width: 100%">
 
-    <form class="district_form" method="post" action="<?php echo base_url(); ?>districts/save_district">
-        <div style="text-align: right;">
+
+        <div style="text-align: left;">
             <b>DISTRICTS</b>
         </div>
 
         <table>
-
+        
         <tr>
-            <!--td colspan="7"><span class="status"></span></td -->
-            
-            <td colspan="1"><button type="submit" class="btn btn-sm btn-success">Save</button></td>
-             <td colspan="1"><button type="reset" class="btn btn-sm btn-warning clear">Reset All</button></td>
+            <td colspan="7"><button class="btn btn-sm btn-success"  
+            data-toggle="modal" data-target="#add_district">New District</button></td>
+
+             <?php include('add_districts_modal.php');?>
+             
         </tr>
 
         </table>
-    <div>
 
-    <table id="myTable" class="table" cellpadding="0" style="border-collapse: collapse;">
 
+        <table class="table">
    
-   <thead>
-        <tr>
-            <th>District ID</th>
-            <th>Distrcit Name</th>
-        </tr>
-    </thead>
-   
-    <tbody class="tb">
-        <tr>
-            <td data-label="Distrcit id:">
-                <input type="text" name="district_id"  class="form-control" placeholder=""  required/>
-            </td>
-            <td data-label="Distrcit Name:">
-                <input type="text" required name="district"  class="form-control"  required/>
-            </td>
+            <tr>
+                <th style="width:2%;">#</th>
+                <th>District</th>
+                <th>Region</th>
+                <th></th>
+            </tr>
 
-        </tr>
-    </tbody>
-</table>
-</div>
-    </form>
-</div>
+            <?php  $no=1;   foreach($districts as $district): ?>
 
-      
-
-<div>
-
-<table class="table">
-   
-        <tr>
-            <th style="width:2%;">#</th>
-            <th>District Id</th>
-            <th>District Name</th>
-            <th>Date Entered</th>
-            
-            
-        </tr>
-        <?php 
-
-            $districts=Modules::run("districts/getAll_Districts");
-        $no=1;
-
-        foreach($districts as $district): ?>
-
-        <tr>
-            <td data-label="#"><?php echo $no; ?>. </td>
-            <td data-label="first Name:"><?php echo $district->district_id; ?></td>
-            <td data-label="Username:"><?php echo $district->district; ?></td>
-            <td data-label="Role:"><?php echo $district->date_added; ?></td>
-            
-            
-            <td>
-                <a data-toggle="modal" data-target="#eddit<?php echo $district->d_id; ?>" href="#">Edit</a>
-                |
-                <a data-toggle="modal" data-target="#delete<?php echo $district->d_id; ?>" href="#">Delete</a>
-            </td>
-            
-        </tr>
-
-
-  <?php 
-
-  include('eddit_modal.php');
-    include('delete_modal.php');
-
-    $no++;
-    endforeach ?>
-
-   
-</table>
+                <tr>
+                    <td data-label="#"><?php echo $no; ?>. </td>
+                    <td><?php echo $district->name; ?></td>
+                    <td><?php echo $district->region; ?></td>
+                    <td>
+                        <a data-toggle="modal" data-target="#eddit<?php echo $district->id; ?>" href="#">Edit</a>
+                        |
+                        <a data-toggle="modal" data-target="#delete<?php echo $district->id; ?>" href="#">Delete</a>
+                    </td>
+                </tr>
+            <?php 
+                include('eddit_modal.php');
+                include('delete_modal.php');
+                $no++;
+                endforeach ?>
+        </table>
 
 </div>
 

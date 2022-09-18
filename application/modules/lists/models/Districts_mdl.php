@@ -11,25 +11,22 @@ class Districts_mdl extends CI_Model {
 
 	}
 
-
-
 	public function getDistricts(){
 
-		$this->db->select('distinct(district_id),district');
-	//	$this->db->where("district_id!=''");
-	           $this->db->order_by('district', 'ASC');
-		$query=$this->db->get('ihrisdata');
+		$this->db->select('name, region,	id, date_added');
+	           $this->db->order_by('name', 'ASC');
+		$query=$this->db->get('districts');
 
 		return $query->result();
  
 	}
 
 		// to save in the district database /.....
-	public function save_district(){
+	public function save_district($postdata){
 
 		$data=array(
-		'district_id'=>$this->input->post('district_id'),
-		'district'=>$this->input->post('district')
+		'name'=>$postdata['name'],
+		'region'=>$postdata['region']
 		);
 
 		$qry=$this->db->insert($this->table, $data);
@@ -95,16 +92,16 @@ class Districts_mdl extends CI_Model {
 	}
 
 	
-	public function updateDistrict(){
+	public function updateDistrict($postdata){
 
-	    $postdata=$this->input->post();
-
-		$this->db->update($this->table);
+	    $id = $postdata['id'];
+		$this->db->where('id',$id);
+		$this->db->update($this->table, $postdata);
 		$rows=$this->db->affected_rows();
 
 		if($rows>0){
 
-			return "The ".$postdata['district']." "." district has been updated";
+			return "The ".$postdata['name']." "." district has been updated";
 		}
 
 		else{
@@ -116,15 +113,14 @@ class Districts_mdl extends CI_Model {
 
 	 public function deleteDistrict(){
 
-	    $data=$this->input->post('d_id');
-		$this->db->where('d_id',$data);
+	    $data=$this->input->post('id');
+		$this->db->where('id',$data);
+		$this->db->delete($this->table);
 
-		$this->db->delete($this->table,$data);
-		$rows=$this->db->affected_rows();
-
+		$rows = $this->db->affected_rows();
 		if($rows>0){
 
-			return "The ".$data['district']." "." district has been updated";
+			return "The district has been updated";
 		}
 
 		else{

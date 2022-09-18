@@ -23,19 +23,11 @@ require_once("includes/sidenav.php");
     <div class="container-fluid" style="font-size:12px; min-height:940px; margin-top:40px;">
       <div class="row">
         <div class="col-12" style="margin-bottom:3px;">
-          <div class="card">
-            <div class="">
-            </div>
-            <div class="card-body">
-              <?php
+
+          <?php
               $this->load->view($module . "/" . $view);
-              ?>
-            </div>
-            <!-- /.card-body -->
-            <div class="card-footer">
-            </div>
-            <!-- /.card-footer-->
-          </div>
+          ?>
+          </div> 
         </div>
       </div>
     </div>

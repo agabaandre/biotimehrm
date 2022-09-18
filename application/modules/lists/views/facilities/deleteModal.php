@@ -1,16 +1,17 @@
 <!-- Default modal Size -->
-<div class="modal fade" id="delete<?php echo $district->d_id; ?>"  >
+<div class="modal fade" id="delete<?php echo $facility->id; ?>"  >
     <div class="modal-dialog modal-md" >
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Are you sure you want to Delete</b>  <i><u><?php echo $district->district; ?></u></i>  district ?</h4>
+                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Are you sure you want to Delete</b>  <i><u><?php echo $facility->facility; ?></u></i>  Facility ?</h4>
             </div>
 
-            <form class="update_district" enctype="multipart/form-data" method="post" action="<?php echo base_url(); ?>districts/deleteDistrict">
+            <form class="update_district" enctype="multipart/form-data" method="post" action="<?php echo base_url(); ?>facilities/deleteFacility">
             <div class="modal-body"> 
 
               <div style="text-align: center; color: red;">
-                 Confirming Delete will remove the district Permanently
+                 Confirming Delete will remove the Facility Permanently
+                 <input type="hidden" name="id" value="<?php echo $facility->id; ?>">
               </div>
                 
              </div>

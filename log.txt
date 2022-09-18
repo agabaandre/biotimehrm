@@ -159,3 +159,5 @@
 {"REQUEST DETAILS: 2022-09-14 01:30:05 Time": "Created 1"},
 {"REQUEST DETAILS: 2022-09-14 17:01:12 Time": "45397  Attendance Records Marked"},
 {"REQUEST DETAILS: 2022-09-14 17:01:13 Time": "45396  Offduty records recognised by attendance"},
+{"REQUEST DETAILS: 2022-09-14 20:31:43 Time": "1160  Attendance Records Marked"},
+{"REQUEST DETAILS: 2022-09-14 20:31:43 Time": "1160  Offduty records recognised by attendance"},

@@ -14,7 +14,12 @@ class Templates extends MX_Controller {
 		$this->load->view('main',$data);
 	}
 
-
+	public function main2($data)
+	{   
+		$data['setting']=$this->db->get('setting')->row();
+		
+		$this->load->view('main2',$data);
+	}
 	
 
 }

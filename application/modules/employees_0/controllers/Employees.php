@@ -22,22 +22,35 @@ class Employees extends MX_Controller
   }
   public function get_employees()
   {
-    return $employees = $this->empModel->get_employees($this->filters);
+    return $this->empModel->get_employees($this->filters);
   }
   public function getEmployee($id)
   {
     $employee = $this->empModel->get_employee($id);
     return  $employee;
   }
+
   public function index()
   {
     $data['title'] = "Staff";
-    $data['facilities'] = Modules::run("facilities/getFacilities");
+    $data['facilities'] = Modules::run("lists/getFacilities");
+  //  $data['staffs'] = $this->empModel->get_employees($this->filters);
     $data['view'] = 'staff';
+    $data['uptitle'] = "Staff List";
+    $data['module'] = "employees";
+
+    echo Modules::run("templates/main", $data);
+  }
+
+  public function createEmployee()
+  {
+    $data['title'] = "Staff";
+    $data['view'] = 'add_employee';
     $data['uptitle'] = "Staff List";
     $data['module'] = "employees";
     echo Modules::run("templates/main", $data);
   }
+  
   public function personlogs()
   {
     $data['title'] = "Person Logs";
