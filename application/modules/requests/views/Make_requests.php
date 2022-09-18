@@ -1,9 +1,10 @@
 <section class="content">
+  <h5><?php echo $uptitle; ?></h5>
+  <br />
 
   <div class="card">
     <div class="card-body row">
-      <h5><?php echo $uptitle; ?></h5>
-      <br />
+
       <form method="post" class="requestForm" action="<?php echo base_url(); ?>requests/saveRequest" enctype="multipart/form-data" autocomplete="off">
 
         <div class="col-md-12">
