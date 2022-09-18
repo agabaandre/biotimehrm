@@ -39,6 +39,14 @@ $permissions = $userdata['permissions'];
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
   <!-- Theme style -->
   <link href="<?php echo base_url(); ?>assets/css/fullcalendar.css" rel="stylesheet">
+  <script>
+    $(window).on('load', function() {
+
+      $('#status').delay(1000).fadeOut(1000); // will first fade out the loading animation
+      $('#preloader').delay(1000).fadeOut(1000); // will fade out the white div
+
+    });
+  </script>
   <style>
     @media (max-width: 767px) {
       .hidden-mobile {
@@ -191,6 +199,30 @@ $permissions = $userdata['permissions'];
 
     .highcharts-title {
       font-size: 15px !important;
+    }
+
+    #preloader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #E4E5E5;
+      z-index: 200;
+    }
+
+    #status {
+      width: 50px;
+      height: 50px;
+      position: absolute;
+      left: 60%;
+      top: 50%;
+      background-image: url("<?php echo base_url() ?>assets/images/loader2.gif");
+      z-index: 9999;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+      margin: -50px 0 0 -50px;
     }
   </style>
 </head>

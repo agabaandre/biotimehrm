@@ -61,6 +61,7 @@
 <script src="<?php echo base_url(); ?>assets/plugins/bootstrap/js/bootstrap.min.js"></script>
 <div class="control-sidebar-bg"></div>
 </div>
+
 <script>
     $(document).ready(function() {
         $.fn.datepicker.defaults.format = "yyyy-mm-dd";
@@ -286,6 +287,7 @@ $linkquery = $url; // Outputs: Full URL
 </body>
 
 </html>
+
 
 <script>
     $(function() {

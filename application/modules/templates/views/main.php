@@ -19,6 +19,10 @@ require_once("includes/sidenav.php");
   </section>
   <!-- /.container-fluid -->
   <!-- Main content -->
+  <div id="preloader">
+    <div id="status">
+    </div>
+  </div>
   <section class="content">
     <div class="container-fluid" style="font-size:12px; min-height:940px; margin-top:40px;">
       <div class="row">
