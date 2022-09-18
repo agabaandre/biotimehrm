@@ -264,7 +264,7 @@ $linkquery = $url; // Outputs: Full URL
                         <p class="help-block error"></p>
                     </div>
                     <div class="form-group">
-                        <label>Confirm Password</label>
+                        <label>Confirm New Password</label>
                         <input type="hidden" value='1' name="changed">
                         <input type="hidden" value='<?php echo $this->session->userdata('user_id'); ?>' name="user_id">
                         <input type="password" class="form-control" name="confirm" id="confirm" onkeyup="checker();" required>
