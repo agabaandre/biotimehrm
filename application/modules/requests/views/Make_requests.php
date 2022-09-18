@@ -2,8 +2,7 @@
 
 
   <div class="card">
-    <h5><?php echo $uptitle; ?></h5>
-    <br />
+
     <div class="card-body row">
 
       <form method="post" class="requestForm" action="<?php echo base_url(); ?>requests/saveRequest" enctype="multipart/form-data" autocomplete="off">
