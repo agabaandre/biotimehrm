@@ -446,8 +446,10 @@
      selectable: false,
      selectHelper: true,
      editable: false,
+
      // Mouse over
      eventMouseover: function(calEvent, jsEvent, view) {
+       // console.log(calEvent);
        var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
        $("body").append(tooltip);
        $(this).mouseover(function(e) {
