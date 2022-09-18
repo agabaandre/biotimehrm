@@ -3,3 +3,4 @@ application/logs
 /vendor/
 database.php
 index.php
+/node_modules/

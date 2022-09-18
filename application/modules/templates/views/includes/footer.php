@@ -43,8 +43,6 @@
 <script src="<?php echo base_url() ?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
 <!-- counterup JS
 		============================================ -->
-<script src="http://localhost/mohattendance_dev/assets/js/counterup/jquery.counterup.min.js"></script>
-<script src="http://localhost/mohattendance_dev/assets/js/counterup/counterup-active.js"></script>
 <!-- DataTables  & Plugins -->
 <script src="<?php echo base_url(); ?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>

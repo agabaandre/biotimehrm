@@ -23,18 +23,27 @@ require_once("includes/sidenav.php");
     <div class="container-fluid" style="font-size:12px; min-height:940px; margin-top:40px;">
       <div class="row">
         <div class="col-12" style="margin-bottom:3px;">
-          <!-- <div class="card">
-            <div class="">
+
+          <!-- Nav -->
+          <section class="content-header">
+            <div class="container-fluid">
+              <div class="row mb-2">
+                <div class="col-sm-6">
+                </div>
+                <div class="col-sm-6">
+                  <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="<?php echo base_url() ?>">Home</a></li>
+                    <li class="breadcrumb-item active"><?php echo $uptitle ?></li>
+                  </ol>
+                </div>
+              </div>
             </div>
-            <div class="card-body"> -->
+          </section>
+
           <?php
           $this->load->view($module . "/" . $view);
           ?>
-          <!-- </div> -->
-          <!-- /.card-body -->
-          <!-- <div class="card-footer">
-            </div> -->
-          <!-- /.card-footer-->
+
         </div>
       </div>
     </div>
