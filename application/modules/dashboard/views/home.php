@@ -609,69 +609,69 @@
        }]
      }))
    };
-   // clockin method
-   Highcharts.chart('attendance_methods', {
-     chart: {
-       plotBackgroundColor: null,
-       plotBorderWidth: null,
-       plotShadow: false,
-       type: 'pie',
-       height: 300,
-       width: 300
-     },
-     title: {
-       text: ''
-     },
-     tooltip: {
-       pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
-     },
-     accessibility: {
-       point: {
-         valueSuffix: '%'
-       }
-     },
-     plotOptions: {
-       pie: {
-         allowPointSelect: true,
-         cursor: 'pointer',
-         dataLabels: {
-           enabled: true,
-           format: '<b>{point.name}</b>: {point.percentage:.1f} %',
-           connectorColor: 'silver'
-         }
-       }
-     },
-     series: [{
-       name: 'Share',
-       data: [{
-           name: 'Manual Form',
-           y: 64
-         },
-         {
-           name: 'BioTime',
-           y: 11
-         },
-         {
-           name: 'Mobile Phones',
-           y: 5
-         },
-         {
-           name: 'None',
-           y: 20
-         },
-       ]
-     }],
-     credits: [{
-       enabled: 'false',
-     }],
-     exporting: {
-       buttons: {
-         contextButton: {
-           enabled: false
-         }
-       }
-     }
-   });
+   //  // clockin method
+   //  Highcharts.chart('attendance_methods', {
+   //    chart: {
+   //      plotBackgroundColor: null,
+   //      plotBorderWidth: null,
+   //      plotShadow: false,
+   //      type: 'pie',
+   //      height: 300,
+   //      width: 300
+   //    },
+   //    title: {
+   //      text: ''
+   //    },
+   //    tooltip: {
+   //      pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+   //    },
+   //    accessibility: {
+   //      point: {
+   //        valueSuffix: '%'
+   //      }
+   //    },
+   //    plotOptions: {
+   //      pie: {
+   //        allowPointSelect: true,
+   //        cursor: 'pointer',
+   //        dataLabels: {
+   //          enabled: true,
+   //          format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+   //          connectorColor: 'silver'
+   //        }
+   //      }
+   //    },
+   //    series: [{
+   //      name: 'Share',
+   //      data: [{
+   //          name: 'Manual Form',
+   //          y: 64
+   //        },
+   //        {
+   //          name: 'BioTime',
+   //          y: 11
+   //        },
+   //        {
+   //          name: 'Mobile Phones',
+   //          y: 5
+   //        },
+   //        {
+   //          name: 'None',
+   //          y: 20
+   //        },
+   //      ]
+   //    }],
+   //    credits: [{
+   //      enabled: 'false',
+   //    }],
+   //    exporting: {
+   //      buttons: {
+   //        contextButton: {
+   //          enabled: false
+   //        }
+   //      }
+   //    }
+   //  });
  </script>
  <script>
  </script>

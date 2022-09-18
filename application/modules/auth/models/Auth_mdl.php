@@ -172,9 +172,8 @@ class Auth_mdl extends CI_Model
 		);
 		$uid = $postdata['user_id'];
 		$this->db->where('user_id', $uid);
-		$this->db->update($this->table, $savedata);
-		$rows = $this->db->affected_rows();
-		if ($rows > 0) {
+		$query = $this->db->update($this->table, $savedata);
+		if ($query) {
 			return "User details updated";
 		} else {
 			return "No changes made";
@@ -195,12 +194,13 @@ class Auth_mdl extends CI_Model
 			// change the password
 			$data = array("password" => $newpass, "isChanged" => 1);
 			$this->db->where('user_id', $uid);
-			$this->db->update($this->table, $data);
-			$rows = $this->db->affected_rows();
-			if ($rows == 1) {
-				return "ok";
+			$query = $this->db->update($this->table, $data);
+
+			if ($query) {
+				$_SESSION['changed'] = 1;
+				return "Password Change Successful";
 			} else {
-				return "Operation failed for an unknown reason, try again";
+				return "Operation failed, try again";
 			}
 		} else {
 			return "The old password you provided is wrong";
@@ -211,11 +211,11 @@ class Auth_mdl extends CI_Model
 		$uid = $postdata['user_id'];
 		$this->db->where('user_id', $uid);
 		$done = $this->db->update($this->table, $postdata);
-		$rows = $this->db->affected_rows();
-		if ($rows == 1) {
-			return "ok";
+
+		if ($done) {
+			return "Update Successful";
 		} else {
-			return "Nothing done, changes deemed to be Null";
+			return "Update Failed";
 		}
 	}
 	//reset user's password.................
@@ -226,8 +226,8 @@ class Auth_mdl extends CI_Model
 		$data = array("password" => $password, "isChanged" => 0);
 		$this->db->where('user_id', $uid);
 		$done = $this->db->update($this->table, $data);
-		$rows = $this->db->affected_rows();
-		if ($rows == 1) {
+
+		if ($done) {
 			return "User's password has been reset";
 		} else {
 			return "Failed, Try Again";
@@ -240,8 +240,8 @@ class Auth_mdl extends CI_Model
 		$data = array("status" => 0);
 		$this->db->where('user_id', $uid);
 		$done = $this->db->update($this->table, $data);
-		$rows = $this->db->affected_rows();
-		if ($rows == 1) {
+
+		if ($done) {
 			return "User has been blocked";
 		} else {
 			return "Failed, Try Again";
@@ -254,8 +254,7 @@ class Auth_mdl extends CI_Model
 		$data = array("status" => 1);
 		$this->db->where('user_id', $uid);
 		$done = $this->db->update($this->table, $data);
-		$rows = $this->db->affected_rows();
-		if ($rows == 1) {
+		if ($done) {
 			return "User has been Unblocked";
 		} else {
 			return "Failed, Try Again";
