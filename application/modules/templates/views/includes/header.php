@@ -42,8 +42,8 @@ $permissions = $userdata['permissions'];
   <script>
     $(window).on('load', function() {
 
-      $('#status').delay(1000).fadeOut(1000); // will first fade out the loading animation
-      $('#preloader').delay(1000).fadeOut(1000); // will fade out the white div
+      $('#status').delay(900).fadeOut(800); // will first fade out the loading animation
+      $('#preloader').delay(900).fadeOut(800); // will fade out the white div
 
     });
   </script>
