@@ -461,7 +461,7 @@
        type: 'line'
      },
      title: {
-       text: 'Average Number of Employees Scheduled per Month <?php echo " " . $_SESSION["facility_name"] ?>'
+       text: 'Average Number of Employees Scheduled per Month <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>'
      },
      subtitle: {
        text: ''
@@ -498,7 +498,7 @@
        type: 'line'
      },
      title: {
-       text: 'Average Number of Employees Attending per Month - <?php echo " " . $_SESSION["facility_name"] ?>'
+       text: 'Average Number of Employees Attending per Month - <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]) ?>'
      },
      subtitle: {
        text: ''
@@ -585,7 +585,7 @@
      //gauge
      var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptions, {
        title: {
-         text: 'Average Monthly Hours-<?php echo " " . $_SESSION["facility_name"] ?>',
+         text: 'Average Monthly Hours-<?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>',
        },
        yAxis: {
          min: 0,
