@@ -17,7 +17,6 @@
     position: fixed;
     margin-left:100px;
     margin-top:120px;
-    margin-bottom: :0;
     z-index: 10040;
     overflow-x: auto;
     overflow-y: auto;

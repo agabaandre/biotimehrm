@@ -17,19 +17,8 @@ class Api extends REST_Controller
     }
     public function login()
     {
-        $userdata['username'] = $this->input->post('username');
-        $userdata['password'] = $this->input->post('password');
 
-        $model_response = $this->auth_model->validate_login($userdata);
-
-        if ($model_response) {
-
-            $response = array('error' => FALSE, 'message' => 'Successfully Authenticated', 'status' => 'USER_FOUND', 'user' => $model_response);
-            echo json_encode($response);
-        } else {
-            $response = array('error' => TRUE, 'message' => 'Invalid username or password', 'status' => 'USER_NOT_FOUND');
-            echo json_encode($response);
-        }
+        
     }
 
     public function clock_user($data)
