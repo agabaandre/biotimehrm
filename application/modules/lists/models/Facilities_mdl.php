@@ -17,7 +17,7 @@ class Facilities_mdl extends CI_Model {
 	{
 		$query = $this->db->select('f.id, f.facility_id, f.facility, f.district_id, f.institution_cateegory, f.	institution_type, f.institution_level, d.name,d.region')
      	->from('employee_facility as f')
-     	->join('districts as d', 'd.id = f.district_id', 'LEFT')
+     	->join('employee_districts as d', 'd.id = f.district_id', 'LEFT')
      	->get();
 
 		return $query->result();
@@ -29,7 +29,7 @@ class Facilities_mdl extends CI_Model {
 		$query = $this->db->select('f.id as fac_id, f.facility_id, f.facility, f.district_id, d.name,d.region')
      	->from('employee_facility as f')
 		->where('district_id',$district_id)
-     	->join('districts as d', 'd.id = f.district_id', 'LEFT')
+     	->join('employee_districts as d', 'd.id = f.district_id', 'LEFT')
      	->get();
 
 		return $query->result();

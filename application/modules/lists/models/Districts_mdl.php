@@ -7,15 +7,15 @@ class Districts_mdl extends CI_Model {
 	public function __Construct(){
 
 		parent::__Construct();
-		$this->table="districts";
+		$this->table="employee_districts";
 
 	}
 
 	public function getDistricts(){
 
-		$this->db->select('name, region,	id, date_added');
+		$this->db->select('name, region,id, date_added');
 	           $this->db->order_by('name', 'ASC');
-		$query=$this->db->get('districts');
+		$query=$this->db->get('employee_districts');
 
 		return $query->result();
  
