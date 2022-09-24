@@ -1,5 +1,5 @@
 <!-- Default modal Size -->
-<div class="modal fade" id="delete<?php echo $district->id; ?>"  >
+<div class="modal fade" id="delete<?php echo $cadre->id; ?>"  >
     <div class="modal-dialog modal-md" >
         <div class="modal-content">
             <div class="modal-header">
@@ -14,7 +14,7 @@
               <div style="text-align: center; color: red;">
 
                  Confirming Delete will remove the district Permanently
-                 <input type="hidden" name="id" value="<?php echo $district->id; ?>">
+                 <input type="hidden" name="id" value="<?php echo $cadre->id; ?>">
 
               </div>
                 

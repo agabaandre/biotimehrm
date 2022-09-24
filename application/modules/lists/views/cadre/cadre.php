@@ -9,38 +9,40 @@
                 <div class="card card-default">
                     <div class="card-header">
                         <div class="callout callout-success">
-                            <h5><i class="fas fa-file"></i> Districts</h5>
+                            <h5><i class="fas fa-file"></i> Cadres</h5>
 
                         </div>
                     </div>
                     <div class="card-body">
                     
-                        <table class="table table-bordered table-striped districtsTable dataTable no-footer dtr-inline">
+                        <table class="table table-bordered table-striped cadreTable dataTable no-footer dtr-inline">
                             <tr>
                                 <th style="width:2%;">#</th>
-                                <th>District</th>
-                                <th>Region</th>
+                                <th>Cadres</th>
+                                <th>Details</th>
+                                <th>Section</th>
                                 <th>
                                     <?php print_r($permissions); ?>
                                 </th>
                             </tr>
 
-                            <?php  $no=1;   foreach($districts as $district): ?>
+                            <?php  $no=1;   foreach($cadres as $cadre): ?>
 
                             <tr>
                                 <td data-label="#"><?php echo $no; ?>. </td>
-                                <td><?php echo $district->name; ?></td>
-                                <td><?php echo $district->region; ?></td>
+                                <td><?php echo $cadre->cadre; ?></td>
+                                <td><?php echo $cadre->description; ?></td>
+                                <td><?php echo $cadre->sector; ?></td>
                                 <td>
 
                                     <?php //if (in_array('42', $permissions)) { ?>
                                     <button class="btn btn-sm btn  btnkey bg-gray-dark color-pale" data-toggle="modal"
-                                        data-target="#EditModal<?php echo $district->id; ?>">Edit</button>
+                                        data-target="#EditModal<?php echo $cadre->id; ?>">Edit</button>
                                     <?php //} ?>
 
                                     <?php //if (in_array('41', $permissions)) { ?>
                                     <button class="btn btn-sm btnkey bg-danger color-pale " data-toggle="modal"
-                                        data-target="#delete<?php echo $district->id; ?>">Delete</button>
+                                        data-target="#delete<?php echo $cadre->id; ?>">Delete</button>
                                     <?php //} ?>
                                 </td>
                             </tr>
@@ -70,22 +72,30 @@
                 <div class="card card-default">
                     <div class="card-header">
                         <div class="callout callout-success">
-                            <h5><i class="fas fa-file"></i> Add New District</h5>
+                            <h5><i class="fas fa-file"></i> Add New Cadre</h5>
 
                         </div>
                     </div>
                     <!-- /.card-header -->
                     <!-- form start -->
-                    <form class="district_form" method="post" action="<?php echo base_url(); ?>lists/save_district">
+                    <form class="district_form" method="post" action="<?php echo base_url(); ?>lists/save_cadre">
                         <div class="card-body">
 
                             <div class="form-group">
-                                <label>District Name</label>
-                                <input type="text" class="form-control" name="name" required>
+                                <label>Cadre Name</label>
+                                <input type="text" class="form-control" name="cadre" required>
                             </div>
                             <div class="form-group">
-                                <label>Region</label>
-                                <input type="text" class="form-control" name="region" required>
+                                <label>Details</label>
+                                <textarea type="text" class="form-control" name="description" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Section</label>
+                                <select type="text" class="form-control" name="sector" required>
+                                    <option value="">Select...</option>
+                                    <option value="Eduction">Eduction</option>
+                                    <option value="Health">Health</option>
+                                </select>
                             </div>
                             <!-- /.card-body -->
 

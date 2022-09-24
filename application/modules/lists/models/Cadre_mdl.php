@@ -7,7 +7,7 @@ class Cadre_mdl extends CI_Model {
 	public function __Construct(){
 
 		parent::__Construct();
-		$this->table="cadre";
+		$this->table="employee_cadre";
 
 	}
 
@@ -25,8 +25,10 @@ class Cadre_mdl extends CI_Model {
 	public function save_Cadre($postdata){
 
 		$data=array(
-		'name'=>$postdata['name'],
-		'region'=>$postdata['region']
+		'cadre'=>$postdata['cadre'],
+		'description'=>$postdata['description'],
+        'sector'=>$postdata['sector']
+
 		);
 
 		$qry=$this->db->insert($this->table, $data);

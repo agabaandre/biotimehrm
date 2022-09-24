@@ -198,6 +198,15 @@
                 </li>
               <?php } ?>
 
+              <?php if (in_array('39', $permissions)) { ?>
+                <li class="nav-item">
+                  <a href="<?php echo base_url(); ?>lists/getCadres" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Cadres</p>
+                  </a>
+                </li>
+              <?php } ?>
+
                <li class="nav-item">
                  <a href="<?php echo base_url(); ?>svariables" class="nav-link">
                    <i class="far fa-circle nav-icon"></i>
