@@ -46,7 +46,7 @@
          <?php if (in_array('13', $permissions)) { ?>
            <li class="nav-item has-treeview ">
              <a href="#" class="nav-link">
-               <i class="fa fa-paper-plane"></i>
+               <i class="fa fa-users"></i>
                <p>
                  Staff
                  <i class="fas fa-angle-left right"></i>
@@ -55,11 +55,14 @@
              <ul class="nav nav-treeview">
                <li class="nav-item"><a href="<?php echo base_url() ?>employees" class="nav-link">
                    <i class="far fa-circle nav-icon"></i>
-                   Staff List</a></li>
+                   Facility Staff List</a></li>
+               <li class="nav-item"><a href="<?php echo base_url() ?>district_employees" class="nav-link">
+                   <i class="far fa-circle nav-icon"></i>
+                   District Staff List</a></li>
                <li class="nav-item">
                  <a href="<?php echo base_url() ?>employees/createEmployee" class="nav-link">
                    <i class="far fa-circle nav-icon"></i>
-                   New Staff</a>
+                   Add New Staff</a>
                </li>
              </ul>
            </li>
@@ -180,72 +183,124 @@
              </a>
              <ul class="nav nav-treeview">
 
+               <!-- employee form lists-->
                <?php if (in_array('39', $permissions)) { ?>
                  <li class="nav-item">
-                   <a href="<?php echo base_url(); ?>lists/getFacilities" class="nav-link">
+                   <a href="#" class="nav-link">
                      <i class="far fa-circle nav-icon"></i>
-                     <p>Facilities</p>
+                     <p>
+                       Employee Form Lists
+                       <i class="right fas fa-angle-left"></i>
+                     </p>
                    </a>
+                   <ul class="nav nav-treeview" style="display: none;">
+                     <?php if (in_array('39', $permissions)) { ?>
+                       <li class="nav-item">
+                         <a href="<?php echo base_url(); ?>lists/getFacilities" class="nav-link">
+                           <i class="far fa-circle nav-icon"></i>
+                           <p>Facilities</p>
+                         </a>
+                       </li>
+                     <?php } ?>
+
+                     <?php if (in_array('39', $permissions)) { ?>
+                       <li class="nav-item">
+                         <a href="<?php echo base_url(); ?>lists/getDistricts" class="nav-link">
+                           <i class="far fa-circle nav-icon"></i>
+                           <p>Districts</p>
+                         </a>
+                       </li>
+                     <?php } ?>
+
+                     <?php if (in_array('39', $permissions)) { ?>
+                       <li class="nav-item">
+                         <a href="<?php echo base_url(); ?>lists/getCadres" class="nav-link">
+                           <i class="far fa-circle nav-icon"></i>
+                           <p>Cadres</p>
+                         </a>
+                       </li>
+                     <?php } ?>
+                     <?php if (in_array('44', $permissions)) { ?>
+                       <li class="nav-item">
+                         <a href="<?php echo base_url(); ?>svariables" class="nav-link">
+                           <i class="far fa-circle nav-icon"></i>
+                           <p>Constants & Variables</p>
+                         </a>
+                       </li>
+                     <?php } ?>
+                   </ul>
                  </li>
                <?php } ?>
 
-               <?php if (in_array('39', $permissions)) { ?>
+               <!-- end employee form lists -->
+
+               <!-- User Management -->
+               <?php if (in_array('15', $permissions)) { ?>
                  <li class="nav-item">
-                   <a href="<?php echo base_url(); ?>lists/getDistricts" class="nav-link">
+                   <a href="#" class="nav-link">
                      <i class="far fa-circle nav-icon"></i>
-                     <p>Districts</p>
+                     <p>
+                       User Management
+                       <i class="right fas fa-angle-left"></i>
+                     </p>
                    </a>
+                   <ul class="nav nav-treeview" style="display: none;">
+                     <li class="nav-item">
+                       <a href="<?php echo base_url(); ?>auth/users" class="nav-link">
+                         <i class="far fa-circle nav-icon"></i>
+                         <p>Manage User</p>
+                       </a>
+                     </li>
+                     <li class="nav-item">
+                       <a href="<?php echo base_url(); ?>admin/groups" class="nav-link">
+                         <i class="far fa-circle nav-icon"></i>
+                         <p>Group Permissions</p>
+                       </a>
+                     </li>
+                     <li class="nav-item">
+                       <a href="<?php echo base_url(); ?>admin/showLogs" class="nav-link">
+                         <i class="far fa-circle nav-icon"></i>
+                         <p>Activity Logs</p>
+                       </a>
+                     </li>
+                   </ul>
                  </li>
                <?php } ?>
 
-               <?php if (in_array('39', $permissions)) { ?>
+               <!-- end user management -->
+
+
+               <!-- Schedule Management -->
+               <?php if (in_array('43', $permissions)) { ?>
                  <li class="nav-item">
-                   <a href="<?php echo base_url(); ?>lists/getCadres" class="nav-link">
+                   <a href="#" class="nav-link">
                      <i class="far fa-circle nav-icon"></i>
-                     <p>Cadres</p>
+                     <p>
+                       Schedule Management
+                       <i class="right fas fa-angle-left"></i>
+                     </p>
                    </a>
+                   <ul class="nav nav-treeview" style="display: none;">
+                     <li class="nav-item">
+                       <a href="<?php echo base_url(); ?>schedules/all_schedules" class="nav-link">
+                         <i class="far fa-circle nav-icon"></i>
+                         <p>Schedule Types</p>
+                       </a>
+                     </li>
+                     <li class="nav-item">
+                       <a href="<?php echo base_url(); ?>reasons/addReason" class="nav-link">
+                         <i class="far fa-circle nav-icon"></i>
+                         <p>Out of Station Reasons</p>
+                       </a>
+                     </li>
+
+                   </ul>
                  </li>
+
                <?php } ?>
 
-               <li class="nav-item">
-                 <a href="<?php echo base_url(); ?>svariables" class="nav-link">
-                   <i class="far fa-circle nav-icon"></i>
-                   <p>Constants & Variables</p>
-                 </a>
-               </li>
-               <li class="nav-item">
-                 <?php if (in_array('15', $permissions)) { ?>
-                   <a href="<?php echo base_url(); ?>auth/users" class="nav-link">
-                     <i class="far fa-circle nav-icon"></i>
-                     <p>Manage User</p>
-                   </a>
-               </li>
+               <!-- end schedule management -->
 
-               <li class="nav-item">
-                 <a href="<?php echo base_url(); ?>admin/groups" class="nav-link">
-                   <i class="far fa-circle nav-icon"></i>
-                   <p>Group Permissions</p>
-                 </a>
-               </li>
-               <li class="nav-item">
-                 <a href="<?php echo base_url(); ?>admin/showLogs" class="nav-link">
-                   <i class="far fa-circle nav-icon"></i>
-                   <p>Activity Logs</p>
-                 </a>
-               </li>
-             <?php } ?>
-             <li class="nav-item">
-               <a href="<?php echo base_url(); ?>schedules/all_schedules" class="nav-link">
-                 <i class="far fa-circle nav-icon"></i>
-                 <p>Schedule Types</p>
-               </a>
-             </li>
-             <li class="nav-item">
-               <a href="<?php echo base_url(); ?>reasons/addReason" class="nav-link">
-                 <i class="far fa-circle nav-icon"></i>
-                 <p>Out of Station Reasons</p>
-               </a>
-             </li>
              </ul>
            </li>
          <?php } ?>
