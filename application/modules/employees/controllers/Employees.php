@@ -24,6 +24,20 @@ class Employees extends MX_Controller
   {
     return $employees = $this->empModel->get_employees($this->filters);
   }
+
+  public function district_employees()
+  {
+    $job = $this->input->post('job');
+    $facility = $this->input->post('facility');
+    $route = "employees/district_employees";
+    $totals = $this->empModel->district_employees($_SESSION['district'], $job = FALSE, $facility = FALSE, 'count');
+    $data['staffs'] = $this->empModel->district_employees($_SESSION['district'], $job = FALSE, $facility = FALSE, $count = FALSE);
+    $data['links'] = paginate($route, $totals, $perPage = 50, $segment = 3);
+    $data['view'] = 'staff_district';
+    $data['uptitle'] = "District Employees";
+    $data['module'] = "employees";
+    echo Modules::run("templates/main", $data);
+  }
   public function getEmployee($id)
   {
     $employee = $this->empModel->get_employee($id);
@@ -39,7 +53,7 @@ class Employees extends MX_Controller
     echo Modules::run("templates/main", $data);
   }
 
-  
+
   public function createEmployee()
   {
     $data['title'] = "Staff";
@@ -56,9 +70,9 @@ class Employees extends MX_Controller
   public function saveEmployee()
   {
     $data = $this->input->post();
-		$this->empModel->save_employee($data);
+    $this->empModel->save_employee($data);
 
-		redirect('employees/index');
+    redirect('employees/index');
   }
 
   public function personlogs()

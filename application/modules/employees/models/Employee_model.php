@@ -12,6 +12,34 @@ class Employee_model extends CI_Model
         $result = $query->result();
         return $result;
     }
+    public function district_employees($district, $job, $facility, $count)
+    {
+        $j = implode("','", $job);
+        //$kyc =  implode(',', array_map('add_quotes', $kycs));
+        if (!empty($j)) {
+
+            $quot = "'";
+            $jfilter = $_SESSION['jfilter'] = " and job in  ($quot.$j.$quot)";
+        } else {
+            $jfilter = "";
+        }
+        $f = implode("','", $facility);
+        //$kyc =  implode(',', array_map('add_quotes', $kycs));
+        if (!empty($f)) {
+
+            $quot = "'";
+            $ffilter = $_SESSION['ffilter'] = " and facility in  ($quot.$f.$quot)";
+        } else {
+            $ffilter = "";
+        }
+        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $ffilter $jfilter");
+        if ($count == 'count') {
+            return $query->num_rows();
+        } else {
+            $result = $query->result();
+            return $result;
+        }
+    }
     public function get_employee($id = FALSE)
     {
         $this->db->where('ihris_pid', $id);
@@ -680,48 +708,44 @@ class Employee_model extends CI_Model
     }
 
 
-	public function save_employee($postdata){
+    public function save_employee($postdata)
+    {
 
-		$data=array(
-            
-            'firstname'=>$postdata['firstname'],
-            'othername'=>$postdata['othername'],
-            'surname'=>$postdata['surname'],
-            'gender'=>$postdata['gender'],
-            'birth_date'=>$postdata['birth_date'],
-            'home_district'=>$postdata['home_district'],
-            'mobile'=>$postdata['mobile'],
-            'telephone'=>$postdata['telephone'],
-            'email'=>$postdata['email'],
-            'place_of_residence'=>$postdata['place_of_residence'],
-            'nin'=>$postdata['nin'],
-            'job'=>$postdata['job'],
-            'job_id'=>$postdata['job_id'],
-            'salary_grade'=>$postdata['salary_grade'],
-            'employment_terms'=>$postdata['employment_terms'],
-            'cadre'=>$postdata['cadre'],
-            'facility_id'=>$postdata['facility_id'],
-            'facility'=>$postdata['facility'],
-            'institution_cateegory'=>$postdata['institution_cateegory'],
-            'institutiontype_name'=>$postdata['institutiontype_name'],
-            'institution_level'=>$postdata['institution_level'],
-            'district_id'=>$postdata['district_id']
-		);
+        $data = array(
 
-		$qry=$this->db->insert("ihrisdata", $data);
-		$rows=$this->db->affected_rows();
+            'firstname' => $postdata['firstname'],
+            'othername' => $postdata['othername'],
+            'surname' => $postdata['surname'],
+            'gender' => $postdata['gender'],
+            'birth_date' => $postdata['birth_date'],
+            'home_district' => $postdata['home_district'],
+            'mobile' => $postdata['mobile'],
+            'telephone' => $postdata['telephone'],
+            'email' => $postdata['email'],
+            'place_of_residence' => $postdata['place_of_residence'],
+            'nin' => $postdata['nin'],
+            'job' => $postdata['job'],
+            'job_id' => $postdata['job_id'],
+            'salary_grade' => $postdata['salary_grade'],
+            'employment_terms' => $postdata['employment_terms'],
+            'cadre' => $postdata['cadre'],
+            'facility_id' => $postdata['facility_id'],
+            'facility' => $postdata['facility'],
+            'institution_cateegory' => $postdata['institution_cateegory'],
+            'institutiontype_name' => $postdata['institutiontype_name'],
+            'institution_level' => $postdata['institution_level'],
+            'district_id' => $postdata['district_id']
+        );
 
-		if($rows>0){
+        $qry = $this->db->insert("ihrisdata", $data);
+        $rows = $this->db->affected_rows();
 
-			return "Employee has been Added Successfully";
-		}
+        if ($rows > 0) {
 
-		else{
+            return "Employee has been Added Successfully";
+        } else {
 
-			return "Operation failed";
-		}
+            return "Operation failed";
+        }
     }
-
-
-
 }
