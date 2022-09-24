@@ -1,16 +1,16 @@
 <!-- Main content -->
 <section class="content">
     <div class="container-fluid">
-        <form class="district_form" method="post" action="<?php echo base_url(); ?>employees/saveEmployee">        
-        <div class="row">
+        <form class="district_form" method="post" action="<?php echo base_url(); ?>employees/saveEmployee">
+            <div class="row">
 
-            <!-- right column -->
-             <div class="col-md-4">
+                <!-- right column -->
+                <div class="col-md-4">
                     <!-- Form Element sizes -->
-                    <div class="card card-default">
+                    <div class="card card-default" style="min-height:630px;">
                         <div class="card-header">
-                            <div class="callout callout-success">
-                                <h5><i class="fas fa-file"></i> Employe Bio Information</h5>
+                            <div class="">
+                                <h5><i class="fas fa-user"></i> Employe Bio Information</h5>
 
                             </div>
                         </div>
@@ -43,16 +43,16 @@
                             <div class="form-group">
                                 <label>Home District</label>
                                 <select type="text" class="form-control select2" name="home_district" required>
-                                <option disabled>Select ...</option>
-                                <?php 
+                                    <option disabled>Select ...</option>
+                                    <?php
                                     $districts = Modules::run('lists/get_all_districts');
-                                    foreach($districts as $district){ ?>
-                                    <option value="<?php echo $district->name; ?>"><?php echo $district->name; ?></option>
-                                <?php } ?>
+                                    foreach ($districts as $district) { ?>
+                                        <option value="<?php echo $district->name; ?>"><?php echo $district->name; ?></option>
+                                    <?php } ?>
 
                                 </select>
                             </div>
-                        
+
                         </div>
                     </div>
                 </div>
@@ -61,15 +61,15 @@
                 <!-- right column -->
                 <div class="col-md-4">
                     <!-- Form Element sizes -->
-                    <div class="card card-default">
+                    <div class="card card-default" style="min-height:630px;">
                         <div class="card-header">
-                            <div class="callout callout-success">
-                                <h5><i class="fas fa-file"></i> Contact Information</h5>
+                            <div class="">
+                                <h5><i class="fas fa-phone"></i> Contact Information</h5>
 
                             </div>
                         </div>
                         <div class="card-body">
-                        
+
                             <div class="form-group">
                                 <label>Mobile</label>
                                 <input type="text" class="form-control" name="mobile" required>
@@ -104,33 +104,32 @@
                     <!-- general form elements -->
                     <div class="card card-default">
                         <div class="card-header">
-                            <div class="callout callout-success">
-                                <h5><i class="fas fa-file"></i> Work details</h5>
+                            <div class="">
+                                <h5><i class="fas fa-building"></i> Work details</h5>
 
                             </div>
                         </div>
                         <div class="card-body">
-                        
+
                             <div class="form-group">
                                 <label>Institution</label>
-                                <select type="text" class="form-control select2" id="facility" name="facility" 
-                                 onchange="updateFields(document.getElementById('facility').value)" required>
+                                <select type="text" class="form-control select2" id="facility" name="facility" onchange="updateFields(document.getElementById('facility').value)" required>
 
-                                    <option >Select ...</option>
+                                    <option>Select ...</option>
                                     <?php
-                                    
-                                    foreach($facilities as $facility){ ?>
+
+                                    foreach ($facilities as $facility) { ?>
                                         <option value="<?php echo $facility->facility; ?>"><?php echo $facility->facility; ?></option>
                                     <?php } ?>
                                 </select>
                             </div>
-                            
+
                             <input type="hidden" class="form-control" id="facility_id" name="facility_id">
                             <input type="hidden" class="form-control" id="institution_cateegory" name="institution_cateegory">
                             <input type="hidden" class="form-control" id="institutiontype_name" name="institutiontype_name">
                             <input type="hidden" class="form-control" id="institution_level" name="institution_level">
                             <input type="hidden" class="form-control" id="district_id" name="district_id">
-                            
+
                             <div class="form-group">
                                 <label>Job Title</label>
                                 <input type="text" class="form-control" name="job">
@@ -154,24 +153,24 @@
                             <div class="form-group">
                                 <label>Cadre</label>
                                 <select type="text" class="form-control select2" name="cadre" required>
-                                    <option >Select ...</option>
-                                        <option value="Nursing Professionals">Nursing Professionals</option>
-                                        <option value="Midwifery Professionals">Midwifery Professionals</option>
-                                        <option value="Allied Health Professionals">Allied Health Professionals</option>
+                                    <option>Select ...</option>
+                                    <option value="Nursing Professionals">Nursing Professionals</option>
+                                    <option value="Midwifery Professionals">Midwifery Professionals</option>
+                                    <option value="Allied Health Professionals">Allied Health Professionals</option>
                                 </select>
                             </div>
 
                             <div class="card-footer">
-                                <button type="reset" class="btn btn-sm btn-warning clear">Reset All</button>
-                                <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+                                <button type="reset" class="btn bg-gray btn-outline">Reset All</button>
+                                <button type="submit" class="btn bg-gray-dark color-pale">Submit</button>
                             </div>
 
                         </div>
-                        
+
                     </div>
                 </div>
                 <!--/.col (right) -->
-        </div>
+            </div>
         </form>
         <!-- /.row -->
     </div><!-- /.container-fluid -->
@@ -179,26 +178,25 @@
 <!-- /.content -->
 
 <script>
-
-    var json =JSON.parse('<?php echo $facilities_json; ?>');
-  //  console.log(json);
+    var json = JSON.parse('<?php echo $facilities_json; ?>');
+    //  console.log(json);
 
     function updateFields(addressId) {
 
-        var as=$(json).filter(function (i,n){return n.facility===addressId});
+        var as = $(json).filter(function(i, n) {
+            return n.facility === addressId
+        });
         console.log(as);
 
-        for (var i=0;i<as.length;i++)
-        {
+        for (var i = 0; i < as.length; i++) {
             document.getElementById('facility_id').value = as[i].facility_id;
             document.getElementById('institution_cateegory').value = as[i].institution_cateegory;
             document.getElementById('institution_level').value = as[i].institution_level;
             document.getElementById('institutiontype_name').value = as[i].institution_type;
-            
-            document.getElementById('district_id').value = as[i].name;
-            
-        } 
- 
-    }
 
+            document.getElementById('district_id').value = as[i].name;
+
+        }
+
+    }
 </script>

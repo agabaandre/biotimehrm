@@ -48,7 +48,7 @@
              <a href="#" class="nav-link">
                <i class="fa fa-paper-plane"></i>
                <p>
-               Staff 
+                 Staff
                  <i class="fas fa-angle-left right"></i>
                </p>
              </a>
@@ -180,32 +180,32 @@
              </a>
              <ul class="nav nav-treeview">
 
-             <?php if (in_array('39', $permissions)) { ?>
-                <li class="nav-item">
-                  <a href="<?php echo base_url(); ?>lists/getFacilities" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>Facilities</p>
-                  </a>
-                </li>
-              <?php } ?>
+               <?php if (in_array('39', $permissions)) { ?>
+                 <li class="nav-item">
+                   <a href="<?php echo base_url(); ?>lists/getFacilities" class="nav-link">
+                     <i class="far fa-circle nav-icon"></i>
+                     <p>Facilities</p>
+                   </a>
+                 </li>
+               <?php } ?>
 
-             <?php if (in_array('39', $permissions)) { ?>
-                <li class="nav-item">
-                  <a href="<?php echo base_url(); ?>lists/getDistricts" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>Districts</p>
-                  </a>
-                </li>
-              <?php } ?>
+               <?php if (in_array('39', $permissions)) { ?>
+                 <li class="nav-item">
+                   <a href="<?php echo base_url(); ?>lists/getDistricts" class="nav-link">
+                     <i class="far fa-circle nav-icon"></i>
+                     <p>Districts</p>
+                   </a>
+                 </li>
+               <?php } ?>
 
-              <?php if (in_array('39', $permissions)) { ?>
-                <li class="nav-item">
-                  <a href="<?php echo base_url(); ?>lists/getCadres" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>Cadres</p>
-                  </a>
-                </li>
-              <?php } ?>
+               <?php if (in_array('39', $permissions)) { ?>
+                 <li class="nav-item">
+                   <a href="<?php echo base_url(); ?>lists/getCadres" class="nav-link">
+                     <i class="far fa-circle nav-icon"></i>
+                     <p>Cadres</p>
+                   </a>
+                 </li>
+               <?php } ?>
 
                <li class="nav-item">
                  <a href="<?php echo base_url(); ?>svariables" class="nav-link">
@@ -220,7 +220,7 @@
                      <p>Manage User</p>
                    </a>
                </li>
-               
+
                <li class="nav-item">
                  <a href="<?php echo base_url(); ?>admin/groups" class="nav-link">
                    <i class="far fa-circle nav-icon"></i>
