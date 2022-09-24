@@ -38,7 +38,14 @@
                             </div>
                             <div class="form-group">
                                 <label>Date of Birth</label>
-                                <input type="date" class="form-control" name="birth_date" required>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">
+                                            <i class="far fa-calendar-alt"></i>
+                                        </span>
+                                    </div>
+                                    <input type="text" name="birth_date" class="form-control datepicker" value="" autocomplete="off">
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Home District</label>
@@ -80,15 +87,15 @@
                             </div>
                             <div class="form-group">
                                 <label>Email</label>
-                                <input type="email" class="form-control" name="email" required>
+                                <input type="email" class="form-control" name="email">
                             </div>
                             <div class="form-group">
                                 <label>National Identification Number (NIN)</label>
                                 <input type="text" class="form-control" name="nin" required>
                             </div>
                             <div class="form-group">
-                                <label>Card Number</label>
-                                <input type="text" class="form-control" name="card_number" required>
+                                <label>National ID Card Number</label>
+                                <input type="number" class="form-control" name="card_number" required>
                             </div>
                             <div class="form-group">
                                 <label>Place of Residence</label>
