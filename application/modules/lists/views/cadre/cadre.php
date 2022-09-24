@@ -8,7 +8,7 @@
                 <!-- Form Element sizes -->
                 <div class="card card-default">
                     <div class="card-header">
-                        <div class="callout callout-success">
+                        <div class="">
                             <h5><i class="fas fa-file"></i> Cadres</h5>
 
                         </div>
@@ -71,7 +71,7 @@
                 <!-- general form elements -->
                 <div class="card card-default">
                     <div class="card-header">
-                        <div class="callout callout-success">
+                        <div class="">
                             <h5><i class="fas fa-file"></i> Add New Cadre</h5>
 
                         </div>
@@ -100,8 +100,8 @@
                             <!-- /.card-body -->
 
                             <div class="card-footer">
-                                <button type="reset" class="btn btn-sm btn-warning clear">Reset All</button>
-                                <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+                                <button type="reset" class="btn bg-gray btn-outline">Reset All</button>
+                                <button type="submit" class="btn bg-gray-dark color-pale">Submit</button>
                             </div>
                     </form>
                 </div>

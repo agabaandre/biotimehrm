@@ -120,12 +120,11 @@
 
                             <div class="form-group">
                                 <label>Institution</label>
-                                <select type="text" class="form-control select2" id="facility" name="facility" onchange="updateFields(document.getElementById('facility').value)" required>
+                                <select type="text" class="form-control select2" id="facility" 
+                                name="facility" onchange="updateInstitutionFields(document.getElementById('facility').value)" required>
 
                                     <option>Select ...</option>
-                                    <?php
-
-                                    foreach ($facilities as $facility) { ?>
+                                    <?php foreach ($facilities as $facility) { ?>
                                         <option value="<?php echo $facility->facility; ?>"><?php echo $facility->facility; ?></option>
                                     <?php } ?>
                                 </select>
@@ -139,11 +138,18 @@
 
                             <div class="form-group">
                                 <label>Job Title</label>
-                                <input type="text" class="form-control" name="job">
+                                <select type="text" class="form-control select2" name="job" id="job" onchange="updateJobFields(document.getElementById('job').value)" required>
+                                    <option value="">Select...</option>
+                                    <?php foreach ($jobs as $job) { ?>
+                                        <option value="<?php echo $job->job_title; ?>"><?php echo $job->job_title; ?></option>
+                                    <?php } ?>
+
+                                </select>
                             </div>
+
                             <div class="form-group">
-                                <label>Job Code</label>
-                                <input type="text" class="form-control" name="job_id">
+                                <label>Job ID</label>
+                                <input type="text" class="form-control" id="job_id" name="job_id" readonly>
                             </div>
                             <div class="form-group">
                                 <label>Salary Grade</label>
@@ -155,15 +161,20 @@
                                     <option value="">Select...</option>
                                     <option value="Permanent">Permanent</option>
                                     <option value="Contract">Contract</option>
+                                    <option value="Probation">Probation</option>
+                                    <option value="Full Time">Full Time</option>
+                                    <option value="Part Time">Part Time</option>
                                 </select>
                             </div>
+
                             <div class="form-group">
                                 <label>Cadre</label>
                                 <select type="text" class="form-control select2" name="cadre" required>
-                                    <option>Select ...</option>
-                                    <option value="Nursing Professionals">Nursing Professionals</option>
-                                    <option value="Midwifery Professionals">Midwifery Professionals</option>
-                                    <option value="Allied Health Professionals">Allied Health Professionals</option>
+                                    <option value="">Select...</option>
+                                    <?php foreach ($cadres as $cadre) { ?>
+                                        <option value="<?php echo $cadre->cadre; ?>"><?php echo $cadre->cadre; ?></option>
+                                    <?php } ?>
+
                                 </select>
                             </div>
 
@@ -185,12 +196,14 @@
 <!-- /.content -->
 
 <script>
-    var json = JSON.parse('<?php echo $facilities_json; ?>');
-    //  console.log(json);
+    var facility_json = JSON.parse('<?php echo $facilities_json; ?>');
+    var job_json = JSON.parse('<?php echo $jobs_json; ?>');
 
-    function updateFields(addressId) {
+    console.log(job_json);
 
-        var as = $(json).filter(function(i, n) {
+    function updateInstitutionFields(addressId) {
+
+        var as = $(facility_json).filter(function(i, n) {
             return n.facility === addressId
         });
         console.log(as);
@@ -206,4 +219,17 @@
         }
 
     }
+
+   function updateJobFields(job_title) {
+
+    var jb = $(job_json).filter(function(i, n) {
+        return n.job_title === job_title
+    });
+    console.log(jb);
+
+    for (var i = 0; i < jb.length; i++) {
+        document.getElementById('job_id').value = jb[i].job_id;
+    }
+
+    } 
 </script>
