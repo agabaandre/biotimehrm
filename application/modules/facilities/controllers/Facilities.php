@@ -1,86 +1,84 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
+defined('BASEPATH') or exit('No direct script access allowed');
 
-class Facilities extends MX_Controller {
+class Facilities extends MX_Controller
+{
 
-	
-	public function __Construct(){
+
+	public function __Construct()
+	{
 
 		parent::__Construct();
 
-		$this->load->model('facilities_mdl','facMdl');
-
+		$this->load->model('facilities_mdl', 'facMdl');
 	}
 
+	public function getFacilities($district = FALSE)
+	{
 
-	public function getFacilities($district=FALSE){
+		$faci_options = "";
 
-		$faci_options="";
+		$facilities = $this->facMdl->getFacilities($district);
 
-		$facilities=$this->facMdl->getFacilities($district);
 
-   
-		$faci_options.="<option disabled selected>--Select Facility--</option>";
+		$faci_options .= "<option disabled selected>--Select Facility--</option>";
 
-		foreach ($facilities as $facility):
+		foreach ($facilities as $facility) :
 
-			$faci_options.='<option value="'.htmlspecialchars($facility->facility_id).'">'.$facility->facility.'</option>';
-		
+			$faci_options .= '<option value="' . htmlspecialchars($facility->facility_id) . '">' . $facility->facility . '</option>';
+
 		endforeach;
+	}
+	public function get_Facilities($district = FALSE)
+	{
+		$district = $_SESSION['district'];
+		$facilities = $this->facMdl->getFacilities($district);
+		return $facilities;
+	}
+	public function add_facility()
+	{
+		$data['view'] = "add_faclity";
+		$data['title'] = "Facilities";
+		$data['module'] = "facilities";
 
-
-		//print_r($faci_options);
-
-
+		echo Modules::run('templates/main', $data);
 	}
 
-	public function add_facility(){
-		$data['view']="add_faclity";
-		$data['title']="Facilities";
-		$data['module']="facilities";
+	public function getAll_Facilities()
+	{
 
-		echo Modules::run('templates/main',$data);
-	}
+		$facil = $this->facMdl->getAll_Facilities();
 
-	public function getAll_Facilities(){
+		return $facil;
 
-		$facil=$this->facMdl->getAll_Facilities();
-
-      	return $facil;
-
-      //print_r($depart);
+		//print_r($depart);
 
 	}
-	public function saveFacility(){
-		$save_facil=$this->facMdl->saveFacility();
+	public function saveFacility()
+	{
+		$save_facil = $this->facMdl->saveFacility();
 
-      	//return $save_facil;
+		//return $save_facil;
 
-      	redirect('facilities/add_facility');
-
+		redirect('facilities/add_facility');
 	}
-	public function updateFacility(){
+	public function updateFacility()
+	{
 
-		$update_facil=$this->facMdl->updateFacility();
+		$update_facil = $this->facMdl->updateFacility();
 
-      	//return $update_facil;
+		//return $update_facil;
 
-      	redirect('facilities/add_facility');
-
-
+		redirect('facilities/add_facility');
 	}
 
-	public function deleteFacility(){
+	public function deleteFacility()
+	{
 
-		$delete_facil=$this->facMdl->deleteFacility();
+		$delete_facil = $this->facMdl->deleteFacility();
 
-      	//return $delete_facil;
+		//return $delete_facil;
 
-      	redirect('facilities/add_facility');
-
-
+		redirect('facilities/add_facility');
 	}
-	
-
-
 }

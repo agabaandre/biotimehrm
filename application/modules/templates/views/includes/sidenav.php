@@ -56,7 +56,7 @@
                <li class="nav-item"><a href="<?php echo base_url() ?>employees" class="nav-link">
                    <i class="far fa-circle nav-icon"></i>
                    Facility Staff List</a></li>
-               <li class="nav-item"><a href="<?php echo base_url() ?>district_employees" class="nav-link">
+               <li class="nav-item"><a href="<?php echo base_url() ?>employees/district_employees" class="nav-link">
                    <i class="far fa-circle nav-icon"></i>
                    District Staff List</a></li>
                <li class="nav-item">
@@ -230,7 +230,7 @@
                        </li>
                      <?php } ?>
 
-                     
+
                      <?php if (in_array('44', $permissions)) { ?>
                        <li class="nav-item">
                          <a href="<?php echo base_url(); ?>svariables" class="nav-link">
