@@ -20,6 +20,16 @@ class Districts_mdl extends CI_Model {
 		return $query->result();
  
 	}
+	public function get_all_Districts()
+	{
+
+		$this->db->select('distinct(district_id),district');
+		//	$this->db->where("district_id!=''");
+		$this->db->order_by('district', 'ASC');
+		$query = $this->db->get('ihrisdata');
+
+		return $query->result();
+	}
 
 		// to save in the district database /.....
 	public function save_district($postdata){

@@ -9,10 +9,10 @@
         </div>
         <div class="card-body">
 
-          <form class="form-inline">
+          <form class="form-inline" method="post" action="<?php echo base_url(); ?>employees/district_employees">
 
 
-            <div class="col-md-4">
+            <div class=" col-md-4">
               <div class="input-group">
                 <label>Facility</label>
                 <select class="form-control select2" name="facility[]" style="width:100%;" multiple>
@@ -34,15 +34,14 @@
                 </select>
               </div>
             </div>
-            <div class="col-md-4">
-              <label>|</label>
+            <div class="col-md-2">
+              <label style="margin-top:10px;"></label>
               <button class="btn bg-gray btn-dark" type="submit">Search</button>
             </div>
-
-
-
-
-
+            <div class="col-md-2">
+              <label style="margin-top:10px;"></label>
+              <a href="<?php echo base_url() ?>employees/district_csv/1/<?php echo $form ?>" class="btn bt-sm bg-gray-dark color-pale" style="width:100px;"><i class="fa fa-file-excel" aria-hidden="true"></i>CSV</a>
+            </div>
           </form>
 
         </div>
@@ -58,9 +57,10 @@
 
               <div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 
-              <table id="mytab2" class="table table-bordered table-striped mytable" style="width:100;">
+              <table id="mytab2" class="table table-bordered table-striped" style="width:100;">
                 <thead>
                   <tr>
+                    <th>#</th>
                     <th>Staff iHRIS ID</th>
                     <th>NIN</th>
                     <th>Name</th>
@@ -68,6 +68,7 @@
                     <th>Birth Date</th>
                     <th>Phone</th>
                     <th>Email</th>
+                    <th>Facility</th>
                     <th>Department</th>
                     <th>Job</th>
                     <th>Employment Terms</th>
@@ -75,10 +76,15 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <?php $i = 1;
+                  <?php if (empty($this->uri->segment(3))) {
+                    $i = 1;
+                  } else {
+                    $i = $this->uri->segment(3);
+                  };
                   foreach ($staffs as $staff) {
                   ?>
                     <tr>
+                      <td><?php echo $i++; ?></td>
                       <td data-label="Staff iHRIS ID" style="background-image:url('<?php echo base_url() ?>/assets/images/user.png'); width:30px !imporntant; opacity: 0.6; background-size: contain;background-position: center center;background-repeat: no-repeat;  font-size:14px; margin:0 auto; ">
                         <p style="clear:both; text-align:center; color:#000; opacity:1;"><?php echo str_replace('person|', '', $staff->ihris_pid); ?></p>
                       </td>
@@ -92,7 +98,9 @@
                                                   } else {
                                                     echo $staff->telephone;
                                                   } ?></td>
-                      <td data-label="FACILITY"><?php echo $staff->email; ?></td>
+
+                      <td data-label="EMAIL"><?php echo $staff->email; ?></td>
+                      <td data-label="FACILITY"><?php echo $staff->facility; ?></td>
                       <td data-label="DEPARTMENT"><?php echo $staff->department; ?></td>
                       <td data-label="JOB"><?php echo $staff->job; ?></td>
                       <td data-label="TERMS"><?php echo str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $staff->employment_terms))); ?></td>
