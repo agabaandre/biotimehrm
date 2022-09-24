@@ -13,7 +13,6 @@ class Facilities_mdl extends CI_Model {
 	}
 
 
-
 	public function getFacilities($district_id=FALSE)
 	{
 

@@ -22,35 +22,38 @@ class Employees extends MX_Controller
   }
   public function get_employees()
   {
-    return $this->empModel->get_employees($this->filters);
+    return $employees = $this->empModel->get_employees($this->filters);
   }
   public function getEmployee($id)
   {
     $employee = $this->empModel->get_employee($id);
     return  $employee;
   }
-
   public function index()
   {
     $data['title'] = "Staff";
-    $data['facilities'] = Modules::run("lists/getFacilities");
-  //  $data['staffs'] = $this->empModel->get_employees($this->filters);
+    $data['facilities'] = Modules::run("facilities/getFacilities");
     $data['view'] = 'staff';
     $data['uptitle'] = "Staff List";
     $data['module'] = "employees";
-
     echo Modules::run("templates/main", $data);
   }
 
+  
   public function createEmployee()
   {
     $data['title'] = "Staff";
-    $data['view'] = 'add_employee';
-    $data['uptitle'] = "Staff List";
+    $data['facilities'] = Modules::run("lists/get_all_Facilities");
+    $data['facilities_json'] = json_encode(Modules::run("lists/get_all_Facilities"));
+    $data['districts'] = Modules::run('lists/get_all_districts');
+    $data['view'] = 'create_employee';
+    $data['uptitle'] = "Add Employee";
     $data['module'] = "employees";
+
     echo Modules::run("templates/main", $data);
   }
-  
+
+
   public function personlogs()
   {
     $data['title'] = "Person Logs";

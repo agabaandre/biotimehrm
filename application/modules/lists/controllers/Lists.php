@@ -25,12 +25,6 @@ class Lists extends MX_Controller {
         echo Modules::run("templates/main", $data);
 	}
 
-	public function get_all_districts(){
-
-		$districts = $this->districts_mdl->getDistricts();
-		return $districts;
-	}
-
 	public function getDistrict($id){
 
 		$district=$this->districts_mdl->getDistrict($id);
@@ -60,6 +54,15 @@ class Lists extends MX_Controller {
         echo Modules::run("templates/main", $data);
 	}
 
+	public function get_all_districts(){
+		
+		return $this->districts_mdl->getDistricts();
+	}
+
+	public function get_all_Facilities(){
+
+		return $this->facilities_mdl->getAll();
+	}
 
 
 	public function add_Districts(){

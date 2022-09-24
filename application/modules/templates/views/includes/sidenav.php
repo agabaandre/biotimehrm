@@ -42,16 +42,31 @@
              </p>
            </a>
          </li>
+
          <?php if (in_array('13', $permissions)) { ?>
-           <li class="nav-item">
-             <a href="<?php echo base_url(); ?>employees" class="nav-link">
-               <i class="fa fa-users"></i>
+           <li class="nav-item has-treeview ">
+             <a href="#" class="nav-link">
+               <i class="fa fa-paper-plane"></i>
                <p>
-                 Staff
+               Staff 
+                 <i class="fas fa-angle-left right"></i>
                </p>
              </a>
+             <ul class="nav nav-treeview">
+               <li class="nav-item"><a href="<?php echo base_url() ?>employees" class="nav-link">
+                   <i class="far fa-circle nav-icon"></i>
+                   Staff List</a></li>
+               <li class="nav-item">
+                 <a href="<?php echo base_url() ?>employees/createEmployee" class="nav-link">
+                   <i class="far fa-circle nav-icon"></i>
+                   New Staff</a>
+               </li>
+             </ul>
            </li>
          <?php } ?>
+
+
+
          <?php if (in_array('14', $permissions)) { ?>
            <li class="nav-item">
              <a href="<?php echo base_url(); ?>rosta/tabular" class="nav-link">

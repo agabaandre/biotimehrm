@@ -11,6 +11,7 @@
             <?php $staffs = Modules::run('employees/get_employees');
             ?>
             <h4> <?php echo $_SESSION['facility_name']; ?> Staff </h4>
+            
             <table id="mytab2" class="table table-bordered table-striped mytable">
               <thead>
                 <tr>

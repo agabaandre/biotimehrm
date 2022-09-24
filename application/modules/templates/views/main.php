@@ -27,24 +27,9 @@ require_once("includes/sidenav.php");
           <?php
               $this->load->view($module . "/" . $view);
           ?>
-          </div> 
-
-          <!-- <div class="card">
-            <div class="">
-            </div>
-            <div class="card-body"> -->
-          <?php
-          $this->load->view($module . "/" . $view);
-          ?>
-          <!-- </div> -->
-          <!-- /.card-body -->
-          <!-- <div class="card-footer">
-            </div> -->
-          <!-- /.card-footer-->
-        </div>
+        </div> 
       </div>
     </div>
-
   </section>
   <!-- /.content -->
 </div>

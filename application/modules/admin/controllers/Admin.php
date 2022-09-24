@@ -45,7 +45,7 @@ class Admin extends MX_Controller {
         $data = array(
             'title' => 'User Management',
             'users' => $this->admin_model->get_user_list(),
-            'facilities'=> Modules::run('facilities/getFacilities'),
+            'facilities'=> Modules::run('lists/getFacilities'),
             'districts' => Modules::run('districts/getDistricts')
             
             //'username'=>$this->username
@@ -69,7 +69,7 @@ class Admin extends MX_Controller {
             'vars' => $this->admin_model->get_vars(),
             // 'districts' => $this->districts_mdl->getDistricts(),
             // 'facilities' => $this->facilities_mdl->getFacilities()
-            'facilities'=> Modules::run('facilities/getFacilities'),
+            'facilities'=> Modules::run('lists/getFacilities'),
             'districts' => Modules::run('districts/getDistricts')
             //'username'=>$this->username
         );
@@ -100,7 +100,7 @@ public function configure(){
         $data = array(
             'title' => 'User Activity Logs',
             'logs' => $this->admin_model->get_logs(),
-            'facilities'=> Modules::run('facilities/getFacilities'),
+            'facilities'=> Modules::run('lists/getFacilities'),
             'districts' => Modules::run('districts/getDistricts')
             //'username'=>$this->username
         );
