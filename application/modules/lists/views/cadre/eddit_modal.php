@@ -3,7 +3,7 @@
     <div class="modal-dialog modal-md" >
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Edit</b> <i><u><?php echo $district->district; ?></u></i> District</h4>
+                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Edit</b> <i><u><?php echo $cadre->cadre; ?></u></i></h4>
             </div>
 
             <form class="update_Cadre" enctype="multipart/form-data"

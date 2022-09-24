@@ -3,17 +3,17 @@
     <div class="modal-dialog modal-md" >
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Are you sure you want to Delete</b>  <i><u><?php echo $district->district; ?></u></i>  district ?</h4>
+                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Are you sure you want to Delete</b>  <i><u><?php echo $cadre->cadre; ?></u></i> ?</h4>
             </div>
 
             <form enctype="multipart/form-data" method="post" 
-                    action="<?php echo base_url(); ?>lists/deleteDistrict">
+                    action="<?php echo base_url(); ?>lists/deleteCadre">
 
             <div class="modal-body"> 
 
               <div style="text-align: center; color: red;">
 
-                 Confirming Delete will remove the district Permanently
+                 Confirming Delete will remove the Cadre Permanently
                  <input type="hidden" name="id" value="<?php echo $cadre->id; ?>">
 
               </div>

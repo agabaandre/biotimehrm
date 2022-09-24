@@ -130,8 +130,8 @@ class Lists extends MX_Controller {
 
 	public function deleteCadre(){
 		$data = $this->input->post();
-		$this->cadre_mdl->deleteDistrict($data);
-		redirect('lists/getDistricts');
+		$this->cadre_mdl->deleteCadre($data);
+		redirect('lists/getCadres');
 
 	}
 
