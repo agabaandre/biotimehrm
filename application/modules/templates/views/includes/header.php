@@ -23,22 +23,30 @@ $permissions = $userdata['permissions'];
   <link rel="stylesheet" href="<?php echo base_url() ?>assets/bower_components/fullcalendar/dist/fullcalendar.print.min.css" media="print">
   <link rel="stylesheet" href="<?php echo base_url() ?>assets/plugins/select2/css/select2.min.css">
   <link rel="stylesheet" href="<?php echo base_url() ?>assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.8.0/css/bootstrap-datepicker.min.css">
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <link rel="stylesheet" href="<?php echo base_url() ?>assets/bootstrap-datepicker/css/bootstrap-datepicker.min.css">
+  <link rel="stylesheet" href="<?php echo base_url() ?>node_modules/ionicons-npm/css/ionicons.min.css">
   <!-- Theme style -->
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/adminlte.min.css">
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-  <script src="https://code.highcharts.com/highcharts.js"></script>
-  <script src="https://code.highcharts.com/highcharts-more.js"></script>
-  <script src="https://code.highcharts.com/modules/solid-gauge.js"></script>
-  <script src="https://code.highcharts.com/modules/exporting.js"></script>
-  <script src="https://code.highcharts.com/modules/export-data.js"></script>
-  <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/jquery/dist/jquery.min.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/highcharts.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/highcharts-more.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/solid-gauge.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/exporting.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/export-data.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/accessibility.js"></script>
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
   <!-- Theme style -->
   <link href="<?php echo base_url(); ?>assets/css/fullcalendar.css" rel="stylesheet">
+  <script>
+    $(window).on('load', function() {
+
+      $('#status').delay(900).fadeOut(1000); // will first fade out the loading animation
+      $('#preloader').delay(900).fadeOut(1000); // will fade out the white div
+
+    });
+  </script>
   <style>
     @media (max-width: 767px) {
       .hidden-mobile {
@@ -180,6 +188,41 @@ $permissions = $userdata['permissions'];
 
     .fc-content {
       color: #fff !important;
+      font-size: 13px;
+
+    }
+
+    .fc-center {
+      font-size: 14px !important;
+      ;
+    }
+
+    .highcharts-title {
+      font-size: 15px !important;
+    }
+
+    #preloader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #E4E5E5;
+      z-index: 200;
+    }
+
+    #status {
+      width: 50px;
+      height: 50px;
+      position: absolute;
+      left: 60%;
+      top: 50%;
+      background-image: url("<?php echo base_url() ?>assets/images/loader2.gif");
+      z-index: 9999;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+      margin: -50px 0 0 -50px;
     }
   </style>
 </head>

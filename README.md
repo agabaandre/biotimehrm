@@ -19,6 +19,11 @@ Install php project dependencies using composee
  composer install
 ```
 
+ Install the required node modules by running the command below. This will enable you get all the systems functionality
+ ```sh
+ npm install
+```
+
 
 Vist the your project by running 
 

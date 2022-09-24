@@ -10,8 +10,7 @@
           <section class="col-lg-12 ">
             <?php $staffs = Modules::run('employees/get_employees');
             ?>
-            <h4> <?php echo $_SESSION['facility_name']; ?> Staff </h4>
-            
+            <h5> <?php echo $_SESSION['facility_name']; ?> Staff </h5>
             <table id="mytab2" class="table table-bordered table-striped mytable">
               <thead>
                 <tr>

@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "highcharts": "^10.2.1",
+    "ionicons-npm": "^2.0.1",
+    "jquery": "^3.6.1"
+  }
+}

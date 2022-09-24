@@ -20,15 +20,17 @@
 <!-- jQuery -->
 <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
 <!-- Bootstrap 4 -->
-<script src="<?php echo base_url(); ?>assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+
 <script src="<?php echo base_url() ?>assets/plugins/summernote/summernote-bs4.min.js"></script>
 <!-- AdminLTE App -->
 <!-- Select2 -->
 <script src="<?php echo base_url() ?>assets/plugins/select2/js/select2.full.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/dist/js/adminlte.min.js"></script>
-<script src="<?php echo base_url(); ?>assets/dist/js/dashboard.js"></script>
+<!-- <script src="<?php echo base_url(); ?>assets/dist/js/dashboard.js"></script> -->
 <!-- AdminLTE for demo purposes -->
-<script src="<?php echo base_url(); ?>assets/dist/js/demo.js"></script>
+<!-- <script src="<?php echo base_url(); ?>assets/dist/js/demo.js"></script> -->
+
 <script src="<?php echo base_url(); ?>/assets/plugins/jquery/jquery.min.js"></script>
 <!-- jQuery UI 1.11.4 -->
 <script src="<?php echo base_url(); ?>/assets/plugins/jquery-ui/jquery-ui.min.js"></script>
@@ -43,8 +45,6 @@
 <script src="<?php echo base_url() ?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
 <!-- counterup JS
 		============================================ -->
-<script src="http://localhost/mohattendance_dev/assets/js/counterup/jquery.counterup.min.js"></script>
-<script src="http://localhost/mohattendance_dev/assets/js/counterup/counterup-active.js"></script>
 <!-- DataTables  & Plugins -->
 <script src="<?php echo base_url(); ?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
@@ -58,8 +58,10 @@
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/bootstrap/js/bootstrap.min.js"></script>
 <div class="control-sidebar-bg"></div>
 </div>
+
 <script>
     $(document).ready(function() {
         $.fn.datepicker.defaults.format = "yyyy-mm-dd";
@@ -126,12 +128,15 @@
         });
     });
 </script>
+
 <script type="text/javascript">
     $(document).ready(function() {
         // $.notify("Hello","success");
-        var isPassChanged = "1";
+        var isPassChanged = <?php echo $pass_changed = $this->session->userdata('changed'); ?>;
+
         if (isPassChanged != 1) {
-            $('#changepass').modal('show');
+            console.log(isPassChanged);
+            $('#changepassword').modal('show');
         }
         var url = "<?php echo $this->uri->segment(2); ?>";
         if (url == "tabular" || url == "actuals" || url == "fetch_report" || url == "actualsreport" || url == "tabular#" || url == "timesheet" || url == "attfrom_report") {
@@ -232,64 +237,58 @@ $linkquery = $url; // Outputs: Full URL
         </div>
     </div>
 </div>
-<!-- change password modal at ones own wish -->
-<div class="modal" id="changepassword" data-backdrop="false">
+<!-- Modal -->
+<div id="changepassword" class="modal fade" role="dialog">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" action="<?php echo base_url(); ?>auth/changePass">
-                <div class="modal-header bg-default text-center">
-                    <h3>Change Password</h3>
-                    <h4 style="color:blue;"><?php echo $userdata['names']; ?> </h4>
-                    <?php echo $this->session->flashdata('msg'); ?>
-                </div>
-                <div class="modal-body">
+            <div class="modal-header">
+                <h4 class="modal-title">Change Password</h4>
+                <br />
+
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="changed" style="color:#005662;"></p>
+                <form method="post" id="change_pass">
+
                     <div class="form-group">
                         <label>Old Password</label>
-                        <input type="password" class="form-control" name="oldpass">
+                        <input type="password" class="form-control" name="oldpass" id="old">
+                    </div>
+
+
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" class="form-control" name="newpass" id="new" onkeyup="checker();" required>
+                        <p class="help-block error"></p>
                     </div>
                     <div class="form-group">
-                        <label>New password</i></label>
-                        <input type="password" class="form-control" name="newpass">
+                        <label>Confirm New Password</label>
+                        <input type="hidden" value='1' name="changed">
+                        <input type="hidden" value='<?php echo $this->session->userdata('user_id'); ?>' name="user_id">
+                        <input type="password" class="form-control" name="confirm" id="confirm" onkeyup="checker();" required>
+                        <p class="help-block error"></p>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <input type="submit" value="Submit" class="btn btn-success">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-info">Change Password</button>
+            </div>
             </form>
         </div>
     </div>
 </div>
-<!--change password--modal for first logins (as a MUST)-->
-<div class="modal" id="changepass" data-backdrop="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" action="<?php echo base_url(); ?>auth/changePass">
-                <div class="modal-header bg-default text-center">
-                    <h2>Change Password</h2>
-                    <?php echo $this->session->flashdata('msg'); ?>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Old password</label>
-                        <input type="password" class="form-control" name="oldpass">
-                    </div>
-                    <div class="form-group">
-                        <label>New password></label>
-                        <input type="password" class="form-control" name="newpass">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <input type="submit" value="Submit" class="btn btn-success">
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-<!-- /change password--modal for first logins (as a MUST)-->
+
+
+
+
 </body>
 
 </html>
+
+
 <script>
     $(function() {
         $('.select2').select2()
@@ -356,4 +355,34 @@ $linkquery = $url; // Outputs: Full URL
             }
         });
     }
+
+    //change Password
+    function checker() {
+        $first = $('#new').val();
+        $confirm = $('#confirm').val();
+        if (($first !== $confirm) && $first !== "") {
+            $('.error').html('<font color="red">Passwords Do not Match</font>');
+        } else {
+            $('.error').html('<font color="green">Passwords Match</font>');
+        }
+    } //checker
+    $('#change_pass').submit(function(e) {
+        e.preventDefault();
+        var data = $(this).serialize();
+        var url = '<?php echo base_url(); ?>auth/changePass'
+        console.log(data);
+        $.ajax({
+            url: url,
+            method: "post",
+            data: data,
+            success: function(res) {
+                if (res == "OK") {
+                    $('.changed').html("<center><font color='green'>Password change effective</font></center>");
+                } else {
+                    $('.changed').html("<center>" + res + "</center>");
+                }
+                console.log(res);
+            } //success
+        }); // ajax
+    }); //form submit
 </script>

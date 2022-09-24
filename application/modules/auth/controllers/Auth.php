@@ -200,16 +200,7 @@ class Auth extends MX_Controller
   public function changePass()
   {
     $postdata = $this->input->post();
-    $res = $this->auth_mdl->changePass($postdata);
-    if ($res == 'ok') {
-      $_SESSION['changed'] = 1;
-      //echo $res;
-      redirect('dashboard');
-    } else {
-      $msg = "<font color='red'>Something went wrong, change your password gain to proceed</font>";
-      Modules::run('utility/setFlash', $msg);
-      redirect('dashboard');
-    }
+    echo $res = $this->auth_mdl->changePass($postdata);
   }
   public function resetPass()
   {

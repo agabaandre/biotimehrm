@@ -134,7 +134,7 @@ class Rosta extends MX_Controller
 		$config = array();
 		$config['base_url'] = base_url() . "rosta/tabular";
 		$config['total_rows'] = $this->rosta_model->count_tabs();
-		$config['per_page'] = 20; //records per page
+		$config['per_page'] = 50; //records per page
 		$config['uri_segment'] = 3; //segment in url  
 		//pagination links styling
 		$config['full_tag_open'] = '<ul class="pagination">';
@@ -527,7 +527,7 @@ class Rosta extends MX_Controller
 		$config['base_url'] = base_url() . "rosta/actuals";
 		$empid = $this->input->post('empid');
 		$config['total_rows'] = $this->rosta_model->countActuals($date, $config['per_page'] = 0, $page = 0, $empid, $this->filters);
-		$config['per_page'] = 15; //records per page
+		$config['per_page'] = 50; //records per page
 		$config['uri_segment'] = 3; //segment in url
 		//pagination links styling
 		$config['full_tag_open'] = '<ul class="pagination">';

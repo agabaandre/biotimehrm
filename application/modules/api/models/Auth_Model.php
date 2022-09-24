@@ -5,20 +5,8 @@ class Auth_model extends CI_Model
 {
     public function validate_login($userdata)
     {
-        $this->load->database();
+     //join users with user_facilities for sitautions where a user has more than one facility.
 
-        $username = $userdata['username'];
-        $password = $userdata['password'];
-        $this->db->select('user.facility_id, user.username, user.role,facility');
-        $this->db->from('user');
-        $this->db->join('facilities', 'facilities.facility_id = user.facility_id');
-        $this->db->where('username', $username);
-        $this->db->where('password', md5($password));
-        $query = $this->db->get();
-        if ($query->num_rows() > 0) {
-            return $query->row();
-        } else {
-            return null;
-        }
+      
     }
 }

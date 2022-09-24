@@ -261,51 +261,7 @@
          <!-- calender key -->
        </section>
 
-
-       <section class="col-lg-6 connectedSortable">
-         <!-- Custom tabs (Charts with tabs)-->
-         <div class="card">
-           <div class="card-header">
-             <div class="card-tools">
-               <ul class="nav nav-pills ml-auto">
-                 <!-- <li class="nav-item">
-                      <a class="nav-link active" href="#revenue-chart" data-toggle="tab">Area</a>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link" href="#sales-chart" data-toggle="tab">Donut</a>
-                    </li> -->
-               </ul>
-             </div>
-           </div><!-- /.card-header -->
-           <div class="card-body">
-             <div id="line_graph_att"></div>
-           </div><!-- /.card-body -->
-         </div>
-         <!-- /.card -->
-       </section>
-       <!-- right col -->
-       <section class="col-lg-6 connectedSortable">
-         <!-- Custom tabs (Charts with tabs)-->
-         <div class="card">
-           <div class="card-header">
-             <div class="card-tools">
-               <ul class="nav nav-pills ml-auto">
-                 <!-- <li class="nav-item">
-                      <a class="nav-link active" href="#revenue-chart" data-toggle="tab">Area</a>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link" href="#sales-chart" data-toggle="tab">Donut</a>
-                    </li> -->
-               </ul>
-             </div>
-           </div><!-- /.card-header -->
-           <div class="card-body">
-             <div id="line_graph_roster" style="width:100%; height:100%;"></div>
-           </div><!-- /.card-body -->
-         </div>
-         <!-- /.card -->
-       </section>
-       <section class="col-lg-8 connectedSortable">
+       <section class="col-lg-12 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
            <div class="card-header">
@@ -334,9 +290,50 @@
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
            <div class="card-header">
-             <h3 class="card-title">
-               Average Monthly Hours
-             </h3>
+             <div class="card-tools">
+               <ul class="nav nav-pills ml-auto">
+                 <!-- <li class="nav-item">
+                      <a class="nav-link active" href="#revenue-chart" data-toggle="tab">Area</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#sales-chart" data-toggle="tab">Donut</a>
+                    </li> -->
+               </ul>
+             </div>
+           </div><!-- /.card-header -->
+           <div class="card-body">
+             <div id="line_graph_att"></div>
+           </div><!-- /.card-body -->
+         </div>
+         <!-- /.card -->
+       </section>
+       <!-- right col -->
+       <section class="col-lg-4 connectedSortable">
+         <!-- Custom tabs (Charts with tabs)-->
+         <div class="card">
+           <div class="card-header">
+             <div class="card-tools">
+               <ul class="nav nav-pills ml-auto">
+                 <!-- <li class="nav-item">
+                      <a class="nav-link active" href="#revenue-chart" data-toggle="tab">Area</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#sales-chart" data-toggle="tab">Donut</a>
+                    </li> -->
+               </ul>
+             </div>
+           </div><!-- /.card-header -->
+           <div class="card-body">
+             <div id="line_graph_roster" style="width:100%; height:100%;"></div>
+           </div><!-- /.card-body -->
+         </div>
+         <!-- /.card -->
+       </section>
+       <section class="col-lg-4 connectedSortable">
+         <!-- Custom tabs (Charts with tabs)-->
+         <div class="card">
+           <div class="card-header">
+
            </div>
            <div class="card-body">
              <div id="container-hours">
@@ -345,18 +342,6 @@
            <!-- /.card-body -->
          </div>
          <!-- Custom tabs (Charts with tabs)-->
-         <div class="card">
-           <div class="card-header">
-             <h3 class="card-title">
-               Checkin Methods
-             </h3>
-           </div>
-           <div class="card-body">
-             <div id="">
-             </div>
-           </div>
-           <!-- /.card-body -->
-         </div>
        </section>
      </div>
      <!-- /.row (main row) -->
@@ -476,7 +461,7 @@
        type: 'line'
      },
      title: {
-       text: 'Average Number of Employees Scheduled per Month'
+       text: 'Average Number of Employees Scheduled per Month <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>'
      },
      subtitle: {
        text: ''
@@ -513,7 +498,7 @@
        type: 'line'
      },
      title: {
-       text: 'Average Number of Employees Attending per Month'
+       text: 'Average Number of Employees Attending per Month - <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]) ?>'
      },
      subtitle: {
        text: ''
@@ -548,10 +533,9 @@
      var gaugeOptions = {
        chart: {
          type: 'solidgauge',
-         height: 203,
-         width: 273
+         height: 400,
+         width: 350
        },
-       title: null,
        pane: {
          center: ['50%', '50%'],
          size: '100%',
@@ -565,7 +549,7 @@
          }
        },
        exporting: {
-         enabled: false
+         enabled: true
        },
        tooltip: {
          enabled: false
@@ -600,12 +584,12 @@
      };
      //gauge
      var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptions, {
+       title: {
+         text: 'Average Monthly Hours-<?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>',
+       },
        yAxis: {
          min: 0,
          max: 24,
-         title: {
-           text: 'Hours'
-         }
        },
        credits: {
          enabled: false
@@ -625,69 +609,69 @@
        }]
      }))
    };
-   // clockin method
-   Highcharts.chart('attendance_methods', {
-     chart: {
-       plotBackgroundColor: null,
-       plotBorderWidth: null,
-       plotShadow: false,
-       type: 'pie',
-       height: 300,
-       width: 300
-     },
-     title: {
-       text: ''
-     },
-     tooltip: {
-       pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
-     },
-     accessibility: {
-       point: {
-         valueSuffix: '%'
-       }
-     },
-     plotOptions: {
-       pie: {
-         allowPointSelect: true,
-         cursor: 'pointer',
-         dataLabels: {
-           enabled: true,
-           format: '<b>{point.name}</b>: {point.percentage:.1f} %',
-           connectorColor: 'silver'
-         }
-       }
-     },
-     series: [{
-       name: 'Share',
-       data: [{
-           name: 'Manual Form',
-           y: 64
-         },
-         {
-           name: 'BioTime',
-           y: 11
-         },
-         {
-           name: 'Mobile Phones',
-           y: 5
-         },
-         {
-           name: 'None',
-           y: 20
-         },
-       ]
-     }],
-     credits: [{
-       enabled: 'false',
-     }],
-     exporting: {
-       buttons: {
-         contextButton: {
-           enabled: false
-         }
-       }
-     }
-   });
+   //  // clockin method
+   //  Highcharts.chart('attendance_methods', {
+   //    chart: {
+   //      plotBackgroundColor: null,
+   //      plotBorderWidth: null,
+   //      plotShadow: false,
+   //      type: 'pie',
+   //      height: 300,
+   //      width: 300
+   //    },
+   //    title: {
+   //      text: ''
+   //    },
+   //    tooltip: {
+   //      pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+   //    },
+   //    accessibility: {
+   //      point: {
+   //        valueSuffix: '%'
+   //      }
+   //    },
+   //    plotOptions: {
+   //      pie: {
+   //        allowPointSelect: true,
+   //        cursor: 'pointer',
+   //        dataLabels: {
+   //          enabled: true,
+   //          format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+   //          connectorColor: 'silver'
+   //        }
+   //      }
+   //    },
+   //    series: [{
+   //      name: 'Share',
+   //      data: [{
+   //          name: 'Manual Form',
+   //          y: 64
+   //        },
+   //        {
+   //          name: 'BioTime',
+   //          y: 11
+   //        },
+   //        {
+   //          name: 'Mobile Phones',
+   //          y: 5
+   //        },
+   //        {
+   //          name: 'None',
+   //          y: 20
+   //        },
+   //      ]
+   //    }],
+   //    credits: [{
+   //      enabled: 'false',
+   //    }],
+   //    exporting: {
+   //      buttons: {
+   //        contextButton: {
+   //          enabled: false
+   //        }
+   //      }
+   //    }
+   //  });
  </script>
  <script>
  </script>
