@@ -1,7 +1,7 @@
 <!-- Main content -->
 <section class="content">
     <div class="container-fluid">
-        <form class="district_form" method="post" action="<?php echo base_url(); ?>lists/save_district">        
+        <form class="district_form" method="post" action="<?php echo base_url(); ?>employees/saveEmployee">        
         <div class="row">
 
             <!-- right column -->
@@ -38,7 +38,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Date of Birth</label>
-                                <input type="text" class="form-control" name="birth_date" required>
+                                <input type="date" class="form-control" name="birth_date" required>
                             </div>
                             <div class="form-group">
                                 <label>Home District</label>
@@ -87,23 +87,13 @@
                                 <input type="text" class="form-control" name="nin" required>
                             </div>
                             <div class="form-group">
+                                <label>Card Number</label>
+                                <input type="text" class="form-control" name="card_number" required>
+                            </div>
+                            <div class="form-group">
                                 <label>Place of Residence</label>
                                 <input type="text" class="form-control" name="place_of_residence" required>
                             </div>
-                            
-                            <div class="form-group">
-                                <label>Home District</label>
-                                <select type="text" class="form-control select2" name="home_district" required>
-                                <option disabled>Select ...</option>
-                                <?php 
-                                    $districts = Modules::run('lists/get_all_districts');
-                                    foreach($districts as $district){ ?>
-                                    <option value="<?php echo $district->name; ?>"><?php echo $district->name; ?></option>
-                                <?php } ?>
-
-                                </select>
-                            </div>
-                            
                         </div>
                     </div>
                 </div>
@@ -137,7 +127,7 @@
                             
                             <input type="hidden" class="form-control" id="facility_id" name="facility_id">
                             <input type="hidden" class="form-control" id="institution_cateegory" name="institution_cateegory">
-                            <input type="hidden" class="form-control" id="institution_type" name="institution_type">
+                            <input type="hidden" class="form-control" id="institutiontype_name" name="institutiontype_name">
                             <input type="hidden" class="form-control" id="institution_level" name="institution_level">
                             <input type="hidden" class="form-control" id="district_id" name="district_id">
                             
@@ -151,19 +141,23 @@
                             </div>
                             <div class="form-group">
                                 <label>Salary Grade</label>
-                                <input type="email" class="form-control" name="salary_grade" required>
+                                <input type="text" class="form-control" name="salary_grade" required>
                             </div>
                             <div class="form-group">
                                 <label>Employment Terms</label>
-                                <input type="text" class="form-control" name="employment_terms" required>
+                                <select type="text" class="form-control" name="employment_terms" required>
+                                    <option value="">Select...</option>
+                                    <option value="Permanent">Permanent</option>
+                                    <option value="Contract">Contract</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Cadre</label>
                                 <select type="text" class="form-control select2" name="cadre" required>
                                     <option >Select ...</option>
-                                        <option value="">Nursing Professionals</option>
-                                        <option value="">Midwifery Professionals</option>
-                                        <option value="">Allied Health Professionals</option>
+                                        <option value="Nursing Professionals">Nursing Professionals</option>
+                                        <option value="Midwifery Professionals">Midwifery Professionals</option>
+                                        <option value="Allied Health Professionals">Allied Health Professionals</option>
                                 </select>
                             </div>
 
@@ -199,6 +193,8 @@
             document.getElementById('facility_id').value = as[i].facility_id;
             document.getElementById('institution_cateegory').value = as[i].institution_cateegory;
             document.getElementById('institution_level').value = as[i].institution_level;
+            document.getElementById('institutiontype_name').value = as[i].institution_type;
+            
             document.getElementById('district_id').value = as[i].name;
             
         } 

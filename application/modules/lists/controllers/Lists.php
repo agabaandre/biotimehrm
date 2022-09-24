@@ -14,7 +14,7 @@ class Lists extends MX_Controller {
 	}
 
 
-
+//DISTRICTS-----------
 	public function getDistricts(){
 
 		$data['districts'] = $this->districts_mdl->getDistricts();
@@ -28,12 +28,12 @@ class Lists extends MX_Controller {
 	public function getDistrict($id){
 
 		$district=$this->districts_mdl->getDistrict($id);
-
 		return $district;
-
-		//print_r($district);
 	}
 
+	public function get_all_districts(){	
+		return $this->districts_mdl->getDistricts();
+	}
 
 	public function getFacility($id){
 
@@ -41,29 +41,6 @@ class Lists extends MX_Controller {
 
 		return $facility;
 	}
-
-
-	public function getFacilities(){
-
-		$data['facilities'] = $this->facilities_mdl->getAll();
-		$data['districts'] = $this->districts_mdl->getDistricts();
-		$data['module'] = "lists";
-		$data['title'] = "";
-    	$data['view'] = 'facilities/facilities';
-
-        echo Modules::run("templates/main", $data);
-	}
-
-	public function get_all_districts(){
-		
-		return $this->districts_mdl->getDistricts();
-	}
-
-	public function get_all_Facilities(){
-
-		return $this->facilities_mdl->getAll();
-	}
-
 
 	public function add_Districts(){
 		$data['view']="add_districts";
@@ -96,6 +73,29 @@ class Lists extends MX_Controller {
 		redirect('lists/getDistricts');
 
 	}
+
+
+//FACILITIES	
+	public function getFacilities(){
+
+		$data['facilities'] = $this->facilities_mdl->getAll();
+		$data['districts'] = $this->districts_mdl->getDistricts();
+		$data['module'] = "lists";
+		$data['title'] = "";
+    	$data['view'] = 'facilities/facilities';
+
+        echo Modules::run("templates/main", $data);
+	}
+
+
+
+	public function get_all_Facilities(){
+
+		return $this->facilities_mdl->getAll();
+	}
+
+
+
 
 	public function saveFacility(){
 

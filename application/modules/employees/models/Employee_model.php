@@ -678,4 +678,50 @@ class Employee_model extends CI_Model
         $query  = $this->db->query($sql);
         return  $query->row();
     }
+
+
+	public function save_employee($postdata){
+
+		$data=array(
+            
+            'firstname'=>$postdata['firstname'],
+            'othername'=>$postdata['othername'],
+            'surname'=>$postdata['surname'],
+            'gender'=>$postdata['gender'],
+            'birth_date'=>$postdata['birth_date'],
+            'home_district'=>$postdata['home_district'],
+            'mobile'=>$postdata['mobile'],
+            'telephone'=>$postdata['telephone'],
+            'email'=>$postdata['email'],
+            'place_of_residence'=>$postdata['place_of_residence'],
+            'nin'=>$postdata['nin'],
+            'job'=>$postdata['job'],
+            'job_id'=>$postdata['job_id'],
+            'salary_grade'=>$postdata['salary_grade'],
+            'employment_terms'=>$postdata['employment_terms'],
+            'cadre'=>$postdata['cadre'],
+            'facility_id'=>$postdata['facility_id'],
+            'facility'=>$postdata['facility'],
+            'institution_cateegory'=>$postdata['institution_cateegory'],
+            'institutiontype_name'=>$postdata['institutiontype_name'],
+            'institution_level'=>$postdata['institution_level'],
+            'district_id'=>$postdata['district_id']
+		);
+
+		$qry=$this->db->insert("ihrisdata", $data);
+		$rows=$this->db->affected_rows();
+
+		if($rows>0){
+
+			return "Employee has been Added Successfully";
+		}
+
+		else{
+
+			return "Operation failed";
+		}
+    }
+
+
+
 }

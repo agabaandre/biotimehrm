@@ -53,6 +53,13 @@ class Employees extends MX_Controller
     echo Modules::run("templates/main", $data);
   }
 
+  public function saveEmployee()
+  {
+    $data = $this->input->post();
+		$this->empModel->save_employee($data);
+
+		redirect('employees/index');
+  }
 
   public function personlogs()
   {
