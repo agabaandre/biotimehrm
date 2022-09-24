@@ -110,15 +110,15 @@ class Facilities_mdl extends CI_Model {
 
 	public function deleteFacility(){
 
-	    $data=$this->input->post('f_id');
-		$this->db->where('f_id',$data);
+	    $data=$this->input->post('id');
+		$this->db->where('id',$data);
 
 		$this->db->delete($this->table);
 		$rows=$this->db->affected_rows();
 
 		if($rows>0){
 
-			return "The ".$data['facility']." "." district has been updated";
+			return "The facility has been updated";
 		}
 
 		else{
