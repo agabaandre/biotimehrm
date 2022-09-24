@@ -46,6 +46,9 @@ class Employees extends MX_Controller
     $data['facilities'] = Modules::run("lists/get_all_Facilities");
     $data['facilities_json'] = json_encode(Modules::run("lists/get_all_Facilities"));
     $data['districts'] = Modules::run('lists/get_all_districts');
+    $data['jobs'] = Modules::run('lists/get_all_jobs');
+    $data['jobs_json'] = json_encode(Modules::run('lists/get_all_jobs'));
+    $data['cadres'] = Modules::run('lists/get_all_cadres');
     $data['view'] = 'create_employee';
     $data['uptitle'] = "Add Employee";
     $data['module'] = "employees";
