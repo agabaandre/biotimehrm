@@ -11,7 +11,7 @@ class Lists extends MX_Controller {
 		$this->load->model('districts_mdl');
 		$this->load->model('facilities_mdl');
 		$this->load->model('cadre_mdl');
-
+		$this->load->model('jobs_mdl');
 	}
 
 
@@ -135,6 +135,48 @@ class Lists extends MX_Controller {
 
 	}
 
-//end DISTRICTS
+//end CADRE
+
+
+//JOBS-----------
+public function getJobs(){
+	$data['jobs'] = $this->jobs_mdl->getJobs();
+	$data['module'] = "lists";
+	$data['title'] = "";
+	$data['view'] = 'jobs/jobs';
+	echo Modules::run("templates/main", $data);
+}
+
+public function getJob($id){
+	$district=$this->jobs_mdl->getJob($id);
+	return $district;
+}
+
+public function get_all_jobs(){	
+	return $this->jobs_mdl->getJobs();
+}
+
+public function saveJob(){
+	$data = $this->input->post();
+	$distr=$this->jobs_mdl->saveJob($data);
+	redirect('lists/getJobs');
+}
+
+public function updateJob(){
+	$data = $this->input->post();
+	$this->jobs_mdl->updateJob($data);
+	redirect('lists/getJobs');
+}
+
+public function deleteJob(){
+	$data = $this->input->post();
+	$this->jobs_mdl->deleteJob($data);
+	redirect('lists/getJobs');
+
+}
+
+//end JOBS
+
+
 
 }

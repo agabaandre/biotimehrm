@@ -220,6 +220,17 @@
                          </a>
                        </li>
                      <?php } ?>
+
+                     <?php if (in_array('39', $permissions)) { ?>
+                       <li class="nav-item">
+                         <a href="<?php echo base_url(); ?>lists/getJobs" class="nav-link">
+                           <i class="far fa-circle nav-icon"></i>
+                           <p>Jobs</p>
+                         </a>
+                       </li>
+                     <?php } ?>
+
+                     
                      <?php if (in_array('44', $permissions)) { ?>
                        <li class="nav-item">
                          <a href="<?php echo base_url(); ?>svariables" class="nav-link">
