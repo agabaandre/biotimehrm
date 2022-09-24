@@ -28,8 +28,6 @@ require_once("includes/sidenav.php");
       <div class="row">
         <div class="col-12" style="margin-bottom:3px;">
 
-<<<<<<< HEAD
-=======
           <!-- Nav -->
           <section class="content-header">
             <div class="container-fluid">
@@ -46,16 +44,15 @@ require_once("includes/sidenav.php");
             </div>
           </section>
 
->>>>>>> 79c80042241b0e0058f756d2d8d1e3d3472c8d3e
           <?php
               $this->load->view($module . "/" . $view);
           ?>
-<<<<<<< HEAD
+
         </div> 
-=======
+
 
         </div>
->>>>>>> 79c80042241b0e0058f756d2d8d1e3d3472c8d3e
+
       </div>
     </div>
   </section>
