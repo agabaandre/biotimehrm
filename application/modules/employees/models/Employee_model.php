@@ -12,29 +12,31 @@ class Employee_model extends CI_Model
         $result = $query->result();
         return $result;
     }
-    public function district_employees($district, $count)
+    public function district_employees($district, $job, $facility, $count)
     {
-        $job = $this->input->post('job');
-        $facility = $this->input->post('facility');
 
-        $j = implode("','", $job);
+
         //$kyc =  implode(',', array_map('add_quotes', $kycs));
-        if (!empty($j)) {
+        if (!empty($job)) {
+            $j  = implode("','", $job);
 
             $quot = "'";
-            $jfilter = $_SESSION['jfilter'] = " and job in  ($quot.$j.$quot)";
+            $jfilter = $_SESSION['jfilter'] = " and job_id in  ($quot$j$quot)";
         } else {
             $jfilter = "";
         }
-        $f = implode("','", $facility);
+        //print_r($jfilter);
+
         //$kyc =  implode(',', array_map('add_quotes', $kycs));
-        if (!empty($f)) {
+        if (!empty($facility)) {
+            $f = implode("','", $facility);
 
             $quot = "'";
-            $ffilter = $_SESSION['ffilter'] = " and facility in  ($quot.$f.$quot)";
+            $ffilter = $_SESSION['ffilter'] = " and facility_id in  ($quot$f$quot)";
         } else {
             $ffilter = "";
         }
+
         $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $ffilter $jfilter");
         if ($count == 'count') {
             return $query->num_rows();

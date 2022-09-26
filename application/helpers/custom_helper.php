@@ -318,3 +318,27 @@ function check_admin_access()
     if (!user_session()->is_admin)
         redirect(base_url("admin"));
 }
+if (!function_exists('render_csv_data')) {
+    function render_csv_data($datas, $filename)
+    {
+        //datas should be assoc array
+        $csv_file = $filename;
+        header("Content-Type: text/csv");
+        header("Content-Disposition: attachment; filename=\"$csv_file\"");
+        $fh = fopen('php://output', 'w');
+
+        $is_coloumn = true;
+        if (!empty($datas)) {
+            foreach ($datas as $data) {
+
+                if ($is_coloumn) {
+                    fputcsv($fh, array_keys($data));
+                    $is_coloumn = false;
+                }
+                fputcsv($fh, array_values($data));
+            }
+            fclose($fh);
+        }
+        exit;
+    }
+}

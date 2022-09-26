@@ -25,13 +25,17 @@ class Employees extends MX_Controller
     return $employees = $this->empModel->get_employees($this->filters);
   }
 
-  public function district_employees()
+  public function district_employees($csv = FALSE)
   {
     $job = $this->input->post('job');
     $facility = $this->input->post('facility');
     $route = "employees/district_employees";
     $totals = $this->empModel->district_employees($_SESSION['district'], $job, $facility, 'count');
     $data['staffs'] = $this->empModel->district_employees($_SESSION['district'], $job, $facility, $count = FALSE);
+    if ($csv == 1) {
+      $filename = $_SESSION['district'] . "_employees.csv";
+      render_csv_data($data['staffs'], $filename);
+    }
     $data['links'] = paginate($route, $totals, $perPage = 50, $segment = 3);
     $data['view'] = 'staff_district';
     $data['uptitle'] = "District Employees";

@@ -16,9 +16,9 @@
               <div class="input-group">
                 <label>Facility</label>
                 <select class="form-control select2" name="facility[]" style="width:100%;" multiple>
-                  <?php $jobs = Modules::run("facilities/get_Facilities");
-                  foreach ($jobs as $job) : ?>
-                    <option value="<?php $facility->facility; ?>"><?php echo $job->facility; ?></option>
+                  <?php $facs = Modules::run("facilities/get_Facilities");
+                  foreach ($facs as $fac) : ?>
+                    <option value="<?php echo $fac->facility_id; ?>"><?php echo $fac->facility; ?></option>
                   <?php endforeach; ?>
                 </select>
               </div>
@@ -29,7 +29,7 @@
                 <select class="form-control select2" name="job[]" style="width:100%;" multiple>
                   <?php $jobs = Modules::run("jobs/getJobs");
                   foreach ($jobs as $job) : ?>
-                    <option value="<?php $job->job; ?>"><?php echo $job->job; ?></option>
+                    <option value="<?php echo $job->job_id; ?>"><?php echo $job->job; ?></option>
                   <?php endforeach; ?>
                 </select>
               </div>
@@ -40,7 +40,7 @@
             </div>
             <div class="col-md-2">
               <label style="margin-top:10px;"></label>
-              <a href="<?php echo base_url() ?>employees/district_csv/1/<?php echo $form ?>" class="btn bt-sm bg-gray-dark color-pale" style="width:100px;"><i class="fa fa-file-excel" aria-hidden="true"></i>CSV</a>
+              <a href="<?php echo base_url() ?>employees/district_employees/1" class="btn bt-sm bg-gray-dark color-pale" style="width:100px;"><i class="fa fa-file-excel" aria-hidden="true"></i>CSV</a>
             </div>
           </form>
 
@@ -53,7 +53,7 @@
           <div class="card-body">
             <section class="col-lg-12 ">
 
-              <h5> <?php echo $_SESSION['facility_name']; ?> District Staff </h5>
+              <h5> <?php echo $_SESSION['district']; ?> District Staff </h5>
 
               <div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 
