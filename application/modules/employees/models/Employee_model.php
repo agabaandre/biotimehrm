@@ -45,6 +45,9 @@ class Employee_model extends CI_Model
         $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $ffilter $jfilter $limits");
         if ($count == 'count') {
             return $query->num_rows();
+        } else if ($csv == 1) {
+            $result = $query->result_array();
+            return $result;
         } else {
             $result = $query->result();
             return $result;

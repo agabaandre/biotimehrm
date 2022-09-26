@@ -332,7 +332,7 @@ if (!function_exists('render_csv_data')) {
             foreach ($datas as $data) {
 
                 if ($is_coloumn) {
-                    fputcsv($fh, array_keys($data));
+                    fputcsv($fh, array_keys(($data)));
                     $is_coloumn = false;
                 }
                 fputcsv($fh, array_values($data));

@@ -40,7 +40,7 @@ class Employees extends MX_Controller
     $data['staffs'] = $this->empModel->district_employees($_SESSION['district'], $job, $facility, $count = FALSE, $perPage = 50, $page, $csv);
     if ($csv == 1) {
       $filename = $_SESSION['district'] . "_employees.csv";
-      render_csv_data((array)$data['staffs'], $filename);
+      render_csv_data($data['staffs'], $filename);
     }
 
     $data['view'] = 'staff_district';
