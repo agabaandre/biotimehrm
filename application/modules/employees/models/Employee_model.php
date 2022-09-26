@@ -12,11 +12,16 @@ class Employee_model extends CI_Model
         $result = $query->result();
         return $result;
     }
-    public function district_employees($district, $job, $facility, $count)
+    public function district_employees($district, $job, $facility, $count = FALSE, $start, $limit, $csv)
     {
 
 
         //$kyc =  implode(',', array_map('add_quotes', $kycs));
+        if (!empty($start) && ($csv != 1)) {
+            $limits = " LIMIT $limit,$start";
+        } else {
+            $limits = " ";
+        }
         if (!empty($job)) {
             $j  = implode("','", $job);
 
@@ -37,7 +42,7 @@ class Employee_model extends CI_Model
             $ffilter = "";
         }
 
-        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $ffilter $jfilter");
+        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $ffilter $jfilter $limits");
         if ($count == 'count') {
             return $query->num_rows();
         } else {

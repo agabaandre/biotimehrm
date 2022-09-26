@@ -30,13 +30,19 @@ class Employees extends MX_Controller
     $job = $this->input->post('job');
     $facility = $this->input->post('facility');
     $route = "employees/district_employees";
-    $totals = $this->empModel->district_employees($_SESSION['district'], $job, $facility, 'count');
-    $data['staffs'] = $this->empModel->district_employees($_SESSION['district'], $job, $facility, $count = FALSE);
+
+
+    $totals = $this->empModel->district_employees($_SESSION['district'], $job, $facility, $count = 'count', $perPage = 0, $page = 0, $csv);
+    if ($csv != 1) {
+      $data['links'] = paginate($route, $totals, $perPage = 50, $segment = 3);
+    }
+    $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0;
+    $data['staffs'] = $this->empModel->district_employees($_SESSION['district'], $job, $facility, $count = FALSE, $perPage = 50, $page, $csv);
     if ($csv == 1) {
       $filename = $_SESSION['district'] . "_employees.csv";
-      render_csv_data($data['staffs'], $filename);
+      render_csv_data((array)$data['staffs'], $filename);
     }
-    $data['links'] = paginate($route, $totals, $perPage = 50, $segment = 3);
+
     $data['view'] = 'staff_district';
     $data['uptitle'] = "District Employees";
     $data['module'] = "employees";
