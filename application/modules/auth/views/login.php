@@ -4,7 +4,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HRM Attend | Login</title>
+  <title>HRM Attend - iHRIS Attendance Tracking System | Login</title>
+  <meta name="description" content="HRM Attend is an iHRIS Employee Attendance Tracking System used by Ministry of Health Uganda to monitor the presence of the health work force in their duty stations and other official assignments using biometrics and location based data">
+  <meta name="keywords" content="Ministry of Health, Health Attendance Uganda, Ministry of Health Uganda Attendance Tracking, Uganda Attenance, Agaba Andrew Attendance, Biometric Attendance, HRM Attend, iHRIS Attendance, Ismail Wadembere iHRIS, Agaba Andrew iHRIS, Patrick Lubwama iHRIS, iHRIS Uganda, iHRIS, IntraHealth iHRIS, Health Attendance, Attendance Tracking System Uganda">
+  <meta name="author" content="Agaba Andrew +256702787688">
   <!-- <link href="<?php echo base_url(); ?>assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?php echo base_url(); ?>assets/font-awesome/css/font-awesome.css" rel="stylesheet">
     <link href="<?php echo base_url(); ?>assets/css/animate.css" rel="stylesheet">
