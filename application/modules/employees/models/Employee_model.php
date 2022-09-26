@@ -28,7 +28,7 @@ class Employee_model extends CI_Model
             $quot = "'";
             $jfilter = $_SESSION['jfilter'] = " and job_id in  ($quot$j$quot)";
         } else {
-            $jfilter = "";
+            $jfilter = $_SESSION['jfilter'] = "";
         }
         //print_r($jfilter);
 
@@ -39,10 +39,13 @@ class Employee_model extends CI_Model
             $quot = "'";
             $ffilter = $_SESSION['ffilter'] = " and facility_id in  ($quot$f$quot)";
         } else {
-            $ffilter = "";
+            $ffilter = $_SESSION['ffilter'] = "";
         }
 
-        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $ffilter $jfilter $limits");
+        $affilter = $_SESSION['ffilter'];
+        $ajfilter = $_SESSION['jfilter'];
+
+        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $affilter $ajfilter $limits");
         if ($count == 'count') {
             return $query->num_rows();
         } else if ($csv == 1) {
