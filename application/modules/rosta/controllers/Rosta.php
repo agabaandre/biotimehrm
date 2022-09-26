@@ -288,7 +288,7 @@ class Rosta extends MX_Controller
 		$this->load->library('pagination');
 		$config = array();
 		$config['base_url'] = base_url() . "rosta/summary";
-		$config['total_rows'] = $this->rosta_model->countrosta_summary($date, $this->filters);
+		$config['total_rows'] = $this->rosta_model->countrosta_summary($date, $this->filters, 0, 0, $empid);
 		$config['per_page'] = 30; //records per page
 		$config['uri_segment'] = 3; //segment in url
 		//pagination links styling

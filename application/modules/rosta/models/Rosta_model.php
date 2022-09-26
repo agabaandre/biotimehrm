@@ -448,11 +448,22 @@ class Rosta_model extends CI_Model
 		$rows = $all->row();
 		return $rows->rows;
 	}
-	public function countrosta_summary($date, $filters)
+	public function countrosta_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL)
 	{
 		$facility = $_SESSION['facility'];
-		$query = $this->db->query("SELECT * from person_dut_final WHERE facility_id='$facility'  and duty_date='$date'");
-		return $query->num_rows();
+		if (!empty($employee)) {
+			$search = "and ihris_pid='$employee";
+		} else {
+			$search = "";
+		}
+		if (!empty($start)) {
+			$limits = " LIMIT $limit,$start";
+		} else {
+			$limits = " ";
+		}
+		$query = $this->db->query("SELECT * from person_dut_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
+		$data = $query->num_rows();
+		return $data;
 	}
 	//import rota data
 	public function upload_rota($importdata)
