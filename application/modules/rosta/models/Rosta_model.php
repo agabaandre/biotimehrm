@@ -297,7 +297,7 @@ class Rosta_model extends CI_Model
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
-			$search = "and ihrisdata.ihris_pid='$employee";
+			$search = "and ihris_pid='$employee";
 		} else {
 			$search = "";
 		}

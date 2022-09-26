@@ -227,11 +227,11 @@ class 	Attendance_model extends CI_Model
 		return $rows;
 	}
 
-	public function attendance_summary($valid_range, $valid_rangeto, $filters, $start = NULL, $limit = NULL, $employee = NULL)
+	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL)
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
-			$search = "and ihrisdata.ihris_pid='$employee'";
+			$search = "and ihris_pid='$employee";
 		} else {
 			$search = "";
 		}
@@ -240,16 +240,16 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$limits = " ";
 		}
-		$query = $this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date = '$valid_range' and ihrisdata.ihris_pid=p.ihris_pid $search  $limits");
+		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
 		$data = $query->result_array();
 		return $data;
 	} //summary
 
-	public function countAttendanceSummary($valid_range, $valid_rangeto, $filters, $start = NULL, $limit = NULL, $employee = NULL)
+	public function countAttendanceSummary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL)
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
-			$search = "and ihrisdata.ihris_pid='$employee'";
+			$search = "and ihris_pid='$employee";
 		} else {
 			$search = "";
 		}
@@ -258,7 +258,7 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$limits = " ";
 		}
-		$query = $this->db->query("SELECT p.*,ihrisdata.department from person_att_final p, ihrisdata WHERE $filters  and duty_date = '$valid_range' and ihrisdata.ihris_pid=p.ihris_pid $search");
+		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
 		$data = $query->num_rows();
 		return $data;
 	} //summary

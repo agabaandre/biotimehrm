@@ -55,6 +55,7 @@ class Attendance extends MX_Controller
 		}
 		$config = array();
 		$config['base_url'] = base_url() . "attendance/attendance_summary";
+
 		$config['total_rows'] = $this->attendance_model->countAttendanceSummary($date, $this->filters, 0, 0, $empid);
 		$config['per_page'] = 30; //records per page
 		$config['uri_segment'] = 3; //segment in url
@@ -98,7 +99,7 @@ class Attendance extends MX_Controller
 			$valid_rangeto = $date;
 		}
 		//$data['username']=$this->username;
-		$data['sums'] = $this->attendance_model->attendance_summary($date, $valid_rangeto, $this->filters, $config['per_page'] = FALSE, $page = FALSE, $empid = FALSE);
+		$data['sums'] = $this->attendance_model->attendance_summary($date, $this->filters, $config['per_page'] = FALSE, $page = FALSE, $empid = FALSE);
 		$fac = $_SESSION['facility_name'];
 		$html = $this->load->view('summary_pdf', $data, true);
 		//$fac=$_SESSION['facility'];
@@ -121,7 +122,7 @@ class Attendance extends MX_Controller
 		if (empty($valid_rangeto)) {
 			$valid_rangeto = $valid_range;
 		}
-		$datas = $this->attendance_model->attendance_summary($valid_range, $valid_rangeto, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid = FALSE);
+		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid = FALSE);
 		$csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') . '_' . $_SESSION['facility_name'] . ".csv";
 		header("Content-Type: text/csv");
 		header("Content-Disposition: attachment; filename=\"$csv_file\"");

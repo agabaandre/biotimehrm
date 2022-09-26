@@ -30,8 +30,8 @@ class Employees extends MX_Controller
     $job = $this->input->post('job');
     $facility = $this->input->post('facility');
     $route = "employees/district_employees";
-    $totals = $this->empModel->district_employees($_SESSION['district'], $job = FALSE, $facility = FALSE, 'count');
-    $data['staffs'] = $this->empModel->district_employees($_SESSION['district'], $job = FALSE, $facility = FALSE, $count = FALSE);
+    $totals = $this->empModel->district_employees($_SESSION['district'], $job, $facility, 'count');
+    $data['staffs'] = $this->empModel->district_employees($_SESSION['district'], $job, $facility, $count = FALSE);
     $data['links'] = paginate($route, $totals, $perPage = 50, $segment = 3);
     $data['view'] = 'staff_district';
     $data['uptitle'] = "District Employees";
@@ -377,14 +377,14 @@ class Employees extends MX_Controller
       $personhrs = array();
       $days_worked = array();
       for ($i = 1; $i <= $month_days; $i++) { // repeating td
-        $day = "day" . $i;  //changing day $i;
-        $hours_data = $data[$day];
+        $day = "day" . $i;  //changing day 
+        $date_d = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i);
+        $date = $year . "-" . $month;
         //  print_r($hours_data);
-        if (!empty($hours_data)) {
-          $Time_data = array();
-          $Time_data = explode("|", $hours_data);
-          $starTime = @$Time_data[0];
-          $endTime = @$Time_data[1];
+        $timedata = gettimedata($data['ihris_pid'], $date_d);
+        if (!empty($timedata)) {
+          $starTime = @$timedata->time_in;
+          $endTime = @$timedata->time_out;
           $initial_time = strtotime($starTime) / 3600;
           $final_time = strtotime($endTime) / 3600;
           if (empty($initial_time) || empty($final_time)) {

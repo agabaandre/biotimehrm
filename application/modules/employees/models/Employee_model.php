@@ -12,8 +12,11 @@ class Employee_model extends CI_Model
         $result = $query->result();
         return $result;
     }
-    public function district_employees($district, $job, $facility, $count)
+    public function district_employees($district, $count)
     {
+        $job = $this->input->post('job');
+        $facility = $this->input->post('facility');
+
         $j = implode("','", $job);
         //$kyc =  implode(',', array_map('add_quotes', $kycs));
         if (!empty($j)) {
