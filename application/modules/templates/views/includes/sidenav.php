@@ -59,11 +59,13 @@
                <li class="nav-item"><a href="<?php echo base_url() ?>employees/district_employees" class="nav-link">
                    <i class="far fa-circle nav-icon"></i>
                    District Staff List</a></li>
-               <li class="nav-item">
-                 <a href="<?php echo base_url() ?>employees/createEmployee" class="nav-link">
-                   <i class="far fa-circle nav-icon"></i>
-                   Add New Staff</a>
-               </li>
+               <?php if (($setting->deployment_type != "moh") && (in_array('45', $permissions))) { ?>
+                 <li class="nav-item">
+                   <a href="<?php echo base_url() ?>employees/createEmployee" class="nav-link">
+                     <i class="far fa-circle nav-icon"></i>
+                     Add New Staff</a>
+                 </li>
+               <?php } ?>
              </ul>
            </li>
          <?php } ?>
