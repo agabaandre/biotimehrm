@@ -44,15 +44,10 @@
              <li><a href="<?php echo base_url() ?>reports/average_hours">Average Monthly Hours </a>
                <p> - Facility Monthly Average Time Logs </p>
              </li>
-             <li><a href="<?php echo base_url() ?>reports/attendance_by_cadre">Attendance by Cadre </a>
-               <p> - Attendance by Cadre </p>
+             <li><a href="<?php echo base_url() ?>reports/attendance_aggregate">Attendance by Aggregates </a>
+               <p> - Attendance by Institution Type, Region, District, Facility, Facility Level </p>
              </li>
-             <li><a href="<?php echo base_url() ?>reports/attendance_by_department">Attendance by Department</a>
-               <p> - Attendance by Department </p>
-             </li>
-             <li><a href="<?php echo base_url() ?>reports/attendance_by_department">Attendance by Gender </a>
-               <p> - Attendance by Gender </p>
-             </li>
+
 
            </ol>
 

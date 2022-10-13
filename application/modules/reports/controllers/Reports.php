@@ -161,6 +161,56 @@ class Reports extends MX_Controller {
 
 	 }
 
+	public function attendance_aggregate()
+	{
+		$data['title'] = 'Attendance Aggregate';
+		$data['uptitle'] = "Attendance Aggregate";
+		$data['view'] = 'attendance_aggregate';
+		$data['module'] = $this->module;
+		$facility = $_SESSION['facility'];
+
+		$year = $this->input->post('year');
+		if (!empty($year)) {
+			$fyear = $this->input->post('year');
+		} else {
+			$fyear = "";
+		}
+
+		$this->load->library('pagination');
+		$config = array();
+		$config['base_url'] = base_url() . "employees/viewTimeLogs";
+		$config['total_rows'] = $this->db->query("SELECT pid FROM clk_diff WHERE facility_id='$facility' group by date_format(date,'%Y-%m')")->num_rows();
+		$config['per_page'] = 200; //records per page
+		$config['uri_segment'] = 3; //segment in url  
+		//pagination links styling
+		$config['full_tag_open'] = '<ul class="pagination">';
+		$config['full_tag_close'] = '</ul>';
+		$config['attributes'] = ['class' => 'page-link'];
+		$config['first_link'] = false;
+		$config['last_link'] = false;
+		$config['first_tag_open'] = '<li class="page-item">';
+		$config['first_tag_close'] = '</li>';
+		$config['prev_link'] = '&laquo';
+		$config['prev_tag_open'] = '<li class="page-item">';
+		$config['prev_tag_close'] = '</li>';
+		$config['next_link'] = '&raquo';
+		$config['next_tag_open'] = '<li class="page-item">';
+		$config['next_tag_close'] = '</li>';
+		$config['last_tag_open'] = '<li class="page-item">';
+		$config['last_tag_close'] = '</li>';
+		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+		$config['num_tag_open'] = '<li class="page-item">';
+		$config['num_tag_close'] = '</li>';
+		$config['use_page_numbers'] = false;
+		$this->pagination->initialize($config);
+		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
+		$data['links'] = $this->pagination->create_links();
+		$data['sums'] = $this->reports_mdl->average_hours($fyear);
+
+		echo Modules::run('templates/main', $data);
+	}
+
 
 	
 
