@@ -1,6 +1,6 @@
 backup.sql
 application/logs
 /vendor/
-database.php
+application/config/database.php
 index.php
 /node_modules/

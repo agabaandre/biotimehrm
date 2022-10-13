@@ -187,6 +187,8 @@ class Biotimejobs extends MX_Controller
         }
         $this->cronjob_register($process, $method, $status);
     }
+
+
     //get cron jobs from the server
     public function getTime($page = FALSE, $userdate = FALSE)
     {
@@ -264,6 +266,8 @@ class Biotimejobs extends MX_Controller
         $this->biotimeClockin();
         $this->cronjob_register($process, $method, $status);
     }
+
+
     //create multiple new users cronjob
     public function multiple_new_users()
     {
@@ -289,12 +293,16 @@ class Biotimejobs extends MX_Controller
 
         return $message;
     }
+
+
     //enroll new users (Front End Action that requires login);
     public function get_new_users($facility)
     {
         $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
         $query->result();
     }
+
+    
     // create new user
 
     public function create_new_biotimeuser($firstname, $surname, $emp_code, $area, $department, $position)
