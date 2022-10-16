@@ -118,7 +118,7 @@
 									<?php
 									if (count($sums) > 0) {
 									?>
-										<a href="<?php echo base_url(); ?>attendance/attsums_csv/<?php echo $year . "-" . $month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
+										<a href="<?php echo base_url(); ?>attendance/attsums_csv/<?php echo $year . "-" . $month; ?>/<?php echo $year; ?>/<?php echo $month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
 									<?php } ?>
 								</div>
 

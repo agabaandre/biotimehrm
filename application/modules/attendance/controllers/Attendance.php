@@ -116,15 +116,13 @@ class Attendance extends MX_Controller
 		//download it D save F.
 		$this->ml_pdf->pdf->Output($filename, 'I');
 	}
-	public function attsums_csv($valid_range)
+	public function attsums_csv($valid_range, $month, $year)
 	{
 		$valid_rangeto = $this->input->post('yearto') . "-" . $this->input->post('monthto');
 		if (empty($valid_rangeto)) {
 			$valid_rangeto = $valid_range;
 		}
-		$datedata = explode('-', $valid_range);
-		$year = $datedata[0];
-		$month = $datedata[0];
+
 		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid = FALSE);
 		$csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') . '_' . $_SESSION['facility_name'] . ".csv";
 		header("Content-Type: text/csv");
