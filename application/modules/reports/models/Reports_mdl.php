@@ -142,6 +142,9 @@ class Reports_mdl extends CI_Model {
 		$this->db->select("
 			job,
 			facility_name,
+			facility_type_name,
+			cadre,
+			institution_type,
 			sum(P) as present,
 			sum(O) as off,
 			sum(L) as own_leave,

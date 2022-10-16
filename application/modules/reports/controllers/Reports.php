@@ -192,7 +192,7 @@ class Reports extends MX_Controller {
 		$data['grouped_by']= $group_by;
 		$data['period']    = $valid_rangeto;
 		
-		$data['aggregations'] = ["job","facility_name"];
+		$data['aggregations'] = ["job","facility_name","facility_type_name","cadre","institution_type"];
 
 		echo Modules::run('templates/main', $data);
 	}
