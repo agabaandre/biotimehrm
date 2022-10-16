@@ -116,12 +116,13 @@ class Attendance extends MX_Controller
 		//download it D save F.
 		$this->ml_pdf->pdf->Output($filename, 'I');
 	}
-	public function attsums_csv($valid_range)
+	public function attsums_csv($valid_range, $month, $year)
 	{
 		$valid_rangeto = $this->input->post('yearto') . "-" . $this->input->post('monthto');
 		if (empty($valid_rangeto)) {
 			$valid_rangeto = $valid_range;
 		}
+
 		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid = FALSE);
 		$csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') . '_' . $_SESSION['facility_name'] . ".csv";
 		header("Content-Type: text/csv");
@@ -165,13 +166,12 @@ class Attendance extends MX_Controller
 			$day = $roster['Day'][0]->days;
 			$night = $roster['Night'][0]->days;
 			$r_days = ($eve + $day + $night);
-			$absent = days_absent_helper($present, $r_days);
-			$per = round(($present / ($day + $night + $eve)) * 100, 1);
-			if (is_infinite($per) || is_nan($per)) {
-				$per = 0;
-			} else {
-				$per;
+			if ($r_days == 0) {
+				$r_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 			}
+			$absent = days_absent_helper($present, $r_days);
+
+			$per =  per_present_helper($present, $r_days);
 			$days = array(
 				"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department'], "Duty Date" => $duty_date, "Present" => $present, "Off
 		Duty" => $off,

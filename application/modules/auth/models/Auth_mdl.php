@@ -123,26 +123,67 @@ class Auth_mdl extends CI_Model
 	}
 	public function addUser($postdata)
 	{
+
 		$distid = $postdata['district_id'];
-		$facid = $postdata['facility_id'];
+		$facids = $postdata['facility_id'];
+		$facid = $postdata['facility_id'][0];
+
 		//get district
 		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
 		$distn = $distname->row()->district;
 		//get facility
 		$facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
 		$facn = $facname->row()->facility;
-		$postdata['password'] = md5($this->password);
-		$postdata['facility'] = $facn;
-		$postdata['department'] = $postdata['department_id'];
-		$postdata['district'] = $distn;
-		$postdata['status'] = 1;
-		$qry = $this->db->insert($this->table, $postdata);
+
+		$insert = array(
+			'username' => $postdata['username'],
+			'name' => $postdata['name'],
+			'email' => $postdata['email'],
+			'password' => md5($this->password),
+			'facility_id' => "$facid",
+			'facility' => "$facn",
+			"role" => $postdata['role'],
+			'department' => $postdata['department_id'],
+			'district_id' => "$distn",
+			'district' => "$distn",
+			'status' => 1
+		);
+
+		$qry = $this->db->insert($this->table, $insert);
+		$userid = $this->db->insert_id();
+		$this->user_facilities($facids, $distid, $userid);
 		$rows = $this->db->affected_rows();
 		if ($rows > 0) {
 			return "User has been Added";
 		} else {
 			return "Operation failed";
 		}
+	}
+	public function user_facilities($facid, $distid, $userid)
+	{
+		//get district
+		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
+		$distn = $distname->row()->district;
+
+		for ($i = 0; $i < count($facid); $i++) :
+
+			$fac_id = $facid[$i];
+			$facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
+			$facn = $facname->row()->facility;
+			$insert = array(
+				"user_id" => $userid,
+				"facility_id" => "$fac_id",
+				"district_id" => "$distid",
+				"facility_name" => "$facn",
+				"district_name" => "$distn"
+
+			);
+
+			$this->db->insert("user_facilities", $insert);
+
+		//logic for mutiple users
+
+		endfor;
 	}
 	// update user's details
 	public function updateUser($postdata)
