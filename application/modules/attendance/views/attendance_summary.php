@@ -213,8 +213,6 @@
 							if ($r_days == 0) {
 								$r_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 							}
-
-							//echo $_rdays = cal_days_in_month(CAL_GREGORIAN, $userdata['month'], $userdata['year']);
 							echo days_absent_helper($present, $r_days);
 							?>
 						</span>
