@@ -210,17 +210,20 @@
 							$eve = $roster['Evening'][0]->days;
 							$night = $roster['Night'][0]->days;
 							$r_days = $day + $eve + $night;
+							if (($r_days) == 0) {
+								$_rdays = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+							}
 							echo days_absent_helper($present, $r_days); ?>
 						</span>
 						<span class="cell stcell " data-label="D"><?php echo $day = $roster['Day'][0]->days; ?></span>
 						<span class="cell stcell " data-label="E"><?php echo $eve = $roster['Evening'][0]->days; ?></span>
 						<span class="cell stcell " data-label="N"><?php echo $night = $roster['Night'][0]->days; ?></span>
-						<span class="cell stcell " data-label="Percentage Pr"><?php $per = round(($present / ($day + $night + $eve)) * 100, 1);
-																				if (is_infinite($per) || is_nan($per)) {
-																					echo  0;
-																				} else {
-																					echo $per;
-																				} ?> % </span>
+						<span class="cell stcell " data-label="Percentage Pr"><?php
+
+																				echo  per_present_helper($present, $r_days);
+																				?>
+
+						</span>
 
 					</div>
 				<?php
