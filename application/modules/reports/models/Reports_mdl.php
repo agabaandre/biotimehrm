@@ -11,8 +11,6 @@ class Reports_mdl extends CI_Model {
 
 	}
 
-
-
 	public function getFacilities($district_id)
 	{
 
@@ -23,6 +21,7 @@ class Reports_mdl extends CI_Model {
 		return $query->result();
  
 	}
+
 	public function getgraphData(){
 		$facility=$_SESSION['facility'];
 
@@ -52,17 +51,20 @@ class Reports_mdl extends CI_Model {
 	}
 
 	public function dutygraphData(){
-		$facility=$_SESSION['facility'];
-		$date_from=date("Y-m",strtotime("-11 month"));
-		$date_to=date('Y-m');
-	    $datas=array();
-		$period=array();
-		$targets=array();
-		$target=$this->db->query("SELECT staff from staffing_rate WHERE date like '$date_to%' AND facility_id='$facility'");
+
+		$facility  = $_SESSION['facility'];
+		$date_from = date("Y-m",strtotime("-11 month"));
+		$date_to = date('Y-m');
+	    $datas   = array();
+		$period  = array();
+		$targets = array();
+		$target  = $this->db->query("SELECT staff from staffing_rate WHERE date like '$date_to%' AND facility_id='$facility'");
+
 	foreach($target->result() as $dt):
 		$staff=$dt->staff;
 	endforeach;
-		$query=$this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from rosta_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
+	$query = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from rosta_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
+
 	foreach($query->result() as $data):
 	  array_push($targets,$staff);
 	  array_push($period,$data->period);
@@ -70,11 +72,10 @@ class Reports_mdl extends CI_Model {
 
 	 endforeach;
 
-
-
 	  return array('period'=>$period, 'data'=>$datas, 'target'=>$targets);
 
 	}
+
 	public function attroData(){
 		$facility=$_SESSION['facility'];
 		$date_from=date("Y-m",strtotime("-11 month"));
@@ -84,43 +85,86 @@ class Reports_mdl extends CI_Model {
 		$adata=array();
 		$aperiod=array();
 		
-	  $query=$this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from dutydays_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
+	  $query  = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from dutydays_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
 	foreach($query->result() as $data):
-		$rdate=$data->period;
-		$rostadata=$data->data;
+		$rdate     = $data->period;
+		$rostadata = $data->data;
+
 		array_push($rdata,$rostadata);
 		array_push($rperiod,$rdate);
-	    $query2=$this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from presence_rate WHERE date='$rdate' AND facility_id='$facility'");
+
+	    $query2    = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from presence_rate WHERE date='$rdate' AND facility_id='$facility'");
+
 		foreach($query2->result() as $attd):
-		$attdate=$attd->period;
-		$attdata=$attd->data;	
+		$attdate = $attd->period;
+		$attdata = $attd->data;	
 		array_push($adata,$attdata);
 		array_push($aperiod,$attdate);
 		endforeach;
+
 	 endforeach;
-
-
 
 	  return array('aperiod'=>$aperiod, 'adata'=>$adata,'dperiod'=>$rperiod,'ddata'=>$rdata);
 
 	}
+
 	public function average_hours($fyear){
+
 		$facility = $_SESSION['facility'];
+
 		if(!empty($fyear)){
 			
-			$filter="and date_format(date,'%Y')='$fyear'";
+			$filter = "and date_format(date,'%Y')='$fyear'";
 
 		}
 		else{
-			$filter="";
+			$filter = "";
 		}
-		$fac=$this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg_hours,facility,date_format(date,'%Y-%m') as month_year FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m') ORDER BY date_format(date,'%Y-%m') DESC ")->result_array();
+		$fac = $this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg_hours,facility,date_format(date,'%Y-%m') as month_year FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m') ORDER BY date_format(date,'%Y-%m') DESC ")->result_array();
         return $fac;
 	}
 
 
 
+	public function count_aggregated($facility=null){
 
+		$query = $this->db->get("person_att_final");
+		return $query->num_rows();
+	}
+
+	public function  attendance_aggregates($valid_range, $filters, $limit = NULL,$start = NULL,$group_by="job")
+	{
+		$facility = $_SESSION['facility'];
+
+		if ($limit)
+		$this->db->limit($limit,$start);
+
+		$this->db->select("
+			job,
+			facility_name,
+			sum(P) as present,
+			sum(O) as off,
+			sum(L) as own_leave,
+			sum(R) as official,
+			sum(X) as absent,
+			sum(H) as holiday
+		");
+
+		$this->db->from("person_att_final");
+		$this->db->where("duty_date='$valid_range'");
+		$this->db->group_by("$group_by");
+
+		$data = $this->db->get()->result();
+		return $data;
+	}
+
+	public function aggregate_group_count($column, $value,$period){
+
+		$query = $this->db->where($column,$value)
+		                  ->where("duty_date='$period'")
+		                  ->get('person_att_final');
+		return $query->num_rows();
+	}
 	
 
 
