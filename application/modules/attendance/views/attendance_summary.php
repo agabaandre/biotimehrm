@@ -211,7 +211,7 @@
 							$night = $roster['Night'][0]->days;
 							$r_days = $day + $eve + $night;
 							if ($r_days == 0) {
-								echo "I am here";
+								echo $_rdays = cal_days_in_month(CAL_GREGORIAN, $$userdata['month'], $userdata['year']);
 							}
 							// echo days_absent_helper($present, $r_days); 
 							?>
