@@ -15,11 +15,11 @@ if (!function_exists('days_absent_helper')) {
 if (!function_exists('per_present_helper')) {
     function per_present_helper($present, $rdays)
     {
-$per = round(($present / ($rdays)) * 100, 1);
-if (is_infinite($per) || is_nan($per)) {
-    echo  0 . ' %';
-} else {
-    echo $per .' %';
-} 
-}
+        $per = round(($present / ($rdays)) * 100, 1);
+        if (is_infinite($per) || is_nan($per)) {
+            return   0 . ' %';
+        } else {
+            return $per . ' %';
+        }
+    }
 }
