@@ -401,7 +401,7 @@ class Reports extends MX_Controller
 
 			array_push($exportable, $row);
 		}
-		$rowfoot =  ["Averages", "", "", "", round(($p_total / $count), 0), round(($$o_total / $count), 0), round(($$r_total / $count), 0), round(($l_total / $count), 0), round(($h_total / $count), 0), round(($a_total / $count), 0), round(($ar_total), 0)];
+		$rowfoot =  ["Averages", "", "", "", round(($p_total / $count), 0), round(($$o_total / $count), 0), round(($$r_total / $count), 0), round(($l_total / $count), 0), round(($h_total / $count), 0), round(($a_total / $count), 0), round(($ar_total / $count), 0)];
 
 		array_push($exportable, $rowfoot);
 		render_csv_data($exportable, "person_attendance_all" . time(), false);
