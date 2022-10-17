@@ -205,7 +205,11 @@
 				$total_absent   = 0;
 				$total_supposed = 0;
 
+				$count = 0;
+
 				foreach ($records as $row) {
+
+				$count++;
 
 
 				$supposed_days = $row->days_supposed;
@@ -222,14 +226,16 @@
 				$holiday  = ($row->holiday/$supposed_days)*100;
 				$absent   = ($row->absent/$supposed_days)*100;
 
-				$total_present  += $row->present;
-				$total_leave    += $row->own_leave;
-				$total_official += $row->official;
-				$total_off      += $row->off;
-				$total_holiday  += $row->holiday;
-				$total_absent   += $row->absent;
+				$total_present  += $present;
+				$total_leave    += $on_leave;
+				$total_official += $official;
+				$total_off      += $off;
+				$total_holiday  += $holiday;
+				$total_absent   += $absent;
 
 				$total_supposed += $row->days_supposed;
+				$total_attendance_rate += $attendance_rate;
+				$total_absentism_rate  += $absentism_rate;
 
 				 ?>
 					<div class="table-row tbrow strow">
@@ -266,26 +272,19 @@
 					$no++;
 				} 
 
-
-				$total_supposed_days = $total_supposed;
-				$toal_days_worked         = $total_supposed-$total_absent;
-
-				$total_attendance_rate = ($toal_days_worked/$total_supposed_days)*100;
-				$total_absentism_rate  = ($total_absent/$total_supposed_days)*100;
-
 				?>
 
 				<div class="header-row tbrow">
 					<span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
 					<span class="cell stcell"><?php echo  ucwords(str_replace("_"," ",$grouped_by));; ?></span>
-					<span class="cell stcell "><?php echo number_format(($total_present/$total_supposed_days)*100,1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_off/$total_supposed_days)*100,1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_official/$total_supposed_days)*100,1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_leave/$total_supposed_days)*100,1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_holiday/$total_supposed_days)*100,1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_absent/$total_supposed_days)*100,1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format($total_attendance_rate,1); ?>%</span>
-					<span class="cell stcell "><?php echo number_format($total_absentism_rate,1); ?>%</span>
+					<span class="cell stcell "><?php echo number_format(($total_present/$count),1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_off/$count),1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_official/$count),1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_leave/$count),1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_holiday/$count),1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_absent/$count),1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format($total_attendance_rate/$count,1); ?>%</span>
+					<span class="cell stcell "><?php echo number_format($total_absentism_rate/$count,1); ?>%</span>
 				</div>
 
 			</div>
