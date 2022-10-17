@@ -224,6 +224,7 @@ class Reports extends MX_Controller
 		$exportable = [
 			array(
 				str_replace("_", " ", strtoupper($grouped_by)),
+				'DUTY DATE',
 				'PRESENT',
 				'LEAVE',
 				'OFFICIAL REQUEST',
@@ -267,7 +268,7 @@ class Reports extends MX_Controller
 			$holiday  = number_format(($row->holiday / $supposed_days) * 100, 1);
 			$absent   = number_format(($row->absent / $supposed_days) * 100, 1);
 
-			$row = [$row->{$grouped_by}, $present, $on_leave, $official, $off, $holiday, $absent, $attendance_rate, $absentism_rate];
+			$row = [$row->{$grouped_by}, $row->duty_date, $present, $on_leave, $official, $off, $holiday, $absent, $attendance_rate, $absentism_rate];
 
 			$total_present  += $present;
 			$total_leave    += $on_leave;
@@ -284,6 +285,7 @@ class Reports extends MX_Controller
 		//averages
 		$footer_row = [
 			"Averages: ",
+			"Duty Date: ",
 			number_format($total_present / $count, 1),
 			number_format($total_leave / $count, 1),
 			number_format($total_official / $count, 1),
