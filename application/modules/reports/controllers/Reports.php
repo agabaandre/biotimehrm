@@ -372,18 +372,38 @@ class Reports extends MX_Controller
 				'% ABSENTEESM'
 			)
 		];
-
+		$p_total = 0;
+		$o_total = 0;
+		$r_total = 0;
+		$l_total = 0;
+		$h_total = 0;
+		$a_total = 0;
+		$ar_total = 0;
+		$count = 0;
 		foreach ($data as $row) {
+			$count++;
+			$p_total += $row->P;
+			$o_total += $row->O;
+			$r_total += $row->R;
+			$l_total += $row->L;
+			$h_total += $row->H;
+
+
 
 			$month_days  = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 			$absent = $month_days - ($row->P + $row->O + $row->R + $row->L);
 			$abrate = number_format(($absent / $month_days), 1) * 100;
 
+			$a_total += $absent;
+			$ar_total += $abrate;
+
 			$row =  [$row->fullname, $row->district, $row->facility_name, $row->duty_date, $row->P, $row->O, $row->R, $row->L, $row->H, $absent, $abrate];
 
 			array_push($exportable, $row);
 		}
+		$rowfoot =  ["Averages", "", "", "", round(($p_total / $count), 0), round(($$o_total / $count), 0), round(($$r_total / $count), 0), round(($l_total / $count), 0), round(($h_total / $count), 0), round(($a_total / $count), 0), round(($ar_total), 0)];
 
+		array_push($exportable, $rowfoot);
 		render_csv_data($exportable, "person_attendance_all" . time(), false);
 	}
 }
