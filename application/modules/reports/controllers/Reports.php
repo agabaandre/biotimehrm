@@ -166,12 +166,17 @@ class Reports extends MX_Controller
 		$month     =  request_fields('month');
 		$csv       =  request_fields('csv');
 
-		flash_form();
-
 		if (empty($year)) {
+			
 			$year  = date('Y');
 			$month = date('m');
+
+			$search['year']  = $year;
+			$search['month'] = $month;
 		}
+
+
+		flash_form();
 
 		$valid_rangeto = $year . "-" . $month;
 
