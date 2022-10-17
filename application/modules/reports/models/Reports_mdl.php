@@ -155,6 +155,8 @@ class Reports_mdl extends CI_Model
 			cadre,
 			duty_date,
 			district,
+			department_id,
+			region,
 			institution_type,
 			sum(P) as present,
 			sum(O) as off,
