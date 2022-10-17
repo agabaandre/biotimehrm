@@ -325,6 +325,8 @@ class Reports extends MX_Controller
 
 		$data['links']      = paginate($route, $totals, $per_page, $segment);
 		$data['records']    = $this->reports_mdl->person_attendance_all($search, $per_page, $page);
+		$data['csv']    = $this->reports_mdl->person_attendance_all($search);
+
 
 		if ($csv) {
 
