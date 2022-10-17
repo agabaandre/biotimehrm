@@ -129,6 +129,7 @@
 
 						<div class="row mt-2">
 							<div class="col-md-3">
+								<label>Per Page</label>
 								<select class="form-control select2" name="rows" onchange="this.form.submit()">
 
 									<?php
