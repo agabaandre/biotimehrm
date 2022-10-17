@@ -242,19 +242,19 @@
 							<?php echo $row->duty_date; ?>
 						</span>
 						<span class="cell stcell " data-label="Present">
-							<?php echo $data->P; ?>
+							<?php echo $row->P; ?>
 						</span>
 						<span class="cell stcell " data-label="Off Duty">
-							<?php echo $data->O; ?>
+							<?php echo $row->O; ?>
 						</span>
 						<span class="cell stcell " data-label="Official Request">
-							<?php echo $data->R; ?>
+							<?php echo $row->R; ?>
 						</span>
 						<span class="cell stcell " data-label="Leave">
-							<?php echo $data->L; ?>
+							<?php echo $row->L; ?>
 						</span>
 						<span class="cell stcell " data-label="Holiday">
-							<?php echo $data->H; ?>
+							<?php echo $row->H; ?>
 						</span>
 
 						<span class="cell stcell " data-label="% Present"><?php echo number_format($attendance_rate, 1) ?>%</span>
