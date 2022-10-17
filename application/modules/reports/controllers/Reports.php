@@ -179,7 +179,7 @@ class Reports extends MX_Controller
 
 		$totals   = $this->reports_mdl->count_aggregated($search, $group_by);
 		$route    = "reports/attendance_aggregate";
-		$per_page = (request_fields('rows')) ? request_fields('rows') : 25;
+		$per_page = (request_fields('rows')) ? request_fields('rows') : 144;
 		$segment  = 3;
 		$page     = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
 
