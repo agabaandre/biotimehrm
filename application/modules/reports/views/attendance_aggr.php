@@ -40,6 +40,7 @@
 								<div class="control-group">
 
 									<input type="hidden" id="month" value="<?php echo @$search->month; ?>">
+									<label>Month</label>
 
 									<select class="form-control select2" name="month" onchange="this.form.submit()">
 
@@ -66,6 +67,7 @@
 
 							<div class="col-md-2">
 								<div class="control-group">
+									<label>Year</label>
 
 									<select class="form-control" name="year" onchange="this.form.submit()">
 
@@ -83,6 +85,7 @@
 
 							<div class="col-md-3">
 								<div class="control-group">
+									<label>Facility</label>
 									<select class="form-control select2" name="facility_name" onchange="this.form.submit()">
 										<option value="">All</option>
 										<?php foreach ($facilities as $key => $value) : ?>
@@ -95,7 +98,9 @@
 							</div>
 
 							<div class="col-md-2">
+
 								<div class="control-group">
+									<label>District</label>
 									<select class="form-control select2" name="district" onchange="this.form.submit()">
 										<option value="">All</option>
 										<?php foreach ($districts as $key => $value) : ?>
@@ -109,6 +114,7 @@
 
 							<div class="col-md-3">
 								<div class="control-group">
+									<label>Aggregate By Column</label>
 									<select class="form-control select2" name="group_by" onchange="this.form.submit()">
 										<?php foreach ($aggregations as $key => $value) : ?>
 											<option value="<?php echo $value; ?>" <?php echo ($grouped_by == $value) ? "selected" : ""; ?>>
