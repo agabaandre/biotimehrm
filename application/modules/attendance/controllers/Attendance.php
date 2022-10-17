@@ -167,7 +167,7 @@ class Attendance extends MX_Controller
 			$night = $roster['Night'][0]->days;
 			$r_days = ($eve + $day + $night);
 			if ($r_days == 0) {
-				$r_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+				$r_days = 22;
 			}
 			$absent = days_absent_helper($present, $r_days);
 
