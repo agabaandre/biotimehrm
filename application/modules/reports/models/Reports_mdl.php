@@ -126,35 +126,44 @@ class Reports_mdl extends CI_Model {
 
 
 
-	public function count_aggregated($facility=null){
+	public function count_aggregated($filters=null,$group_by="district"){
 
-		$query = $this->db->get("person_att_final");
+		$this->apply_aggregation_filter($filters);
+
+		$this->db->from("person_att_final");
+		$this->db->group_by("$group_by");
+		$query = $this->db->get();
+
 		return $query->num_rows();
 	}
 
-	public function  attendance_aggregates($valid_range, $filters, $limit = NULL,$start = NULL,$group_by="job")
+	public function  attendance_aggregates($filters=null, $limit = NULL,$start = NULL,$group_by="district")
 	{
 		$facility = $_SESSION['facility'];
 
 		if ($limit)
 		$this->db->limit($limit,$start);
 
+		$this->apply_aggregation_filter($filters);
+
 		$this->db->select("
 			job,
 			facility_name,
 			facility_type_name,
 			cadre,
+			district,
 			institution_type,
 			sum(P) as present,
 			sum(O) as off,
 			sum(L) as own_leave,
 			sum(R) as official,
 			sum(X) as absent,
-			sum(H) as holiday
+			sum(H) as holiday,
+			sum(base_line)   as days_supposed,
+			sum(base_line - (P+O+L+R)) as days_absent
 		");
 
 		$this->db->from("person_att_final");
-		$this->db->where("duty_date='$valid_range'");
 		$this->db->group_by("$group_by");
 
 		$data = $this->db->get()->result();
@@ -167,6 +176,19 @@ class Reports_mdl extends CI_Model {
 		                  ->where("duty_date='$period'")
 		                  ->get('person_att_final');
 		return $query->num_rows();
+	}
+
+	public function apply_aggregation_filter($filters){
+
+
+		if(!empty($filters)){
+
+			foreach ($filters as $key => $value) {
+
+				if( ($key !=="rows" && $key!=="group_by" && $key!=="month" && $key!=="year" && $key!=="csv") && !empty($value))
+				  $this->db->where($key,$value);
+			}
+		}
 	}
 	
 

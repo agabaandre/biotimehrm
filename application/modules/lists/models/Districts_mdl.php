@@ -20,6 +20,7 @@ class Districts_mdl extends CI_Model {
 		return $query->result();
  
 	}
+	
 	public function get_all_Districts()
 	{
 

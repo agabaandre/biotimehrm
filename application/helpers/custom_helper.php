@@ -109,7 +109,7 @@ if (!function_exists('old')) {
     function old($field)
     {
         $ci = &get_instance();
-        return ($ci->session->flashdata('form_data')) ? html_escape($ci->session->flashdata('form_data')[$field]) : null;
+        return ($ci->session->flashdata('form_data')) ? html_escape(@$ci->session->flashdata('form_data')[$field]) : null;
     }
 }
 
@@ -300,7 +300,7 @@ if (!function_exists('flash_form')) {
         $ci = &get_instance();
 
         if ($data == null)
-            $data = $ci->input->post();
+            $data = ($ci->input->post())?$ci->input->post():$ci->input->get();
 
         $ci->session->set_flashdata($key, $data);
     }
@@ -324,7 +324,7 @@ if (!function_exists('render_csv_data')) {
     function render_csv_data($datas, $filename)
     {
         //datas should be assoc array
-        $csv_file = $filename;
+        $csv_file = $filename.".csv";
         header("Content-Type: text/csv");
         header("Content-Disposition: attachment; filename=\"$csv_file\"");
         $fh = fopen('php://output', 'w');
@@ -344,3 +344,30 @@ if (!function_exists('render_csv_data')) {
         exit;
     }
 }
+
+
+
+if (!function_exists('request_fields')) {
+    function request_fields($field=null,$allFields=true)
+    { //get data from POST or GET
+     if(!$allFields || $field):
+       return (isset($_POST[$field]))?$_POST[$field]:((isset($_GET[$field]))?$_GET[$field]:"");
+     else:
+       return (!empty($_POST))?$_POST:((!empty($_GET))?$_GET:[]);
+     endif;
+    }
+}
+
+if (!function_exists('full_url')) {
+function full_url($new_params=null){
+
+    $currentURL = current_url(); //http://myhost/main
+
+    $params   = $_SERVER['QUERY_STRING']; //my_id=1,3
+
+    $fullURL = $currentURL . '?' . $params; 
+
+    return ($new_params)?$fullURL."&".$new_params:$fullURL;
+}
+}
+

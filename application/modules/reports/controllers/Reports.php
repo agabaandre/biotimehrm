@@ -9,6 +9,8 @@ class Reports extends MX_Controller {
 		parent::__Construct();
 
 		$this->load->model('reports_mdl');
+		$this->load->model('lists/facilities_mdl');
+		$this->load->model('lists/districts_mdl');
 		$this->module      = "reports";
 		$this->title       = "Reports";
 		$this->filters     = Modules::run('filters/sessionfilters');
@@ -17,6 +19,7 @@ class Reports extends MX_Controller {
         // requires a join on ihrisdata with district level
         $this->distfilters = Modules::run('filters/districtfilters');
 		$this->watermark=FCPATH."assets/img/MOH.png";
+		
 
 	}
 
@@ -162,11 +165,14 @@ class Reports extends MX_Controller {
 	
 	public function attendance_aggregate()
 	{
-		$month    = $this->input->post('month');
-		$year     = $this->input->post('year');
-		$group_by =  (!empty($this->input->post('group_by')))?$this->input->post('group_by'):"job";
+		$search    = request_fields();
+		$group_by  =  (!empty(request_fields('group_by')))?request_fields('group_by'):"district";
+		$year      =  request_fields('year');
+		$month     =  request_fields('month');
+		$csv       =  request_fields('csv');
 
-		
+		flash_form();
+
 		if (empty($year)) {
 			$year  = date('Y');
 			$month = date('m');
@@ -174,31 +180,78 @@ class Reports extends MX_Controller {
 
 		$valid_rangeto = $year."-".$month;
 
-		$totals   = $this->reports_mdl->count_aggregated();
+		$search['duty_date'] = $valid_rangeto;
+
+		$totals   = $this->reports_mdl->count_aggregated($search,$group_by);
 		$route    = "reports/attendance_aggregate";
-		
-		$per_page = 200; 
+		$per_page = (request_fields('rows'))?request_fields('rows'):25; 
 		$segment  = 3;
 		$page     = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0; 
 
-		$data['links']   = paginate($route,$totals,$per_page,$page);
-		$data['records'] = $this->reports_mdl->attendance_aggregates($valid_rangeto, null, $per_page,$page,$group_by);
-		$data['view']    =  'attendance_aggr';
-		$data['title']   = 'Attendance Form Summary';
-		$data['uptitle'] = 'Attendance Form Summary';
-		$data['module']  = $this->module;
-		$data['month']   = $month;
-		$data['year']    = $year;
-		$data['grouped_by']= $group_by;
-		$data['period']    = $valid_rangeto;
-		
-		$data['aggregations'] = ["job","facility_name","facility_type_name","cadre","institution_type"];
+		$data['links']      = paginate($route,$totals,$per_page,$segment);
+		$data['records']    = $this->reports_mdl->attendance_aggregates($search,$per_page,$page,$group_by);
+
+		if($csv){
+
+			$this->export_aggregates_csv($data['records'],$group_by);
+			return;
+		 }
+
+		$data['module']     = $this->module;
+		$data['search']     = (Object) $search;
+		$data['grouped_by'] = $group_by;
+		$data['period']     = $valid_rangeto;
+		$data['districts']  = $this->districts_mdl->get_all_Districts();
+		$data['facilities'] = $this->facilities_mdl->getAll();
+
+		$data['view']       = 'attendance_aggr';
+		$data['title']      = 'Attendance Form Summary';
+		$data['uptitle']    = 'Attendance Form Summary';
+
+
+		$data['aggregations'] = ["job","facility_name","facility_type_name","cadre","institution_type","district","facility"];
 
 		echo Modules::run('templates/main', $data);
 	}
 
+	public function export_aggregates_csv($data,$grouped_by){
 
-	
+		$exportable = [
+			array(
+					str_replace("_"," ",strtoupper($grouped_by)),
+					'PRESENT',
+					'LEAVE',
+					'OFFICIAL REQUEST',
+					'OFF DUTY',
+					'HOLIDAY',
+					'ABSENT',
+					'% ACCOUNTED',
+					'% ABSENTEESM'
+				)
+		];
 
+		foreach ($data as $row) {
+
+				$supposed_days = $row->days_supposed;
+				$days_worked   = ($row->days_supposed-$row->days_absent);
+
+				$attendance_rate = number_format(($days_worked/$supposed_days)*100,1);
+				$absentism_rate  = number_format(($row->days_absent/$supposed_days)*100,1);
+
+
+				$present  = number_format(($row->present/$supposed_days)*100,1);
+				$on_leave = number_format(($row->own_leave/$supposed_days)*100,1);
+				$official = number_format(($row->official/$supposed_days)*100,1);
+				$off      = number_format(($row->off/$supposed_days)*100,1);
+				$holiday  = number_format(($row->holiday/$supposed_days)*100,1);
+				$absent   = number_format(($row->absent/$supposed_days)*100,1);
+
+				$row = [$row->{$grouped_by},$present,$on_leave,$official,$off,$holiday,$absent,$attendance_rate,$absentism_rate];
+
+				array_push($exportable, $row);
+	}
+
+	render_csv_data($exportable, "attendance_aggregates_".time());
+}
 
 }

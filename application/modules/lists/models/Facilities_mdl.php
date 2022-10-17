@@ -15,10 +15,11 @@ class Facilities_mdl extends CI_Model {
 
 	public function getAll()
 	{
-		$query = $this->db->select('f.id, f.facility_id, f.facility, f.district_id, f.institution_cateegory, f.	institution_type, f.institution_level, d.name,d.region')
-     	->from('employee_facility as f')
-     	->join('employee_districts as d', 'd.id = f.district_id', 'LEFT')
-     	->get();
+		
+		$this->db->select('distinct(facility_id),facility');
+		//	$this->db->where("district_id!=''");
+		$this->db->order_by('facility', 'ASC');
+		$query = $this->db->get('ihrisdata');
 
 		return $query->result();
  
