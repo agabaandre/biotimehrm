@@ -181,7 +181,6 @@
 					<span class="cell stcell ">Official Request</span>
 					<span class="cell stcell ">Leave</span>
 					<span class="cell stcell ">Holiday</span>
-					<span class="cell stcell ">Absent</span>
 					<span class="cell stcell ">% Accounted</span>
 					<span class="cell stcell ">% Absenteeism</span>
 				</div>
@@ -231,35 +230,33 @@
 							<?php echo $no; ?>
 						</span>
 						<span class="cell stcell" data-label="Name">
-							<?php echo $row->name; ?>
+							<?php echo $row->fullname; ?>
 						</span>
 						<span class="cell stcell" data-label="District">
 							<?php echo $row->district; ?>
 						</span>
 						<span class="cell stcell" data-label="Facility">
-							<?php echo $row->facility; ?>
+							<?php echo $row->facility_name; ?>
 						</span>
 						<span class="cell stcell" data-label="Period">
 							<?php echo $row->duty_date; ?>
 						</span>
 						<span class="cell stcell " data-label="Present">
-							<?php echo number_format($present, 1); ?>%
+							<?php echo $data->P; ?>
 						</span>
 						<span class="cell stcell " data-label="Off Duty">
-							<?php echo number_format($off, 1); ?>%
+							<?php echo $data->O; ?>
 						</span>
 						<span class="cell stcell " data-label="Official Request">
-							<?php echo number_format($official, 1); ?>%
+							<?php echo $data->R; ?>
 						</span>
 						<span class="cell stcell " data-label="Leave">
-							<?php echo number_format($on_leave, 1); ?>%
+							<?php echo $data->L; ?>
 						</span>
 						<span class="cell stcell " data-label="Holiday">
-							<?php echo number_format($holiday, 1); ?>%
+							<?php echo $data->H; ?>
 						</span>
-						<span class="cell stcell " data-label="Absent">
-							<?php echo number_format($absent, 1); ?> %
-						</span>
+
 						<span class="cell stcell " data-label="% Present"><?php echo number_format($attendance_rate, 1) ?>%</span>
 						<span class="cell stcell " data-label="% Absent"><?php echo number_format($absentism_rate, 1) ?>%</span>
 
