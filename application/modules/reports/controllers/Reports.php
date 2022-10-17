@@ -230,7 +230,19 @@ class Reports extends MX_Controller {
 				)
 		];
 
+		$total_present  = 0;
+		$total_leave    = 0;
+		$total_official = 0;
+		$total_off      = 0;
+		$total_holiday  = 0;
+		$total_absent   = 0;
+		$total_supposed = 0;
+
+		$count = 0;
+
 		foreach ($data as $row) {
+
+			$count++;
 
 				$supposed_days = $row->days_supposed;
 				$days_worked   = ($row->days_supposed-$row->days_absent);
@@ -248,8 +260,32 @@ class Reports extends MX_Controller {
 
 				$row = [$row->{$grouped_by},$present,$on_leave,$official,$off,$holiday,$absent,$attendance_rate,$absentism_rate];
 
+				$total_present  += $present;
+				$total_leave    += $on_leave;
+				$total_official += $official;
+				$total_off      += $off;
+				$total_holiday  += $holiday;
+				$total_absent   += $absent;
+
+				$total_attendance_rate += $attendance_rate;
+				$total_absentism_rate  += $absentism_rate;
+
 				array_push($exportable, $row);
 	}
+
+	//averages
+	$footer_row = ["Averages: ",
+	number_format($total_present/$count,1),
+	number_format($total_leave/$count,1),
+	number_format($total_official/$count,1),
+	number_format($total_off/$count,1),
+	number_format($total_holiday/$count,1),
+	number_format($total_absent/$count,1),
+	number_format($total_attendance_rate/$count,1),
+	number_format($total_absentism_rate/$count,1)
+	];
+
+	array_push($exportable, $footer_row);
 
 	render_csv_data($exportable, "attendance_aggregates_".time());
 }
