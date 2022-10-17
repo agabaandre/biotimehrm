@@ -307,7 +307,7 @@
 	var url = window.location.href;
 
 	if (url == '<?php echo base_url(); ?>reports/attendance_aggregate') {
-		$('.sidebar-mini').addClass('sidebar-collapse');
+		// $('.sidebar-mini').addClass('sidebar-collapse');
 	}
 
 	$('.csv').click(function(e) {
