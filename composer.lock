@@ -4,8 +4,45 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ba3f84d47b2a4384d202dc9e1202339c",
+    "content-hash": "49b02280a5cd00ad62e051b7d89fe19a",
     "packages": [
+        {
+            "name": "chriskacerguis/codeigniter-restserver",
+            "version": "3.1.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/chriskacerguis/codeigniter-restserver.git",
+                "reference": "f386f4e0013daadaa213681a0a41af69aa81d9de"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/chriskacerguis/codeigniter-restserver/zipball/f386f4e0013daadaa213681a0a41af69aa81d9de",
+                "reference": "f386f4e0013daadaa213681a0a41af69aa81d9de",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "chriskacerguis\\RestServer\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Chris Kacerguis",
+                    "email": "chriskacerguis@gmail.com"
+                }
+            ],
+            "description": "CI Rest Server",
+            "support": {
+                "issues": "https://github.com/chriskacerguis/codeigniter-restserver/issues",
+                "source": "https://github.com/chriskacerguis/codeigniter-restserver/tree/3.1.4"
+            },
+            "time": "2022-02-24T18:02:52+00:00"
+        },
         {
             "name": "guzzlehttp/guzzle",
             "version": "6.0.0",
@@ -308,5 +345,5 @@
     "prefer-lowest": false,
     "platform": [],
     "platform-dev": [],
-    "plugin-api-version": "2.0.0"
+    "plugin-api-version": "2.3.0"
 }
