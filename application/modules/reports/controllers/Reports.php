@@ -189,9 +189,9 @@ class Reports extends MX_Controller
 		$page     = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
 
 		$data['links']      = paginate($route, $totals, $per_page, $segment);
-		
-		if($csv)
-		$per_page = null;
+
+		if ($csv)
+			$per_page = null;
 
 		$data['records']    = $this->reports_mdl->attendance_aggregates($search, $per_page, $page, $group_by);
 
@@ -334,7 +334,7 @@ class Reports extends MX_Controller
 
 		if ($csv) {
 
-			$this->export_attendance_all_csv($data['records'], $month, $year);
+			$this->export_attendance_all_csv($data['csv'], $month, $year);
 			return;
 		}
 
