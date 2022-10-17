@@ -249,7 +249,7 @@
 							<?php echo $row->{$grouped_by}; ?>
 						</span>
 						<span class="cell stcell " data-label="Present">
-							<?php echo $row->duty_date; ?>%
+							<?php echo $row->duty_date; ?>
 						</span>
 						<span class="cell stcell " data-label="Present">
 							<?php echo number_format($present, 1); ?>%

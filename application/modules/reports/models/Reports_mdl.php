@@ -153,6 +153,7 @@ class Reports_mdl extends CI_Model
 			facility_name,
 			facility_type_name,
 			cadre,
+			duty_date,
 			district,
 			institution_type,
 			sum(P) as present,
