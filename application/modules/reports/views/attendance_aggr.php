@@ -184,7 +184,7 @@
 				<div class="header-row tbrow">
 					<span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
 					<span class="cell stcell"><?php echo  ucwords(str_replace("_", " ", $grouped_by));; ?></span>
-					<span class="cell stcell">Period</span>
+					<span class="cell stcell ">Period</span>
 					<span class="cell stcell ">Present</span>
 					<span class="cell stcell ">Off Duty</span>
 					<span class="cell stcell ">Official Request</span>
@@ -248,7 +248,7 @@
 						<span class="cell stcell  cname" data-label="Aggregated By">
 							<?php echo $row->{$grouped_by}; ?>
 						</span>
-						<span class="cell stcell " data-label="Present">
+						<span class="cell stcell  cname" data-label="Duty Date">
 							<?php echo $row->duty_date; ?>
 						</span>
 						<span class="cell stcell " data-label="Present">
