@@ -33,7 +33,7 @@
 				<div class="callout callout-success">
 
 
-					<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>reports/attendance_aggregate" method="get">
+					<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>reports/person_attendance_all" method="get">
 						<div class="row">
 							<div class="col-md-2">
 
