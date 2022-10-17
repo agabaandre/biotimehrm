@@ -167,7 +167,7 @@ class Reports extends MX_Controller
 		$csv       =  request_fields('csv');
 
 		if (empty($year)) {
-			
+
 			$year  = date('Y');
 			$month = date('m');
 
@@ -296,17 +296,22 @@ class Reports extends MX_Controller
 	}
 	public function person_attendance_all()
 	{
-		$search    = request_fields();
+		$search    =  request_fields();
 		$year      =  request_fields('year');
 		$month     =  request_fields('month');
 		$csv       =  request_fields('csv');
 
-		flash_form();
 
 		if (empty($year)) {
 			$year  = date('Y');
 			$month = date('m');
+
+			$search['year'] = $year;
+			$search['month'] = $month;
 		}
+
+
+		flash_form();
 
 		$valid_rangeto = $year . "-" . $month;
 
