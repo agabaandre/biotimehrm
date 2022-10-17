@@ -289,8 +289,6 @@ class Reports extends MX_Controller
 
 		render_csv_data($exportable, "attendance_aggregates_" . time());
 	}
-
-
 	public function person_attendance_all()
 	{
 		$search    = request_fields();
@@ -320,7 +318,7 @@ class Reports extends MX_Controller
 
 		if ($csv) {
 
-			$this->export_attendance_all_csv($data['records']);
+			$this->export_attendance_all_csv($data['records'], $month, $year);
 			return;
 		}
 
@@ -340,7 +338,36 @@ class Reports extends MX_Controller
 		echo Modules::run('templates/main', $data);
 	}
 
-	public function export_attendance_all_csv($records)
+	public function export_attendance_all_csv($data, $month, $year)
 	{
+
+		$exportable = [
+			array(
+				'NAME',
+				'DISTRICT',
+				'FACILITY',
+				'PERIOD',
+				'PRESENT',
+				'OFF DUTY',
+				'OFFICIAL REQUEST',
+				'LEAVE',
+				'HOLIDAY',
+				'ABSENT',
+				'% ABSENTEESM'
+			)
+		];
+
+		foreach ($data as $row) {
+
+			$month_days  = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+			$absent = $month_days - ($row->P + $row->O + $row->R + $row->L);
+			$abrate = number_format(($absent / $month_days), 1) * 100;
+
+			$row =  [$row->fullname, $row->district, $row->facility_name, $row->P, $row->O, $row->R, $row->L, $absent, $abrate];
+
+			array_push($exportable, $row);
+		}
+
+		render_csv_data($exportable, "attendance_aggregates_" . time());
 	}
 }
