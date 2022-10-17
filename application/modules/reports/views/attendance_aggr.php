@@ -43,7 +43,7 @@
 
 									<select class="form-control select2" name="month" onchange="this.form.submit()">
 
-										<option value="<?php echo @$search->month; ?>"><?php echo strtoupper(date('F',  strtotime('2022-'.@$search->month.'-01'))) . "(Showing below)"; ?></option>
+										<option value="<?php echo @$search->month; ?>"><?php echo strtoupper(date('F',  strtotime('2022-' . @$search->month . '-01'))) . "(Showing below)"; ?></option>
 
 										<option value="01">JANUARY</option>
 										<option value="02">FEBRUARY</option>
@@ -68,11 +68,11 @@
 								<div class="control-group">
 
 									<select class="form-control" name="year" onchange="this.form.submit()">
-										
+
 										<?php for ($i = -3; $i <= 25; $i++) {  ?>
 
-											<option <?php echo (@$search->year == 2017+$i)?"selected":""; ?>>
-												<?php echo 2017+$i; ?>	
+											<option <?php echo (@$search->year == 2017 + $i) ? "selected" : ""; ?>>
+												<?php echo 2017 + $i; ?>
 											</option>
 
 										<?php }  ?>
@@ -85,10 +85,10 @@
 								<div class="control-group">
 									<select class="form-control select2" name="facility_name" onchange="this.form.submit()">
 										<option value="">All</option>
-										<?php foreach ($facilities as $key => $value): ?>
-											<option value="<?php echo $value->facility; ?>"  <?php echo (@$search->facility_name == $value->facility)?"selected":""; ?>>
+										<?php foreach ($facilities as $key => $value) : ?>
+											<option value="<?php echo $value->facility; ?>" <?php echo (@$search->facility_name == $value->facility) ? "selected" : ""; ?>>
 												<?php echo $value->facility; ?></option>
-									    <?php endforeach; ?>
+										<?php endforeach; ?>
 									</select>
 
 								</div>
@@ -98,10 +98,10 @@
 								<div class="control-group">
 									<select class="form-control select2" name="district" onchange="this.form.submit()">
 										<option value="">All</option>
-										<?php foreach ($districts as $key => $value): ?>
-											<option value="<?php echo $value->district; ?>"  <?php echo (@$search->district == $value->district)?"selected":""; ?>>
+										<?php foreach ($districts as $key => $value) : ?>
+											<option value="<?php echo $value->district; ?>" <?php echo (@$search->district == $value->district) ? "selected" : ""; ?>>
 												<?php echo $value->district; ?></option>
-									    <?php endforeach; ?>
+										<?php endforeach; ?>
 									</select>
 
 								</div>
@@ -110,10 +110,10 @@
 							<div class="col-md-3">
 								<div class="control-group">
 									<select class="form-control select2" name="group_by" onchange="this.form.submit()">
-										<?php foreach ($aggregations as $key => $value): ?>
-											<option value="<?php echo $value; ?>"  <?php echo ($grouped_by == $value)?"selected":""; ?>>
-												<?php echo ucwords(str_replace("_"," ",$value)); ?></option>
-									    <?php endforeach; ?>
+										<?php foreach ($aggregations as $key => $value) : ?>
+											<option value="<?php echo $value; ?>" <?php echo ($grouped_by == $value) ? "selected" : ""; ?>>
+												<?php echo ucwords(str_replace("_", " ", $value)); ?></option>
+										<?php endforeach; ?>
 									</select>
 
 								</div>
@@ -124,17 +124,18 @@
 						<div class="row mt-2">
 							<div class="col-md-3">
 								<select class="form-control select2" name="rows" onchange="this.form.submit()">
-										
-										<?php 
-										$count=0;
-										for ($i = 15; $i <= 205; $i++) {  ?>
 
-											<option value="<?php echo $i; ?>" <?php echo (@$search->rows == $i)?"selected":""; ?>>
-												<?php echo ($count==0)?"Show ".$i." rows":$i; ?>	
-											</option>
+									<?php
+									$count = 0;
+									for ($i = 15; $i <= 205; $i++) {  ?>
 
-										<?php $count++; }  ?>
-									</select>
+										<option value="<?php echo $i; ?>" <?php echo (@$search->rows == $i) ? "selected" : ""; ?>>
+											<?php echo ($count == 0) ? "Show " . $i . " rows" : $i; ?>
+										</option>
+
+									<?php $count++;
+									}  ?>
+								</select>
 							</div>
 
 							<div class="col-md-3">
@@ -146,7 +147,7 @@
 									if (count($records) > 0) {
 									?>
 										<!--<a href="<?php echo base_url() ?>attendance/print_attrowmary/<?php echo @$search->year . "-" . @$search->month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>-->
-									
+
 										<a href="<?php echo full_url('csv=1'); ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
 									<?php } ?>
 								</div>
@@ -163,7 +164,7 @@
 
 		<div class="panel-body">
 			<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-			
+
 			<div class="col-md-3" style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></div>
 			<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0;">
 				<p style="font-size: 16px; font-weight:bold; margin:0 auto; ">
@@ -175,14 +176,15 @@
 						MONTHLY ATTENDANCE TO DUTY SUMMARY
 					<?php echo " - "  . date('F, Y', strtotime(@$search->year . "-" . @$search->month));
 					}
-					 
+
 					?>
 				</p>
 			</div>
 			<div id="table">
 				<div class="header-row tbrow">
 					<span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
-					<span class="cell stcell"><?php echo  ucwords(str_replace("_"," ",$grouped_by));; ?></span>
+					<span class="cell stcell"><?php echo  ucwords(str_replace("_", " ", $grouped_by));; ?></span>
+					<span class="cell stcell">Period</span>
 					<span class="cell stcell ">Present</span>
 					<span class="cell stcell ">Off Duty</span>
 					<span class="cell stcell ">Official Request</span>
@@ -191,10 +193,10 @@
 					<span class="cell stcell ">Absent</span>
 					<span class="cell stcell ">% Accounted</span>
 					<span class="cell stcell ">% Absenteeism</span>
-					</div>
-				<?php 
+				</div>
+				<?php
 
-				$mydate = @$search->year . "-" . @$search->month;				
+				$mydate = @$search->year . "-" . @$search->month;
 				$no = (!empty($this->uri->segment(3))) ? $this->uri->segment(3) : 1;
 
 				$total_present  = 0;
@@ -209,35 +211,35 @@
 
 				foreach ($records as $row) {
 
-				$count++;
+					$count++;
 
 
-				$supposed_days = $row->days_supposed;
-				$days_worked   = ($row->days_supposed-$row->days_absent);
+					$supposed_days = $row->days_supposed;
+					$days_worked   = ($row->days_supposed - $row->days_absent);
 
-				$attendance_rate = ($days_worked/$supposed_days)*100;
-				$absentism_rate  = ($row->days_absent/$supposed_days)*100;
+					$attendance_rate = ($days_worked / $supposed_days) * 100;
+					$absentism_rate  = ($row->days_absent / $supposed_days) * 100;
 
 
-				$present  = ($row->present/$supposed_days)*100;
-				$on_leave = ($row->own_leave/$supposed_days)*100;
-				$official = ($row->official/$supposed_days)*100;
-				$off      = ($row->off/$supposed_days)*100;
-				$holiday  = ($row->holiday/$supposed_days)*100;
-				$absent   = ($row->absent/$supposed_days)*100;
+					$present  = ($row->present / $supposed_days) * 100;
+					$on_leave = ($row->own_leave / $supposed_days) * 100;
+					$official = ($row->official / $supposed_days) * 100;
+					$off      = ($row->off / $supposed_days) * 100;
+					$holiday  = ($row->holiday / $supposed_days) * 100;
+					$absent   = ($row->absent / $supposed_days) * 100;
 
-				$total_present  += $present;
-				$total_leave    += $on_leave;
-				$total_official += $official;
-				$total_off      += $off;
-				$total_holiday  += $holiday;
-				$total_absent   += $absent;
+					$total_present  += $present;
+					$total_leave    += $on_leave;
+					$total_official += $official;
+					$total_off      += $off;
+					$total_holiday  += $holiday;
+					$total_absent   += $absent;
 
-				$total_supposed += $row->days_supposed;
-				$total_attendance_rate += $attendance_rate;
-				$total_absentism_rate  += $absentism_rate;
+					$total_supposed += $row->days_supposed;
+					$total_attendance_rate += $attendance_rate;
+					$total_absentism_rate  += $absentism_rate;
 
-				 ?>
+				?>
 					<div class="table-row tbrow strow">
 						<input type="radio" name="expand" class="fa fa-angle-double-down trigger">
 						<span class="cell stcell" data-label="#">
@@ -247,44 +249,47 @@
 							<?php echo $row->{$grouped_by}; ?>
 						</span>
 						<span class="cell stcell " data-label="Present">
-							<?php echo number_format($present,1); ?>%
+							<?php echo $row->duty_date; ?>%
+						</span>
+						<span class="cell stcell " data-label="Present">
+							<?php echo number_format($present, 1); ?>%
 						</span>
 						<span class="cell stcell " data-label="Off Duty">
-						<?php echo number_format($off,1); ?>%
+							<?php echo number_format($off, 1); ?>%
 						</span>
 						<span class="cell stcell " data-label="Official Request">
-							<?php echo number_format($official,1); ?>%
+							<?php echo number_format($official, 1); ?>%
 						</span>
 						<span class="cell stcell " data-label="Leave">
-							<?php echo number_format($on_leave,1); ?>%	
+							<?php echo number_format($on_leave, 1); ?>%
 						</span>
 						<span class="cell stcell " data-label="Holiday">
-							<?php echo number_format($holiday,1); ?>%	
+							<?php echo number_format($holiday, 1); ?>%
 						</span>
 						<span class="cell stcell " data-label="Absent">
-							<?php echo number_format($absent,1); ?>	%
+							<?php echo number_format($absent, 1); ?> %
 						</span>
-						<span class="cell stcell " data-label="% Present"><?php  echo number_format($attendance_rate,1) ?>%</span>
-						<span class="cell stcell "  data-label="% Absent"><?php  echo number_format($absentism_rate,1) ?>%</span>
-			
+						<span class="cell stcell " data-label="% Present"><?php echo number_format($attendance_rate, 1) ?>%</span>
+						<span class="cell stcell " data-label="% Absent"><?php echo number_format($absentism_rate, 1) ?>%</span>
+
 					</div>
 				<?php
 					$no++;
-				} 
+				}
 
 				?>
 
 				<div class="header-row tbrow">
 					<span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
-					<span class="cell stcell"><?php echo  ucwords(str_replace("_"," ",$grouped_by));; ?></span>
-					<span class="cell stcell "><?php echo number_format(($total_present/$count),1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_off/$count),1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_official/$count),1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_leave/$count),1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_holiday/$count),1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format(($total_absent/$count),1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format($total_attendance_rate/$count,1); ?>%</span>
-					<span class="cell stcell "><?php echo number_format($total_absentism_rate/$count,1); ?>%</span>
+					<span class="cell stcell"><?php echo  ucwords(str_replace("_", " ", $grouped_by));; ?></span>
+					<span class="cell stcell "><?php echo number_format(($total_present / $count), 1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_off / $count), 1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_official / $count), 1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_leave / $count), 1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_holiday / $count), 1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format(($total_absent / $count), 1); ?>% </span>
+					<span class="cell stcell "><?php echo number_format($total_attendance_rate / $count, 1); ?>%</span>
+					<span class="cell stcell "><?php echo number_format($total_absentism_rate / $count, 1); ?>%</span>
 				</div>
 
 			</div>
