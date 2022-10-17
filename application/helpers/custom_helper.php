@@ -122,14 +122,14 @@ if (!function_exists('truncate')) {
 }
 
 if (!function_exists('paginate')) {
-function paginate($route,$totals,$perPage=20,$segment=2)
+    function paginate($route, $totals, $perPage = 20, $segment = 2)
     {
-        $ci =& get_instance();
+        $ci = &get_instance();
         $config = array();
-        
+
         //get_search_links gets us all data from search form as flashed
 
-        $config["base_url"] = base_url().$route;
+        $config["base_url"] = base_url() . $route;
         $config["total_rows"]     = $totals;
         $config["per_page"]       = $perPage;
         $config["uri_segment"]    = $segment;
@@ -155,7 +155,7 @@ function paginate($route,$totals,$perPage=20,$segment=2)
         $config['num_tag_close'] = '</li>';
 
         $ci->pagination->initialize($config);
-       
+
         return $ci->pagination->create_links();
     }
 }
@@ -300,7 +300,7 @@ if (!function_exists('flash_form')) {
         $ci = &get_instance();
 
         if ($data == null)
-            $data = ($ci->input->post())?$ci->input->post():$ci->input->get();
+            $data = ($ci->input->post()) ? $ci->input->post() : $ci->input->get();
 
         $ci->session->set_flashdata($key, $data);
     }
@@ -321,15 +321,15 @@ function check_admin_access()
         redirect(base_url("admin"));
 }
 if (!function_exists('render_csv_data')) {
-    function render_csv_data($datas, $filename)
+    function render_csv_data($datas, $filename, $use_columns = true)
     {
         //datas should be assoc array
-        $csv_file = $filename.".csv";
+        $csv_file = $filename . ".csv";
         header("Content-Type: text/csv");
         header("Content-Disposition: attachment; filename=\"$csv_file\"");
         $fh = fopen('php://output', 'w');
 
-        $is_coloumn = true;
+        $is_coloumn = $use_columns;
         if (!empty($datas)) {
             foreach ($datas as $data) {
 
@@ -348,26 +348,26 @@ if (!function_exists('render_csv_data')) {
 
 
 if (!function_exists('request_fields')) {
-    function request_fields($field=null,$allFields=true)
+    function request_fields($field = null, $allFields = true)
     { //get data from POST or GET
-     if(!$allFields || $field):
-       return (isset($_POST[$field]))?$_POST[$field]:((isset($_GET[$field]))?$_GET[$field]:"");
-     else:
-       return (!empty($_POST))?$_POST:((!empty($_GET))?$_GET:[]);
-     endif;
+        if (!$allFields || $field) :
+            return (isset($_POST[$field])) ? $_POST[$field] : ((isset($_GET[$field])) ? $_GET[$field] : "");
+        else :
+            return (!empty($_POST)) ? $_POST : ((!empty($_GET)) ? $_GET : []);
+        endif;
     }
 }
 
 if (!function_exists('full_url')) {
-function full_url($new_params=null){
+    function full_url($new_params = null)
+    {
 
-    $currentURL = current_url(); //http://myhost/main
+        $currentURL = current_url(); //http://myhost/main
 
-    $params   = $_SERVER['QUERY_STRING']; //my_id=1,3
+        $params   = $_SERVER['QUERY_STRING']; //my_id=1,3
 
-    $fullURL = $currentURL . '?' . $params; 
+        $fullURL = $currentURL . '?' . $params;
 
-    return ($new_params)?$fullURL."&".$new_params:$fullURL;
+        return ($new_params) ? $fullURL . "&" . $new_params : $fullURL;
+    }
 }
-}
-

@@ -287,7 +287,7 @@ class Reports extends MX_Controller
 
 		array_push($exportable, $footer_row);
 
-		render_csv_data($exportable, "attendance_aggregates_" . time());
+		render_csv_data($exportable, "attendance_aggregates_" . time(), false);
 	}
 	public function person_attendance_all()
 	{
