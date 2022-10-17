@@ -194,26 +194,4 @@ class Reports_mdl extends CI_Model
 			}
 		}
 	}
-
-	public function count_person_attendance($filters = null)
-	{
-
-		$this->apply_aggregation_filter($filters);
-
-		$this->db->from("person_att_final");
-		$query = $this->db->get();
-
-		return $query->num_rows();
-	}
-	public function  person_attendance_all($filters = null, $limit = NULL, $start = NULL)
-	{
-
-		if ($limit)
-			$this->db->limit($limit, $start);
-
-		$this->apply_aggregation_filter($filters);
-
-		$data = $this->db->get("person_att_final")->result();
-		return $data;
-	}
 }

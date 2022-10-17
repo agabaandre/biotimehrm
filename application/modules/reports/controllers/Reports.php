@@ -250,56 +250,5 @@ class Reports extends MX_Controller
 		render_csv_data($exportable, "attendance_aggregates_" . time());
 	}
 
-	public function person_attendance_all()
-	{
-		$search    = request_fields();
-		$year      =  request_fields('year');
-		$month     =  request_fields('month');
-		$csv       =  request_fields('csv');
-
-		flash_form();
-
-		if (empty($year)) {
-			$year  = date('Y');
-			$month = date('m');
-		}
-
-		$valid_rangeto = $year . "-" . $month;
-
-		$search['duty_date'] = $valid_rangeto;
-
-		$totals   = $this->reports_mdl->count_person_attendance($search);
-		$route    = "reports/attendance_aggregate";
-		$per_page = (request_fields('rows')) ? request_fields('rows') : 140;
-		$segment  = 3;
-		$page     = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
-
-		$data['links']      = paginate($route, $totals, $per_page, $segment);
-		$data['records']    = $this->reports_mdl->person_attendance_all($search, $per_page, $page);
-
-		if ($csv) {
-
-			$this->export_attendance_all_csv($data['records']);
-			return;
-		}
-
-		$data['module']     = $this->module;
-		$data['search']     = (object) $search;
-		$data['period']     = $valid_rangeto;
-		$data['districts']  = $this->districts_mdl->get_all_Districts();
-		$data['facilities'] = $this->facilities_mdl->getAll();
-
-		$data['view']       = 'person_attendance_all';
-		$data['title']      = 'Attendance Form Summary';
-		$data['uptitle']    = 'Attendance Form Summary';
-
-
-		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "facility"];
-
-		echo Modules::run('templates/main', $data);
-	}
-
-	public function export_attendance_all_csv($records)
-	{
-	}
+	
 }
