@@ -213,7 +213,7 @@ class Reports extends MX_Controller
 		$data['uptitle']    = 'Attendance Form Summary';
 
 
-		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "facility"];
+		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "facility", "region", "department"];
 
 		echo Modules::run('templates/main', $data);
 	}
