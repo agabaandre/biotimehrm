@@ -282,6 +282,7 @@
 				<div class="header-row tbrow">
 					<span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
 					<span class="cell stcell"><?php echo  ucwords(str_replace("_", " ", $grouped_by));; ?></span>
+					<span class="cell stcell ">Period </span>
 					<span class="cell stcell "><?php echo number_format(($total_present / $count), 1); ?>% </span>
 					<span class="cell stcell "><?php echo number_format(($total_off / $count), 1); ?>% </span>
 					<span class="cell stcell "><?php echo number_format(($total_official / $count), 1); ?>% </span>
