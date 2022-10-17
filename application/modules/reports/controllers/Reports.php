@@ -373,7 +373,7 @@ class Reports extends MX_Controller
 			$absent = $month_days - ($row->P + $row->O + $row->R + $row->L);
 			$abrate = number_format(($absent / $month_days), 1) * 100;
 
-			$row =  [$row->fullname, $row->district, $row->facility_name, $row->duty_date, $row->P, $row->O, $row->R, $row->L, $absent, $abrate];
+			$row =  [$row->fullname, $row->district, $row->facility_name, $row->duty_date, $row->P, $row->O, $row->R, $row->L, $row->H, $absent, $abrate];
 
 			array_push($exportable, $row);
 		}
