@@ -1,83 +1,271 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-require APPPATH . 'libraries/REST_Controller.php';
+// Load Rest_Controller
+use chriskacerguis\RestServer\RestController;
 
-class Api extends REST_Controller
-{
-    public function __construct()
-    {
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
+class Api extends RestController {
+
+    public function __construct() {
         parent::__construct();
-        $this->load->model('Auth_Model', 'auth_model');
-        $this->load->model('Employee_Model', 'employee_model');
-    }
-    public function index_get()
-    {
-        echo "HRM ATTEND API";
-    }
-    public function login()
-    {
+        $this->load->model('auth_model', 'mAuth');
+        $this->load->model('employee_model', 'mEmployee');
 
+    }
+
+    public function checkAuth() {
+        $headers = $this->input->request_headers();
+        if (isset($headers['Authorization'])) {
+            $token = $headers['Authorization'];
+
+            //Remove Bearer from string
+            $token = str_replace('Bearer ', '', $token);
+
+            $decoded = JWT::decode($token, new Key('qwerty@1234567890', 'HS256'));
+            if ($decoded) {
+                return $decoded;
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'You are not authorized to access this page',
+                ], 401);
+            }
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Unable to authorize this request. Please try again',
+            ], 401);
+        }
+    }
+
+    
+
+    public function login_post() {
+        $username = $this->post('username');
+        $password = $this->post('password');
+
+        $result = $this->mAuth->login($username, $password);
+
+        // Create JWT Token
+        $token = JWT::encode([
+            'user_id' => $result->user_id,
+            'iss' => "health.go.ug",
+            'aud' => "health.go.ug",
+            'iat' => time(),
+            'exp' => time() + 60 * 60 * 24 * 1,
+        ], 'qwerty@1234567890', 'HS256');
+
+        if($result != null) {  
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Login successful',
+                'data' => [
+                    'user' => $result,
+                    'token' => $token,
+                ]
+            ], 200);
+        }
+
+        $this->response([
+            'status' => 'FAILED',
+            'message' => 'Login failed'
+        ], 401);
+    }
+
+    // Get Staff List
+    public function staff_get() {
+
+        $this->checkAuth();
         
+        $facilityId = $this->get('facility_id', true);
+
+        $result = $this->mEmployee->get_staff_list($facilityId);
+        if($result != null) {
+            $this->response([
+                'status' => true,
+                'message' => 'Staff list',
+                'data' => [
+                    'staff' => $result
+                ]
+            ], 200);
+        }
+
+        $this->response([
+            'status' => false,
+            'message' => 'No staff found'
+        ], 404);
     }
 
-    public function clock_user($data)
-    {
-        //
-        $userdata = $this->input->post();
-        $result = $this->employee_model->clock_user($userdata);
-        echo json_encode($result);
+    // Enroll Users
+    public function enroll_users_post() {
+
+        $this->checkAuth();
+
+        //Array of enrolled ids
+        $enrolled_ids = array();
+
+        $data = $this->post();
+       // For Each Data as a record
+        foreach($data as $record) {
+            $userRecord =  array();
+            $userRecord['entry_id'] = $record['entry_id'];
+            $userRecord['ihris_pid'] = $record['ihris_pid'];
+            $userRecord['facility_id'] = $record['facility_id'];
+            $userRecord['face_data'] = $record['face_data'];
+            $userRecord['fingerprint'] = $record['fingerprint'];
+            $userRecord['location'] = $record['location'];
+            $userRecord['card_number'] = $record['card_number'];
+            $userRecord['enroll_date'] = $record['enroll_date'];
+            $userRecord['device'] = $record['device'];
+
+            $result = $this->mEmployee->enroll($userRecord);
+
+            if($result != null) {
+                array_push($enrolled_ids, $result);
+            }
+
+            
+        }
+        
+        if(count($enrolled_ids) > 0) {
+            $this->response([
+                'status' => true,
+                'message' => 'Enrollment successful',
+                'data' => [
+                    'enrolled_ids' => $enrolled_ids
+                ]
+            ], 200);
+        }
+
+        $this->response([
+            'status' => false,
+            'message' => 'Enrollment failed'
+        ], 404);
     }
 
-    public function clock_history($facility)
-    {
-        // to download
+    public function clock_users_post() {
+
+        $this->checkAuth();
+        
+        $data = $this->post();
+        $clocked_ids = array();
+
+        foreach($data as $record) {
+            $userRecord =  array();
+            $userRecord['entry_id'] = $record['entry_id'];
+            $userRecord['ihris_pid'] = $record['ihris_pid'];
+            $userRecord['facility_id'] = $record['facility_id'];
+            $userRecord['time_in'] = $record['time_in'];
+            $userRecord['time_out'] = $record['time_out'];
+            $userRecord['date'] = $record['date'];
+            $userRecord['status'] = $record['status'];
+            // Location, Source, Facility
+            $userRecord['location'] = $record['location'];
+            $userRecord['source'] = $record['source'];
+            $userRecord['facility'] = $record['facility'];
+
+            $result = $this->mEmployee->clock($userRecord);
+
+            if($result != null) {
+                array_push($clocked_ids, $result);
+            }
+        }
+
+        if(count($clocked_ids) > 0) {
+            $this->response([
+                'status' => true,
+                'message' => 'Clocking successful',
+                'data' => [
+                    'clocked_ids' => $clocked_ids
+                ]
+            ], 200);
+        }
+
+        $this->response([
+            'status' => false,
+            'message' => 'Clocking failed'
+        ], 401);
     }
 
-    public function enroll_user($userdata)
-    {
-        $userdata = $this->input->post();
-        $result = $this->employee_model->enroll_user($userdata);
-        echo json_encode($result);
-    }
-    public function upload_resources($userdata)
-    {
-        //image ai data set
-    }
-    public function download_resources()
-    {
-        //image ai data set
+    // Upload Device Resources
+    public function upload_fingerprints_post() {
 
-    }
-    public function get_device_status()
-    {
+        $this->checkAuth();
 
-        //Device should call the server with the location, Facility ID and Time Stamp sERIAL NUMBER
-    }
-    public function receive_notfications($facility, $all)
-    {
+        // Upload Fingerprints of file_type fpt
+        $config['upload_path'] = './uploads/fingerprints/';
+        $config['allowed_types'] = 'fpt';
+        $config['max_size'] = 10000;
+        $config['overwrite'] = TRUE;
 
-        //Device should call the server with the location, Facility ID and Time Stamp sERIAL NUMBER
-    }
+        $this->load->library('upload', $config);
 
-    public function enrolled_users($facilityId)
-    {
-        $result = $this->employee_model->get_enrolled_employees(urldecode($facilityId));
-        echo json_encode($result);
+        if (!$this->upload->do_upload('fingerprint')) {
+            $this->response([
+                'status' => false,
+                'message' => $this->upload->display_errors()
+            ], 401);
+        } else {
+            $this->response([
+                'status' => true,
+                'message' => 'Fingerprint uploaded successfully'
+            ], 200);
+        }
     }
 
-    public function employees($facility)
-    {
-        //provides an employee list for enrollment
-    }
-//individual logins int the app
-    public function sendRequest()
-    {
-        //File upload
+    public function upload_faces_post() {
 
+        $this->checkAuth();
+
+        // Upload Faces of file_type jpg
+        $config['upload_path'] = './uploads/faces/';
+        $config['allowed_types'] = 'jpg';
+        $config['max_size'] = 10000;
+        $config['overwrite'] = TRUE;
+
+        $this->load->library('upload', $config);
+
+        if (!$this->upload->do_upload('face')) {
+            $this->response([
+                'status' => false,
+                'message' => $this->upload->display_errors()
+            ], 401);
+        } else {
+            $this->response([
+                'status' => true,
+                'message' => 'Face uploaded successfully'
+            ], 200);
+        }
     }
-    public function getRequest_Status($user)
-    {
-        //order by date
+
+    // Check Device Time in sync with server
+    public function check_time_get() {
+
+        $this->checkAuth();
+
+        $time = $this->get('time', true);
+
+        // Get current server time
+        $serverTime = date('Y-m-d H:i:s');
+
+        // Convert both to milliseconds from epoch and compare
+        $time = strtotime($time) * 1000;
+        $serverTime = strtotime($serverTime) * 1000;
+
+        // They must be almost identical
+        if(abs($time - $serverTime) < 1000) {
+            $this->response([
+                'status' => true,
+                'message' => 'Time in sync'
+            ], 200);
+        }
+
+        $this->response([
+            'status' => false,
+            'message' => 'Time not in sync'
+        ], 401);
     }
 }
