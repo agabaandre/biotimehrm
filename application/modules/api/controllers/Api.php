@@ -7,16 +7,18 @@ use chriskacerguis\RestServer\RestController;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-class Api extends RestController {
+class Api extends RestController
+{
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         $this->load->model('auth_model', 'mAuth');
         $this->load->model('employee_model', 'mEmployee');
-
     }
 
-    public function checkAuth() {
+    public function checkAuth()
+    {
         $headers = $this->input->request_headers();
         if (isset($headers['Authorization'])) {
             $token = $headers['Authorization'];
@@ -41,9 +43,10 @@ class Api extends RestController {
         }
     }
 
-    
 
-    public function login_post() {
+
+    public function login_post()
+    {
         $username = $this->post('username');
         $password = $this->post('password');
 
@@ -58,7 +61,7 @@ class Api extends RestController {
             'exp' => time() + 60 * 60 * 24 * 1,
         ], 'qwerty@1234567890', 'HS256');
 
-        if($result != null) {  
+        if ($result != null) {
             $this->response([
                 'status' => 'SUCCESS',
                 'message' => 'Login successful',
@@ -76,14 +79,15 @@ class Api extends RestController {
     }
 
     // Get Staff List
-    public function staff_get() {
+    public function staff_get()
+    {
 
         $this->checkAuth();
-        
+
         $facilityId = $this->get('facility_id', true);
 
         $result = $this->mEmployee->get_staff_list($facilityId);
-        if($result != null) {
+        if ($result != null) {
             $this->response([
                 'status' => true,
                 'message' => 'Staff list',
@@ -100,7 +104,8 @@ class Api extends RestController {
     }
 
     // Enroll Users
-    public function enroll_users_post() {
+    public function enroll_users_post()
+    {
 
         $this->checkAuth();
 
@@ -108,8 +113,8 @@ class Api extends RestController {
         $enrolled_ids = array();
 
         $data = $this->post();
-       // For Each Data as a record
-        foreach($data as $record) {
+        // For Each Data as a record
+        foreach ($data as $record) {
             $userRecord =  array();
             $userRecord['entry_id'] = $record['entry_id'];
             $userRecord['ihris_pid'] = $record['ihris_pid'];
@@ -123,14 +128,12 @@ class Api extends RestController {
 
             $result = $this->mEmployee->enroll($userRecord);
 
-            if($result != null) {
+            if ($result != null) {
                 array_push($enrolled_ids, $result);
             }
-
-            
         }
-        
-        if(count($enrolled_ids) > 0) {
+
+        if (count($enrolled_ids) > 0) {
             $this->response([
                 'status' => true,
                 'message' => 'Enrollment successful',
@@ -146,14 +149,15 @@ class Api extends RestController {
         ], 404);
     }
 
-    public function clock_users_post() {
+    public function clock_users_post()
+    {
 
         $this->checkAuth();
-        
+
         $data = $this->post();
         $clocked_ids = array();
 
-        foreach($data as $record) {
+        foreach ($data as $record) {
             $userRecord =  array();
             $userRecord['entry_id'] = $record['entry_id'];
             $userRecord['ihris_pid'] = $record['ihris_pid'];
@@ -169,12 +173,12 @@ class Api extends RestController {
 
             $result = $this->mEmployee->clock($userRecord);
 
-            if($result != null) {
+            if ($result != null) {
                 array_push($clocked_ids, $result);
             }
         }
 
-        if(count($clocked_ids) > 0) {
+        if (count($clocked_ids) > 0) {
             $this->response([
                 'status' => true,
                 'message' => 'Clocking successful',
@@ -191,7 +195,8 @@ class Api extends RestController {
     }
 
     // Upload Device Resources
-    public function upload_fingerprints_post() {
+    public function upload_fingerprints_post()
+    {
 
         $this->checkAuth();
 
@@ -216,7 +221,8 @@ class Api extends RestController {
         }
     }
 
-    public function upload_faces_post() {
+    public function upload_faces_post()
+    {
 
         $this->checkAuth();
 
@@ -242,7 +248,8 @@ class Api extends RestController {
     }
 
     // Check Device Time in sync with server
-    public function check_time_get() {
+    public function check_time_get()
+    {
 
         $this->checkAuth();
 
@@ -256,7 +263,7 @@ class Api extends RestController {
         $serverTime = strtotime($serverTime) * 1000;
 
         // They must be almost identical
-        if(abs($time - $serverTime) < 1000) {
+        if (abs($time - $serverTime) < 1000) {
             $this->response([
                 'status' => true,
                 'message' => 'Time in sync'
