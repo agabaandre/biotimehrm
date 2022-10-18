@@ -191,7 +191,7 @@ class Api extends RestController {
     }
 
     // Upload Device Resources
-    public function upload_fingerprints() {
+    public function upload_fingerprints_post() {
 
         $this->checkAuth();
 
@@ -216,7 +216,7 @@ class Api extends RestController {
         }
     }
 
-    public function upload_faces() {
+    public function upload_faces_post() {
 
         $this->checkAuth();
 
@@ -268,6 +268,4 @@ class Api extends RestController {
             'message' => 'Time not in sync'
         ], 401);
     }
-
-    
 }
