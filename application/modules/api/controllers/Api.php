@@ -4,13 +4,44 @@ defined('BASEPATH') or exit('No direct script access allowed');
 // Load Rest_Controller
 use chriskacerguis\RestServer\RestController;
 
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
 class Api extends RestController {
 
     public function __construct() {
         parent::__construct();
         $this->load->model('auth_model', 'mAuth');
         $this->load->model('employee_model', 'mEmployee');
+
     }
+
+    public function checkAuth() {
+        $headers = $this->input->request_headers();
+        if (isset($headers['Authorization'])) {
+            $token = $headers['Authorization'];
+
+            //Remove Bearer from string
+            $token = str_replace('Bearer ', '', $token);
+
+            $decoded = JWT::decode($token, new Key('qwerty@1234567890', 'HS256'));
+            if ($decoded) {
+                return $decoded;
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'You are not authorized to access this page',
+                ], 401);
+            }
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Unable to authorize this request. Please try again',
+            ], 401);
+        }
+    }
+
+    
 
     public function login_post() {
         $username = $this->post('username');
@@ -18,24 +49,37 @@ class Api extends RestController {
 
         $result = $this->mAuth->login($username, $password);
 
+        // Create JWT Token
+        $token = JWT::encode([
+            'user_id' => $result->user_id,
+            'iss' => "health.go.ug",
+            'aud' => "health.go.ug",
+            'iat' => time(),
+            'exp' => time() + 60 * 60 * 24 * 1,
+        ], 'qwerty@1234567890', 'HS256');
+
         if($result != null) {  
             $this->response([
-                'status' => true,
+                'status' => 'SUCCESS',
                 'message' => 'Login successful',
                 'data' => [
-                    'user' => $result
+                    'user' => $result,
+                    'token' => $token,
                 ]
             ], 200);
         }
 
         $this->response([
-            'status' => false,
+            'status' => 'FAILED',
             'message' => 'Login failed'
         ], 401);
     }
 
     // Get Staff List
     public function staff_get() {
+
+        $this->checkAuth();
+        
         $facilityId = $this->get('facility_id', true);
 
         $result = $this->mEmployee->get_staff_list($facilityId);
@@ -57,6 +101,9 @@ class Api extends RestController {
 
     // Enroll Users
     public function enroll_users_post() {
+
+        $this->checkAuth();
+
         //Array of enrolled ids
         $enrolled_ids = array();
 
@@ -100,6 +147,9 @@ class Api extends RestController {
     }
 
     public function clock_users_post() {
+
+        $this->checkAuth();
+        
         $data = $this->post();
         $clocked_ids = array();
 
@@ -137,6 +187,85 @@ class Api extends RestController {
         $this->response([
             'status' => false,
             'message' => 'Clocking failed'
+        ], 401);
+    }
+
+    // Upload Device Resources
+    public function upload_fingerprints() {
+
+        $this->checkAuth();
+
+        // Upload Fingerprints of file_type fpt
+        $config['upload_path'] = './uploads/fingerprints/';
+        $config['allowed_types'] = 'fpt';
+        $config['max_size'] = 10000;
+        $config['overwrite'] = TRUE;
+
+        $this->load->library('upload', $config);
+
+        if (!$this->upload->do_upload('fingerprint')) {
+            $this->response([
+                'status' => false,
+                'message' => $this->upload->display_errors()
+            ], 401);
+        } else {
+            $this->response([
+                'status' => true,
+                'message' => 'Fingerprint uploaded successfully'
+            ], 200);
+        }
+    }
+
+    public function upload_faces() {
+
+        $this->checkAuth();
+
+        // Upload Faces of file_type jpg
+        $config['upload_path'] = './uploads/faces/';
+        $config['allowed_types'] = 'jpg';
+        $config['max_size'] = 10000;
+        $config['overwrite'] = TRUE;
+
+        $this->load->library('upload', $config);
+
+        if (!$this->upload->do_upload('face')) {
+            $this->response([
+                'status' => false,
+                'message' => $this->upload->display_errors()
+            ], 401);
+        } else {
+            $this->response([
+                'status' => true,
+                'message' => 'Face uploaded successfully'
+            ], 200);
+        }
+    }
+
+    // Check Device Time in sync with server
+    public function check_time_get() {
+
+        $this->checkAuth();
+
+        $time = $this->get('time', true);
+
+        // Get current server time
+        $serverTime = date('Y-m-d H:i:s');
+
+        // Convert both to milliseconds from epoch and compare
+        $time = strtotime($time) * 1000;
+        $serverTime = strtotime($serverTime) * 1000;
+
+        // They must be almost identical
+        if(abs($time - $serverTime) < 1000) {
+            $this->response([
+                'status' => true,
+                'message' => 'Time in sync'
+            ], 200);
+        }
+
+        $this->response([
+            'status' => false,
+            'message' => 'Time not in sync'
         ], 401);
     }
 
