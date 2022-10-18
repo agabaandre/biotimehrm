@@ -173,6 +173,8 @@ class Reports extends MX_Controller
 
 			$search['year']  = $year;
 			$search['month'] = $month;
+			$search['facility_name'] = $_SESSION['facility'];
+			$search['district'] = $_SESSION['district'];
 		}
 
 
@@ -314,6 +316,8 @@ class Reports extends MX_Controller
 
 			$search['year'] = $year;
 			$search['month'] = $month;
+			$search['facility_name'] = $_SESSION['facility'];
+			$search['district'] = $_SESSION['district'];
 		}
 
 
