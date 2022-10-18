@@ -75,7 +75,7 @@ $variables = Modules::run("svariables/getSettings");
             <div class="col-sm-4">
               <div class="form-group">
                 <label>District</label>
-                <select onChange="getFacs($(this).val());" name="district_id" class="form-control select2 sdistrict" style="width:100%;">
+                <select onChange="getuserFacs($(this).val());" name="district_id" class="form-control select2 userdistrict" style="width:100%;">
                   <option value="" disabled selected>DISTRICT</option>
                   <?php foreach ($districts as $district) :
                   ?>
@@ -89,7 +89,8 @@ $variables = Modules::run("svariables/getSettings");
             <div class="col-sm-4">
               <div class="form-group">
                 <label>Facility</label>
-                <select id="facility" onChange="getDeps($(this).val());" name="facility_id" class="form-control select2 sfacility" style="width:100%;">
+                <select id="facility" onChange="getuserDeps($(this).val());" name="facility_id[]" class="form-control select2 userfacility" style="width:100%;" multiple>
+
 
                   <option value="" disabled selected>FACILITY</option>
 
@@ -102,7 +103,7 @@ $variables = Modules::run("svariables/getSettings");
             <div class="col-sm-4">
               <div class="form-group">
                 <label>Department</label>
-                <select id="department" name="department_id" class="form-control select2 sdepartment" style="width:100%;">
+                <select id="department" name="department_id" class="form-control select2 userdepartment" style="width:100%;">
                   <option value="" disabled selected>DEPARTMENT</option>
 
                 </select>
@@ -440,4 +441,29 @@ $variables = Modules::run("svariables/getSettings");
 
 
     }); //doc ready
+    //get user facilities
+    function getuserFacs(val) {
+      $.ajax({
+        method: "GET",
+        url: "<?php echo base_url(); ?>departments/get_facilities",
+        data: 'dist_data=' + val,
+        success: function(data) {
+          //alert(data);
+          $(".userfacility").html(data);
+        }
+      });
+    }
+    //get user deps
+    function getDeps(val) {
+      $.ajax({
+        method: "GET",
+        url: "<?php echo base_url(); ?>departments/get_departments",
+        data: 'fac_data=' + val,
+        success: function(data) {
+          //alert(data);
+          $(".sdepartment").html(data);
+        }
+        //  console.log('iwioowiiwoow');
+      });
+    }
   </script>

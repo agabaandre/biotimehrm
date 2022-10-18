@@ -88,6 +88,14 @@ $permissions = $userdata['permissions'];
       margin-right: 4px;
     }
 
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+      background-color: #37989d;
+      border-color: #37989d;
+      color: #fff;
+      padding: 0 10px;
+      margin-top: 0.31rem;
+    }
+
     .fa-circle {
       color: #37989d;
       font-size: 6px !important;

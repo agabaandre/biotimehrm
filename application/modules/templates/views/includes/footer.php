@@ -319,14 +319,14 @@ $linkquery = $url; // Outputs: Full URL
         });
     }
 
-    function getDeps(val) {
+    function getuserDeps(val) {
         $.ajax({
             method: "GET",
             url: "<?php echo base_url(); ?>departments/get_departments",
             data: 'fac_data=' + val,
             success: function(data) {
                 //alert(data);
-                $(".sdepartment").html(data);
+                $(".userdepartment").html(data);
             }
             //  console.log('iwioowiiwoow');
         });

@@ -112,13 +112,13 @@
 									<?php
 									if (count($sums) > 0) {
 									?>
-										<a href="<?php echo base_url() ?>attendance/print_attsummary/<?php echo $year . "-" . $month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
+										<a href="<?php echo base_url() ?>attendance/print_attsummary/<?php echo $year . "-" . $month; ?>/<?php echo $year; ?>/<?php echo $month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
 									<?php } ?>
 
 									<?php
 									if (count($sums) > 0) {
 									?>
-										<a href="<?php echo base_url(); ?>attendance/attsums_csv/<?php echo $year . "-" . $month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
+										<a href="<?php echo base_url(); ?>attendance/attsums_csv/<?php echo $year . "-" . $month; ?>/<?php echo $year; ?>/<?php echo $month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
 									<?php } ?>
 								</div>
 
@@ -210,17 +210,21 @@
 							$eve = $roster['Evening'][0]->days;
 							$night = $roster['Night'][0]->days;
 							$r_days = $day + $eve + $night;
-							echo days_absent_helper($present, $r_days); ?>
+							if ($r_days == 0) {
+								$r_days = 22;
+							}
+							echo days_absent_helper($present, $r_days);
+							?>
 						</span>
 						<span class="cell stcell " data-label="D"><?php echo $day = $roster['Day'][0]->days; ?></span>
 						<span class="cell stcell " data-label="E"><?php echo $eve = $roster['Evening'][0]->days; ?></span>
 						<span class="cell stcell " data-label="N"><?php echo $night = $roster['Night'][0]->days; ?></span>
-						<span class="cell stcell " data-label="Percentage Pr"><?php $per = round(($present / ($day + $night + $eve)) * 100, 1);
-																				if (is_infinite($per) || is_nan($per)) {
-																					echo  0;
-																				} else {
-																					echo $per;
-																				} ?> % </span>
+						<span class="cell stcell " data-label="Percentage Pr"><?php
+
+																				echo  per_present_helper($present, $r_days);
+																				?>
+
+						</span>
 
 					</div>
 				<?php
