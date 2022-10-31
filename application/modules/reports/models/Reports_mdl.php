@@ -153,6 +153,7 @@ class Reports_mdl extends CI_Model
 			facility_name,
 			facility_type_name,
 			cadre,
+			gender,
 			duty_date,
 			district,
 			department_id,
