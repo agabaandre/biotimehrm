@@ -7,7 +7,6 @@ class Auth_mdl extends CI_Model
 		parent::__construct();
 		$this->table = "user";
 		$this->password = Modules::run('svariables/getSettings')->default_password;
-		$this->
 	}
 	public function loginChecker($postdata)
 	{
