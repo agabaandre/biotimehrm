@@ -33,7 +33,7 @@
 				<div class="callout callout-success">
 
 
-					<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>attendance/attendance_summary" method="post">
+					<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>attendance/attendance_summary" method="get">
 						<div class="row">
 							<div class="col-md-3">
 
@@ -103,6 +103,25 @@
 
 								</div>
 							</div>
+							<div class="col-md-3">
+								<div class="control-group">
+
+
+									<?php
+
+									//print_r($facility);
+									?>
+
+									<select class="form-control select2" name="department" select2>
+										<option value="" selected disabled>Select Department</option>
+
+										<?php
+										echo $departments = Modules::run("departments/departments"); ?>
+
+									</select>
+
+								</div>
+							</div>
 
 							<div class="col-md-3">
 
@@ -155,15 +174,16 @@
 					<span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
 					<span class="cell stcell   cname">Name</span>
 					<span class="cell stcell">Job</span>
+					<span class="cell stcell">Department</span>
 					<span class="cell stcell ">Present</span>
 					<span class="cell stcell ">Off Duty</span>
 					<span class="cell stcell ">Official Request</span>
 					<span class="cell stcell ">Leave</span>
 					<span class="cell stcell ">Holiday</span>
 					<span class="cell stcell ">Absent</span>
-					<span class="cell stcell ">Day Schedule</span>
-					<span class="cell stcell ">Evening Schedule</span>
-					<span class="cell stcell ">Night Schedule</span>
+					<span class="cell stcell ">Total Days Expected</span>
+					<span class="cell stcell ">Total Days Worked</span>
+
 					<span class="cell stcell ">% Present</span>
 
 
@@ -177,8 +197,9 @@
 						<span class="cell stcell  tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no; ?>
 							<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['fullname']; ?></span></b>
 						</span>
-						<span class="cell stcell  cname" data-label="Name"><?php echo $sum['fullname'] . ' ' . $sum['othername']; ?></span>
-						<span class="cell stcell  cname" data-label="Name"><?php echo $sum['job'] ?></span>
+						<span class="cell stcell  cname" data-label="Name" style="width:15% !important;"><?php echo $sum['fullname'] . ' ' . $sum['othername']; ?></span>
+						<span class="cell stcell  cname" data-label="Job" style="width:15%;"><?php echo character_limiter($sum['job'], 15); ?></span>
+						<span class="cell stcell  cname" data-label="Department" style="width:15%;"><?php echo character_limiter($sum['department_id'], 15); ?></span>
 						<span class="cell stcell " data-label="P"><?php if (!empty($present = $sum['P'])) {
 																		echo $present;
 																	} else {
@@ -216,9 +237,9 @@
 							echo days_absent_helper($present, $r_days);
 							?>
 						</span>
-						<span class="cell stcell " data-label="D"><?php echo $day = $roster['Day'][0]->days; ?></span>
-						<span class="cell stcell " data-label="E"><?php echo $eve = $roster['Evening'][0]->days; ?></span>
-						<span class="cell stcell " data-label="N"><?php echo $night = $roster['Night'][0]->days; ?></span>
+						<span class="cell stcell " data-label="D"><?php echo  $r_days; ?></span>
+						<span class="cell stcell " data-label="D"><?php echo  $present; ?></span>
+
 						<span class="cell stcell " data-label="Percentage Pr"><?php
 
 																				echo  per_present_helper($present, $r_days);

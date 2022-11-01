@@ -129,15 +129,15 @@
 			<th>#</th>
 			<th>Name</th>
 			<th>Job</th>
+			<th>Department</th>
 			<th>Present</th>
 			<th>Off Duty</th>
 			<th>Official Request</th>
 			<th>Leave</th>
 			<th>Holiday</th>
 			<th>Absent</th>
-			<th>Day Schedule</th>
-			<th>Evening Schedule</th>
-			<th> Night Schedule</th>
+			<span class="cell stcell ">Total Days Expected</span>
+			<span class="cell stcell ">Total Days Worked</span>
 			<th> Present %</th>
 
 
@@ -157,6 +157,7 @@
 					<td data-label="no"><?php echo $no; ?></td>
 					<td data-label="Name"><?php echo $sum['fullname'] . ' ' . $sum['othername']; ?></td>
 					<td data-label="Job"><?php echo $sum['job'] ?></td>
+					<td data-label="Job"><?php echo $sum['department_id'] ?></td>
 					<td data-label="P"><?php if (!empty($present = $sum['P'])) {
 											echo $present;
 										} else {
@@ -197,9 +198,8 @@
 						?>
 
 					</td>
-					<td data-label="D"><?php echo $day = $roster['Day'][0]->days; ?></td>
-					<td data-label="E"><?php echo $eve = $roster['Evening'][0]->days; ?></td>
-					<td data-label="N"><?php echo $night = $roster['Night'][0]->days; ?></td>
+					<span class="cell stcell " data-label="D"><?php echo  $r_days; ?></span>
+					<span class="cell stcell " data-label="D"><?php echo  $present; ?></span>
 					<td data-label="Percentage Pr"><?php
 													echo  per_present_helper($present, $r_days);
 													?>

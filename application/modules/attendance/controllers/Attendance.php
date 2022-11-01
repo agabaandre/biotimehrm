@@ -30,9 +30,11 @@ class Attendance extends MX_Controller
 	}
 	public function attendance_summary()
 	{
-		$month = $this->input->post('month');
-		$year = $this->input->post('year');
-		$empid = $this->input->post('empid');
+		$month = $this->input->get('month');
+		$year = $this->input->get('year');
+		$empid = $this->input->get('empid');
+		$dep = $this->input->get('department');
+
 		if (!empty($month)) {
 			$_SESSION['month'] = $month;
 			$_SESSION['year'] = $year;
@@ -49,14 +51,15 @@ class Attendance extends MX_Controller
 			$data['month'] = $_SESSION['month'];
 			$data['year'] = $_SESSION['year'];
 		}
-		$valid_rangeto = $this->input->post('yearto') . "-" . $this->input->post('monthto');
-		if (empty($valid_rangeto)) {
-			$valid_rangeto = $date;
+		$valid_range = $this->input->get('year') . "-" . $this->input->get('month');
+		if (empty($valid_range)) {
+			$valid_range = $date;
 		}
+		$data['dates'] = $date;
 		$config = array();
 		$config['base_url'] = base_url() . "attendance/attendance_summary";
 
-		$config['total_rows'] = $this->attendance_model->countAttendanceSummary($date, $this->filters, 0, 0, $empid);
+		$config['total_rows'] = $this->attendance_model->countAttendanceSummary($date, $this->filters, 0, 0, $empid, $dep);
 		$config['per_page'] = 30; //records per page
 		$config['uri_segment'] = 3; //segment in url
 		//pagination links styling
@@ -83,7 +86,7 @@ class Attendance extends MX_Controller
 		$this->pagination->initialize($config);
 		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits
 		$data['links'] = $this->pagination->create_links();
-		$data['sums'] = $this->attendance_model->attendance_summary($date, $this->filters, $config['per_page'], $page, $empid);
+		$data['sums'] = $this->attendance_model->attendance_summary($date, $this->filters, $config['per_page'], $page, $empid, $dep);
 		$data['view'] = 'attendance_summary';
 		$data['title'] = 'Attendance Form Summary';
 		$data['uptitle'] = 'Attendance Form Summary';
@@ -92,14 +95,37 @@ class Attendance extends MX_Controller
 	}
 	public function print_attsummary($date)
 	{
-		$data['dates'] = $date;
-		$this->load->library('ML_pdf');
-		$valid_rangeto = $this->input->post('yearto') . "-" . $this->input->post('monthto');
-		if (empty($valid_rangeto)) {
-			$valid_rangeto = $date;
+		$month = $this->input->get('month');
+		$year = $this->input->get('year');
+		$empid = $this->input->get('empid');
+		$dep = $this->input->get('department');
+
+		if (!empty($month)) {
+			$_SESSION['month'] = $month;
+			$_SESSION['year'] = $year;
+			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 		}
+		if (!empty($_SESSION['year'])) {
+			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+			$data['month'] = $_SESSION['month'];
+			$data['year'] = $_SESSION['year'];
+		} else {
+			$_SESSION['month'] = date('m');
+			$_SESSION['year'] = date('Y');
+			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+			$data['month'] = $_SESSION['month'];
+			$data['year'] = $_SESSION['year'];
+		}
+		$valid_range = $this->input->get('year') . "-" . $this->input->get('month');
+		if (empty($valid_range)) {
+			$valid_range = $date;
+		}
+		$data['dates'] = $date;
+
+		$this->load->library('ML_pdf');
+
 		//$data['username']=$this->username;
-		$data['sums'] = $this->attendance_model->attendance_summary($date, $this->filters, $config['per_page'] = FALSE, $page = FALSE, $empid = FALSE);
+		$data['sums'] = $this->attendance_model->attendance_summary($date, $this->filters, $config['per_page'] = FALSE, $page = FALSE, $empid = FALSE, $dep);
 		$fac = $_SESSION['facility_name'];
 		$html = $this->load->view('summary_pdf', $data, true);
 		//$fac=$_SESSION['facility'];
@@ -118,12 +144,33 @@ class Attendance extends MX_Controller
 	}
 	public function attsums_csv($valid_range, $month, $year)
 	{
-		$valid_rangeto = $this->input->post('yearto') . "-" . $this->input->post('monthto');
-		if (empty($valid_rangeto)) {
-			$valid_rangeto = $valid_range;
-		}
+		$month = $this->input->get('month');
+		$year = $this->input->get('year');
+		$empid = $this->input->get('empid');
+		$dep = $this->input->get('department');
 
-		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid = FALSE);
+		if (!empty($month)) {
+			$_SESSION['month'] = $month;
+			$_SESSION['year'] = $year;
+			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+		}
+		if (!empty($_SESSION['year'])) {
+			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+			$data['month'] = $_SESSION['month'];
+			$data['year'] = $_SESSION['year'];
+		} else {
+			$_SESSION['month'] = date('m');
+			$_SESSION['year'] = date('Y');
+			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+			$data['month'] = $_SESSION['month'];
+			$data['year'] = $_SESSION['year'];
+		}
+		$valid_range = $this->input->get('year') . "-" . $this->input->get('month');
+		if (empty($valid_range)) {
+			$valid_range = $date;
+		}
+		$data['dates'] = $date;
+		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep);
 		$csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') . '_' . $_SESSION['facility_name'] . ".csv";
 		header("Content-Type: text/csv");
 		header("Content-Disposition: attachment; filename=\"$csv_file\"");
@@ -176,7 +223,7 @@ class Attendance extends MX_Controller
 				"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department'], "Duty Date" => $duty_date, "Present" => $present, "Off
 		Duty" => $off,
 				"Official
-		Request" => $request, "Leave" => $leave, "Holiday" => $holiday, "Absent" => $absent, "Day Schedule" => $day, "Evening Schedule" => $eve, "Night Schedule" => $night, "% Present" => $per
+		Request" => $request, "Leave" => $leave, "Holiday" => $holiday, "Absent" => $absent, "Total Days Expected" => $r_days, "Total Days Worked" => $present, "% Present" => $per
 			);
 			array_push($records, $days);
 		}

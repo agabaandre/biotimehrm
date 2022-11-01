@@ -227,38 +227,49 @@ class 	Attendance_model extends CI_Model
 		return $rows;
 	}
 
-	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL)
+	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $department = NULL)
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
-			$search = "and ihris_pid='$employee";
+			$search = "and ihris_pid='$employee'";
 		} else {
 			$search = "";
+		}
+
+		if (!empty($department)) {
+			$dep = "and department_id='$department'";
+		} else {
+			$dep = "";
 		}
 		if (!empty($start)) {
 			$limits = " LIMIT $limit,$start";
 		} else {
 			$limits = " ";
 		}
-		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
+		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search $dep  $limits");
 		$data = $query->result_array();
 		return $data;
 	} //summary
 
-	public function countAttendanceSummary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL)
+	public function countAttendanceSummary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $department = NULL)
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
-			$search = "and ihris_pid='$employee";
+			$search = "and ihris_pid='$employee'";
 		} else {
 			$search = "";
+		}
+		if (!empty($department)) {
+			$dep = "and department_id='$department'";
+		} else {
+			$dep = "";
 		}
 		if (!empty($start)) {
 			$limits = " LIMIT $limit,$start";
 		} else {
 			$limits = " ";
 		}
-		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
+		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search $dep  $limits");
 		$data = $query->num_rows();
 		return $data;
 	} //summary
