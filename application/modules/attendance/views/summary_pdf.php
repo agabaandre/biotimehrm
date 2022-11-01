@@ -158,27 +158,27 @@
 					<td data-label="Job"><?php echo $sum['job'] ?></td>
 					<td data-label="Job"><?php echo $sum['department_id'] ?></td>
 					<?php if (!empty($present = $sum['P'])) {
-						echo $present;
+						$present;
 					} else {
-						echo 0;
+						$present = 0;
 					} ?>
 					<td data-label="O"><?php if (!empty($O = $sum['O'])) {
-											echo $present;
+											echo $O;
 										} else {
 											echo 0;
 										} ?></td>
 					<td data-label="R"><?php if (!empty($R = $sum['R'])) {
-											echo $present;
+											echo $R;
 										} else {
 											echo 0;
 										} ?></td>
 					<td data-label="L"><?php if (!empty($L = $sum['L'])) {
-											echo $present;
+											echo $L;
 										} else {
 											echo 0;
 										} ?></td>
 					<td data-label="H"><?php if (!empty($H = $sum['H'])) {
-											echo $present;
+											echo $H;
 										} else {
 											echo 0;
 										} ?></td>

@@ -202,7 +202,7 @@
 						<?php if (!empty($present = $sum['P'])) {
 							$present;
 						} else {
-							echo 0;
+							$present = 0;
 						} ?>
 						<span class="cell stcell " data-label="O"><?php if (!empty($O = $sum['O'])) {
 																		echo $O;
