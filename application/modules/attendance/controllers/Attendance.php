@@ -149,27 +149,27 @@ class Attendance extends MX_Controller
 		$empid = $this->input->get('empid');
 		$dep = $this->input->get('department');
 
-		if (!empty($month)) {
-			$_SESSION['month'] = $month;
-			$_SESSION['year'] = $year;
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
-		}
-		if (!empty($_SESSION['year'])) {
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
-			$data['month'] = $_SESSION['month'];
-			$data['year'] = $_SESSION['year'];
-		} else {
-			$_SESSION['month'] = date('m');
-			$_SESSION['year'] = date('Y');
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
-			$data['month'] = $_SESSION['month'];
-			$data['year'] = $_SESSION['year'];
-		}
-		$valid_range = $this->input->get('year') . "-" . $this->input->get('month');
-		if (empty($valid_range)) {
-			$valid_range = $date;
-		}
-		$data['dates'] = $date;
+		// if (!empty($month)) {
+		// 	$_SESSION['month'] = $month;
+		// 	$_SESSION['year'] = $year;
+		// 	$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+		// }
+		// if (!empty($_SESSION['year'])) {
+		// 	$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+		// 	$data['month'] = $_SESSION['month'];
+		// 	$data['year'] = $_SESSION['year'];
+		// } else {
+		// 	$_SESSION['month'] = date('m');
+		// 	$_SESSION['year'] = date('Y');
+		// 	$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+		// 	$data['month'] = $_SESSION['month'];
+		// 	$data['year'] = $_SESSION['year'];
+		// }
+		// $valid_range = $this->input->get('year') . "-" . $this->input->get('month');
+		// if (empty($valid_range)) {
+		// 	$valid_range = $date;
+		// }
+		// $data['dates'] = $date;
 		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep);
 		$csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') . '_' . $_SESSION['facility_name'] . ".csv";
 		header("Content-Type: text/csv");
