@@ -223,7 +223,7 @@ class Attendance extends MX_Controller
 				"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department'], "Duty Date" => $duty_date, "Off
 		Duty" => $off,
 				"Official
-		Request" => $request, "Leave" => $leave, "Holiday" => $holiday, "Absent" => $absent, "Total Days Expected" => $r_days, "Total Days Worked" => $present, "% Present" => $per
+		Request" => $request, "Leave" => $leave, "Holiday" => $holiday,  "Total Days Expected" => $r_days, "Total Days Worked" => $present, "Total Days Absent" => $absent, "% Present" => $per
 			);
 			array_push($records, $days);
 		}

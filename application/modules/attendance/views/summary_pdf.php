@@ -134,9 +134,9 @@
 			<th>Official Request</th>
 			<th>Leave</th>
 			<th>Holiday</th>
-			<th>Absent</th>
-			<span class="cell stcell ">Total Days Expected</span>
-			<span class="cell stcell ">Total Days Worked</span>
+			<th>Total Days Expected</th>
+			<th>Total Days Worked</th>
+			<th>Total Days Absent</th>
 			<th> Present %</th>
 
 
@@ -182,23 +182,24 @@
 										} else {
 											echo 0;
 										} ?></td>
-					<td>
-						<?php $roster = Modules::run('attendance/attrosta', $dates, urlencode($sum['ihris_pid']));
 
-						$day = $roster['Day'][0]->days;
-						$eve = $roster['Evening'][0]->days;
-						$night = $roster['Night'][0]->days;
-						$r_days = $day + $eve + $night;
-						if ($r_days == 0) {
-							$r_days = 22;
-						}
-						echo days_absent_helper($present, $r_days);
+					<?php $roster = Modules::run('attendance/attrosta', $dates, urlencode($sum['ihris_pid']));
 
-						?>
+					$day = $roster['Day'][0]->days;
+					$eve = $roster['Evening'][0]->days;
+					$night = $roster['Night'][0]->days;
+					$r_days = $day + $eve + $night;
+					if ($r_days == 0) {
+						$r_days = 22;
+					}
 
-					</td>
-					<span class="cell stcell " data-label="D"><?php echo  $r_days; ?></span>
-					<span class="cell stcell " data-label="D"><?php echo  $present; ?></span>
+
+					?>
+
+
+					<td><?php echo  $r_days; ?></td>
+					<td><?php echo  $present; ?></td>
+					<td><?php echo days_absent_helper($present, $r_days); ?></td>
 					<td data-label="Percentage Pr"><?php
 													echo  per_present_helper($present, $r_days);
 													?>
