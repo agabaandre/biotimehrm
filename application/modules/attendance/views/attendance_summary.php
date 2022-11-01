@@ -175,7 +175,6 @@
 					<span class="cell stcell   cname">Name</span>
 					<span class="cell stcell">Job</span>
 					<span class="cell stcell">Department</span>
-					<span class="cell stcell ">Present</span>
 					<span class="cell stcell ">Off Duty</span>
 					<span class="cell stcell ">Official Request</span>
 					<span class="cell stcell ">Leave</span>
@@ -200,11 +199,11 @@
 						<span class="cell stcell  cname" data-label="Name" style="width:15% !important;"><?php echo $sum['fullname'] . ' ' . $sum['othername']; ?></span>
 						<span class="cell stcell  cname" data-label="Job" style="width:15%;"><?php echo character_limiter($sum['job'], 15); ?></span>
 						<span class="cell stcell  cname" data-label="Department" style="width:15%;"><?php echo character_limiter($sum['department_id'], 15); ?></span>
-						<span class="cell stcell " data-label="P"><?php if (!empty($present = $sum['P'])) {
-																		echo $present;
-																	} else {
-																		echo 0;
-																	} ?></span>
+						<?php if (!empty($present = $sum['P'])) {
+							$present;
+						} else {
+							echo 0;
+						} ?>
 						<span class="cell stcell " data-label="O"><?php if (!empty($O = $sum['O'])) {
 																		echo $O;
 																	} else {

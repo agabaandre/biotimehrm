@@ -220,7 +220,7 @@ class Attendance extends MX_Controller
 
 			$per =  per_present_helper($present, $r_days);
 			$days = array(
-				"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department'], "Duty Date" => $duty_date, "Present" => $present, "Off
+				"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department'], "Duty Date" => $duty_date, "Off
 		Duty" => $off,
 				"Official
 		Request" => $request, "Leave" => $leave, "Holiday" => $holiday, "Absent" => $absent, "Total Days Expected" => $r_days, "Total Days Worked" => $present, "% Present" => $per

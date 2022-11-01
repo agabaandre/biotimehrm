@@ -130,7 +130,6 @@
 			<th>Name</th>
 			<th>Job</th>
 			<th>Department</th>
-			<th>Present</th>
 			<th>Off Duty</th>
 			<th>Official Request</th>
 			<th>Leave</th>
@@ -158,11 +157,11 @@
 					<td data-label="Name"><?php echo $sum['fullname'] . ' ' . $sum['othername']; ?></td>
 					<td data-label="Job"><?php echo $sum['job'] ?></td>
 					<td data-label="Job"><?php echo $sum['department_id'] ?></td>
-					<td data-label="P"><?php if (!empty($present = $sum['P'])) {
-											echo $present;
-										} else {
-											echo 0;
-										} ?></td>
+					<?php if (!empty($present = $sum['P'])) {
+						echo $present;
+					} else {
+						echo 0;
+					} ?>
 					<td data-label="O"><?php if (!empty($O = $sum['O'])) {
 											echo $present;
 										} else {
