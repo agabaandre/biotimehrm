@@ -119,8 +119,8 @@ class Api extends RestController
         $enrolled_ids = array();
 
         $data = $this->post();
-        // For Each Data as a record
-        foreach ($data as $record) {
+         // For Each Data as a record
+        foreach  ($data as $record) {
             $userRecord =  array();
             $userRecord['entry_id'] = $record['entry_id'];
             $userRecord['ihris_pid'] = $record['ihris_pid'];
@@ -281,3 +281,4 @@ class Api extends RestController
         ], 401);
     }
 }
+

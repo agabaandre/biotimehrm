@@ -11,11 +11,9 @@ class Auth_mdl extends CI_Model
 	public function loginChecker($postdata)
 	{
 		$username = $postdata['username'];
-		$password = md5($postdata['password']);
 		if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
 			//login using username
 			$this->db->where("username", $username);
-			$this->db->where("password", $password);
 			$this->db->where("status", 1);
 			$this->db->join('user_groups', 'user_groups.group_id=user.role');
 			$qry = $this->db->get($this->table);
@@ -34,7 +32,6 @@ class Auth_mdl extends CI_Model
 		} else {
 			//login using email
 			$this->db->where("email", $username);
-			$this->db->where("password", $password);
 			$this->db->where("status", 1);
 			$this->db->join('user_groups', 'user_groups.group_id=user.role');
 			$qry = $this->db->get($this->table);
@@ -72,7 +69,7 @@ class Auth_mdl extends CI_Model
 				"ihris_pid" => $userRow->ihris_pid,
 				"district" => $userRow->district,
 				"district_id" => $userRow->district_id,
-				"password" => md5($this->password),
+				"password" => $this->password,
 				"role" => "17",
 				"status" => "0"
 			);
@@ -82,13 +79,12 @@ class Auth_mdl extends CI_Model
 			return false;
 		}
 	}
-	public function unlock($pass)
+	public function unlock()
 	{
 		$uid = $this->session->userdata['user_id'];
 		$username = $this->session->userdata['username'];
 		$this->db->where("user_id", $uid);
 		$this->db->where("username", $username);
-		$this->db->where("password", md5($pass));
 		$qry = $this->db->get($this->table);
 		$rows = $qry->num_rows();
 		if ($rows == 1) {
@@ -139,7 +135,7 @@ class Auth_mdl extends CI_Model
 			'username' => $postdata['username'],
 			'name' => $postdata['name'],
 			'email' => $postdata['email'],
-			'password' => md5($this->password),
+			'password' => $this->password,
 			'facility_id' => "$facid",
 			'facility' => "$facn",
 			"role" => $postdata['role'],

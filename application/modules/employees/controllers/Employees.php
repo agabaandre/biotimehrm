@@ -24,6 +24,7 @@ class Employees extends MX_Controller
   {
     return $employees = $this->empModel->get_employees($this->filters);
   }
+  
 
   public function district_employees($csv = FALSE)
   {

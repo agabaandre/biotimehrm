@@ -173,6 +173,7 @@ class Reports extends MX_Controller
 
 			$search['year']  = $year;
 			$search['month'] = $month;
+			$search['district'] = $_SESSION['district'];
 		}
 
 
@@ -213,7 +214,7 @@ class Reports extends MX_Controller
 		$data['uptitle']    = 'Attendance Form Summary';
 
 
-		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "facility", "region", "department_id"];
+		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "region", "department_id", "gender"];
 
 		echo Modules::run('templates/main', $data);
 	}
@@ -314,6 +315,7 @@ class Reports extends MX_Controller
 
 			$search['year'] = $year;
 			$search['month'] = $month;
+			$search['district'] = $_SESSION['district'];
 		}
 
 

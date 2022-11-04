@@ -141,7 +141,7 @@ class Reports_mdl extends CI_Model
 
 	public function  attendance_aggregates($filters = null, $limit = NULL, $start = NULL, $group_by = "district")
 	{
-		$facility = $_SESSION['facility'];
+
 
 		if ($limit)
 			$this->db->limit($limit, $start);
@@ -153,6 +153,7 @@ class Reports_mdl extends CI_Model
 			facility_name,
 			facility_type_name,
 			cadre,
+			gender,
 			duty_date,
 			district,
 			department_id,

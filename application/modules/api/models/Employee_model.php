@@ -4,6 +4,7 @@ class Employee_model extends CI_Model
 {
     // Get Staff List 
     public function get_staff_list($facilityId)
+   
     {
         // Get staff list from fingerprints table
         $this->db->select('*');
@@ -18,6 +19,7 @@ class Employee_model extends CI_Model
     }
 
     public function enroll($data)
+   
     {
         $this->db->insert('fingerprints', $data);
         return $this->db->insert_id();
@@ -25,7 +27,7 @@ class Employee_model extends CI_Model
 
     public function clock($data)
     {
-        $this->db->insert('fingerprints', $data);
+        $this->db->insert('clk_log', $data);
         return $this->db->insert_id();
     }
 }

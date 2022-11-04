@@ -32,9 +32,7 @@
              <li><a href="<?php echo base_url() ?>employees/personlogs">Person Attendnce</a>
                <p> - Printable Summary of Attedance to Duty by Employee</p>
              </li>
-             <li><a href="<?php echo base_url() ?>reports/person_attendance_all">District Person Attendnce All</a>
-               <p> - Printable Summary of Attedance to Duty by Employee</p>
-             </li>
+
              <li><a href="<?php echo base_url() ?>employees/viewTimeLogs">Daily Time Log Report </a>
                <p> -Daily Time Logs </p>
              </li>
