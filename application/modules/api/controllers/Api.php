@@ -7,16 +7,20 @@ use chriskacerguis\RestServer\RestController;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-class Api extends RestController {
+class Api extends RestController
+{
 
-    public function __construct() {
+    public $key = "qwerty@123";
+
+    public function __construct()
+    {
         parent::__construct();
         $this->load->model('auth_model', 'mAuth');
         $this->load->model('employee_model', 'mEmployee');
-
     }
 
-    public function checkAuth() {
+    public function validateRequest()
+    {
         $headers = $this->input->request_headers();
         if (isset($headers['Authorization'])) {
             $token = $headers['Authorization'];
@@ -24,7 +28,11 @@ class Api extends RestController {
             //Remove Bearer from string
             $token = str_replace('Bearer ', '', $token);
 
-            $decoded = JWT::decode($token, new Key('qwerty@1234567890', 'HS256'));
+
+            $decoded = JWT::decode($token, new Key($this->key, 'HS256'));
+
+            $decoded = (array) $decoded;
+
             if ($decoded) {
                 return $decoded;
             } else {
@@ -41,75 +49,78 @@ class Api extends RestController {
         }
     }
 
-    
 
-    public function login_post() {
+
+    public function login_post()
+    {
         $username = $this->post('username');
         $password = $this->post('password');
 
-        $result = $this->mAuth->login($username, $password);
+        // If inputs are empty return 401
+        if (empty($username) || empty($password)) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Please provide username and password',
+            ], 401);
+        }
 
-        // Create JWT Token
-        $token = JWT::encode([
-            'user_id' => $result->user_id,
-            'iss' => "health.go.ug",
-            'aud' => "health.go.ug",
-            'iat' => time(),
-            'exp' => time() + 60 * 60 * 24 * 1,
-        ], 'qwerty@1234567890', 'HS256');
+        // Check if user exists
+        $user = $this->mAuth->login($username, $password);
 
-        if($result != null) {  
+        if ($user) {
+
+            $payload = array();
+            $payload['user_id'] = $user->user_id;
+            $payload['facility_id'] = $user->facility_id;
+
+            $token = JWT::encode($payload, $this->key, 'HS256');
+
             $this->response([
                 'status' => 'SUCCESS',
                 'message' => 'Login successful',
-                'data' => [
-                    'user' => $result,
-                    'token' => $token,
-                ]
+                'token' => $token,
+                'user' => $user,
             ], 200);
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Invalid username or password',
+            ], 401);
         }
-
-        $this->response([
-            'status' => 'FAILED',
-            'message' => 'Login failed'
-        ], 401);
     }
 
     // Get Staff List
-    public function staff_get() {
+    public function staff_get()
+    {
+        $decoded = $this->validateRequest();
 
-        $this->checkAuth();
-        
-        $facilityId = $this->get('facility_id', true);
+        $facilityId = $decoded['facility_id'];
 
-        $result = $this->mEmployee->get_staff_list($facilityId);
-        if($result != null) {
+        $staff = $this->mEmployee->get_staff_list($facilityId);
+
+        if ($staff) {
             $this->response([
-                'status' => true,
-                'message' => 'Staff list',
-                'data' => [
-                    'staff' => $result
-                ]
+                'status' => 'SUCCESS',
+                'message' => 'Staff list fetched successfully',
+                'staff' => $staff,
             ], 200);
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'No staff found',
+            ], 404);
         }
-
-        $this->response([
-            'status' => false,
-            'message' => 'No staff found'
-        ], 404);
     }
 
     // Enroll Users
-    public function enroll_users_post() {
-
-        $this->checkAuth();
-
+    public function enroll_users_post()
+    {
         //Array of enrolled ids
         $enrolled_ids = array();
 
         $data = $this->post();
-       // For Each Data as a record
-        foreach($data as $record) {
+        // For Each Data as a record
+        foreach ($data as $record) {
             $userRecord =  array();
             $userRecord['entry_id'] = $record['entry_id'];
             $userRecord['ihris_pid'] = $record['ihris_pid'];
@@ -123,14 +134,12 @@ class Api extends RestController {
 
             $result = $this->mEmployee->enroll($userRecord);
 
-            if($result != null) {
+            if ($result != null) {
                 array_push($enrolled_ids, $result);
             }
-
-            
         }
-        
-        if(count($enrolled_ids) > 0) {
+
+        if (count($enrolled_ids) > 0) {
             $this->response([
                 'status' => true,
                 'message' => 'Enrollment successful',
@@ -146,14 +155,14 @@ class Api extends RestController {
         ], 404);
     }
 
-    public function clock_users_post() {
+    public function clock_users_post()
+    {
 
-        $this->checkAuth();
-        
+
         $data = $this->post();
         $clocked_ids = array();
 
-        foreach($data as $record) {
+        foreach ($data as $record) {
             $userRecord =  array();
             $userRecord['entry_id'] = $record['entry_id'];
             $userRecord['ihris_pid'] = $record['ihris_pid'];
@@ -169,12 +178,12 @@ class Api extends RestController {
 
             $result = $this->mEmployee->clock($userRecord);
 
-            if($result != null) {
+            if ($result != null) {
                 array_push($clocked_ids, $result);
             }
         }
 
-        if(count($clocked_ids) > 0) {
+        if (count($clocked_ids) > 0) {
             $this->response([
                 'status' => true,
                 'message' => 'Clocking successful',
@@ -191,9 +200,10 @@ class Api extends RestController {
     }
 
     // Upload Device Resources
-    public function upload_fingerprints_post() {
+    public function upload_fingerprints_post()
+    {
 
-        $this->checkAuth();
+
 
         // Upload Fingerprints of file_type fpt
         $config['upload_path'] = './uploads/fingerprints/';
@@ -216,9 +226,10 @@ class Api extends RestController {
         }
     }
 
-    public function upload_faces_post() {
+    public function upload_faces_post()
+    {
 
-        $this->checkAuth();
+
 
         // Upload Faces of file_type jpg
         $config['upload_path'] = './uploads/faces/';
@@ -242,9 +253,10 @@ class Api extends RestController {
     }
 
     // Check Device Time in sync with server
-    public function check_time_get() {
+    public function check_time_get()
+    {
 
-        $this->checkAuth();
+
 
         $time = $this->get('time', true);
 
@@ -256,7 +268,7 @@ class Api extends RestController {
         $serverTime = strtotime($serverTime) * 1000;
 
         // They must be almost identical
-        if(abs($time - $serverTime) < 1000) {
+        if (abs($time - $serverTime) < 1000) {
             $this->response([
                 'status' => true,
                 'message' => 'Time in sync'
