@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-class Employee_model extends CI_Model
+class Apiemployee_model extends CI_Model
 {
     // Get Staff List 
     public function get_staff_list($facilityId)
