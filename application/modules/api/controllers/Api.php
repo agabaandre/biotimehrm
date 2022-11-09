@@ -15,8 +15,8 @@ class Api extends RestController
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('Apiauth_model', 'mAuth');
-        $this->load->model('Apiemployee_model', 'mEmployee');
+        $this->load->model('apiauth_model', 'mAuth');
+        $this->load->model('apiemployee_model', 'mEmployee');
     }
 
     public function validateRequest()
