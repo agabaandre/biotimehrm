@@ -80,7 +80,7 @@
        <!-- /.col -->
      </div>
      <!-- End of Admin section -->
-     <div class="row" style="display:<?php echo $display; ?>">
+     <div class="row">
        <div class="col-xl-4 col-md-12">
          <div class="card card-">
            <div class="card-header border-0">
