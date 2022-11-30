@@ -136,7 +136,7 @@
 
         if (isPassChanged != 1) {
             console.log(isPassChanged);
-            $('#changepassword').modal('show');
+           // $('#changepassword').modal('show');
         }
         var url = "<?php echo $this->uri->segment(2); ?>";
         if (url == "tabular" || url == "actuals" || url == "fetch_report" || url == "actualsreport" || url == "tabular#" || url == "timesheet" || url == "attfrom_report") {
