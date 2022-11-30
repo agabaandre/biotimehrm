@@ -564,7 +564,7 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->curlgetHttp($endpoint, $headr, []);
         //return $response;
-        print_r($response);
+        echo json_encode($response);
         // $j = array();
         // foreach ($response->data as $emp) {
         //     // $data = array(
