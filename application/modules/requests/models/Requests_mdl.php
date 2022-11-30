@@ -89,6 +89,9 @@ public function validateRequest($entry_id){
 	return $count;
 
 }
+	public function get_reasons(){
+	return $this->db->get('reasons')->result();
+}
 
 	
 	public function getTable()

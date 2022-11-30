@@ -22,7 +22,8 @@ class Requests extends MX_Controller
 		$data['title'] = 'Make Request';
 		$data['uptitle'] = 'Request';
 		$data['view'] = 'Make_requests';
-		$data['module'] = "requests";
+		$data['module'] = "requests";;
+		$data['reasons'] = $this->requests_mdl->get_reasons();
 		echo Modules::run('templates/main', $data);
 	}
 
@@ -98,7 +99,7 @@ class Requests extends MX_Controller
 
 		);
 
-		print_r($data);
+		//print_r($data);
 		$sendRequest = $this->requests_mdl->updateRequest($data, $entry_id);
 		Modules::run('utility/setFlash', " Sent");
 

@@ -42,7 +42,11 @@
             <label>Reason:</label>
             <select name="reason_id" class="form-control select2" required>
               <option value="" disabled selected>Select Out of Station Reason</option>
-              <?php echo $reasons_opt; ?>
+              <?php foreach ($reasons as $reason) : ?>
+                <option value="<?php echo $reason->id; ?>"><?php echo $reason->name; ?></option>
+
+              <?php endforeach; ?>
+
             </select>
           </div>
         </div>

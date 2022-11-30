@@ -24,7 +24,7 @@ class Employees extends MX_Controller
   {
     return $employees = $this->empModel->get_employees($this->filters);
   }
-  
+
 
   public function district_employees($csv = FALSE)
   {
@@ -567,7 +567,7 @@ class Employees extends MX_Controller
       $search_data2['to'] = date('Y-m-d');
     }
     $this->load->library('M_pdf');
-    $filename = "individual_timelogs_report_" . "pdf";
+    $filename = "individual_timelogs_report_" . ".pdf";
     ini_set('max_execution_time', 0);
     $dbresult = $this->empModel->getEmployeeTimeLogs(urldecode($ihris_pid), 100000, 0, $search_data = NULL, $search_data2);
     $data['timelogs'] = $dbresult['timelogs'];
