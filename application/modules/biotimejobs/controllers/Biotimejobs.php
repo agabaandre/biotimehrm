@@ -541,7 +541,7 @@ class Biotimejobs extends MX_Controller
     public function deleteEnrolled()
     {
     }
-    // get all biotime facilities and update the data with iHRIS facility ID
+    // get all biotime deployements
     public function biotime_employees()
     {
 
@@ -564,17 +564,17 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->curlgetHttp($endpoint, $headr, []);
         //return $response;
-        //return $response;
-        $j = array();
-        foreach ($response->data as $emp) {
-            // $data = array(
-            //     'id' => $facs->id,
-            //     'area_code' => $facs->area_code,
-            //     'area_name' => $facs->area_name
-            // );
-            // array_push($j, $data);
-            print_r($emp);
-        }
+        print_r($response);
+        // $j = array();
+        // foreach ($response->data as $emp) {
+        //     // $data = array(
+        //     //     'id' => $facs->id,
+        //     //     'area_code' => $facs->area_code,
+        //     //     'area_name' => $facs->area_name
+        //     // );
+        //     // array_push($j, $data);
+        //     print_r($emp);
+        // }
 
         //$message = $this->biotimejobs_mdl->save_facilities($j);
         //  print_r($response->data[0]->id);
