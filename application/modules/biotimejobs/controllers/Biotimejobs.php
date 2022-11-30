@@ -542,19 +542,21 @@ class Biotimejobs extends MX_Controller
     {
     }
     // get all biotime deployements
-    public function biotime_employees()
+    //get cron jobs from the server
+    public function fetch_biotime_employees($page = FALSE)
     {
-
+        date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
-        $headr = array();
-        $headr[] = 'Content-length: 0';
-        $headr[] = 'Content-type: application/json';
-        $headr[] = 'Authorization: JWT ' . $this->get_token();
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => "JWT " . $this->get_token(),
+        ];
+     
 
-
-
+        $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
-            'page_size' => 50000
+            'page' => $page,
         );
 
         $params = '?' . http_build_query($query);
@@ -562,19 +564,36 @@ class Biotimejobs extends MX_Controller
 
         //leave options and undefined. guzzle will use the http:query;
 
-        $response = $http->curlgetHttp($endpoint, $headr, []);
+        $response = $http->getempData($endpoint, "GET", $headers);
         //return $response;
-        echo json_encode($response);
-        // $j = array();
-        // foreach ($response->data as $emp) {
-        //     // $data = array(
-        //     //     'id' => $facs->id,
-        //     //     'area_code' => $facs->area_code,
-        //     //     'area_name' => $facs->area_name
-        //     // );
-        //     // array_push($j, $data);
-        //     print_r($emp);
-        // }
+        return $response;
+    }
+    public function biotime_employees()
+    {
+
+        ignore_user_abort(true);
+        ini_set('max_execution_time', 0);
+        $resp = $this->getTime($page = 1);
+        $count = $resp->count;
+        $pages = (int)ceil($count / 10);
+        $rows = array();
+
+        for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
+            $response = $this->fetch_biotime_employees($currentPage);
+            foreach ($response->data as $mydata) {
+
+                $data = array(
+                    "emp_code" => $mydata->emp_code,
+                    "terminal_sn" => $mydata->terminal_sn,
+                    "area_alias" => $mydata->area_alias,
+                    "longitude" => $mydata->longitude,
+                    "latitude" => $mydata->latitude,
+                    "punch_state" => $mydata->punch_state,
+                    "punch_time" => $mydata->punch_time
+                );
+                array_push($rows, $data);
+            }
+        }
 
         //$message = $this->biotimejobs_mdl->save_facilities($j);
         //  print_r($response->data[0]->id);

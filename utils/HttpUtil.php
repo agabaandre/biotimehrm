@@ -81,6 +81,25 @@ class HttpUtil{
        
         return json_decode( (string) $response->getBody()->getContents());
     }
+    public function getempData($endpoint, $method = "", $headers = [])
+    {
+        // die(var_dump($this->get_jwt_auth()));
+
+        $url = BIO_URL . $endpoint;
+
+        //do{
+        $response = $this->client->request(
+            $method,
+            $url,
+            [
+                'headers' => $headers
+
+            ]
+        );
+
+
+        return json_decode((string) $response->getBody()->getContents());
+    }
        public function get_List($endpoint, $method="",$headers = [],$options)
     {
         // die(var_dump($this->get_jwt_auth()));
