@@ -302,7 +302,7 @@ class Biotimejobs extends MX_Controller
         $query->result();
     }
 
-    
+
     // create new user
 
     public function create_new_biotimeuser($firstname, $surname, $emp_code, $area, $department, $position)
@@ -434,6 +434,7 @@ class Biotimejobs extends MX_Controller
         $this->cronjob_register($process, $method, $status);
         return $this->log($message);
     }
+
     public function biotime_jobs()
     {
 
@@ -539,6 +540,53 @@ class Biotimejobs extends MX_Controller
     }
     public function deleteEnrolled()
     {
+    }
+    // get all biotime facilities and update the data with iHRIS facility ID
+    public function biotime_employees()
+    {
+
+        $http = new HttpUtil();
+        $headr = array();
+        $headr[] = 'Content-length: 0';
+        $headr[] = 'Content-type: application/json';
+        $headr[] = 'Authorization: JWT ' . $this->get_token();
+
+
+
+        $query = array(
+            'page_size' => 50000
+        );
+
+        $params = '?' . http_build_query($query);
+        $endpoint = 'personnel/api/employees/' . $params;
+
+        //leave options and undefined. guzzle will use the http:query;
+
+        $response = $http->curlgetHttp($endpoint, $headr, []);
+        //return $response;
+        //return $response;
+        $j = array();
+        foreach ($response->data as $emp) {
+            // $data = array(
+            //     'id' => $facs->id,
+            //     'area_code' => $facs->area_code,
+            //     'area_name' => $facs->area_name
+            // );
+            // array_push($j, $data);
+            print_r($emp);
+        }
+
+        //$message = $this->biotimejobs_mdl->save_facilities($j);
+        //  print_r($response->data[0]->id);
+        // $process = 7;
+        // $method = "bioitimejobs/biotime_employees";
+        // if ($response) {
+        //     $status = "successful";
+        // } else {
+        //     $status = "failed";
+        // }
+        // $this->cronjob_register($process, $method, $status);
+        // return $this->log($message);
     }
     public function updateEnrolled()
     {
