@@ -293,6 +293,64 @@ class Biotimejobs extends MX_Controller
 
         return $message;
     }
+    public function update_biotimeuser($userdata)
+    {
+
+
+        $barea = $this->getbioloc($userdata->new_facility);
+
+        $http = new HttpUtil();
+
+        $body = array(
+            'area' => [(string)$barea],
+        );
+
+        $endpoint = 'personnel/api/employees/<' . $userdata->biotime_emp_id . '>';
+        $headr = array();
+        $headr[] = 'Content-length:' . strlen(json_encode($body));
+        $headr[] = 'Content-type: application/json';
+        $headr[] = 'Authorization: JWT ' . $this->get_token();
+
+        $response = $http->curlupdateHttpPost($endpoint, $headr, $body);
+
+        if ($response) {
+            $this->log($response);
+        }
+
+        $process = 6;
+        $method = "bioitimejobs/update_biotimeuser";
+        if ($response) {
+            $status = "successful";
+        } else {
+            $status = "failed";
+        }
+        $this->cronjob_register($process, $method, $status);
+    }
+    //create multiple new users cronjob
+    public function transfer_employees()
+    {
+        $howmany = array();
+        $query = $this->db->query("SELECT * FROM  biotime_transfers");
+        $trasnfers = $query->result();
+        foreach ($trasnfers as $newuser) :
+
+            $message = $this->update_biotimeuser($newuser);
+
+
+        endforeach;
+        $process = 5;
+        $method = "bioitimejobs/tranfer_employees";
+        if ($message) {
+            $status = "successful";
+        } else {
+            $status = "failed";
+        }
+        $this->cronjob_register($process, $method, $status);
+        $this->log($message);
+
+
+        return $message;
+    }
 
 
     //enroll new users (Front End Action that requires login);
@@ -586,7 +644,7 @@ class Biotimejobs extends MX_Controller
 
                     "emp_code" => $mydata->emp_code,
                     "biotime_emp_id" => $mydata->id,
-                    "facility" => $mydata->area[0]->id,
+                    "biotime_facility_id" => $mydata->area[0]->id,
                     "biotime_fac_id" => $mydata->area[0]->area_code,
                 );
                 array_push($rows, $data);
@@ -607,13 +665,7 @@ class Biotimejobs extends MX_Controller
         // $this->cronjob_register($process, $method, $status);
         // return $this->log($message);
     }
-    public function updateEnrolled()
-    {
-        //check local enrolled against server enrolled for change in facility or job.
-        //update info
-        //endpoint /personnel/api/employees/adjust_area/ {employees,	,areas}
 
-    }
 
     public function biotimeClockin()
     {
