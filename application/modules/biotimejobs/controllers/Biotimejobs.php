@@ -592,7 +592,7 @@ class Biotimejobs extends MX_Controller
                 array_push($rows, $data);
             }
         }
-        echo json_encode($data);
+        echo json_encode($rows);
 
         //$message = $this->biotimejobs_mdl->save_facilities($j);
         //  print_r($response->data[0]->id);
