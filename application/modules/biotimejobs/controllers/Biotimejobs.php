@@ -635,6 +635,9 @@ class Biotimejobs extends MX_Controller
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
+        if (count($resp) > 1) {
+            $this->db->truncate('biotime_enrollment');
+        }
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
             $response = $this->fetch_biotime_employees($currentPage);
@@ -647,13 +650,12 @@ class Biotimejobs extends MX_Controller
                     "biotime_facility_id" => $mydata->area[0]->id,
                     "biotime_fac_id" => $mydata->area[0]->area_code,
                 );
-                array_push($rows, $data);
+                $message = $this->db->insert('biotime_enrollment', $data);
+                // array_push($rows, $data);
             }
         }
-        if (count($rows) > 1) {
-            $this->db->truncate('biotime_enrollment');
-        }
-        $message = $this->db->insert('biotime_enrollment', $rows);
+
+
         //print_r($rows);
         $process = 7;
         $method = "bioitimejobs/biotime_employees";
