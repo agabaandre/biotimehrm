@@ -552,7 +552,7 @@ class Biotimejobs extends MX_Controller
             'Accept' => 'application/json',
             'Authorization' => "JWT " . $this->get_token(),
         ];
-     
+
 
         $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
@@ -573,7 +573,7 @@ class Biotimejobs extends MX_Controller
 
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        $resp = $this->getTime($page = 1);
+        $resp = $this->fetch_biotime_employees($page = 1);
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
@@ -583,17 +583,16 @@ class Biotimejobs extends MX_Controller
             foreach ($response->data as $mydata) {
 
                 $data = array(
+
                     "emp_code" => $mydata->emp_code,
-                    "terminal_sn" => $mydata->terminal_sn,
-                    "area_alias" => $mydata->area_alias,
-                    "longitude" => $mydata->longitude,
-                    "latitude" => $mydata->latitude,
-                    "punch_state" => $mydata->punch_state,
-                    "punch_time" => $mydata->punch_time
+                    "biotime_emp_id" => $mydata->id,
+                    "facility" => $mydata->area[0]->id,
+                    "biotime_fac_id" => $mydata->area[0]->area_code,
                 );
                 array_push($rows, $data);
             }
         }
+        echo json_encode($data);
 
         //$message = $this->biotimejobs_mdl->save_facilities($j);
         //  print_r($response->data[0]->id);
