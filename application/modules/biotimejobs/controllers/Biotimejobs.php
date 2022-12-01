@@ -650,20 +650,20 @@ class Biotimejobs extends MX_Controller
                 array_push($rows, $data);
             }
         }
-        // if (count($rows) > 1) {
-        //     $this->db->truncate('biotime_enrollment');
-        // }
-        // $message = $this->db->insert('biotime_enrollment', $rows);
-          print_r($rows);
-        // $process = 7;
-        // $method = "bioitimejobs/biotime_employees";
-        // if ($response) {
-        //     $status = "successful";
-        // } else {
-        //     $status = "failed";
-        // }
-        // $this->cronjob_register($process, $method, $status);
-        // return $this->log($message);
+        if (count($rows) > 1) {
+            $this->db->truncate('biotime_enrollment');
+        }
+        $message = $this->db->insert('biotime_enrollment', $rows);
+        //print_r($rows);
+        $process = 7;
+        $method = "bioitimejobs/biotime_employees";
+        if ($response) {
+            $status = "successful";
+        } else {
+            $status = "failed";
+        }
+        $this->cronjob_register($process, $method, $status);
+        return $this->log($message);
     }
 
 
