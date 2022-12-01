@@ -650,11 +650,11 @@ class Biotimejobs extends MX_Controller
                 array_push($rows, $data);
             }
         }
-        if (count($rows) > 1) {
-            $this->db->truncate('biotime_enrollment');
-        }
-        $message = $this->db->insert('biotime_enrollment', $rows);
-        //  print_r($response->data[0]->id);
+        // if (count($rows) > 1) {
+        //     $this->db->truncate('biotime_enrollment');
+        // }
+        // $message = $this->db->insert('biotime_enrollment', $rows);
+          print_r($rows);
         // $process = 7;
         // $method = "bioitimejobs/biotime_employees";
         // if ($response) {
