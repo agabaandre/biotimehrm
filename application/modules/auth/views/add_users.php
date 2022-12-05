@@ -88,11 +88,8 @@ $variables = Modules::run("svariables/getSettings");
 
             <div class="col-sm-4">
               <div class="form-group">
-                <label>Facility</label>
-                <select id="facility" onChange="getuserDeps($(this).val());" name="facility_id[]" class="form-control select2 userfacility" style="width:100%;" multiple>
-
-
-                  <option value="" disabled selected>FACILITY</option>
+                <label>Facility (Click to select)</label>
+                <select id="facility" onChange="getuserDeps($(this).val());" name="facility_id[]" class="form-control select2 userfacility" style="width:100%;" multiple required>
 
 
                 </select>
