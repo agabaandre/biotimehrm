@@ -326,31 +326,6 @@ class Biotimejobs extends MX_Controller
         }
         $this->cronjob_register($process, $method, $status);
     }
-    //create multiple new users cronjob
-    public function transfer_employees()
-    {
-        $howmany = array();
-        $query = $this->db->query("SELECT * FROM  biotime_transfers");
-        $trasnfers = $query->result();
-        foreach ($trasnfers as $newuser) :
-
-            $message = $this->update_biotimeuser($newuser);
-
-
-        endforeach;
-        $process = 5;
-        $method = "bioitimejobs/tranfer_employees";
-        if ($message) {
-            $status = "successful";
-        } else {
-            $status = "failed";
-        }
-        $this->cronjob_register($process, $method, $status);
-        $this->log($message);
-
-
-        return $message;
-    }
 
 
     //enroll new users (Front End Action that requires login);
@@ -648,7 +623,7 @@ class Biotimejobs extends MX_Controller
                     "emp_code" => $mydata->emp_code,
                     "biotime_emp_id" => $mydata->id,
                     "biotime_facility_id" => $mydata->area[0]->id,
-                    "biotime_fac_id" => $mydata->area[0]->area_code,
+                    "biotime_fac_id" => $mydata->area[0]->area_code
                 );
                 $message = $this->db->insert('biotime_enrollment', $data);
                 // array_push($rows, $data);
@@ -666,6 +641,32 @@ class Biotimejobs extends MX_Controller
         }
         $this->cronjob_register($process, $method, $status);
         return $this->log($message);
+    }
+
+    //create multiple new users cronjob
+    public function transfer_employees()
+    {
+        $howmany = array();
+        $query = $this->db->query("SELECT * FROM  biotime_transfers");
+        $trasnfers = $query->result();
+        foreach ($trasnfers as $newuser) :
+
+            $message = $this->update_biotimeuser($newuser);
+
+
+        endforeach;
+        $process = 5;
+        $method = "bioitimejobs/tranfer_employees";
+        if ($message) {
+            $status = "successful";
+        } else {
+            $status = "failed";
+        }
+        $this->cronjob_register($process, $method, $status);
+        $this->log($message);
+
+
+        return $message;
     }
 
 
