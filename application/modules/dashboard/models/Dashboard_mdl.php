@@ -15,6 +15,7 @@ class Dashboard_mdl extends CI_Model
     {
         $facility = $_SESSION['facility'];
         //count health workers
+        $userdata = $this->session->userdata();
         $date = $userdata['year'] . '-' . $userdata['month'];
         $today = date('Y-m-d');
 
