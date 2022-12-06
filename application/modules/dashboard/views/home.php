@@ -386,7 +386,7 @@
      // console.log(data);
      //    }
      //  });
-     $.ajax.getDashdata().then((data) => {
+     ajax.getDashdata().then((data) => {
        console.log(data);
      }).catch(console.error);
    });
