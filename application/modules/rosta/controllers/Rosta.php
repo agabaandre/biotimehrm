@@ -610,7 +610,7 @@ class Rosta extends MX_Controller
 				'entry_id' => $entry,
 				'ihris_pid' => $pid,
 				'facility_id' => $facility,
-				'time_in' => $dateFrom . ' ' . '08:00:00',
+				'time_in' => $dateFrom . ' ' . '09:00:00',
 				'time_out' => $dateFrom . ' ' . '17:00:00',
 				'date' => $dateFrom,
 				'status' => '',
