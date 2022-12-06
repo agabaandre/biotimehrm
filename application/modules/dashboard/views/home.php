@@ -357,7 +357,7 @@
    //get dashboard Data
    $(document).ready(function() {
      async function getDashdata() {
-       const json = await (await fetch(`${constProjectBaseUrl}/ajax/getProjectConstants/${constArray}`)).json();
+       const json = await (await fetch(`<?php echo base_url('dashboard/dashboardData') ?>`)).json();
        console.log(json);
      }
    });
