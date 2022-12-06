@@ -168,7 +168,6 @@ if (count($duties) > 0) {
 									}
 									if (biotime_facility($facility) > 0) {
 										$state = "disabled";
-										
 									}
 
 
@@ -195,7 +194,6 @@ if (count($duties) > 0) {
 									</span>
 									<?php
 									for ($i = 1; $i < ($monthdays + 1); $i++) {
-										$state = "";
 										$date_d = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i);
 										$pid    = $singleduty['ihris_pid'];
 										$entry_id = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i) . $singleduty['ihris_pid'];
