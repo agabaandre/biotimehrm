@@ -165,6 +165,10 @@ if (count($duties) > 0) {
 									} else {
 										$color = "";
 									}
+									if (biotime_facility($facility) > 0) {
+										$state = "disabled";
+									}
+
 
 								?>
 									<span class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color . istoday($wekday); ?>"><?php echo $i; ?></span>

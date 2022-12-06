@@ -22,6 +22,8 @@ if (!function_exists('render')) {
     }
 }
 
+
+
 //render-front-web with navigation
 if (!function_exists('render_client')) {
 
@@ -304,6 +306,14 @@ if (!function_exists('flash_form')) {
 
         $ci->session->set_flashdata($key, $data);
     }
+}
+//generate unique id
+if (!function_exists('biotime_facility')) {
+function biotime_facility($facility)
+{
+    $ci = &get_instance();
+    $rows = $ci->db->query("SELECT * FROM biotime_devices where area_code='$facility'") ->num_rows();
+return $rows;
 }
 
 
