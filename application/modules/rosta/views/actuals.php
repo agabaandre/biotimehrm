@@ -167,7 +167,8 @@ if (count($duties) > 0) {
 										$color = "";
 									}
 									if (biotime_facility($facility) > 0) {
-										return $state = "disabled";
+										$state = "disabled";
+										
 									}
 
 
