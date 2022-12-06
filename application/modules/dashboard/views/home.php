@@ -355,15 +355,15 @@
      colors: ['#28a745', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4']
    });
    //get dashboard Data
-   $(document).ready(function() {
-     async function getDashdata() {
-       const json = await (await fetch(`<?php echo base_url('dashboard/dashboardData') ?>`)).json();
-       json.then((constant) => {
-         console.log(constant);
+   //  $(document).ready(function() {
+   //    async function getDashdata() {
+   //      const json = await (await fetch(`<?php echo base_url('dashboard/dashboardData') ?>`)).json();
+   //      json.then((constant) => {
+   //        console.log(constant);
 
-       })
-     }
-   });
+   //      })
+   //    }
+   //  });
    $(document).ready(function() {
      knobgauge(0);
      $.ajax({
