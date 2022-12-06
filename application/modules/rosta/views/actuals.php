@@ -202,7 +202,7 @@ if (count($duties) > 0) {
 										$record_type = (!empty($duty_letter)) ? "update actual" : "actual field";
 									?>
 										<span class="cell" data-label="Day<?php echo $i; ?>">
-											<input type="text" style="text-transform:uppercase; padding:0px; text-align: center;" class="<?php echo $record_type; ?>" did="<?php echo $date_d; ?>" day="<?php echo $i; ?>" maxlength="1" size="1px" title="P,O,R and L only" value="<?php echo $duty_letter; ?>" pid="<?php echo $pid; ?>" <?php echo $state; ?>>
+											<input type="text" style="text-transform:uppercase; padding:0px; text-align: center;" class="<?php echo $record_type; ?>" did="<?php echo $date_d; ?>" day="<?php echo $i; ?>" maxlength="1" size="1px" title="P,O,R and L only" value="<?php echo $duty_letter; ?>" pid="<?php echo $pid; ?>" <?php echo @$state; ?>>
 										</span>
 									<?php } // end for , one that loops tds 
 									?>
