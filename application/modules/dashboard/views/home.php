@@ -355,40 +355,39 @@
      colors: ['#28a745', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4']
    });
    //get dashboard Data
-   async function getDashdata() {
-     const json = await (await fetch("<?php echo base_url('dashboard/dashboardData') ?>:")).json();
-     return json;
-   }
+   $(document).ready(function() {
+     async function getDashdata() {
+       const json = await (await fetch(`${constProjectBaseUrl}/ajax/getProjectConstants/${constArray}`)).json();
+       console.log(json);
+     }
+   });
    $(document).ready(function() {
      knobgauge(0);
-     //  $.ajax({
-     //    type: 'GET',
-     //    url: '<?php echo base_url('dashboard/dashboardData') ?>',
-     //    dataType: "json",
-     //    data: '',
-     //    success: function(data) {
-     //      $('#workers').text(data.workers);
-     //      $('#facilities').text(data.facilities);
-     //      $('#departments').text(data.departments);
-     //      $('#jobs').text(data.jobs);
-     //      $('#mystaff').text(data.mystaff);
-     //      $('#ihris_sync').text(data.ihris_sync);
-     //      $('#biometrics').text(data.biometrics);
-     //      $('#roster').text(data.roster);
-     //      $('#attendance').text(data.attendance);
-     //      $('#biotime_last').text(data.biotime_last);
-     //      $('#present').text(data.present);
-     //      $('#offduty').text(data.offduty);
-     //      $('#leave').text(data.leave);
-     //      $('#request').text(data.request);
-     //      $('#requesting').text(data.requesting);
-     //      knobgauge(data.avg_hours);
-     // console.log(data);
-     //    }
-     //  });
-     ajax.getDashdata().then((data) => {
-       console.log(data);
-     }).catch(console.error);
+     $.ajax({
+       type: 'GET',
+       url: '<?php echo base_url('dashboard/dashboardData') ?>',
+       dataType: "json",
+       data: '',
+       success: function(data) {
+         $('#workers').text(data.workers);
+         $('#facilities').text(data.facilities);
+         $('#departments').text(data.departments);
+         $('#jobs').text(data.jobs);
+         $('#mystaff').text(data.mystaff);
+         $('#ihris_sync').text(data.ihris_sync);
+         $('#biometrics').text(data.biometrics);
+         $('#roster').text(data.roster);
+         $('#attendance').text(data.attendance);
+         $('#biotime_last').text(data.biotime_last);
+         $('#present').text(data.present);
+         $('#offduty').text(data.offduty);
+         $('#leave').text(data.leave);
+         $('#request').text(data.request);
+         $('#requesting').text(data.requesting);
+         knobgauge(data.avg_hours);
+         // console.log(data);
+       }
+     });
    });
 
 
