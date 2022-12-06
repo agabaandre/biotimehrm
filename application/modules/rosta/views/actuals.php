@@ -81,7 +81,7 @@ if (count($duties) > 0) {
 										<div class="control-group">
 											<?php
 											$facility = $this->session->userdata['facility'];
-											//print_r($facility);
+											print_r($facility);
 											$employees = Modules::run("employees/get_employees"); ?>
 											<select class="form-control select2" name="empid" select2>
 												<option value="" selected disabled>Select Employee</option>
