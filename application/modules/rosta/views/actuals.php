@@ -7,6 +7,17 @@ function isWeekend($date)
 	};
 	return 'no';
 }
+function istoday($date)
+{
+	$day = intval(date('N', strtotime($date)));
+
+	if (($date == date('Y-m-d')) && ($day <= 6)) {
+		return 'green';
+	};
+	return '';
+}
+
+
 function dayState($day, $scheduled)
 {
 	$user = $_SESSION['role'];
@@ -20,7 +31,6 @@ function dayState($day, $scheduled)
 	if (strtotime($day) > strtotime(date('Y-m-d'))) {
 		$state = "disabled";
 	}
-	echo $state;
 } //color
 if (count($duties) > 0) {
 ?>
@@ -155,8 +165,9 @@ if (count($duties) > 0) {
 									} else {
 										$color = "";
 									}
+
 								?>
-									<span class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color; ?>"><?php echo $i; ?></span>
+									<span class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color . istoday($wekday); ?>"><?php echo $i; ?></span>
 								<?php } ?>
 							</div>
 							<?php
