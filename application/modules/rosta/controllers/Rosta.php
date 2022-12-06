@@ -606,11 +606,32 @@ class Rosta extends MX_Controller
 			);
 			//print_r($data);
 			$result = $this->rosta_model->saveActual($data);
+			$timedata = array(
+				'entry_id' => $entry,
+				'ihris_pid' => $pid,
+				'facility_id' => $facility,
+				'time_in' => $dateFrom . ' ' . '08:00:00',
+				'time_out' => $dateFrom . ' ' . '17:00:00',
+				'date' => $dateFrom,
+				'status' => '',
+				'shift' => '',
+				'location' => $this->session->userdata['facility_name'],
+				'source' => 'MANUAL',
+				'facility' => $this->session->userdata['facility_name']
+
+
+			);
+			//assign_time data for manual facilities
+			$this->fill_timelogs($timedata);
 			//echo $result;
 		} catch (Exception $error) {
 			echo $error->getMessage();
 		}
 		echo  $duty;
+	}
+	public function fill_timelogs($timedata)
+	{
+		$this->db->insert('clk_log', $timedata);
 	}
 	public function updateActual()
 	{
