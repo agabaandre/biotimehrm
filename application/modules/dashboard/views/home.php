@@ -358,7 +358,10 @@
    $(document).ready(function() {
      async function getDashdata() {
        const json = await (await fetch(`<?php echo base_url('dashboard/dashboardData') ?>`)).json();
-       console.log(json);
+       json.then((constant) => {
+         console.log(constant);
+
+       })
      }
    });
    $(document).ready(function() {
