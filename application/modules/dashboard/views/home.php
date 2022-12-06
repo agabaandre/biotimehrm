@@ -359,7 +359,7 @@
      knobgauge(0);
      $.ajax({
        type: 'GET',
-
+       url: '<?php echo base_url('dashboard/dashboardData') ?>',
        dataType: "json",
        data: '',
        success: function(data) {
