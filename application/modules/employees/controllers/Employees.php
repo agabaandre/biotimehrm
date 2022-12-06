@@ -8,7 +8,7 @@ class Employees extends MX_Controller
     $this->load->model('employee_model', 'empModel');
     $this->user = $this->session->get_userdata();
     $this->load->library('pagination');
-    $this->watermark = FCPATH . "assets/img/MOH.png";
+    $this->watermark = "assets/MOH.png";
     //requires a join on ihrisdata
     $this->filters = Modules::run('filters/sessionfilters');
     //doesnt require a join on ihrisdata
