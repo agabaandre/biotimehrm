@@ -64,7 +64,7 @@
 
             <br><br>
             <strong style="margin-right: 1em;">Department </strong>
-            <select name="department_id" class="form-control select2 sdepartment" style="width:100%;">
+            <select name="department_id" class="form-control select2 sdepartment" style="width:100%;" multiple>
 
               <option value="<?php echo $user->department_id; ?>">
                 <?php echo $user->department_id; ?>
