@@ -206,10 +206,10 @@ class Biotimejobs extends MX_Controller
         }
 
         //if las sync is empty
-        //    $sdate="2021-10-22 00:00:00";
-        //    $edate = "2021-10-30 00:00:00";
+        $sdate = "2022-10-14 00:00:00";
+        $edate = "2022-12-06 00:00:00";
 
-        $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
+        // $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
             'page' => $page, 'start_time' => $sdate,
             'end_time' => $edate,

@@ -62,7 +62,7 @@ class Auth extends MX_Controller
       );
       //print_r($userdata);
       $this->checkerUser($userdata);
-    } else {
+      } else {
       if ($person == "new") {
         $msg = $this->session->set_flashdata('msg', "First time access detected, Contact the Admin for Activation");
       } else {
