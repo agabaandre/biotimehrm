@@ -15,9 +15,6 @@ class Dashboard_mdl extends CI_Model
     {
         $facility = $_SESSION['facility'];
         //count health workers
-        $userdata = $this->session->userdata();
-        $date = $userdata['year'] . '-' . $userdata['month'];
-        $today = date('Y-m-d');
 
         $staff = $this->db->query("Select distinct(ihris_pid) from ihrisdata");
         $data['workers'] = $staff->num_rows();
@@ -50,47 +47,11 @@ class Dashboard_mdl extends CI_Model
         // $data['attendance']=((($fac->num_rows())/$mystaff)*100)."%";
 
         //get  clock count
-
-        $fac = $this->db->query("Select max(last_update) as date  from ihrisdata where facility_id='$facility'");
-        $data['ihris_sync'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
-        //Att gen
-        $fac = $this->db->query("Select max(last_gen) as date  from person_att_final");
-        $data['attendance'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
-        //Roster gen
-        $fac = $this->db->query("Select max(last_gen) as date  from person_dut_final");
-        $data['roster'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
-        //Biotime att sync
-        $fac = $this->db->query("Select max(last_sync) as date  from biotime_data");
-        $data['biotime_last'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
-
-        $fac = $this->db->query("SELECT * FROM actuals WHERE  schedule_id = 22 AND actuals.date = '$today' and facility_id='$facility'");
-        $data['present'] =  $fac->num_rows();
-
-        $fac = $this->db->query("SELECT * FROM actuals WHERE  schedule_id = 24 AND actuals.date = '$today' and facility_id='$facility'");
-        $data['offduty'] =  $fac->num_rows();
-
-        $fac = $this->db->query("SELECT * FROM actuals WHERE  schedule_id = 25 AND actuals.date = '$today' and facility_id='$facility'");
-        $data['leave'] =  $fac->num_rows();
-
-        $fac = $this->db->query("SELECT * FROM actuals WHERE  schedule_id = 23 AND actuals.date = '$today' and facility_id='$facility'");
-        $data['request'] = $fac->num_rows();
-        //people requesting for offical requests
-
-        $fac = $this->db->query("Select *  from requests where date like'$today%'");
-        $data['requesting'] = $fac->num_rows();
-
-        $fac = $this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg FROM clk_diff WHERE facility_id='$facility' and date_format(date,'%Y-%m')='$date'");
-        $data['avg_hours'] = $fac->result()[0]->avg;
-
-        return $data;
-    }
-
-    public function stats()
-    {
-        $facility = $_SESSION['facility'];
         $userdata = $this->session->userdata();
         $date = $userdata['year'] . '-' . $userdata['month'];
         $today = date('Y-m-d');
+        $fac = $this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg FROM clk_diff WHERE facility_id='$facility' and date_format(date,'%Y-%m')='$date'");
+        $data['avg_hours'] = $fac->result()[0]->avg;
         //last iHRIS Sync
         $fac = $this->db->query("Select max(last_update) as date  from ihrisdata where facility_id='$facility'");
         $data['ihris_sync'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
@@ -120,14 +81,7 @@ class Dashboard_mdl extends CI_Model
         $fac = $this->db->query("Select *  from requests where date like'$today%'");
         $data['requesting'] = $fac->num_rows();
         return $data;
-    }
-    public function avghours()
-    {
-        $userdata = $this->session->userdata();
-        $date = $userdata['year'] . '-' . $userdata['month'];
-        $facility = $_SESSION['facility'];
-        $fac = $this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg FROM clk_diff WHERE facility_id='$facility' and date_format(date,'%Y-%m')='$date'");
-        $data['avg_hours'] = $fac->result()[0]->avg;
-        return $data;
+        //
+
     }
 }
