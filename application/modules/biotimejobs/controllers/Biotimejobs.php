@@ -204,6 +204,7 @@ class Biotimejobs extends MX_Controller
         } else {
             $page = $userdate;
         }
+        
 
         //if las sync is empty
         $sdate = "2022-11-14 00:00:00";
