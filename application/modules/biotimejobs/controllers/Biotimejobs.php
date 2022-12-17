@@ -302,16 +302,16 @@ class Biotimejobs extends MX_Controller
         endforeach;
         $process = 5;
         $method = "bioitimejobs/multiple_new_users";
-        if ($message) {
+        if ($method) {
             $status = "successful";
         } else {
             $status = "failed";
         }
         $this->cronjob_register($process, $method, $status);
-        $this->log($message);
+        $this->log($status);
 
 
-        return $message;
+        return $status;
     }
     public function update_biotimeuser($userdata)
     {
@@ -677,16 +677,16 @@ class Biotimejobs extends MX_Controller
         endforeach;
         $process = 5;
         $method = "bioitimejobs/tranfer_employees";
-        if ($message) {
+        if ($method) {
             $status = "successful";
         } else {
             $status = "failed";
         }
         $this->cronjob_register($process, $method, $status);
-        $this->log($message);
+        $this->log($status);
 
 
-        return $message;
+        return $status;
     }
 
 
