@@ -381,4 +381,12 @@ if (!function_exists('full_url')) {
 
         return ($new_params) ? $fullURL . "&" . $new_params : $fullURL;
     }
+    if (!function_exists('divide_numbers')) {
+        function divide_numbers($numerator, $demominator)
+        {
+            if (@eval(" try{ \$res = $numerator/$numerator; } catch(Exception \$e){}") === FALSE)
+                $res = 0;
+            return "$res\n" . " %";
+        }
+    }
 }

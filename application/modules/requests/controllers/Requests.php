@@ -325,6 +325,7 @@ class Requests extends MX_Controller
 	{
 
 		$data['title'] = 'My Submitted Requests';
+		$data['uptitle'] = 'My Submitted Requests';
 		$data['view'] = 'view_pending_requests';
 		$data['module'] = "requests";
 		echo Modules::run('templates/main', $data);

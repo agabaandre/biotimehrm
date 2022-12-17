@@ -68,7 +68,7 @@ class Rosta_model extends CI_Model
 		return ($this->db->affected_rows() != 1) ? false : true;
 	}
 	//get attendance report and form 
-	public function fetch_report($valid_range, $start = NULL, $limit = NULL, $employee = NULL, $filters)
+	public function fetch_report($valid_range, $start = NULL, $limit = NULL, $employee = NULL, $filters=NULL)
 	{
 		$facility = $this->session->userdata['facility'];
 		$employee = $this->input->post('empid');
@@ -120,7 +120,7 @@ class Rosta_model extends CI_Model
 		}
 		return $schedules;
 	}
-	public function countActuals($valid_range, $start = NULL, $limit = NULL, $employee = NULL, $filters)
+	public function countActuals($valid_range, $start = NULL, $limit = NULL, $employee = NULL, $filters=NULL)
 	{
 		$facility = $this->session->userdata['facility'];
 		$employee = $this->input->post('empid');
@@ -151,7 +151,7 @@ class Rosta_model extends CI_Model
 		$rows = $all->num_rows();
 		return $rows;
 	}
-	public function fetch_tabs($valid_range, $start, $limit, $employee = FALSE, $filters)
+	public function fetch_tabs($valid_range, $start, $limit, $employee = FALSE, $filters=FALSE)
 	{
 		$facility = $this->session->userdata['facility'];
 		$employee = $this->input->post('empid');

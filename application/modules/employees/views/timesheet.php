@@ -156,7 +156,7 @@
 									<div class="table-row tbrow">
 										<span class="cell" data-label="No"><?php echo $no; ?></span>
 										<span class="cell" data-label="Name" style="text-align:left; padding-left:1em;">
-											<?php echo $hours['fullname'] . ' ' . $hours['othername']; ?>
+											<?php echo $hours['fullname'] . ' ' . @$hours['othername']; ?>
 										</span>
 										<span class="cell" data-label="Position"><?php echo character_limiter($hours['job'], 15);
 																					?>
@@ -207,7 +207,10 @@
 										$night = $roster['Night'][0]->days;
 										?>
 										<span class="cell" style="width:5%;"><?php echo $workedfor = count($personhrs) . "/" . $twdays = ($day + $eve + $night); ?></span>
-										<span class="cell" style="width:10%;"><?php echo @round(($workedfor / $twdays) * 100, 0) . "%"; ?></span>
+										<span class="cell" style="width:10%;"><?php echo round(divide_numbers($workedfor, $twdays),0)*100 . "%"; ?>
+									
+									
+									</span>
 									</div>
 								<?php } ?>
 							</div>

@@ -12,7 +12,7 @@ class Employee_model extends CI_Model
         $result = $query->result();
         return $result;
     }
-    public function district_employees($district, $job, $facility, $count = FALSE, $start, $limit, $csv)
+    public function district_employees($district, $job, $facility, $count = FALSE, $start=FALSE, $limit=FALSE, $csv=FALSE)
     {
 
 
@@ -569,10 +569,13 @@ class Employee_model extends CI_Model
         if (!empty($employee)) {
             $search = "and ihrisdata.ihris_pid='$employee'";
         }
+        else{
+            $search = "";
+        }
         $query = $this->db->query("SELECT ihris_pid from ihrisdata where $filters $search");
         return $query->num_rows();
     }
-    public function fetch_TimeSheet($date_range = NULL, $start = NULL, $limit = NULL, $employee = NULL, $filters, $job = NULL)
+    public function fetch_TimeSheet($date_range = FALSE, $start = FALSE, $limit = FALSE, $employee = FALSE, $filters=FALSE, $job = NULL)
     {
         $month = $this->input->post('month');
         $year = $this->input->post('year');

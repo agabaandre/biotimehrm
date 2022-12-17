@@ -515,7 +515,7 @@ class Employees extends MX_Controller
     $data['duties'] = $this->empModel->fetch_TimeSheet();
     // print_r($data['duties']);
   }
-  public function employeeTimeLogs($ihris_pid = false, $print = false, $from = false, $to = false)
+  public function employeeTimeLogs($ihris_pid = FALSE, $print = false, $from = false, $to = false)
   {
 
 
@@ -552,7 +552,7 @@ class Employees extends MX_Controller
   }
 
 
-  public function printindividualTimeLogs($ihris_pid, $from = false, $to = false, $flag)
+  public function printindividualTimeLogs($ihris_pid=FALSE, $from = false, $to = false, $flag=FALSE)
   {
     if ($from) {
       // $from= str_replace('-','/',$from);

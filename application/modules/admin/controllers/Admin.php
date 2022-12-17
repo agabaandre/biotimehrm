@@ -332,6 +332,7 @@ return $switches;
 public function groups(){
     
         $data['title']='Groups Management';
+        $data['uptitle'] = 'Groups Management';
         $data['view']='groups';
         $data['module']="admin";
         echo Modules::run("templates/main",$data);

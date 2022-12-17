@@ -3,7 +3,7 @@
 
 date_default_timezone_set('Africa/Kampala');
 
-define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'production');
+define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'development');
 
 
 switch (ENVIRONMENT) {
@@ -49,7 +49,7 @@ if (($_temp = realpath($system_path)) !== FALSE) {
 	$system_path = strtr(
 		rtrim($system_path, '/\\'),
 		'/\\',
-		DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
+	DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
 	) . DIRECTORY_SEPARATOR;
 }
 
@@ -85,14 +85,14 @@ if (is_dir($application_folder)) {
 		$application_folder = strtr(
 			rtrim($application_folder, '/\\'),
 			'/\\',
-			DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
+		DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
 		);
 	}
 } elseif (is_dir(BASEPATH . $application_folder . DIRECTORY_SEPARATOR)) {
 	$application_folder = BASEPATH . strtr(
 		trim($application_folder, '/\\'),
 		'/\\',
-		DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
+	DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
 	);
 } else {
 	header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
@@ -112,14 +112,14 @@ if (!isset($view_folder[0]) && is_dir(APPPATH . 'views' . DIRECTORY_SEPARATOR)) 
 		$view_folder = strtr(
 			rtrim($view_folder, '/\\'),
 			'/\\',
-			DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
+		DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
 		);
 	}
 } elseif (is_dir(APPPATH . $view_folder . DIRECTORY_SEPARATOR)) {
 	$view_folder = APPPATH . strtr(
 		trim($view_folder, '/\\'),
 		'/\\',
-		DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
+	DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
 	);
 } else {
 	header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
