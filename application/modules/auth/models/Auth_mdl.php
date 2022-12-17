@@ -53,6 +53,7 @@ class Auth_mdl extends CI_Model
 		
 	}
 	
+	
 	public function checkNewUser($personid)
 	{
 		$newpid = 'person|' . trim($personid);
@@ -61,7 +62,7 @@ class Auth_mdl extends CI_Model
 		$this->db->or_where('ipps', $personid);
 		$query = $this->db->get('ihrisdata');
 		$rows = $query->num_rows();
-		if ($rows > 0) {
+		if ($rows >= 1) {
 			$userRow = $query->row();
 			$newUser = array(
 				"username" => $personid,
@@ -77,7 +78,7 @@ class Auth_mdl extends CI_Model
 				"role" => "17",
 				"status" => "0"
 			);
-			$res = $this->db->insert($this->table, $newUser);
+			 $this->db->insert($this->table, $newUser);
 			return TRUE;
 		} else {
 			return FALSE;

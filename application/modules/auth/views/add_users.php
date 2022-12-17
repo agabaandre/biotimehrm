@@ -64,7 +64,8 @@ $variables = Modules::run("svariables/getSettings");
               <!-- textarea -->
               <div class="form-group">
                 <label>Default Password</label>
-                <input type="text" required name="password" value="<?php echo $variables = Modules::run("svariables/getSettings")->default_password; ?> " class="form-control" readonly />
+                (rKET2XW5Xvnp2ds)
+                <input type="hidden" required name="password" value="<?php echo $variables = Modules::run("svariables/getSettings")->default_password; ?> " class="form-control" readonly />
               </div>
             </div>
             <div class="col-sm-4">
