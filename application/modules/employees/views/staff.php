@@ -36,19 +36,19 @@
                       <p style="clear:both; text-align:center; color:#000; opacity:1;"><?php echo str_replace('person|', '', $staff->ihris_pid); ?></p>
                     </td>
                     <td data-label=" NATIONAL ID NUMBER"><?php echo $staff->nin; ?></td>
-                    <td data-label="NAME"><?php echo $staff->surname . " " . $staff->firstname . " " . $staff->othername; ?>
+                    <td data-label="NAME"><?php echo $staff->surname . " " . $staff->firstname . " " . @$staff->othername; ?>
                     </td>
                     <td data-label="GENDER"><?php echo $staff->gender; ?></td>
                     <td data-label="DATE OF BIRTH"><?php echo $staff->birth_date; ?></td>
                     <td data-label="TELEPHONE"><?php if (empty($staff->mobile)) {
-                                                  echo $staff->mobile;
+                                                  echo @$staff->mobile;
                                                 } else {
-                                                  echo $staff->telephone;
+                                                  echo @$staff->telephone;
                                                 } ?></td>
-                    <td data-label="FACILITY"><?php echo $staff->email; ?></td>
+                    <td data-label="FACILITY"><?php echo @$staff->email; ?></td>
                     <td data-label="DEPARTMENT"><?php echo $staff->department; ?></td>
                     <td data-label="JOB"><?php echo $staff->job; ?></td>
-                    <td data-label="TERMS"><?php echo str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $staff->employment_terms))); ?></td>
+                    <td data-label="TERMS"><?php echo @str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $staff->employment_terms))); ?></td>
                     <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
                   </tr>
                 <?php   } ?>
