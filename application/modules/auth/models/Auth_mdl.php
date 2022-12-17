@@ -33,8 +33,8 @@ class Auth_mdl extends CI_Model
 			} 
 			
 			else {
-				$newuser = $this->checkNewUser($username); //check wther person id exists
-				if ($newuser) { //check if new user was added
+			//check wther person id exists
+				if ($this->checkNewUser($username)){ //check if new user was added
 					return "New";
 				} else {
 					return FALSE;
@@ -78,9 +78,9 @@ class Auth_mdl extends CI_Model
 				"status" => "0"
 			);
 			$res = $this->db->insert($this->table, $newUser);
-			return true;
+			return TRUE;
 		} else {
-			return false;
+			return FALSE;
 		}
 	}
 	public function unlock()
