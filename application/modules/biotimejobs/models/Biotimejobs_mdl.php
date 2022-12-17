@@ -158,7 +158,7 @@ class Biotimejobs_mdl extends CI_Model
 //          $this->db->truncate('biotime_devices');
             
 //         }
-        $query = $this->db->insert('biotime_devices', $data);
+        $query = $this->db->replace('biotime_devices', $data);
         if ($query) {
             $message = "Successful SYNC Biotime Devices " . $this->db->affected_rows();
         } else {
