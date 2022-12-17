@@ -53,7 +53,7 @@ class Biotimejobs extends MX_Controller
         $params = '?' . http_build_query($query);
         $endpoint = 'iclock/api/terminals/' . $params;
 
-        $response = $http->sendRequest($endpoint, "GET", $headers, []);
+        $response = $http->curlgetHttp($endpoint, $headers, []);
         foreach ($response->data as $terminal) {
 
 
