@@ -46,8 +46,14 @@ class Biotimejobs extends MX_Controller
             // 'Authorization' => "Token ".$this->get_general_auth(),
             'Authorization' => "JWT " . $this->get_token(),
         ];
+        $query = array(
+            'page_size' => 5000000
+        );
 
-        $response = $http->sendRequest('iclock/api/terminals', "GET", $headers, []);
+        $params = '?' . http_build_query($query);
+        $endpoint = 'iclock/api/terminals/' . $params;
+
+        $response = $http->sendRequest($endpoint, "GET", $headers, []);
         foreach ($response->data as $terminal) {
 
 
@@ -204,7 +210,7 @@ class Biotimejobs extends MX_Controller
         } else {
             $page = $userdate;
         }
-        
+
 
         //if las sync is empty
         //$sdate = "2022-12-13 00:00:00";
@@ -216,11 +222,11 @@ class Biotimejobs extends MX_Controller
             'end_time' => $edate,
         );
         //sync specific machine
-//          $query = array(
-//             'page' => $page, 'start_time' => $sdate,
-//             'end_time' => $edate,
-//             'terminal_sn' => '3929091915178',
-//         );
+        //          $query = array(
+        //             'page' => $page, 'start_time' => $sdate,
+        //             'end_time' => $edate,
+        //             'terminal_sn' => '3929091915178',
+        //         );
 
         $params = '?' . http_build_query($query);
         $endpoint = 'iclock/api/transactions/' . $params;
