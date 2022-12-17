@@ -36,16 +36,19 @@ class Biotimejobs extends MX_Controller
         // print_r ($response->token);
         return $response->token;
     }
+
+
     //get terminals
     public function terminals()
     {
         $http = new HttpUtil();
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-            // 'Authorization' => "Token ".$this->get_general_auth(),
-            'Authorization' => "JWT " . $this->get_token(),
-        ];
+        $headr = array();
+        $headr[] = 'Content-length: 0';
+        $headr[] = 'Content-type: application/json';
+        $headr[] = 'Authorization: JWT ' . $this->get_token();
+
+
+
         $query = array(
             'page_size' => 5000000
         );
@@ -53,7 +56,10 @@ class Biotimejobs extends MX_Controller
         $params = '?' . http_build_query($query);
         $endpoint = 'iclock/api/terminals/' . $params;
 
-        $response = $http->curlgetHttp($endpoint, $headers, []);
+        $response = $http->curlgetHttp($endpoint, $headr, []);
+        //print_r($response->data);
+        // exit();
+
         foreach ($response->data as $terminal) {
 
 
