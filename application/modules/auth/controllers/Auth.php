@@ -34,6 +34,9 @@ class Auth extends MX_Controller
     $person = $this->auth_mdl->loginChecker($postdata);
     // print_r($person);
     // exit;
+    // $hash = $this->argonhash->make($postdata['password']);
+    // print_r($hash);
+    // exit();
     if (!empty($person->user_id)) {
       $user_group = $person->role;
       $userdata = array(
@@ -63,7 +66,7 @@ class Auth extends MX_Controller
       //print_r($userdata);
       $this->checkerUser($userdata);
       } else {
-      if ($person == "new") {
+      if ($person == "New") {
         $msg = $this->session->set_flashdata('msg', "First time access detected, Contact the Admin for Activation");
       } else {
         $msg = $this->session->set_flashdata('msg', "Login Failed, Wrong credentials");

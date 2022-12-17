@@ -10,45 +10,49 @@ class Auth_mdl extends CI_Model
 	}
 	public function loginChecker($postdata)
 	{
-		$username = $postdata['username'];
-		if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
+		    $username = $postdata['username'];
 			//login using username
 			$this->db->where("username", $username);
+			$this->db->or_where("email", $username);
 			$this->db->where("status", 1);
 			$this->db->join('user_groups', 'user_groups.group_id=user.role');
 			$qry = $this->db->get($this->table);
 			$rows = $qry->num_rows();
-			if ($rows !== 0) {
+
+	
+			if ($rows > 0) {
 				$person = $qry->row();
+				if ($this->validate_password($postdata['password'], $person->password)){
 				return $person;
-			} else {
+				}
+				else {
+				return 0;
+
+				}
+		
+			} 
+			
+			else {
 				$newuser = $this->checkNewUser($username); //check wther person id exists
 				if ($newuser) { //check if new user was added
-					return "new";
+					return "New";
 				} else {
-					return "failed";
+					return FALSE;
 				}
 			}
-		} else {
-			//login using email
-			$this->db->where("email", $username);
-			$this->db->where("status", 1);
-			$this->db->join('user_groups', 'user_groups.group_id=user.role');
-			$qry = $this->db->get($this->table);
-			$rows = $qry->num_rows();
-			if ($rows !== 0) {
-				$person = $qry->row();
-				return $person;
-			} else {
-				$newuser = $this->checkNewUser($username); //check wther person id exists
-				if ($newuser) { //check if new user was added
-					return "new";
-				} else {
-					return "failed";
-				}
-			}
+		} 
+
+    public function validate_password($post_password,$dbpassword){
+	 $auth = ($this->argonhash->check($post_password, $dbpassword));
+		if ($auth) {
+			return TRUE;
 		}
+		else{
+			return FALSE;
+		}
+		
 	}
+	
 	public function checkNewUser($personid)
 	{
 		$newpid = 'person|' . trim($personid);
@@ -219,15 +223,16 @@ class Auth_mdl extends CI_Model
 	// change password
 	public function changePass($postdata)
 	{
-		$oldpass = md5($postdata['oldpass']);
-		$newpass = md5($postdata['newpass']);
+
+		$oldpass= $this->argonhash->make($postdata['oldpass']);
+		$newpass = $this->argonhash->make($postdata['newpass']);
 		$user = $this->session->get_userdata();
 		$uid = $user['user_id'];
 		$this->db->select('password');
 		$this->db->where('user_id', $uid);
 		$qry = $this->db->get($this->table);
 		$user = $qry->row();
-		if ($user->password == $oldpass) {
+		if ($this->argonhash->check($oldpass, $user->password)){
 			// change the password
 			$data = array("password" => $newpass, "isChanged" => 1);
 			$this->db->where('user_id', $uid);
