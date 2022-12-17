@@ -225,7 +225,7 @@ class Auth_mdl extends CI_Model
 	public function changePass($postdata)
 	{
 
-		$oldpass= $this->argonhash->make($postdata['oldpass']);
+		$oldpass= $postdata['oldpass'];
 		$newpass = $this->argonhash->make($postdata['newpass']);
 		$user = $this->session->get_userdata();
 		$uid = $user['user_id'];
