@@ -154,10 +154,9 @@ class Biotimejobs_mdl extends CI_Model
     public function addMachines($data)
     {
 
-//         if(count($data)>0){
-//          $this->db->truncate('biotime_devices');
-            
-//         }
+        if (count($data) > 0) {
+            $this->db->truncate('biotime_devices');
+        }
         $query = $this->db->replace('biotime_devices', $data);
         if ($query) {
             $message = "Successful SYNC Biotime Devices " . $this->db->affected_rows();

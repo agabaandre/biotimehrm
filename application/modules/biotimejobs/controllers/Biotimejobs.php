@@ -59,7 +59,7 @@ class Biotimejobs extends MX_Controller
         $response = $http->curlgetHttp($endpoint, $headr, []);
         //print_r($response->data);
         // exit();
-
+        $insert1 =array();
         foreach ($response->data as $terminal) {
 
 
@@ -73,8 +73,10 @@ class Biotimejobs extends MX_Controller
                 'area_name' => $terminal->area_name,
                 'last_activity' => $terminal->last_activity
             );
-            $message = $this->biotimejobs_mdl->addMachines($insert);
+            array_push($insert1,$insert)
+            
         }
+        $message = $this->biotimejobs_mdl->addMachines($insert1);
         $this->log($message);
         $process = 1;
         $method = "bioitimejobs/terminals";
