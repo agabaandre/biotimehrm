@@ -9,7 +9,7 @@ class Rosta extends MX_Controller
 		$this->load->model('rosta_model');
 		$this->rostamodule = "rosta";
 		$this->departments = Modules::run("departments/getDepartments");
-		$this->watermark = FCPATH . "assets/img/MOH.png";
+		$this->watermark = FCPATH . "assets/images/watermark.png";
 		//requires a join on ihrisdata
 		$this->filters = Modules::run('filters/sessionfilters');
 		//doesnt require a join on ihrisdata

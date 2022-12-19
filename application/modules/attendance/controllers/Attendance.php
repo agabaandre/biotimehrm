@@ -8,7 +8,7 @@ class Attendance extends MX_Controller
 		$this->load->model('attendance_model');
 		$this->departments = Modules::run("departments/getDepartments");
 		$this->attendModule = "attendance";
-		$this->watermark = FCPATH . "assets/img/MOH.png";
+		$this->watermark = FCPATH . "assets/images/watermark.png";
 		//requires a join on ihrisdata
 		$this->filters = Modules::run('filters/sessionfilters');
 		//doesnt require a join on ihrisdata

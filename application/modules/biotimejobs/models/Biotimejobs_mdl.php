@@ -18,7 +18,7 @@ class Biotimejobs_mdl extends CI_Model
         }
         $query = $this->db->insert_batch('ihrisdata', $data);
 
-        $delete = $this->db->query("DELETE from ihrisdata where facility_id='facility|787' AND card_number IS NULL");
+        //$delete = $this->db->query("DELETE from ihrisdata where facility_id='facility|787' AND card_number IS NULL");
 
         if ($query) {
             $n = $this->db->query("select ihris_pid from ihrisdata");
