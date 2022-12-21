@@ -105,7 +105,7 @@ class Auth_mdl extends CI_Model
 	public function getAll($start, $limit, $key,$status)
 	{
 		if (!empty($status)) {
-			$this->db->where("status", $status);
+			$this->db->where("status", "$status");
 		}
 		if (!empty($key)) {
 			$this->db->like("username", "$key", "both");
@@ -120,7 +120,7 @@ class Auth_mdl extends CI_Model
 	public function count_Users($key,$status)
 	{
 		if (!empty($status)) {
-			$this->db->where("status", $status);
+			$this->db->where("status", "$status");
 		}
 		if (!empty($key)) {
 			$this->db->like("username", "$key", "both");

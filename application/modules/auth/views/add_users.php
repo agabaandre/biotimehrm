@@ -132,8 +132,6 @@ $variables = Modules::run("svariables/getSettings");
             <label>Advanced User Search</label>
             <div class="input-group mb-3">
               <input type="text" name="search_key" class="form-control" placeholder="Username or Name">
-              <div class="input-group-append">
-                <button class="btn btn-default" type="submit">Search</button>
               </div>
             </div>
               <label> Account status</label>
@@ -144,6 +142,9 @@ $variables = Modules::run("svariables/getSettings");
                 </select>
                
               </div>
+                <div class="input-group-append">
+                  <button class="btn btn-default" type="submit">Search</button>
+                </div>
 
 
 
