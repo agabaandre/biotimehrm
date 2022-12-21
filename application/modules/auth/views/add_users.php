@@ -136,9 +136,8 @@ $variables = Modules::run("svariables/getSettings");
                 <button class="btn btn-default" type="submit">Search</button>
               </div>
             </div>
-
+              <label> Account status</label>
               <div class="input-group mb-3">
-                <label> Account status</label>
                 <select class="form-control" name="status">
                   <option value="0">New Users / Blocked</option>
                   <option value="1" selected> Active Users</option>
