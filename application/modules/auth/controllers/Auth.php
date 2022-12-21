@@ -126,10 +126,14 @@ class Auth extends MX_Controller
     if (empty($searchkey)) {
       $searchkey = "";
     }
+    $status = $this->input->post('status');
+    if (empty($status)) {
+      $status = "";
+    }
     $this->load->library('pagination');
     $config = array();
     $config['base_url'] = base_url() . "auth/users";
-    $config['total_rows'] = $this->auth_mdl->count_Users($searchkey);
+    $config['total_rows'] = $this->auth_mdl->count_Users($searchkey,$status);
     $config['per_page'] = 20; //records per page
     $config['uri_segment'] = 3; //segment in url  
     //pagination links styling
@@ -156,7 +160,7 @@ class Auth extends MX_Controller
     $this->pagination->initialize($config);
     $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
     $data['links'] = $this->pagination->create_links();
-    $data['users'] = $this->auth_mdl->getAll($config['per_page'], $page, $searchkey);
+    $data['users'] = $this->auth_mdl->getAll($config['per_page'], $page, $searchkey,$status);
     $data['module'] = "auth";
     $data['view'] = "add_users";
     $data['title'] = "User management";

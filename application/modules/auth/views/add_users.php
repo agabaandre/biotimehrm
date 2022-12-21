@@ -128,7 +128,7 @@ $variables = Modules::run("svariables/getSettings");
         <h3 class="card-title">User List</h3><br>
         <form class="form-horizontal" action="<?php echo base_url() ?>auth/users" method="post" style="margin-top: 4px !important;">
 
-          <div class="form-group col-md-5">
+          <div class="form-group col-md-12">
             <label>Advanced User Search</label>
             <div class="input-group mb-3">
               <input type="text" name="search_key" class="form-control" placeholder="Username or Name">
@@ -136,6 +136,15 @@ $variables = Modules::run("svariables/getSettings");
                 <button class="btn btn-default" type="submit">Search</button>
               </div>
             </div>
+
+              <div class="input-group mb-3">
+                <label> Account status</label>
+                <select class="form-control" name="status">
+                  <option value="0"> Inactive</option>
+                  <option value="1" selected> Active</option>
+                </select>
+               
+              </div>
 
 
 
