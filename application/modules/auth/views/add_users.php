@@ -140,8 +140,8 @@ $variables = Modules::run("svariables/getSettings");
               <div class="input-group mb-3">
                 <label> Account status</label>
                 <select class="form-control" name="status">
-                  <option value="0"> Inactive</option>
-                  <option value="1" selected> Active</option>
+                  <option value="0">New Users / Blocked</option>
+                  <option value="1" selected> Active Users</option>
                 </select>
                
               </div>
