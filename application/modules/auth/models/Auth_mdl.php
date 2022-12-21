@@ -265,7 +265,7 @@ class Auth_mdl extends CI_Model
 	public function resetPass($postdata)
 	{
 		$uid = $postdata['user_id'];
-		$password = md5($postdata['password']);
+		$password = $this->password;
 		$data = array("password" => $password, "isChanged" => 0);
 		$this->db->where('user_id', $uid);
 		$done = $this->db->update($this->table, $data);
