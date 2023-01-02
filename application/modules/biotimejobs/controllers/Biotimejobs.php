@@ -3,8 +3,6 @@ date_default_timezone_set('Africa/Kampala');
 defined('BASEPATH') or exit('No direct script access allowed');
 
 use \utils\HttpUtil;
-use \Amp\Loop;
-use \Amp\ReactAdapter\ReactAdapter;
 
 class Biotimejobs extends MX_Controller
 {
@@ -18,8 +16,6 @@ class Biotimejobs extends MX_Controller
         $this->password = Modules::run('svariables/getSettings')->biotime_password;
         $this->load->model('biotimejobs_mdl');
         @$this->facility = $_SESSION['facility'];
-
-        $this->$loop = new Amp\ReactAdapter\ReactAdapter((new Amp\Loop\DriverFactory)->create());
     }
 
     public function index()
@@ -27,21 +23,7 @@ class Biotimejobs extends MX_Controller
         echo "BIO-TIME HERE";
     }
 
-    function loop()
-    {
-       $loop->addtimer(1, function () {
-            foreach (range(1, 5) as $i) {
-                $output = $i * 2;
-                echo " ", $output . "<br>" . " ";
-            }
-            echo " After Table" . "<br>" . " ";
-        });
-
-
-        echo " After Loop Time" . "<br>" . " ";
-        $loop->run();
-    }
-
+  
     public function get_token($uri = FALSE)
     {
 
