@@ -222,7 +222,7 @@ class Biotimejobs extends MX_Controller
 
         //if las sync is empty
           $sdate = "2022-12-30 00:00:00";
-          $edate = "2023-01-01 00:00:00";
+          $edate = "2023-01-03 00:00:00";
 
         $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
