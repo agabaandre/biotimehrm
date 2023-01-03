@@ -224,7 +224,7 @@ class Biotimejobs extends MX_Controller
           $sdate = "2022-12-30 00:00:00";
           $edate = "2023-01-03 00:00:00";
 
-        $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
+        //$sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
             'page' => $page, 'start_time' => $sdate,
             'end_time' => $edate,
