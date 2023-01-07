@@ -347,6 +347,7 @@ class Biotimejobs extends MX_Controller
             $status = "failed";
         }
         $this->cronjob_register($process, $method, $status);
+        return $response;
     }
 
 
@@ -669,7 +670,7 @@ class Biotimejobs extends MX_Controller
     public function transfer_employees()
     {
         $howmany = array();
-        $query = $this->db->query("SELECT * FROM  biotime_transfers");
+        $query = $this->db->query("SELECT * FROM  biotime_transfers WHERE card_number=018509492");
         $trasnfers = $query->result();
         foreach ($trasnfers as $newuser) :
 
@@ -679,7 +680,7 @@ class Biotimejobs extends MX_Controller
         endforeach;
         $process = 5;
         $method = "bioitimejobs/tranfer_employees";
-        if ($method) {
+        if ($message) {
             $status = "successful";
         } else {
             $status = "failed";
@@ -688,7 +689,7 @@ class Biotimejobs extends MX_Controller
         $this->log($status);
 
 
-        return $status;
+        echo  $status;
     }
 
 
