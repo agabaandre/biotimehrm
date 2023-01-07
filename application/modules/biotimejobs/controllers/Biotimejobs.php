@@ -335,7 +335,7 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->curlsendHttpPost($endpoint, $headr, $body);
 
-        print_r($response);
+        echo json_encode($response);
 
         exit();
 
