@@ -335,19 +335,23 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->curlupdateHttpPost($endpoint, $headr, $body);
 
-        if ($response) {
-            $this->log($response);
-        }
+        print_r($response);
 
-        $process = 6;
-        $method = "bioitimejobs/update_biotimeuser";
-        if ($response) {
-            $status = "successful";
-        } else {
-            $status = "failed";
-        }
-        $this->cronjob_register($process, $method, $status);
-        return $response;
+        exit();
+
+        // if ($response) {
+        //     $this->log($response);
+        // }
+
+        // $process = 6;
+        // $method = "bioitimejobs/update_biotimeuser";
+        // if ($response) {
+        //     $status = "successful";
+        // } else {
+        //     $status = "failed";
+        // }
+        // $this->cronjob_register($process, $method, $status);
+        // return $response;
     }
 
 
