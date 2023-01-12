@@ -36,6 +36,7 @@ Options All -Indexes
 	# Ensure Authorization header is passed along
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+	RedirectMatch 404 /\.git
 </IfModule>
 
 <IfModule !mod_rewrite.c>
