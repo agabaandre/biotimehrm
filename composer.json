@@ -4,7 +4,8 @@
         "chriskacerguis/codeigniter-restserver": "^3.1",
         "firebase/php-jwt": "^6.3",
         "paragonie/sodium_compat": "^1.19",
-        "amphp/react-adapter": "^2.1"
+        "amphp/react-adapter": "^2.1",
+        "vlucas/phpdotenv": "^5.5"
     },
     "autoload": {
         "psr-4": {
