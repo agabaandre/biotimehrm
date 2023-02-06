@@ -199,6 +199,7 @@
 					<span class="cell stcell ">Leave</span>
 					<span class="cell stcell ">Holiday</span>
 					<span class="cell stcell ">Absent</span>
+					<span class="cell stcell ">Days Scheduled</span>
 					<span class="cell stcell ">% Accounted</span>
 					<span class="cell stcell ">% Absenteeism</span>
 				</div>
@@ -277,7 +278,10 @@
 						<span class="cell stcell " data-label="Absent">
 							<?php echo number_format($absent, 1); ?> %
 						</span>
-						<span class="cell stcell " data-label="% Present"><?php echo number_format($attendance_rate, 1) ?>%</span>
+						<span class="cell stcell " data-label="Days Scheduled">
+							<?php echo $supposed_days; ?> %
+						</span>
+							<span class="cell stcell " data-label="% Present"><?php echo number_format($attendance_rate, 1) ?>%</span>
 						<span class="cell stcell " data-label="% Absent"><?php echo number_format($absentism_rate, 1) ?>%</span>
 
 					</div>

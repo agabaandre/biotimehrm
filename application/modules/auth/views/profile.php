@@ -1,8 +1,6 @@
    <?php
 
-$user=$this->session->get_userdata();
-$userifo=Modules::run('auth/getuserInfo',$user['ihris_pid']);
-
+    $user=$this->session->get_userdata('user');
    ?>
 
 <div class="modal fade" id="profile" tabindex="-1" role="dialog" aria-labelledby="modalLabelSmall" aria-hidden="true">
