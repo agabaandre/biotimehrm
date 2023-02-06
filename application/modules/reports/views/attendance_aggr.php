@@ -248,6 +248,7 @@
 					$total_supposed += $row->days_supposed;
 					$total_attendance_rate += $attendance_rate;
 					$total_absentism_rate  += $absentism_rate;
+					$total_days_worked  += $days_worked;
 
 				?>
 					<div class="table-row tbrow strow">
@@ -305,7 +306,7 @@
 					<span class="cell stcell "><?php echo number_format(($total_leave / $count), 1); ?>% </span>
 					<span class="cell stcell "><?php echo number_format(($total_holiday / $count), 1); ?>% </span>
 					<span class="cell stcell "><?php echo number_format(($total_absent / $count), 1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format($days_worked / $count, 1); ?></span>
+					<span class="cell stcell "><?php echo number_format($total_days_worked / $count, 1); ?></span>
 					<span class="cell stcell "><?php echo number_format($total_supposed / $count, 1); ?></span>
 					<span class="cell stcell "><?php echo number_format($total_attendance_rate / $count, 1); ?>%</span>
 					<span class="cell stcell "><?php echo number_format($total_absentism_rate / $count, 1); ?>%</span>
