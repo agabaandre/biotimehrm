@@ -301,7 +301,7 @@
 					<span class="cell stcell "><?php echo number_format(($total_leave / $count), 1); ?>% </span>
 					<span class="cell stcell "><?php echo number_format(($total_holiday / $count), 1); ?>% </span>
 					<span class="cell stcell "><?php echo number_format(($total_absent / $count), 1); ?>% </span>
-					<span class="cell stcell "><?php echo number_format($total_supposed_days / $count, 1); ?></span>
+					<span class="cell stcell "><?php echo number_format($total_supposed / $count, 1); ?></span>
 					<span class="cell stcell "><?php echo number_format($total_attendance_rate / $count, 1); ?>%</span>
 					<span class="cell stcell "><?php echo number_format($total_absentism_rate / $count, 1); ?>%</span>
 				</div>
