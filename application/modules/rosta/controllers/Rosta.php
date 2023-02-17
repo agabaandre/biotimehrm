@@ -606,6 +606,8 @@ class Rosta extends MX_Controller
 			);
 			//print_r($data);
 			$result = $this->rosta_model->saveActual($data);
+
+			if(($duty==22)||($duty==23)){
 			$timedata = array(
 				'entry_id' => $entry,
 				'ihris_pid' => $pid,
@@ -623,6 +625,7 @@ class Rosta extends MX_Controller
 			);
 			//assign_time data for manual facilities
 			$this->fill_timelogs($timedata);
+		}
 			//echo $result;
 		} catch (Exception $error) {
 			echo $error->getMessage();
