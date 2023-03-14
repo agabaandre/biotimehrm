@@ -64,7 +64,7 @@
         <p class="pagination"><?php echo $links;
                               ?></p>
     </div>
-  </div>
+ 
   <div class="card-body">
     <div class="panel-title" style="font-weight:bold; font-size:16px; text-align:center;"> ATTENDANCE LOG FOR
       <?php
