@@ -416,7 +416,7 @@ class Employees extends MX_Controller
           } else {
             $hours_worked;
           }
-          if (!empty($hours_data)) {
+          if (!empty($starTime)) {
             $wdays = 1;
             array_push($days_worked, $wdays);
           }
