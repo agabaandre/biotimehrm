@@ -318,11 +318,11 @@
            </li>
          <?php } ?>
          <li class="nav-item has-treeview">
-           <a href="<?php echo base_url(); ?>" class="nav-link" class="passchange nav-link dropdown-toggle" data-toggle="modal" role="button" data-target="#changepassword">
+           <a href="<?php echo base_url(); ?>"  class="passchange nav-link dropdown-toggle" data-toggle="modal" role="button" data-target="#changepassword">
              <i class="fa fa-lock"></i>
              <p>
                Change Password
-               </i>
+              
              </p>
            </a>
          </li>
