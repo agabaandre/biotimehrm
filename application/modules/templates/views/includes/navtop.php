@@ -11,6 +11,7 @@
         <?php if (!empty($uptitle)) {
           echo urldecode($uptitle);
         } ?>
+        </div>
     </li>
     <li class="nav-item d-none d-sm-inline-block">
     </li>
