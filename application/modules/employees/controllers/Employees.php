@@ -183,7 +183,7 @@ class Employees extends MX_Controller
       }
       
       $dtimein = date('H:i:s', strtotime($time_in = $data->time_in));
-      $days = array("NAME" => $data->surname . " " . $data->firstname . " " . $data->othername, "JOB" => $data->job, "FACILITY" => $data->fac, "DEPARTMENT" => $data->department, "DATE" => $data->date, "TIME IN" => $dtimein, "TIME OUT" => $dtimeout, "HOURS WORKED" => $hours);
+      $days = array("NAME" => $data->surname . " " . $data->firstname . " " . $data->othername, "JOB" => $data->job,"CADRE"=>$data->cadre, "FACILITY" => $data->fac, "DEPARTMENT" => $data->department,"GENDER"=>$data->gender,"BIRTH DATE"=> $data->birth_date, "DATE" => $data->date, "TIME IN" => $dtimein, "TIME OUT" => $dtimeout, "HOURS WORKED" => $hours);
       array_push($records, $days);
     }
     $is_coloumn = true;
