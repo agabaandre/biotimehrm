@@ -10,50 +10,44 @@ class Auth_mdl extends CI_Model
 	}
 	public function loginChecker($postdata)
 	{
-		    $username = $postdata['username'];
-			//login using username
-			$this->db->where("username", $username);
-			$this->db->or_where("email", $username);
-			$this->db->where("status", 1);
-			$this->db->join('user_groups', 'user_groups.group_id=user.role');
-			$qry = $this->db->get($this->table);
-			$rows = $qry->num_rows();
+		$username = $postdata['username'];
+		//login using username
+		$this->db->where("username", $username);
+		$this->db->or_where("email", $username);
+		$this->db->where("status", 1);
+		$this->db->join('user_groups', 'user_groups.group_id=user.role');
+		$qry = $this->db->get($this->table);
+		$rows = $qry->num_rows();
 
-	
-			if ($rows > 0) {
-				$person = $qry->row();
-				if ($this->validate_password($postdata['password'], $person->password)){
+
+		if ($rows > 0) {
+			$person = $qry->row();
+			if ($this->validate_password($postdata['password'], $person->password)) {
 				return $person;
-				}
-				else {
+			} else {
 				return 0;
-
-				}
-		
-			} 
-			
-			else {
-			//check wther person id exists
-				if ($this->checkNewUser($username)){ //check if new user was added
-					return "New";
-				} else {
-					return FALSE;
-				}
 			}
-		} 
+		} else {
+			//check wther person id exists
+			if ($this->checkNewUser($username)) { //check if new user was added
+				return "New";
+			} else {
+				return FALSE;
+			}
+		}
+	}
 
-    public function validate_password($post_password,$dbpassword){
-	 $auth = ($this->argonhash->check($post_password, $dbpassword));
+	public function validate_password($post_password, $dbpassword)
+	{
+		$auth = ($this->argonhash->check($post_password, $dbpassword));
 		if ($auth) {
 			return TRUE;
-		}
-		else{
+		} else {
 			return FALSE;
 		}
-		
 	}
-	
-	
+
+
 	public function checkNewUser($personid)
 	{
 		$newpid = 'person|' . trim($personid);
@@ -78,7 +72,7 @@ class Auth_mdl extends CI_Model
 				"role" => "17",
 				"status" => "0"
 			);
-			 $this->db->insert($this->table, $newUser);
+			$this->db->insert($this->table, $newUser);
 			return TRUE;
 		} else {
 			return FALSE;
@@ -102,7 +96,7 @@ class Auth_mdl extends CI_Model
 		$qry = $this->db->get($this->table);
 		return $qry->row();
 	}
-	public function getAll($start, $limit, $key,$status)
+	public function getAll($start, $limit, $key, $status)
 	{
 		if (!empty($status)) {
 			$this->db->where("status", "$status");
@@ -111,13 +105,13 @@ class Auth_mdl extends CI_Model
 			$this->db->like("username", "$key", "both");
 			$this->db->or_like("name", "$key", "both");
 		}
-		
+
 		$this->db->limit($start, $limit);
 		$this->db->join('user_groups', 'user_groups.group_id=user.role', 'left');
 		$qry = $this->db->get($this->table);
 		return $qry->result();
 	}
-	public function count_Users($key,$status)
+	public function count_Users($key, $status)
 	{
 		if (!empty($status)) {
 			$this->db->where("status", "$status");
@@ -232,7 +226,7 @@ class Auth_mdl extends CI_Model
 	public function changePass($postdata)
 	{
 
-		$oldpass= $postdata['oldpass'];
+		$oldpass = $postdata['oldpass'];
 		$newpass = $this->argonhash->make($postdata['newpass']);
 		$user = $this->session->get_userdata();
 		$uid = $user['user_id'];
@@ -240,7 +234,7 @@ class Auth_mdl extends CI_Model
 		$this->db->where('user_id', $uid);
 		$qry = $this->db->get($this->table);
 		$user = $qry->row();
-		if ($this->argonhash->check($oldpass, $user->password)){
+		if ($this->argonhash->check($oldpass, $user->password)) {
 			// change the password
 			$data = array("password" => $newpass, "isChanged" => 1);
 			$this->db->where('user_id', $uid);
