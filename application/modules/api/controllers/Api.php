@@ -28,6 +28,7 @@ class Api extends RestController
             //Remove Bearer from string
             $token = str_replace('Bearer ', '', $token);
 
+
             $decoded = JWT::decode($token, new Key($this->key, 'HS256'));
 
             $decoded = (array) $decoded;
@@ -77,8 +78,16 @@ class Api extends RestController
             $this->response([
                 'status' => 'SUCCESS',
                 'message' => 'Login successful',
-                'token' => $token,
-                'user' => $user,
+                'user' => [
+                    'user_id' => $user->user_id,
+                    'email' => $user->email,
+                    'username' => $user->username,
+                    'name' => $user->name,
+                    'role_id' => $user->group_id,
+                    'role_name' => $user->group_name,
+                    'facility_id' => $user->facility_id,
+                    'facility_name' => $user->facility,
+                ],
             ], 200);
         } else {
             $this->response([
@@ -201,6 +210,8 @@ class Api extends RestController
     // Upload Device Resources
     public function upload_fingerprints_post()
     {
+
+
 
         // Upload Fingerprints of file_type fpt
         $config['upload_path'] = './uploads/fingerprints/';
