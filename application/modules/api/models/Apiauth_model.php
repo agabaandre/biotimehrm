@@ -1,6 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
+
 class Apiauth_model extends CI_Model
 {
     // Constructor
@@ -26,11 +27,57 @@ class Apiauth_model extends CI_Model
 
         return null;
     }
-    // Get Staff List
-    public function get_staff_list($facilityId)
+
+    public function get_user_by_email($email)
     {
-        // Get staff list from fingerprints table
         $this->db->select('*');
-        $this->db->from('ihrisdata');
+        $this->db->where("email", $email);
+        $query = $this->db->get('user');
+        $user = $query->row();
+
+        if ($user) {
+            return $user;
+        }
+
+        return null;
+    }
+
+    public function save_reset_token($user_id, $token)
+    {
+        $data = array(
+            'user_id' => $user_id,
+            'token' => $token,
+            'created_at' => date('Y-m-d H:i:s')
+        );
+
+        $this->db->insert('password_resets', $data);
+    }
+
+
+    // Get user by email or username
+    public function get_user_by_username_or_email($username, $email) {
+        $this->db->select('*');
+        $this->db->where("email", $email);
+        $this->db->or_where("username", $username);
+        $query = $this->db->get('user');
+        $user = $query->row();
+
+        if ($user) {
+            return $user;
+        }
+
+        return null;
+    }
+
+    // Create the user
+    public function create_user($username, $email, $name, $password) {
+        $data = [
+            'username' => $username,
+            'email' => $email,
+            'name' => $name,
+            'password' => $password
+        ];
+
+        return $this->db->insert('user', $data);   
     }
 }

@@ -4,7 +4,7 @@ class Apiemployee_model extends CI_Model
 {
     // Get Staff List 
     public function get_staff_list($facilityId)
-   
+
     {
         // Get staff list from fingerprints table
         $this->db->select('*');
@@ -18,8 +18,20 @@ class Apiemployee_model extends CI_Model
         }
     }
 
+    // Get Staff Details
+    public function get_staff_details($id, $facilityId)
+    {
+        $this->db->select('*');
+        $this->db->from('ihrisdata');
+        $this->db->where('facility_id', $facilityId);
+        $this->db->where('id', $id);
+        $query = $this->db->get();
+        $user = $query->row();
+        return $user;
+    }
+
     public function enroll($data)
-   
+
     {
         $this->db->insert('fingerprints', $data);
         return $this->db->insert_id();

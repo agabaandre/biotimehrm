@@ -7,6 +7,11 @@ use chriskacerguis\RestServer\RestController;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
+
+/**
+ * @property Apiauth_model $mAuth
+ * @property Apiemployee_model $mEmployee
+ */
 class Api extends RestController
 {
 
@@ -15,8 +20,9 @@ class Api extends RestController
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('apiauth_model', 'mAuth');
-        $this->load->model('apiemployee_model', 'mEmployee');
+        
+        $this->load->model('Apiauth_model', 'mAuth');
+        $this->load->model('Apiemployee_model', 'mEmployee');
     }
 
     public function validateRequest()
@@ -48,8 +54,6 @@ class Api extends RestController
             ], 401);
         }
     }
-
-
 
     public function login_post()
     {
@@ -87,6 +91,7 @@ class Api extends RestController
                     'role_name' => $user->group_name,
                     'facility_id' => $user->facility_id,
                     'facility_name' => $user->facility,
+                    'token' => $token
                 ],
             ], 200);
         } else {
@@ -97,8 +102,116 @@ class Api extends RestController
         }
     }
 
+    public function register_post()
+    {
+        // Get user input
+        $username = $this->post('username');
+        $email = $this->post('email');
+        $name = $this->post('name');
+        $password = $this->post('password');
+        $passwordConfirm = $this->post('password_confirm');
+
+        // If inputs are empty return 401
+        if (empty($username) || empty($email) || empty($name) || empty($password)) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Please provide all required information',
+            ], 401);
+        }
+
+        // Check passwords match
+        if($password != $passwordConfirm) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Password confirmation does not match'
+            ]);
+        }
+
+        
+        // Check if user already exists
+        $existing_user = $this->mAuth->get_user_by_username_or_email($username, $email);
+
+        if ($existing_user) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'User with this username or email already exists',
+            ], 401);
+        }
+
+        // Hash password
+        $hashed_password = $this->argonhash->make($password);
+
+        // Insert user record into database
+        $user_id = $this->mAuth->create_user($username, $email, $name, $hashed_password);
+
+        if ($user_id) {
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Registration successful',
+            ], 200);
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Registration failed. Please try again later',
+            ], 500);
+        }
+    }
+
+    public function forgot_password_post()
+    {
+        // Get user input
+        $email = $this->post('email');
+
+        // If input is empty return 401
+        if (empty($email)) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Please provide email address',
+            ], 401);
+        }
+
+        // Check if user with email exists
+        $user = $this->mAuth->get_user_by_email($email);
+
+        if ($user) {
+            // Generate password reset token and insert into database
+            $reset_token = bin2hex(random_bytes(16));
+            $reset_token_expiration = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+            $this->mAuth->set_password_reset_token($user->user_id, $reset_token, $reset_token_expiration);
+
+            // Send password reset email to user
+            $email_data = [
+                'reset_token' => $reset_token,
+                'reset_link' => base_url('auth/reset_password/' . $reset_token),
+            ];
+
+            // You can use any email library or service to send email
+            // Here is an example using CodeIgniter's email library
+            $this->load->library('email');
+
+            $this->email->from('noreply@example.com', 'Your Name');
+            $this->email->to($email);
+            $this->email->subject('Password Reset Request');
+            $this->email->message($this->load->view('email_templates/password_reset', $email_data, TRUE));
+
+            $this->email->send();
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Password reset email sent to your email address',
+            ], 200);
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'User with this email addressexists',
+            ], 401);
+        }
+    }
+
+
     // Get Staff List
-    public function staff_get()
+    public function staff_list_get()
     {
         $decoded = $this->validateRequest();
 
@@ -116,6 +229,29 @@ class Api extends RestController
             $this->response([
                 'status' => 'FAILED',
                 'message' => 'No staff found',
+            ], 404);
+        }
+    }
+
+    // Get Staff Details
+    public function staff_details_get($id)
+    {
+        $decoded = $this->validateRequest();
+
+        $facilityId = $decoded['facility_id'];
+
+        $staffDetails = $this->mEmployee->get_staff_details($id, $facilityId);
+
+        if ($staffDetails) {
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Staff details fetched successfully',
+                'user' => $staffDetails,
+            ], 200);
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Unable to get records for selected user',
             ], 404);
         }
     }
