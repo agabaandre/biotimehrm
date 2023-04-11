@@ -16,16 +16,12 @@ class Apiemployee_model extends CI_Model
     // Get Staff List 
     public function get_staff_list($facilityId)
     {
-        // Get staff list from fingerprints table
-        $this->db->select('id, ihris_pid, surname, firstname, othername, job, facility_id, facility, fingerprint_data, face_data, enrolled');
+        $this->db->select('*');
         $this->db->from('ihrisdata');
-        $this->db->where('facility_id', $facilityId);
+        $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
+        $this->db->where('ihrisdata.facility_id', $facilityId);
         $query = $this->db->get();
-        if ($query->num_rows() > 0) {
-            return $query->result();
-        } else {
-            return null;
-        }
+        return $query->result();
     }
 
     // Get Staff Details
