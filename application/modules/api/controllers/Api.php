@@ -31,6 +31,14 @@ class Api extends RestController
         if (isset($headers['Authorization'])) {
             $token = $headers['Authorization'];
 
+            // Check if token is not null
+            if ($token == 'Bearer null') {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Authorization token is required',
+                ], 401);
+            }
+
             //Remove Bearer from string
             $token = str_replace('Bearer ', '', $token);
 
@@ -76,6 +84,20 @@ class Api extends RestController
             $payload = array();
             $payload['user_id'] = $user->user_id;
             $payload['facility_id'] = $user->facility_id;
+            // $payload['expiry'] = time() + (24 * 60 * 60); // add 24 hours to the current time
+
+            // calculate the timestamp for the next January 1st
+            $now = time();
+            $january1st = strtotime(date('Y', $now) . '-01-01');
+            if ($now >= $january1st) {
+                // if the current time is after January 1st this year,
+                // set the expiry to January 1st next year
+                $expiry = strtotime(date('Y', $now + 31536000) . '-01-01');
+            } else {
+                // otherwise, set the expiry to January 1st this year
+                $expiry = $january1st;
+            }
+            $payload['expiry'] = $expiry;
 
             $token = JWT::encode($payload, $this->key, 'HS256');
 
@@ -423,5 +445,31 @@ class Api extends RestController
             'status' => false,
             'message' => 'Time not in sync'
         ], 401);
+    }
+
+    public function notifications_list_get() {
+        $decoded = $this->validateRequest();
+
+        $facilityId = $decoded['facility_id'];
+
+        $notifications = $this->mEmployee->get_notifications_list($facilityId);
+
+        $this->response([
+            'status' => 'SUCCESS',
+            'message' => 'Success',
+            'notifications' => $notifications,
+        ], 200);
+    }
+
+    // Clock History
+    public function clock_history_list_get() {
+        $decoded = $this->validateRequest();
+        $facilityId = $dec['facility_id'];
+        $clock_history = $this->mEmployee->get_clock_history_list($facilityId);
+        $this->response([
+            'status' => 'SUCCESS',
+            'message' => 'Success',
+            'clock_history' => $clock_history
+        ]);
     }
 }

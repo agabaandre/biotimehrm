@@ -28,6 +28,10 @@ class Apiauth_model extends CI_Model
         return null;
     }
 
+    public function set_password_reset_token($userId, $token, $expiry) {
+        
+    }
+
     public function get_user_by_email($email)
     {
         $this->db->select('*');
