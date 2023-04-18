@@ -106,6 +106,7 @@ class Api extends RestController
                 'message' => 'Login successful',
                 'user' => [
                     'user_id' => $user->user_id,
+                    'ihris_pid' => $user->ihris_pid,
                     'email' => $user->email,
                     'username' => $user->username,
                     'name' => $user->name,
