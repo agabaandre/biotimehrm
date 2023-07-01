@@ -16,174 +16,72 @@
  <section class="content">
    <div class="container-fluid">
      <!-- Main row -->
-     <?php
-      $permissions = $this->session->userdata('permissions');
-      //  print_r($permissions);
-      if (in_array('33', $permissions)) {
-        $display = "active";
-      } else {
-        $display = "none";
-      }
-      ?>
-     <div class="row" style="display:<?php echo $display; ?>">
-       <div class="col-12 col-sm-6 col-md-3">
-         <div class="info-box info-box-main">
-           <span class="info-box-icon  elevation-1"><i class="fas fa-sync"></i></span>
-           <span class="base_url" style="display: none;"><?php echo base_url(); ?></span>
-           <div class="info-box-content">
-             <span class="info-box-text">iHRIS Sync</span>
-             <span class="info-box-number" id="ihris_sync">
-             </span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-         <!-- /.info-box -->
-       </div>
-       <!-- /.col -->
-       <div class="col-12 col-sm-6 col-md-3">
-         <div class="info-box info-box-main mb-3">
-           <span class="info-box-icon  elevation-1"><i class="fas fa-clock"></i></span>
-           <div class="info-box-content">
-             <span class="info-box-text">Last Attendance Sum </span>
-             <span class="info-box-number" id="attendance"></span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-         <!-- /.info-box -->
-       </div>
-       <!-- /.col -->
-       <!-- fix for small devices only -->
-       <div class="clearfix hidden-md-up"></div>
-       <div class="col-12 col-sm-6 col-md-3">
-         <div class="info-box info-box-main mb-3">
-           <span class="info-box-icon  elevation-1"><i class="fas fa-calendar"></i></span>
-           <div class="info-box-content">
-             <span class="info-box-text"> Last Roster Sum </span>
-             <span class="info-box-number" id="roster"></span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-         <!-- /.info-box -->
-       </div>
-       <!-- /.col -->
-       <div class="col-12 col-sm-6 col-md-3">
-         <div class="info-box info-box-main mb-3">
-           <span class="info-box-icon  elevation-1"><i class="fas fa-fingerprint"></i></span>
-           <div class="info-box-content">
-             <span class="info-box-text">BioTime Last Sync</span>
-             <span class="info-box-number" id="biotime_last"></span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-         <!-- /.info-box -->
-       </div>
-       <!-- /.col -->
-     </div>
-     <!-- End of Admin section -->
+  
+ 
      <div class="row">
        <div class="col-xl-4 col-md-12">
          <div class="card card-">
-           <div class="card-header border-0">
-             <h3 class="card-title">Daily Attendance Status</h3>
-           </div>
+          
            <div class="card-body">
              <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
-               <p class="text-xl" style="color:#4169E1;">
+               <p class="text-xl" style="color:#ffc107!important;">
                  <i class="fas fa-calendar-check"></i>
                </p>
                <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Present</span>
+                 <span class="info-box-text h6 text-muted">Total Staff</span>
                  <span class="info-box-number font-weight-bold" id="present"></span>
                  <small>Staff</small>
                </p>
              </div>
-             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
+
+              <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
                <p class="text-warning text-xl">
-                 <i class="fa fa-home warning"></i>
+                 <i class="fa fa-building"></i>
                </p>
                <p class=" h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Off Duty</span>
-                 <span class="info-box-number font-weight-bold" id="offduty"></span>
-                 <small>Staff</small>
+                 <span class="info-box-text h6 text-muted">Total Schools</span>
+                 <span class="info-box-number font-weight-bold" id="departments"></span>
+                 <small>Schools(s)</small>
                </p>
              </div>
-             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom mb-3 border-info">
-               <p class=" text-info text-xl">
-                 <i class="fa fa-paper-plane"></i>
-               </p>
-               <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Workshop/ Official Request</span>
-                 <span class="info-box-number font-weight-bold" id="request"></span>
-                 <small>Staff</small>
-               </p>
-             </div>
-             <div class="d-flex justify-content-between align-items-center mb-2">
-               <p class=" text-xl" style="color:#c2e258;">
-                 <i class="fas fa-bed"></i>
-               </p>
-               <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">On Leave</span>
-                 <span class="info-box-number font-weight-bold" id="leave"></span>
-                 <small>Staff</small>
-               </p>
-             </div>
+         
+          
+          
            </div>
          </div>
        </div>
        <div class="col-xl-4 col-md-12">
          <div class="card">
-           <div class="card-header border-0">
-             <h3 class="card-title">Out of Station Requests</h3>
-           </div>
+          
            <div class="card-body">
              <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
                <p class="text-warning text-xl">
                  <i class="ion ion-ios-book text-warning"></i>
                </p>
                <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Requests Submitted</span>
+                 <span class="info-box-text h6 text-muted">Montly Presence</span>
                  <span class="info-box-number font-weight-bold" id="rsent"></span>
                  <small>Requests</small>
                </p>
              </div>
-             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
-               <p class="text-success text-xl">
-                 <i class="fa fa-check"></i>
+
+                 <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
+               <p class="text-warning text-xl">
+                 <i class="fa fa-building"></i>
                </p>
                <p class=" h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Requests Approved</span>
-                 <span class="info-box-number font-weight-bold" id="rapproved"></span>
-                 <small>Requests</small>
+                 <span class="info-box-text h6 text-muted">Total Schools</span>
+                 <span class="info-box-number font-weight-bold" id="departments"></span>
+                 <small>Schools(s)</small>
                </p>
              </div>
-             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom mb-3 border-info">
-               <p class=" text-danger text-xl">
-                 <i class="fa fa-times"></i>
-               </p>
-               <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Requests Rejected</span>
-                 <span class="info-box-number font-weight-bold" id="rrejected"></span>
-                 <small>Requests</small>
-               </p>
-             </div>
-             <div class="d-flex justify-content-between align-items-center mb-2">
-               <p class="text-info text-xl">
-                 <i class="ion ion-ios-briefcase"></i>
-               </p>
-               <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Total Requests</span>
-                 <span class="info-box-number font-weight-bold" id="trequests"></span>
-                 <small>Total Requests</small>
-               </p>
-             </div>
+
+
            </div>
          </div>
        </div>
        <div class="col-xl-4 col-md-12">
          <div class="card card-">
-           <div class="card-header border-0">
-             <h3 class="card-title">Facility Status</h3>
-           </div>
            <div class="card-body">
              <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
                <p class="text-success text-xl">
@@ -200,31 +98,13 @@
                  <i class="fa fa-building"></i>
                </p>
                <p class=" h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Departments</span>
+                 <span class="info-box-text h6 text-muted">Total Schools</span>
                  <span class="info-box-number font-weight-bold" id="departments"></span>
-                 <small>department(s)</small>
+                 <small>Schools(s)</small>
                </p>
              </div>
-             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom mb-3 border-info">
-               <p class=" text-danger text-xl">
-                 <i class="fa fa-tasks"></i>
-               </p>
-               <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Jobs</span>
-                 <span class="info-box-number font-weight-bold" id="jobs"></span>
-                 <small>Jobs</small>
-               </p>
-             </div>
-             <div class="d-flex justify-content-between align-items-center mb-2">
-               <p class="text-danger text-xl">
-                 <i class="ion ion-ios-people"></i>
-               </p>
-               <p class="h6 d-flex flex-column text-right">
-                 <span class="info-box-text h6 text-muted">Cadres</span>
-                 <span class="info-box-number font-weight-bold" id="cadreS"></span>
-                 <small>Cadres</small>
-               </p>
-             </div>
+           
+          
            </div>
          </div>
        </div>

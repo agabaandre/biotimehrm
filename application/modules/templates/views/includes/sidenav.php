@@ -1,7 +1,7 @@
  <!-- Main Sidebar Container -->
  <aside class="main-sidebar sidebar-dark-primary elevation-2">
    <!-- Brand Logo -->
-   <a href="<?php echo base_url(); ?>" class="brand-link" style="background: #005662;
+   <a href="<?php echo base_url(); ?>" class="brand-link" style="background: #948c40;
     color: #FFFFFF; text-align:center;">
      <!-- <img src="../../dist/img/AdminLTELogo.png"
            alt="AdminLTE Logo"
