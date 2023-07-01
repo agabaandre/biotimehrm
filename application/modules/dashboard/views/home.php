@@ -118,7 +118,7 @@
          <div class="card">
            <div class="card-header">
              <h3 class="card-title">
-               Daily Attendance Calendar
+               Monlthy Attendance Calendar
              </h3>
              <div class="card-body">
                <ul class="nav nav-pills" style="margin: 0 auto; margin-top:4px;">
@@ -141,32 +141,7 @@
          <!-- calender key -->
        </section>
 
-       <section class="col-lg-12 connectedSortable">
-         <!-- Custom tabs (Charts with tabs)-->
-         <div class="card">
-           <div class="card-header">
-             <h3 class="card-title">
-               Duty Roster Calendar
-             </h3>
-             <div class="card-body">
-               <ul class="nav nav-pills" style="margin: 0 auto; margin-top:4px;">
-                 <p></p>
-                 <?php $colors = Modules::run('schedules/getrosterKey'); ?>
-                 <div class="row">
-                   <?php foreach ($colors as $color) { ?>
-                     <li class="nav-item">
-                       <a class="btn btn-flat rbtnkey" style="background-color:<?php echo $color->color;  ?>;" data-toggle="tab"><?php echo $color->schedule; ?></a>
-                     </li>
-                   <?php  } ?>
-                 </div>
-               </ul>
-             </div>
-             <div id="dutycalendar">
-             </div>
-           </div><!-- /.card-body -->
-         </div>
-       </section>
-       <section class="col-lg-4 connectedSortable">
+    <section class="col-lg-8 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
            <div class="card-header">
@@ -187,28 +162,7 @@
          </div>
          <!-- /.card -->
        </section>
-       <!-- right col -->
-       <section class="col-lg-4 connectedSortable">
-         <!-- Custom tabs (Charts with tabs)-->
-         <div class="card">
-           <div class="card-header">
-             <div class="card-tools">
-               <ul class="nav nav-pills ml-auto">
-                 <!-- <li class="nav-item">
-                      <a class="nav-link active" href="#revenue-chart" data-toggle="tab">Area</a>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link" href="#sales-chart" data-toggle="tab">Donut</a>
-                    </li> -->
-               </ul>
-             </div>
-           </div><!-- /.card-header -->
-           <div class="card-body">
-             <div id="line_graph_roster" style="width:100%; height:100%;"></div>
-           </div><!-- /.card-body -->
-         </div>
-         <!-- /.card -->
-       </section>
+
        <section class="col-lg-4 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
@@ -268,7 +222,7 @@
    //duty roster calendar
    var base_url = $('.base_url').html();
    $('#attcalendar').fullCalendar({
-     defaultView: 'basicWeek',
+     defaultView: 'month',
      header: {
        left: 'prev, next, today',
        center: 'title',
@@ -298,80 +252,10 @@
        $('.event-tooltip').remove();
      },
    });
-   //attendance calendar
-   var base_url = $('.base_url').html();
-   $('#dutycalendar').fullCalendar({
-     defaultView: 'basicWeek',
-     header: {
-       left: 'prev, next, today',
-       center: 'title',
-       right: 'month, basicWeek, basicDay'
-     },
-     // Get all events stored in database
-     eventLimit: true, // allow "more" link when too many events
-     events: base_url + 'calendar/getEvents',
-     selectable: false,
-     selectHelper: true,
-     editable: false,
-
-     // Mouse over
-     eventMouseover: function(calEvent, jsEvent, view) {
-       // console.log(calEvent);
-       var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
-       $("body").append(tooltip);
-       $(this).mouseover(function(e) {
-         $(this).css('z-index', 10000);
-         $('.event-tooltip').fadeIn('500');
-         $('.event-tooltip').fadeTo('10', 1.9);
-       }).mousemove(function(e) {
-         $('.event-tooltip').css('top', e.pageY + 10);
-         $('.event-tooltip').css('left', e.pageX + 20);
-       });
-     },
-     eventMouseout: function(calEvent, jsEvent) {
-       $(this).css('z-index', 8);
-       $('.event-tooltip').remove();
-     },
-     // H
-   });
+  
    //duty roster graph
-   <?php
-    $graph = Modules::run("reports/dutygraphData");
-    ?>
-   Highcharts.chart('line_graph_roster', {
-     chart: {
-       type: 'line'
-     },
-     title: {
-       text: 'Average Number of Employees Scheduled per Month <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>'
-     },
-     subtitle: {
-       text: ''
-     },
-     xAxis: {
-       categories: <?php echo json_encode($graph['period']); ?>
-     },
-     yAxis: {
-       title: {
-         text: 'Staff'
-       }
-     },
-     plotOptions: {
-       line: {
-         dataLabels: {
-           enabled: true
-         },
-         enableMouseTracking: true
-       }
-     },
-     credits: {
-       enabled: false
-     },
-     series: [{
-       name: 'Staff',
-       data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
-     }]
-   });
+ 
+    
    <?php
     $graph = Modules::run("reports/graphData");
     ?>
