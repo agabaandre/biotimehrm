@@ -136,7 +136,7 @@
 
         if (isPassChanged != 1) {
             console.log(isPassChanged);
-           // $('#changepassword').modal('show');
+            // $('#changepassword').modal('show');
         }
         var url = "<?php echo $this->uri->segment(2); ?>";
         if (url == "tabular" || url == "actuals" || url == "fetch_report" || url == "actualsreport" || url == "tabular#" || url == "timesheet" || url == "attfrom_report") {
@@ -238,57 +238,47 @@ $linkquery = $url; // Outputs: Full URL
     </div>
 </div>
 <!-- Modal -->
-<div id="changepassword" class="modal fade" role="dialog">
+<!-- Change Password Modal -->
+<div class="modal fade" id="changepasswordModal" tabindex="-1" aria-labelledby="changepasswordModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Change Password</h4>
-                <br />
-
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">×</span>
-                </button>
+                <h5 class="modal-title" id="changepasswordModalLabel">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p class="changed" style="color:#005662;"></p>
                 <form method="post" id="change_pass">
 
-                    <div class="form-group">
-                        <label>Old Password</label>
+                    <div class="mb-3">
+                        <label for="old" class="form-label">Old Password</label>
                         <input type="password" class="form-control" name="oldpass" id="old">
                     </div>
 
-
-                    <div class="form-group">
-                        <label>New Password</label>
+                    <div class="mb-3">
+                        <label for="new" class="form-label">New Password</label>
                         <input type="password" class="form-control" name="newpass" id="new" onkeyup="checker();" required>
                         <p class="help-block error"></p>
                     </div>
-                    <div class="form-group">
-                        <label>Confirm New Password</label>
-                        <input type="hidden" value='1' name="changed">
-                        <input type="hidden" value='<?php echo $this->session->userdata('user_id'); ?>' name="user_id">
+
+                    <div class="mb-3">
+                        <label for="confirm" class="form-label">Confirm New Password</label>
+                        <input type="hidden" value="1" name="changed">
+                        <input type="hidden" value="<?php echo $this->session->userdata('user_id'); ?>" name="user_id">
                         <input type="password" class="form-control" name="confirm" id="confirm" onkeyup="checker();" required>
                         <p class="help-block error"></p>
                     </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+
+                </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-info">Change Password</button>
-            </div>
-            </form>
         </div>
     </div>
 </div>
-
-
-
-
-</body>
-
-</html>
-
-
 <script>
     $(function() {
         $('.select2').select2()
@@ -386,3 +376,8 @@ $linkquery = $url; // Outputs: Full URL
         }); // ajax
     }); //form submit
 </script>
+
+
+</body>
+
+</html>

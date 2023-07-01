@@ -44,7 +44,11 @@ require_once("includes/sidenav.php");
             </div>
           </section>
 
+
+
           <?php
+
+          //print_r($permissions);
               $this->load->view($module . "/" . $view);
           ?>
 

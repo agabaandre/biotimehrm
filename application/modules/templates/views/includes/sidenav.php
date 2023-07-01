@@ -55,7 +55,7 @@
              <ul class="nav nav-treeview">
                <li class="nav-item"><a href="<?php echo base_url() ?>employees" class="nav-link">
                    <i class="far fa-circle nav-icon"></i>
-                   Facility Staff List</a></li>
+                   School Staff List</a></li>
                <li class="nav-item"><a href="<?php echo base_url() ?>employees/district_employees" class="nav-link">
                    <i class="far fa-circle nav-icon"></i>
                    District Staff List</a></li>
@@ -70,28 +70,6 @@
            </li>
          <?php } ?>
 
-
-
-         <?php if (in_array('14', $permissions)) { ?>
-           <li class="nav-item">
-             <a href="<?php echo base_url(); ?>rosta/tabular" class="nav-link">
-               <i class="fa fa-calendar"></i>
-               <p>
-                 Duty Roster
-               </p>
-             </a>
-           </li>
-         <?php } ?>
-         <!-- <?php if (in_array('14', $permissions)) { ?>
-          <li class="nav-item">
-            <a href="<?php echo base_url(); ?>rosta/leaveRoster" class="nav-link">
-              <i class="fas fa-sleigh"></i>
-              <p>
-                Leave Roster
-              </p>
-            </a>
-          </li>
-          <?php } ?> -->
          <?php if (in_array('19', $permissions)) { ?>
            <li class="nav-item">
              <a href="<?php echo base_url(); ?>rosta/actuals" class="nav-link">
@@ -100,35 +78,6 @@
                  Attendance
                </p>
              </a>
-           </li>
-         <?php } ?>
-         <!--user perm 26-->
-         <?php if (in_array('26', $permissions)) { ?>
-           <li class="nav-item has-treeview ">
-             <a href="#" class="nav-link">
-               <i class="fa fa-paper-plane"></i>
-               <p>
-                 Requests
-                 <i class="fas fa-angle-left right"></i>
-               </p>
-             </a>
-             <ul class="nav nav-treeview">
-               <li class="nav-item"><a href="<?php echo base_url() ?>requests/newRequest" class="nav-link">
-                   <i class="far fa-circle nav-icon"></i>
-                   Submit Request</a></li>
-               <li class="nav-item">
-                 <a href="<?php echo base_url() ?>requests/viewMySubmittedRequests" class="nav-link">
-                   <i class="far fa-circle nav-icon"></i>
-                   Requests Sent</a>
-               </li>
-               <?php if (in_array('25', $permissions)) { ?>
-                 <li class="nav-item">
-                   <a href="<?php echo base_url() ?>requests/viewRequests" class="nav-link">
-                     <i class="far fa-circle nav-icon"></i>
-                     Incoming Requests</a>
-                 </li>
-               <?php } ?>
-             </ul>
            </li>
          <?php } ?>
          <!--user perm 26-->

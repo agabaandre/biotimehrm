@@ -22,7 +22,7 @@ class Lists extends MX_Controller
 	{
 		$data['districts'] = $this->districts_mdl->getDistricts();
 		$data['module'] = "lists";
-		$data['title'] = "";
+		$data['uptitle'] = $data['title'] = "Districts";
 		$data['view'] = 'districts/districts';
 		echo Modules::run("templates/main", $data);
 	}
@@ -41,7 +41,7 @@ class Lists extends MX_Controller
 	public function add_Districts()
 	{
 		$data['view'] = "add_districts";
-		$data['title'] = "Districts";
+		$data['uptitle'] = $data['title'] = "Districts";
 		$data['module'] = "districts";
 		echo Modules::run('templates/main', $data);
 	}
@@ -77,7 +77,7 @@ class Lists extends MX_Controller
 		$data['facilities'] = $this->facilities_mdl->getAll();
 		$data['districts'] = $this->districts_mdl->getDistricts();
 		$data['module'] = "lists";
-		$data['title'] = "";
+		$data['title']= $data['title'] = "Facilities";
 		$data['view'] = 'facilities/facilities';
 		echo Modules::run("templates/main", $data);
 	}
@@ -107,7 +107,7 @@ class Lists extends MX_Controller
 	{
 		$data['cadres'] = $this->cadre_mdl->getCadres();
 		$data['module'] = "lists";
-		$data['title'] = "";
+		$data['uptitle'] =$data['title'] = "Cadre";
 		$data['view'] = 'cadre/cadre';
 		echo Modules::run("templates/main", $data);
 	}
@@ -126,7 +126,7 @@ class Lists extends MX_Controller
 	public function add_Cadre()
 	{
 		$data['view'] = "add_cadre";
-		$data['title'] = "Cadres";
+		$data['uptitle'] = $data['title'] = "Cadre";
 		$data['module'] = "lists";
 		echo Modules::run('templates/main', $data);
 	}
@@ -161,7 +161,7 @@ class Lists extends MX_Controller
 	{
 		$data['jobs'] = $this->jobs_mdl->getJobs();
 		$data['module'] = "lists";
-		$data['title'] = "";
+		$data['uptitle'] = $data['title'] = "Jobs";
 		$data['view'] = 'jobs/jobs';
 		echo Modules::run("templates/main", $data);
 	}

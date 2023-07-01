@@ -99,7 +99,7 @@
                                                     echo $staff->telephone;
                                                   } ?></td>
 
-                      <td data-label="EMAIL"><?php echo $staff->email; ?></td>
+                      <td data-label="EMAIL"><?php echo @$staff->email; ?></td>
                       <td data-label="FACILITY"><?php echo $staff->facility; ?></td>
                       <td data-label="DEPARTMENT"><?php echo $staff->department; ?></td>
                       <td data-label="JOB"><?php echo $staff->job; ?></td>

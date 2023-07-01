@@ -21,7 +21,7 @@
                                 <th>District</th>
                                 <th>Region</th>
                                 <th>
-                                    <?php print_r($permissions); ?>
+                                    <?php //print_r($permissions); ?>
                                 </th>
                             </tr>
 
