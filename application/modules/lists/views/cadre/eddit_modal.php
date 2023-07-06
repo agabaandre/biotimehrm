@@ -15,7 +15,7 @@
                   class="form-control"/> 
                 
                    <strong style="margin-right: 1em;">Cadre Name </strong> 
-                   <input type="text" name="name" value="<?php echo $cadre->cadre; ?>" 
+                   <input type="text" name="cadre" value="<?php echo $cadre->cadre; ?>" 
                    class="form-control"  required /> 
 
                    <strong style="margin-right: 1em;">Description</strong> 

@@ -1,0 +1,21 @@
+
+
+.top-nav-background-color{
+    background-color: rgb(110, 8, 8);
+}
+
+.side-nav-top-color{
+    background-color: rgb(183, 183, 7);
+}
+
+.budge-color-defined{
+    background-color: rgb(242, 149, 149);
+    color: white;
+    text-align: center;
+    border: 3px;
+    padding: 1px;
+}
+
+.footer-bottom-color{
+    background-color: rgb(110, 8, 8);
+}

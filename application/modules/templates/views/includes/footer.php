@@ -1,7 +1,7 @@
 </div>
 <!-- /.content-wrapper -->
-<footer class="main-footer" style="background: #948c40;
-    color: #FFFFFF; text-align:center;">
+<!-- old background color was (background: #948c40;) -->
+<footer class="main-footer footer-bottom-color" style="color: #FFFFFF; text-align:center;">
     <div class="col-lg-12">
         <div class="footer-copy-right">
             <!-- <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/USAID-Identity.svg" style="width:180px; height:50px;">

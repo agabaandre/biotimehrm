@@ -54,7 +54,7 @@
          <div class="card">
           
            <div class="card-body">
-             <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
+             <!-- <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
                <p class="text-warning text-xl">
                  <i class="ion ion-ios-book text-warning"></i>
                </p>
@@ -63,7 +63,7 @@
                  <span class="info-box-number font-weight-bold" id="rsent"></span>
                  <small>Requests</small>
                </p>
-             </div>
+             </div> -->
 
                  <div class="d-flex justify-content-between align-items-center border-bottom mb-3 border-info">
                <p class="text-warning text-xl">
@@ -112,36 +112,8 @@
      <!-- </div> endrow -->
 
      <div class="row">
-       <!-- Left col -->
-       <section class="col-lg-12 connectedSortable">
-         <!-- Custom tabs (Charts with tabs)-->
-         <div class="card">
-           <div class="card-header">
-             <h3 class="card-title">
-               Monlthy Attendance Calendar
-             </h3>
-             <div class="card-body">
-               <ul class="nav nav-pills" style="margin: 0 auto; margin-top:4px;">
-                 <p></p>
-                 <?php $colors = Modules::run('schedules/getattKey'); ?>
-                 <div class="row">
-                   <?php foreach ($colors as $color) { ?>
-                     <li class="nav-item">
-                       <a class="btn btn-flat btnkey" style="background-color:<?php echo $color->color;  ?>;"><?php echo $color->schedule; ?></a>
-                     </li>
-                   <?php  } ?>
-                 </div>
-               </ul>
-             </div>
-             <div id="attcalendar">
-             </div>
-           </div><!-- /.card-body -->
-         </div>
-         <!-- /.card -->
-         <!-- calender key -->
-       </section>
 
-    <section class="col-lg-8 connectedSortable">
+        <section class="col-lg-8 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->
          <div class="card">
            <div class="card-header">
@@ -161,7 +133,7 @@
            </div><!-- /.card-body -->
          </div>
          <!-- /.card -->
-       </section>
+        </section>
 
        <section class="col-lg-4 connectedSortable">
          <!-- Custom tabs (Charts with tabs)-->

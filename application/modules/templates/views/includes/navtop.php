@@ -1,6 +1,6 @@
 <!-- Navbar -->
-<nav class="main-header navbar navbar-expand navbar-dark" style="background: #948c40;
-    color:inherit; text-align:center;">
+<!-- old background color was (background: #948c40;) -->
+<nav class="main-header navbar navbar-expand navbar-dark top-nav-background-color" style="color:inherit; text-align:center;">
   <!-- Left navbar links -->
   <ul class="navbar-nav">
     <li class="nav-item">
@@ -43,7 +43,7 @@
     <?php if (in_array('13', $permissions)) { ?>
       <li class="nav-item" style="margin-right:2px;">
         <a class="btn btn-default btn-outline" data-toggle="modal" data-target="#switch" style="border-radius:14px;">
-          <i class="fas fa-toggle-on"></i> <b class="hidden-mobile">Change Facility</b>
+          <i class="fas fa-toggle-on"></i> <b class="hidden-mobile">Change School</b>
         </a>
       </li>
     <?php } ?>

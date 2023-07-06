@@ -42,6 +42,7 @@ $permissions = $userdata['permissions'];
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
   <!-- Theme style -->
   <link href="<?php echo base_url(); ?>assets/css/fullcalendar.css" rel="stylesheet">
+  <link href="<?php echo base_url(); ?>assets/css/custom/custom.css" rel="stylesheet">
   <script>
     $(window).on('load', function() {
 

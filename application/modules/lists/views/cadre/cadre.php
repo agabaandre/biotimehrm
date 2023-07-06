@@ -22,7 +22,8 @@
                                 <th>Details</th>
                                 <th>Section</th>
                                 <th>
-                                    <?php print_r($permissions); ?>
+                                    <?php //print_r($cadres); ?>
+                                    Action
                                 </th>
                             </tr>
 

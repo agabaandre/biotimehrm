@@ -21,9 +21,13 @@ class Facilities_mdl extends CI_Model {
 		if($district_id){
 		$this->db->where('district_id',$district_id);
 		}
+		
+		// $this->db->join('employment_terms', 'employment_terms.term_id = ihrisdata.term_id');
+		$this->db->join('employee_departments', 'employee_departments.dep_id = ihrisdata.dep_id');
+		// $this->db->join('employee_jobs', 'employee_jobs.id = ihrisdata.emp_job_id');
+		
 		$this->db->order_by("facility",'ASC');
 		$query=$this->db->get('ihrisdata');
-
 		return $query->result();
  
 	}

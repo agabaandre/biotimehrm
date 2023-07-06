@@ -32,8 +32,8 @@
                 foreach ($staffs as $staff) {
                 ?>
                   <tr>
-                    <td data-label="Staff iHRIS ID" style="background-image:url('<?php echo base_url() ?>/assets/images/user.png'); width:30px !imporntant; opacity: 0.6; background-size: contain;background-position: center center;background-repeat: no-repeat;  font-size:14px; margin:0 auto; ">
-                      <p style="clear:both; text-align:center; color:#000; opacity:1;"><?php echo str_replace('person|', '', $staff->ihris_pid); ?></p>
+                    <td data-label="Staff iHRIS ID" style="background-image:url('<?php echo base_url();?>assets/images/staff_images/staff/user.png'); width:30px !imporntant; opacity: 0.6; background-size: contain;background-position: center center;background-repeat: no-repeat;  font-size:14px; margin:0 auto; ">
+                      <p style="clear:both; text-align:center; color:#000; opacity:1;" class="badge budge-color-defined"><?php echo str_replace('person|', '', $staff->ihris_pid); ?></p>
                     </td>
                     <td data-label=" NATIONAL ID NUMBER"><?php echo $staff->nin; ?></td>
                     <td data-label="NAME"><?php echo $staff->surname . " " . $staff->firstname . " " . @$staff->othername; ?>
@@ -49,7 +49,10 @@
                     <td data-label="DEPARTMENT"><?php echo $staff->department; ?></td>
                     <td data-label="JOB"><?php echo $staff->job; ?></td>
                     <td data-label="TERMS"><?php echo @str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $staff->employment_terms))); ?></td>
-                    <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
+                    <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?> <span><button class="btn btn-info btn-xs" data-toggle="modal" data-target="#EditStaffModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">Edit Staff Data</button></span></td>
+                    <?php 
+                include('modals/edit_staff.php');
+              ?>
                   </tr>
                 <?php   } ?>
               </tbody>

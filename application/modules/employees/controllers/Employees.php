@@ -56,13 +56,21 @@ class Employees extends MX_Controller
   }
   public function index()
   {
+    $this->load->model('contents_mdl');
+
     $data['title'] = "Staff";
     $data['facilities'] = Modules::run("facilities/getFacilities");
+
+    $data['departments'] = $this->contents_mdl->get_content('employee_departments');
+    $data['jobs'] = $this->contents_mdl->get_content('employee_jobs');
+    $data['terms'] = $this->contents_mdl->get_content('employment_terms');
+
     $data['view'] = 'staff';
     $data['uptitle'] = "Staff List";
     $data['module'] = "employees";
     echo Modules::run("templates/main", $data);
   }
+
 
 
   public function createEmployee()
