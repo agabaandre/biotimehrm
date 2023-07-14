@@ -236,24 +236,34 @@ class Api extends RestController
     // Get Staff List
     public function staff_list_get()
     {
+        // Checj if user is logged in
         $decoded = $this->validateRequest();
+
+        // Check if facility_name was passed in as query parameter
+        $facility_name = $this->get('facility_name');
 
         $facilityId = $decoded['facility_id'];
 
-        $staff = $this->mEmployee->get_staff_list($facilityId);
+        if (isset($facility_name)) {
 
-        if ($staff) {
-            $this->response([
-                'status' => 'SUCCESS',
-                'message' => 'Staff list fetched successfully',
-                'staff' => $staff,
-            ], 200);
-        } else {
-            $this->response([
-                'status' => 'FAILED',
-                'message' => 'No staff found',
-            ], 404);
+            // Decode & get the facility with this name
+            $facility = urldecode($facility_name);
+            $facility = $this->mEmployee->get_facility_by_name($facility);
+
+            // Get the id of the facility
+            $facilityId = $facility->facility_id;
         }
+
+        // Dump faciltity
+        // dd($facilityId);
+
+        $staffList = $this->mEmployee->get_staff_list($facilityId);
+
+        $this->response([
+            'status' => 'SUCCESS',
+            'message' => 'Staff list fetched successfully',
+            'staff' => $staffList,
+        ], 200);
     }
 
     // Get Staff Details
@@ -471,6 +481,18 @@ class Api extends RestController
             'status' => 'SUCCESS',
             'message' => 'Success',
             'clock_history' => $clock_history
+        ]);
+    }
+
+    // Get a list of all the facilities
+    public function facilities_get()
+    {
+        $decoded = $this->validateRequest();
+        $facilities = $this->mEmployee->get_facilities_list();
+        $this->response([
+            'status' => 'SUCCESS',
+            'message' => 'Success',
+            'facilities' => $facilities
         ]);
     }
 }
