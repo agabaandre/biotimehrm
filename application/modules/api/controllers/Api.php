@@ -517,7 +517,7 @@ class Api extends RestController
     {
         $decoded = $this->validateRequest();
         $userId = $decoded['user_id'];
-        $facilities = $this->mEmployee->get_facilities_list();
+        $facilities = $this->mEmployee->get_facilities_list($userId);
         $this->response([
             'status' => 'SUCCESS',
             'message' => 'Success',
