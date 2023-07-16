@@ -102,9 +102,21 @@ class Apiemployee_model extends CI_Model
     }
 
     // Get Facilities
-    public function get_facilities_list($id)
+    public function get_facilities_list()
     {
-        $query = $this->db->query("SELECT facility_id, facility from user_facilities WHERE user_id='$id'");
+        // Get all facilities that have staff
+        $this->db->select('facilities.facility_id, facilities.facility');
+        $this->db->from('facilities');
+        $this->db->join('ihrisdata', 'ihrisdata.facility_id = facilities.facility_id', 'LEFT');
+        // $this->db->group_by('facilities.facility_id');
+
+        // Order by facility name
+        $this->db->order_by('facilities.facility', 'ASC');
+
+        // Return distinct facilities
+        $this->db->distinct();
+
+        $query = $this->db->get();
 
         if ($query->num_rows()) {
             return $query->result_array();
