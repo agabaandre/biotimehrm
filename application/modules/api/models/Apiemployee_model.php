@@ -65,6 +65,42 @@ class Apiemployee_model extends CI_Model
         }
     }
 
+    public function get_staff_by_ihris_pid($ihris_pid)
+    {
+        $this->db->select('*');
+        $this->db->from('ihrisdata');
+        $this->db->where('ihris_pid', $ihris_pid);
+        $query = $this->db->get();
+        return $query->row();
+    }
+
+    public function update_staff_record($data)
+    {
+        // Extract the data, skipping keys that are not defined
+        $dataToSave = array_filter($data, function ($key) {
+            return in_array($key, ['ihris_pid', 'fingerprint_data', 'face_data', 'enrolled']);
+        });
+
+        // Check if staff has a record in mobile_enroll table, this handles (face_data, fingerprint_data, ihris_pid, enrolled)
+        $this->db->select('*');
+        $this->db->from('mobile_enroll');
+        $this->db->where('ihris_pid', $dataToSave['ihris_pid']);
+        $query = $this->db->get();
+        $staff = $query->row();
+
+        if ($staff) {
+            // Update staff record using set
+            $this->db->set($dataToSave);
+            $this->db->where('ihris_pid', $dataToSave['ihris_pid']);
+            $this->db->update('mobile_enroll');
+        } else {
+            // Insert staff record
+            $this->db->insert('mobile_enroll', $dataToSave);
+        }
+
+        return $this->db->affected_rows();
+    }
+
     // Get Facilities
     public function get_facilities_list()
     {

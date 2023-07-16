@@ -20,7 +20,7 @@ class Api extends RestController
     public function __construct()
     {
         parent::__construct();
-        
+
         $this->load->model('Apiauth_model', 'mAuth');
         $this->load->model('Apiemployee_model', 'mEmployee');
     }
@@ -143,14 +143,14 @@ class Api extends RestController
         }
 
         // Check passwords match
-        if($password != $passwordConfirm) {
+        if ($password != $passwordConfirm) {
             $this->response([
                 'status' => 'FAILED',
                 'message' => 'Password confirmation does not match'
             ]);
         }
 
-        
+
         // Check if user already exists
         $existing_user = $this->mAuth->get_user_by_username_or_email($username, $email);
 
@@ -264,6 +264,32 @@ class Api extends RestController
             'message' => 'Staff list fetched successfully',
             'staff' => $staffList,
         ], 200);
+    }
+
+    // Post Staff
+    public function staff_list_post()
+    {
+        // Check if user is logged in
+        $decoded = $this->validateRequest();
+
+        $data = $this->post();
+
+        // $result = $this->mEmployee->update_staff_record($data);
+        // if ($result) {
+        //     $this->response([
+        //         'status' => 'SUCCESS',
+        //         'message' => 'Staff record updated successfully',
+        //     ], 200);
+        // } else {
+            
+        // }
+
+        dd($data);
+
+        $this->response([
+            'status' => 'FAILED',
+            'message' => 'Unable to update staff record',
+        ], 500);
     }
 
     // Get Staff Details
@@ -458,7 +484,8 @@ class Api extends RestController
         ], 401);
     }
 
-    public function notifications_list_get() {
+    public function notifications_list_get()
+    {
         $decoded = $this->validateRequest();
 
         $facilityId = $decoded['facility_id'];
@@ -473,7 +500,8 @@ class Api extends RestController
     }
 
     // Clock History
-    public function clock_history_list_get() {
+    public function clock_history_list_get()
+    {
         $decoded = $this->validateRequest();
         $facilityId = $dec['facility_id'];
         $clock_history = $this->mEmployee->get_clock_history_list($facilityId);
