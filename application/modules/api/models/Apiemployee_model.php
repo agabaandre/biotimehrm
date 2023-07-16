@@ -104,9 +104,7 @@ class Apiemployee_model extends CI_Model
     // Get Facilities
     public function get_facilities_list($id)
     {
-        $this->db->select('facility_id', 'facility');
-        $this->db->where('user_id', $id);
-        $query = $this->db->get('user_facilities');
+        $query = $this->db->query("SELECT facility_id, facility from user_facilities WHERE user_id='$id'");
 
         if ($query->num_rows()) {
             return $query->result_array();
