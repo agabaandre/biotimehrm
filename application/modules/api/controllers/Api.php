@@ -503,7 +503,7 @@ class Api extends RestController
     public function clock_history_list_get()
     {
         $decoded = $this->validateRequest();
-        $facilityId = $dec['facility_id'];
+        $facilityId = $decoded['facility_id'];
         $clock_history = $this->mEmployee->get_clock_history_list($facilityId);
         $this->response([
             'status' => 'SUCCESS',
@@ -516,6 +516,7 @@ class Api extends RestController
     public function facilities_get()
     {
         $decoded = $this->validateRequest();
+        $userId = $decoded['user_id'];
         $facilities = $this->mEmployee->get_facilities_list();
         $this->response([
             'status' => 'SUCCESS',
