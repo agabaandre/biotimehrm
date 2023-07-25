@@ -24,7 +24,7 @@ class Dashboard extends MX_Controller {
 	}
 	public function dashboardData(){
 		
-	return $this->db->get('dash_data')->row()->data;
+	echo $this->db->get('dash_data')->row()->data;
 
 	}
 
