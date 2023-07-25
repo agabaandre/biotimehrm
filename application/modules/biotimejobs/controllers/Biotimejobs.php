@@ -320,11 +320,13 @@ class Biotimejobs extends MX_Controller
 
 
         $barea = $this->getbioloc($userdata->new_facility);
+        $bpos = $this->getbiojobs($userdata->job_id);
 
         $http = new HttpUtil();
 
         $body = array(
             'area' => [(string)$barea],
+            'position'=>$bpos
         );
 
         $endpoint = 'personnel/api/employees/'.$userdata->biotime_emp_id.'/';
