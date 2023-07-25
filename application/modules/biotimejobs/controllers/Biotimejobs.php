@@ -425,12 +425,12 @@ class Biotimejobs extends MX_Controller
     public function log($message)
     {
         //add double [] at the beggining and at the end of file contents
-        return file_put_contents('logs/log.txt', "\n{" . '"REQUEST DETAILS: ' . date('Y-m-d H:i:s') . ' Time": ' . json_encode($message) . '},', FILE_APPEND);
+        return file_put_contents('logs/log.txt', "\n{" . '"REQUEST DETAILS: ' . date('Y-m-d H:i:s') . ' Time": ' . json_encode($message) . '}\n', FILE_APPEND);
     }
     public function logattendance($message)
     {
         //add double [] at the beggining and at the end of file contents
-        return file_put_contents('logs/fetchatt_log.txt', "\n{" . '"REQUEST DETAILS: ' . date('Y-m-d H:i:s') . ' Time": ' . json_encode($message) . '},', FILE_APPEND);
+        return file_put_contents('logs/fetchatt_log.txt', "\n{" . '"REQUEST DETAILS: ' . date('Y-m-d H:i:s') . ' Time": ' . json_encode($message) . '},\n', FILE_APPEND);
     }
     public function getbiojobs($job)
     {
@@ -711,7 +711,7 @@ class Biotimejobs extends MX_Controller
 
         $this->biotimeClockout();
         $this->biotimeClockoutnight();
-        $this->cache_dash_Data();
+       // $this->cache_dash_Data();
 
 
         $this->log($message);
