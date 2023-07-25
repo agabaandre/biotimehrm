@@ -335,25 +335,21 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->curlupdateHttpPost($endpoint, $headr, $body);
 
-        // echo json_encode($userdata);
+        //dd($response);
 
-       // echo json_encode($response);
+        if ($response) {
+            $this->log($response);
+        }
 
-        dd($response);
-
-        // if ($response) {
-        //     $this->log($response);
-        // }
-
-        // $process = 6;
-        // $method = "bioitimejobs/update_biotimeuser";
-        // if ($response) {
-        //     $status = "successful";
-        // } else {
-        //     $status = "failed";
-        // }
-        // $this->cronjob_register($process, $method, $status);
-        // return $response;
+        $process = 6;
+        $method = "bioitimejobs/update_biotimeuser";
+        if ($response) {
+            $status = "successful";
+        } else {
+            $status = "failed";
+        }
+        $this->cronjob_register($process, $method, $status);
+        return $response;
     }
 
 
@@ -675,6 +671,7 @@ class Biotimejobs extends MX_Controller
     //create multiple new users cronjob
     public function transfer_employees()
     {
+        //effective transfers
         $howmany = array();
         $query = $this->db->query("SELECT * FROM  biotime_transfers");
         $trasnfers = $query->result();
