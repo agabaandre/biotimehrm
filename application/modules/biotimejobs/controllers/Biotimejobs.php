@@ -520,13 +520,13 @@ class Biotimejobs extends MX_Controller
             $data = array(
                 'id' => $jobs->id,
                 'position_code' => $jobs->position_code,
-                'position_name' => $jobs->posistion_name
+                'position_name' => $jobs->position_name
             );
      
             array_push($j, $data);
            
         }
-        dd($response->data);
+        dd($j);
 
         $message = $this->biotimejobs_mdl->save_jobs($j);
         $process = 8;
