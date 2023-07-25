@@ -327,7 +327,7 @@ class Biotimejobs extends MX_Controller
             'area' => [(string)$barea],
         );
 
-        $endpoint = 'personnel/api/employees/'.$userdata->biotime_emp_id;
+        $endpoint = 'personnel/api/employees/'.$userdata->biotime_emp_id.'/';
         $headr = array();
         $headr[] = 'Content-length:' . strlen(json_encode($body));
         $headr[] = 'Content-type: application/json';
