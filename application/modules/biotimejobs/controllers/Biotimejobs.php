@@ -335,9 +335,11 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->curlsendHttpPost($endpoint, $headr, $body);
 
-        echo json_encode($userdata);
+        // echo json_encode($userdata);
 
-        exit();
+       // echo json_encode($response);
+
+        dd($response);
 
         // if ($response) {
         //     $this->log($response);
@@ -684,7 +686,7 @@ class Biotimejobs extends MX_Controller
         endforeach;
         $process = 5;
         $method = "bioitimejobs/tranfer_employees";
-        if ($message) {
+        if (@$message) {
             $status = "successful";
         } else {
             $status = "failed";
@@ -711,43 +713,7 @@ class Biotimejobs extends MX_Controller
 
         $this->log($message);
     }
-    //clockin and out users depening on gthe biotime clock data
-    //    public function biotimeClockin(){
-    //     ignore_user_abort(true);
-    //     ini_set('max_execution_time',0);
-    //     $areas=$this->db->get('biotime_devices')->result();
-    //     foreach($areas as $area){
-    //     $query=$this->db->query("REPLACE INTO clk_log (
-    //       entry_id,
-    //       ihris_pid,
-    //       facility_id,
-    //       time_in,
-    //       date,
-    //       location,
-    //       source,
-    //       facility)
-    //       SELECT
-
-    //      DISTINCT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
-    //       ihrisdata.ihris_pid,
-    //       facility_id, 
-    //       punch_time,
-    //       DATE(biotime_data.punch_time) as date,
-    //       area_alias,
-    //       'BIO-TIME',
-    //       ihrisdata.facility
-    //       from  biotime_data, ihrisdata where biotime_data.area_alias='$area->area_name' AND (biotime_data.emp_code=ihrisdata.card_number) AND (punch_state='Check In' OR punch_state='0') ");
-
-    //    $message=$area->area_name. " Checkin " .$this->db->affected_rows();
-
-    //   }
-
-    //   $this->biotimeClockout();
-
-
-    //   $this->log($message);
-    //   }
-
+  
     public function biotimeClockout()
     {
         ignore_user_abort(true);
