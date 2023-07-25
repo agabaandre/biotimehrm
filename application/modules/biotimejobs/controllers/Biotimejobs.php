@@ -888,5 +888,7 @@ class Biotimejobs extends MX_Controller
         $insert = array('data' => json_encode($data));
 
         $this->db->replace('dash_data', $insert);
+
+        dd($insert);
     }
 }
