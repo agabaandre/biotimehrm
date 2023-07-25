@@ -522,7 +522,7 @@ class Biotimejobs extends MX_Controller
                 'position_code' => $jobs->position_code,
                 'position_name' => $jobs->posistion_name
             );
-            dd($data);
+            dd($jobs);
             array_push($j, $data);
         }
 
