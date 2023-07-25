@@ -327,7 +327,7 @@ class Biotimejobs extends MX_Controller
             'area' => [(string)$barea],
         );
 
-        $endpoint = 'personnel/api/employees/<' . $userdata->biotime_emp_id . '>';
+        $endpoint = 'personnel/api/employees/'.$userdata->biotime_emp_id;
         $headr = array();
         $headr[] = 'Content-length:' . strlen(json_encode($body));
         $headr[] = 'Content-type: application/json';
@@ -674,7 +674,7 @@ class Biotimejobs extends MX_Controller
     public function transfer_employees()
     {
         $howmany = array();
-        $query = $this->db->query("SELECT * FROM  biotime_transfers WHERE card_number='018509492'");
+        $query = $this->db->query("SELECT * FROM  biotime_transfers WHERE card_number='004156974'");
         $trasnfers = $query->result();
         foreach ($trasnfers as $newuser) :
 
