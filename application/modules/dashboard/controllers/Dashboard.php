@@ -24,8 +24,16 @@ class Dashboard extends MX_Controller {
 	}
 	public function dashboardData(){
 		
+	return $this->db->get('dash_data')->row()->data;
+
+	}
+	public function cache_dash_Data()
+	{
+
 		$data = $this->dash_mdl->getData();
-	echo json_encode($data);
+		$insert = array('data'=>json_encode($data));
+
+		$this->db->replace('dash_data',$insert);
 	}
 
 
