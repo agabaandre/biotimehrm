@@ -7,14 +7,14 @@ class Dashboard extends MX_Controller {
 	public  function __construct(){
 		parent:: __construct();
 
-			$this->dashmodule="dashboard";
+		
 			$this->load->model("dashboard_mdl",'dash_mdl');
 
 			}
 
 	public function index()
 	{
-		$data['module']=$this->dashmodule;
+		$data['module']= "dashboard";
 		$data['title']="Main Dashboard";
 		$data['uptitle']="Main Dashboard";
 		$data['view']="home";
@@ -27,14 +27,7 @@ class Dashboard extends MX_Controller {
 	return $this->db->get('dash_data')->row()->data;
 
 	}
-	public function cache_dash_Data()
-	{
 
-		$data = $this->dash_mdl->getData();
-		$insert = array('data'=>json_encode($data));
-
-		$this->db->replace('dash_data',$insert);
-	}
 
 
 

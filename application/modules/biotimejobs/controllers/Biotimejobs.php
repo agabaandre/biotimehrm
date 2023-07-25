@@ -881,4 +881,12 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
+    public function cache_dash_Data()
+    {
+
+        $data = $this->dash_mdl->getData();
+        $insert = array('data' => json_encode($data));
+
+        $this->db->replace('dash_data', $insert);
+    }
 }
