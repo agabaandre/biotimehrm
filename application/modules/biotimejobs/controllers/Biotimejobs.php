@@ -333,7 +333,7 @@ class Biotimejobs extends MX_Controller
         $headr[] = 'Content-type: application/json';
         $headr[] = 'Authorization: JWT ' . $this->get_token();
 
-        $response = $http->curlsendHttpPost($endpoint, $headr, $body);
+        $response = $http->curlupdateHttpPost($endpoint, $headr, $body);
 
         // echo json_encode($userdata);
 
