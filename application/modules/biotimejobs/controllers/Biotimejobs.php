@@ -711,6 +711,7 @@ class Biotimejobs extends MX_Controller
 
         $this->biotimeClockout();
         $this->biotimeClockoutnight();
+        $this->cache_dash_Data();
 
 
         $this->log($message);
