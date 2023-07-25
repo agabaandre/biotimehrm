@@ -524,8 +524,9 @@ class Biotimejobs extends MX_Controller
             );
      
             array_push($j, $data);
-            dd($j);
+           
         }
+        dd($j);
 
         $message = $this->biotimejobs_mdl->save_jobs($j);
         $process = 8;
