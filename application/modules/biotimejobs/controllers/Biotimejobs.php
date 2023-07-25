@@ -676,7 +676,7 @@ class Biotimejobs extends MX_Controller
     public function transfer_employees()
     {
         $howmany = array();
-        $query = $this->db->query("SELECT * FROM  biotime_transfers WHERE card_number='004156974'");
+        $query = $this->db->query("SELECT * FROM  biotime_transfers");
         $trasnfers = $query->result();
         foreach ($trasnfers as $newuser) :
 
