@@ -630,12 +630,13 @@ class Biotimejobs extends MX_Controller
         $params = '?' . http_build_query($query);
         $endpoint = 'personnel/api/employees/' . $params;
 
-        dd($endpoint);
+        //dd($endpoint);
 
         //leave options and undefined. guzzle will use the http:query;
 
         $response = $http->getempData($endpoint, "GET", $headers);
         //return $response;
+        dd($response);
      
      return $response;
     }
