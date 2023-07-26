@@ -638,6 +638,7 @@ class Biotimejobs extends MX_Controller
         ini_set('max_execution_time', 0);
         $resp = $this->fetch_biotime_employees($page = 1)->data;
         $count = $resp->count;
+        dd($count);
         $pages = (int)ceil($count / 10);
         $rows = array();
         if (count($resp) > 1) {
