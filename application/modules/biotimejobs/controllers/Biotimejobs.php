@@ -637,14 +637,14 @@ class Biotimejobs extends MX_Controller
 
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        $resp = $this->fetch_biotime_employees($page = 1)->data;
+        $resp = $this->fetch_biotime_employees($page = 1);
         $count = $resp->count;
-        dd($count);
+       // dd($count);
         $pages = (int)ceil($count / 10);
         $rows = array();
-        if (count($resp) > 1) {
-            $this->db->truncate('biotime_enrollment');
-        }
+        // if (count($resp) > 1) {
+        //     $this->db->truncate('biotime_enrollment');
+        // }
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
             $response = $this->fetch_biotime_employees($currentPage);
