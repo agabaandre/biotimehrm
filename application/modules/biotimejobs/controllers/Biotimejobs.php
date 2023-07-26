@@ -611,7 +611,7 @@ class Biotimejobs extends MX_Controller
     }
     // get all biotime deployements
     //get cron jobs from the server
-    public function fetch_biotime_employees($page =1)
+    public function fetch_biotime_employees($page = FALSE)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
