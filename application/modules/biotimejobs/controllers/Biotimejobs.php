@@ -19,7 +19,7 @@ class Biotimejobs extends MX_Controller
 
         $this->username = Modules::run('svariables/getSettings')->biotime_username;
         $this->password = Modules::run('svariables/getSettings')->biotime_password;
-        $this->biotimejobs_mdl = $this->load->model('biotimejobs_mdl');
+        $this->load->model('biotimejobs_mdl');
        // $this->facility = $_SESSION['facility'];
     }
 
@@ -646,9 +646,9 @@ class Biotimejobs extends MX_Controller
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
-        if (count($resp) > 1) {
-            $this->db->truncate('biotime_enrollment');
-        }
+        // if (count($resp) > 1) {
+        //     $this->db->truncate('biotime_enrollment');
+        // }
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
             $response = $this->fetch_biotime_employees($currentPage);
@@ -661,7 +661,7 @@ class Biotimejobs extends MX_Controller
                     "biotime_facility_id" => $mydata->area[0]->id,
                     "biotime_fac_id" => $mydata->area[0]->area_code
                 );
-                $message = $this->db->insert('biotime_enrollment', $data);
+                $message = $this->db->replace('biotime_enrollment', $data);
                 // array_push($rows, $data);
             }
         }
