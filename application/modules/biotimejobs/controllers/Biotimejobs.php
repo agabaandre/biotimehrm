@@ -11,6 +11,7 @@ class Biotimejobs extends MX_Controller
         private $password;
        
         private $facility;
+        private $biotimejobs_mdl;
 
     public  function __construct()
     {
