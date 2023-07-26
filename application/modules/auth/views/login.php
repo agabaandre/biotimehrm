@@ -425,7 +425,7 @@ Credits
 
         <div style="margin:0 auto; text-align:center; color:#000 !important;">
 
-          <p style="color:#000 !important; font-size:28px;">HRM iHRIS Attend LOGIN </p>
+          <p style="color:#000 !important; font-size:28px; font-weight:bold;">HRM iHRIS Attend <small>LOGIN</small> </p>
 
         </div>
         <img src="<?php echo base_url(); ?>assets/img/MOH.png" width="120" height="120">
