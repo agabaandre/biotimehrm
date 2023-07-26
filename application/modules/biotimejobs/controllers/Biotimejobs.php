@@ -669,6 +669,7 @@ class Biotimejobs extends MX_Controller
                 // array_push($rows, $data);
             }
         }
+        dd($data);
 
         $process = 7;
         $method = "bioitimejobs/biotime_employees";
