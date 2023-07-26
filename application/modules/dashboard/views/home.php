@@ -362,6 +362,7 @@
        url: '<?php echo base_url('dashboard/dashboardData') ?>',
        dataType: "json",
        data: '',
+       async: true,
        success: function(data) {
          $('#workers').text(data.workers);
          $('#facilities').text(data.facilities);
