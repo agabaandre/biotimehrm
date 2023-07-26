@@ -104,7 +104,7 @@ class HttpUtil{
 
         return json_decode((string) $response->getBody()->getContents());
     }
-       public function get_List($endpoint, $method="",$headers = [],$options=FALSE)
+       public function get_List($endpoint, $method=FALSE,$headers = [],$options=FALSE)
     {
         // die(var_dump($this->get_jwt_auth()));
       
