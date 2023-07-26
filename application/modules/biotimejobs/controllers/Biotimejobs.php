@@ -636,7 +636,7 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->getempData($endpoint, "GET", $headers);
         //return $response;
-        dd($response);
+        dd($response->count);
      
      return $response;
     }
