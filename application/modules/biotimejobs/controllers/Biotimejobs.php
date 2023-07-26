@@ -606,7 +606,7 @@ class Biotimejobs extends MX_Controller
     }
     // get all biotime deployements
     //get cron jobs from the server
-    public function fetch_biotime_employees($page = FALSE)
+    public function fetch_biotime_employees($page =1)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
@@ -640,9 +640,9 @@ class Biotimejobs extends MX_Controller
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
-        // if (count($resp) > 1) {
+        if (count($resp) > 1) {
             $this->db->truncate('biotime_enrollment');
-        // }
+        }
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
             $response = $this->fetch_biotime_employees($currentPage);
@@ -659,7 +659,7 @@ class Biotimejobs extends MX_Controller
                 // array_push($rows, $data);
             }
         }
-        
+
         $process = 7;
         $method = "bioitimejobs/biotime_employees";
         if ($response) {
