@@ -617,9 +617,10 @@ class Biotimejobs extends MX_Controller
         ];
 
 
-        $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
+        // $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
-            'page' => $page
+            'page' => $page,
+            'area'=> [3102]
         );
 
         $params = '?' . http_build_query($query);
@@ -637,7 +638,7 @@ class Biotimejobs extends MX_Controller
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
         $resp = $this->fetch_biotime_employees($page = 1)->data;
-     
+        $count = $resp->count;
         dd($resp);
         $pages = (int)ceil($count / 10);
         $rows = array();
@@ -660,7 +661,7 @@ class Biotimejobs extends MX_Controller
                 // array_push($rows, $data);
             }
         }
-       // dd($data);
+      
         $process = 7;
         $method = "bioitimejobs/biotime_employees";
         if ($response) {
