@@ -624,7 +624,6 @@ class Biotimejobs extends MX_Controller
 
         $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
-            'area' => 3093,
             'page'=>1
         );
 
