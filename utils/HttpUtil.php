@@ -7,6 +7,10 @@ use \GuzzleHttp\Promise\Promise;
 use \Psr\Http\Message\ResponseInterface;
 
 class HttpUtil{
+    private $CI;
+    private $client;
+    private $ihrisclient;
+    private $ucmbihrisclient;
 
     public  function __construct(){
 
