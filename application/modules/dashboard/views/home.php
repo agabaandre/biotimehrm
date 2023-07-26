@@ -424,57 +424,41 @@
      },
    });
    //attendance calendar
-   $(document).ready(function() {
-     var base_url = $('.base_url').html();
+   var base_url = $('.base_url').html();
+   $('#dutycalendar').fullCalendar({
+     defaultView: 'basicWeek',
+     header: {
+       left: 'prev, next, today',
+       center: 'title',
+       right: 'month, basicWeek, basicDay'
+     },
+     // Get all events stored in database
+     eventLimit: true, // allow "more" link when too many events
+     events: base_url + 'calendar/getEvents',
+     selectable: false,
+     selectHelper: true,
+     editable: false,
 
-     // Fetch the event data asynchronously
-     $.ajax({
-       type: 'GET',
-       url: base_url + 'calendar/getEvents',
-       dataType: 'json',
-       async: true, // Set async to true for asynchronous behavior
-       success: function(eventsData) {
-         // Initialize the fullCalendar with the fetched event data
-         $('#dutycalendar').fullCalendar({
-           defaultView: 'basicWeek',
-           header: {
-             left: 'prev, next, today',
-             center: 'title',
-             right: 'month, basicWeek, basicDay'
-           },
-           // Pass the events data to the calendar
-           events: eventsData,
-           selectable: false,
-           selectHelper: true,
-           editable: false,
-
-           // Mouse over
-           eventMouseover: function(calEvent, jsEvent, view) {
-             var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
-             $("body").append(tooltip);
-             $(this).mouseover(function(e) {
-               $(this).css('z-index', 10000);
-               $('.event-tooltip').fadeIn('500');
-               $('.event-tooltip').fadeTo('10', 1.9);
-             }).mousemove(function(e) {
-               $('.event-tooltip').css('top', e.pageY + 10);
-               $('.event-tooltip').css('left', e.pageX + 20);
-             });
-           },
-           eventMouseout: function(calEvent, jsEvent) {
-             $(this).css('z-index', 8);
-             $('.event-tooltip').remove();
-           },
-           // H
-         });
-       },
-       error: function(jqXHR, textStatus, errorThrown) {
-         // Handle the error here if needed
-         console.log('Error fetching event data: ' + errorThrown);
-       }
-     });
+     // Mouse over
+     eventMouseover: function(calEvent, jsEvent, view) {
+       // console.log(calEvent);
+       var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
+       $("body").append(tooltip);
+       $(this).mouseover(function(e) {
+         $(this).css('z-index', 10000);
+         $('.event-tooltip').fadeIn('500');
+         $('.event-tooltip').fadeTo('10', 1.9);
+       }).mousemove(function(e) {
+         $('.event-tooltip').css('top', e.pageY + 10);
+         $('.event-tooltip').css('left', e.pageX + 20);
+       });
+     },
+     eventMouseout: function(calEvent, jsEvent) {
+       $(this).css('z-index', 8);
+       $('.event-tooltip').remove();
+     },
+     // H
    });
-
    //duty roster graph
    <?php
     $graph = Modules::run("reports/dutygraphData");
