@@ -7,6 +7,10 @@ use \utils\HttpUtil;
 class Biotimejobs extends MX_Controller
 {
 
+        private $username;
+        private $password;
+       
+        private $facility;
 
     public  function __construct()
     {
@@ -15,7 +19,7 @@ class Biotimejobs extends MX_Controller
         $this->username = Modules::run('svariables/getSettings')->biotime_username;
         $this->password = Modules::run('svariables/getSettings')->biotime_password;
         $this->load->model('biotimejobs_mdl');
-        @$this->facility = $_SESSION['facility'];
+        $this->facility = $_SESSION['facility'];
     }
 
     public function index()
