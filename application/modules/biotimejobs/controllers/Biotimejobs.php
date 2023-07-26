@@ -625,10 +625,13 @@ class Biotimejobs extends MX_Controller
         $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
             'page' => $page,
+            'area' => 3093
         );
 
         $params = '?' . http_build_query($query);
         $endpoint = 'personnel/api/employees/' . $params;
+
+        dd($endpoint);
 
         //leave options and undefined. guzzle will use the http:query;
 
