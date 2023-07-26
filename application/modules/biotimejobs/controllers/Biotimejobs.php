@@ -640,9 +640,9 @@ class Biotimejobs extends MX_Controller
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
-        if (count($resp) > 1) {
+        // if (count($resp) > 1) {
             $this->db->truncate('biotime_enrollment');
-        }
+        // }
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
             $response = $this->fetch_biotime_employees($currentPage);
