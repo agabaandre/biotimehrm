@@ -611,7 +611,7 @@ class Biotimejobs extends MX_Controller
     }
     // get all biotime deployements
     //get cron jobs from the server
-    public function fetch_biotime_employees($page = 0)
+    public function fetch_biotime_employees($page)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
@@ -624,7 +624,7 @@ class Biotimejobs extends MX_Controller
 
         $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
-            'page'=>1
+            'page'=>$page
         );
 
         $params = '?' . http_build_query($query);
@@ -636,7 +636,7 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->getempData($endpoint, "GET", $headers);
         //return $response;
-        dd($response->data);
+        //dd($response->data);
      
      return $response;
     }
@@ -647,6 +647,7 @@ class Biotimejobs extends MX_Controller
         ini_set('max_execution_time', 0);
         $resp = $this->fetch_biotime_employees($page = 1);
         $count = $resp->count;
+        dd($count);
         $pages = (int)ceil($count / 10);
         $rows = array();
         // if (count($resp) > 1) {
