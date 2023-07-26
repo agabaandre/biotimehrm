@@ -42,7 +42,7 @@ class HttpUtil{
     }
     
    
-    public function getData($endpoint, $method="",$headers = [],$options)
+    public function getData($endpoint, $method="",$headers = [],$options = FALSE)
     {
       
        $url=BIO_URL.$endpoint;
