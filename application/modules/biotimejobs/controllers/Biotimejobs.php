@@ -636,7 +636,7 @@ class Biotimejobs extends MX_Controller
 
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        $resp = $this->fetch_biotime_employees($page = 1);
+        $resp = $this->fetch_biotime_employees($page = 1)->data;
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
