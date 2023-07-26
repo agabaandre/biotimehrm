@@ -420,18 +420,14 @@ Credits
 <body class="">
   <div class='box'>
     <div class='box-form'>
-      <div class='box-login-tab'>
-        <!-- <div class="col-md-12" style="text-align: center;">
-                <h3>MoH Attendance Tracking System</h3>
-                <img src="<?php echo base_url(); ?>assets/img/MOH.png" width="270px">
-    </div> -->
-      </div>
-      <div style="margin:0 auto; text-align:center;">
-     
-          <h2>HRM iHRIS Attend LOGIN </h2>
-  
-      </div>
+
       <div class='box-login'>
+
+        <div style="margin:0 auto; text-align:center;">
+
+          <h2>HRM iHRIS Attend LOGIN </h2>
+
+        </div>
         <img src="<?php echo base_url(); ?>assets/img/MOH.png" width="120" height="120">
         <p style="color:blue;"><?php echo $this->session->flashdata('msg'); ?></p>
         <form class='fieldset-body' id='login_form' role="form" method="post" action="<?php echo base_url(); ?>auth/login">
