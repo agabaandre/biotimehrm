@@ -423,7 +423,7 @@ Credits
 
       <div class='box-login'>
 
-        <div style="margin:0 auto; text-align:center;">
+        <div style="margin:0 auto; text-align:center; color:000;">
 
           <h2>HRM iHRIS Attend LOGIN </h2>
 
