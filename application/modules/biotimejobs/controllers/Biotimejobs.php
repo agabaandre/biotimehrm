@@ -249,7 +249,7 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->getTimeLogs($endpoint, "GET", $headers);
         //return $response;
-       // return $response;
+        return $response;
     }
 
 
@@ -726,7 +726,7 @@ class Biotimejobs extends MX_Controller
 
         $this->log($message);
     }
-  
+   //rethink the clockin, clockin people as the data is fetched.
     public function biotimeClockout()
     {
         ignore_user_abort(true);
