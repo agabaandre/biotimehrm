@@ -300,20 +300,11 @@ class Biotimejobs extends MX_Controller
     public function custom_logs(){
         $end_date = date('Y-m-d', strtotime($this->input->get('end_date')));
         $terminal_sn = $this->input->get('terminal_sn');
-        $response = array(
-            'status' => 'success',
-            'message' => 'Form data received successfully!',
-            'data' => array(
-                'end_date' => $end_date,
-                'terminal_sn' => $terminal_sn
-            )
-        );
+
         $url = "curl https://attend.health.go.ug/biotimejobs/fetchBiotTimeLogs/" . $end_date . "/" . $terminal_sn;
         shell_exec("$url");
-        // Convert the response to JSON and send it back to the client
-        $this->output
-        ->set_content_type('application/json')
-        ->set_output(json_encode($response));
+       
+       echo json_encode($url);
 
         
     }
