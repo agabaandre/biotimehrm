@@ -209,7 +209,7 @@ class Biotimejobs extends MX_Controller
 
 
     //get cron jobs from the server
-    public function getTime($page, $userdate = FALSE)
+    public function getTime($page, $start_date = FALSE, $end_date = FALSE,$area=FALSE)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
@@ -226,13 +226,15 @@ class Biotimejobs extends MX_Controller
 
         //if las sync is empty
     
-         $sdate = "2023-07-26 23:59:00";
-         $edate = "2023-07-27 23:59:00";
+        //  $sdate = "2023-07-26 23:59:00";
+        //  $edate = "2023-07-27 23:59:00";
 
-       // $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
+        $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
-            'page' => $page, 'start_time' => $sdate,
+            'page' => $page, 
+            'start_time' => $sdate,
             'end_time' => $edate,
+            'area'=>$area
         );
         //sync specific machine
         //          $query = array(
@@ -252,17 +254,17 @@ class Biotimejobs extends MX_Controller
     }
 
 
-    public function fetchBiotTimeLogs($user_date = FALSE)
+    public function fetchBiotTimeLogs($start_date = FALSE, $end_date = FALSE, $area = FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        $resp = $this->getTime($page = 1, $user_date);
+        $resp = $this->getTime($page = 1,$start_date = FALSE, $end_date = FALSE, $area = FALSE);
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
-            $response = $this->getTime($currentPage, $user_date);
+            $response = $this->getTime($currentPage,$start_date = FALSE, $end_date = FALSE, $area = FALSE);
             foreach ($response->data as $mydata) {
 
                 $data = array(
@@ -277,7 +279,7 @@ class Biotimejobs extends MX_Controller
                 array_push($rows, $data);
             }
         }
-
+        dd($rows);
 
         $message = $this->biotimejobs_mdl->add_time_logs($rows);
 
