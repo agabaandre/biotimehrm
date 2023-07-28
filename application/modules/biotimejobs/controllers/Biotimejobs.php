@@ -298,7 +298,7 @@ class Biotimejobs extends MX_Controller
     }
 
     public function custom_logs(){
-        $end_date = $this->input->get('end_date');
+        $end_date = date('Y-m-d', strtotime($this->input->get('end_date')));
         $terminal_sn = $this->input->get('terminal_sn');
         $response = array(
             'status' => 'success',
