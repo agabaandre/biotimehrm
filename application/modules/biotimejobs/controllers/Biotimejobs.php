@@ -236,7 +236,7 @@ class Biotimejobs extends MX_Controller
             'page' => $page, 
             'start_time' => $sdate,
             'end_time' => $edate,
-            'area'=>$area
+            'area_code'=>$area
         );
         //sync specific machine
         //          $query = array(
