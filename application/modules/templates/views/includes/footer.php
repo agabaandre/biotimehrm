@@ -396,14 +396,13 @@ $linkquery = $url; // Outputs: Full URL
 
         // Make the AJAX request
         $.ajax({
-            type: "GET",
-            url: "<?php echo base_url('biotimejobs/custom_logs'); ?>",
+            type: "POST",
+            url: "<?php echo base_url('biotime_jobs/custom_logs'); ?>",
             data: formData,
             success: function(response) {
                 // Handle the response if needed
                 console.log("Form submitted successfully.");
                 console.log(response);
-                // Process the response from the server here (if required)
             },
             error: function(xhr, status, error) {
                 // Handle the error if needed
