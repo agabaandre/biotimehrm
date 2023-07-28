@@ -251,7 +251,7 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->getTimeLogs($endpoint, "GET", $headers);
         //return $response;
-        print_r($sdate);
+        //print_r($sdate);
         dd($response);
         return $response;
     }
