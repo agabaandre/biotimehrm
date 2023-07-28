@@ -209,7 +209,7 @@ class Biotimejobs extends MX_Controller
 
 
     //get cron jobs from the server
-    public function getTime($page, $start_date = FALSE, $end_date = FALSE,$terminal=FALSE)
+    public function getTime($page,$end_date = FALSE,$terminal=FALSE)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
@@ -218,27 +218,31 @@ class Biotimejobs extends MX_Controller
             'Accept' => 'application/json',
             'Authorization' => "JWT " . $this->get_token(),
         ];
-        if (empty($start_date)) {
+        if (empty($end_date)) {
             $edate = date('Y-m-d H:i:s');
-            $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
+            $sdate = date("Y-m-d H:i:s", strtotime("-24 hours", strtotime($edate)));
         } else {
-            $edate = $end_date;
-            $sdate = $start_date;
+            $edate = $end_date; 
+         // Use the $edate variable to calculate the start date, which is 24 hours before the end date
+            $sdate = date("Y-m-d H:i:s", strtotime("-24 hours", strtotime($edate)));
         }
 
-        //if las sync is empty
-    
-        //  $sdate = "2023-07-26 23:59:00";
-        //  $edate = "2023-07-27 23:59:00";
+        if (!empty($terminal)) {
+            $query = array(
+                'page' => $page,
+                'start_time' => $sdate,
+                'end_time' => $edate,
+                'terminal_sn' => $terminal
+            );
+        }
+        else{
+            $query = array(
+                'page' => $page,
+                'start_time' => $sdate,
+                'end_time' => $edate,
+            );
 
-        
-        $query = array(
-            'page' => $page, 
-            'start_time' => $sdate,
-            'end_time' => $edate,
-            'terminal_sn'=> $terminal
-        );
-
+        }
 
         $params = '?' . http_build_query($query);
         $endpoint = 'iclock/api/transactions/' . $params;
@@ -247,22 +251,23 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->getTimeLogs($endpoint, "GET", $headers);
         //return $response;
+        print_r($sdate);
         dd($response);
         return $response;
     }
 
 
-    public function fetchBiotTimeLogs($start_date = FALSE, $end_date = FALSE, $terminal = FALSE)
+    public function fetchBiotTimeLogs($end_date = FALSE, $terminal = FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        $resp = $this->getTime($page = 1,$start_date = FALSE, $end_date = FALSE, $terminal = FALSE);
+        $resp = $this->getTime($page = 1,$end_date = FALSE, $terminal = FALSE);
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
-            $response = $this->getTime($currentPage,$start_date = FALSE, $end_date = FALSE, $terminal = FALSE);
+            $response = $this->getTime($currentPage, $end_date = FALSE, $terminal = FALSE);
             foreach ($response->data as $mydata) {
 
                 $data = array(
