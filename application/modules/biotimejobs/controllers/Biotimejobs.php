@@ -209,7 +209,7 @@ class Biotimejobs extends MX_Controller
 
 
     //get cron jobs from the server
-    public function getTime($page = FALSE, $userdate = FALSE)
+    public function getTime($page, $userdate = FALSE)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
@@ -223,7 +223,6 @@ class Biotimejobs extends MX_Controller
         } else {
             $page = $userdate;
         }
-
 
         //if las sync is empty
     
