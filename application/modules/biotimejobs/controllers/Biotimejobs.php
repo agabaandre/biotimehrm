@@ -243,7 +243,7 @@ class Biotimejobs extends MX_Controller
         //         );
 
         $params = '?' . http_build_query($query);
-        $endpoint = 'iclock/api/transactions/' . $params.'/';
+        $endpoint = 'iclock/api/transactions/' . $params;
 
         //leave options and undefined. guzzle will use the http:query;
 
