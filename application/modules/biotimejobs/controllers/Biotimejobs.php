@@ -218,10 +218,12 @@ class Biotimejobs extends MX_Controller
             'Accept' => 'application/json',
             'Authorization' => "JWT " . $this->get_token(),
         ];
-        if (empty($userdate)) {
+        if (empty($start_date)) {
             $edate = date('Y-m-d H:i:s');
+            $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         } else {
-            $page = $userdate;
+            $edate = $end_date;
+            $sdate = $start_date;
         }
 
         //if las sync is empty
@@ -229,7 +231,7 @@ class Biotimejobs extends MX_Controller
         //  $sdate = "2023-07-26 23:59:00";
         //  $edate = "2023-07-27 23:59:00";
 
-        $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
+        
         $query = array(
             'page' => $page, 
             'start_time' => $sdate,
@@ -250,6 +252,7 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->getTimeLogs($endpoint, "GET", $headers);
         //return $response;
+        dd($response);
         return $response;
     }
 
@@ -279,7 +282,6 @@ class Biotimejobs extends MX_Controller
                 array_push($rows, $data);
             }
         }
-        dd($rows);
 
         $message = $this->biotimejobs_mdl->add_time_logs($rows);
 
