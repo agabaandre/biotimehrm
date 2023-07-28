@@ -136,7 +136,7 @@
 
         if (isPassChanged != 1) {
             console.log(isPassChanged);
-           // $('#changepassword').modal('show');
+            // $('#changepassword').modal('show');
         }
         var url = "<?php echo $this->uri->segment(2); ?>";
         if (url == "tabular" || url == "actuals" || url == "fetch_report" || url == "actualsreport" || url == "tabular#" || url == "timesheet" || url == "attfrom_report") {
@@ -385,4 +385,39 @@ $linkquery = $url; // Outputs: Full URL
             } //success
         }); // ajax
     }); //form submit
+</script>
+
+
+<script>
+    // Function to handle form submission
+    function submitForm() {
+        // Get the form data
+        var formData = $("#syncModalForm").serialize();
+
+        // Make the AJAX request
+        $.ajax({
+            type: "GET",
+            url: "<?php echo base_url('biotimejobs/custom_logs'); ?>",
+            data: formData,
+            success: function(response) {
+                // Handle the response if needed
+                console.log("Form submitted successfully.");
+                console.log(response);
+                // Process the response from the server here (if required)
+            },
+            error: function(xhr, status, error) {
+                // Handle the error if needed
+                console.error("Error submitting form:", error);
+            }
+        });
+
+        // Close the modal after form submission
+        $("#syncModal").modal("hide");
+    }
+
+    // Trigger the form submission when the "Sync" button is clicked
+    $(document).on("submit", "#syncModalForm", function(event) {
+        event.preventDefault(); // Prevent the default form submission behavior
+        submitForm();
+    });
 </script>
