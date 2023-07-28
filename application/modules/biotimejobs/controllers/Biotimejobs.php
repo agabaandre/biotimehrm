@@ -209,7 +209,7 @@ class Biotimejobs extends MX_Controller
 
 
     //get cron jobs from the server
-    public function getTime($page, $start_date = FALSE, $end_date = FALSE,$area=FALSE)
+    public function getTime($page, $start_date = FALSE, $end_date = FALSE,$terminal=FALSE)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
@@ -236,14 +236,9 @@ class Biotimejobs extends MX_Controller
             'page' => $page, 
             'start_time' => $sdate,
             'end_time' => $edate,
-            'area_code'=>$area
+            'terminal_sn'=> $terminal
         );
-        //sync specific machine
-        //          $query = array(
-        //             'page' => $page, 'start_time' => $sdate,
-        //             'end_time' => $edate,
-        //             'terminal_sn' => '3929091915178',
-        //         );
+
 
         $params = '?' . http_build_query($query);
         $endpoint = 'iclock/api/transactions/' . $params;
@@ -257,17 +252,17 @@ class Biotimejobs extends MX_Controller
     }
 
 
-    public function fetchBiotTimeLogs($start_date = FALSE, $end_date = FALSE, $area = FALSE)
+    public function fetchBiotTimeLogs($start_date = FALSE, $end_date = FALSE, $terminal = FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        $resp = $this->getTime($page = 1,$start_date = FALSE, $end_date = FALSE, $area = FALSE);
+        $resp = $this->getTime($page = 1,$start_date = FALSE, $end_date = FALSE, $terminal = FALSE);
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
-            $response = $this->getTime($currentPage,$start_date = FALSE, $end_date = FALSE, $area = FALSE);
+            $response = $this->getTime($currentPage,$start_date = FALSE, $end_date = FALSE, $terminal = FALSE);
             foreach ($response->data as $mydata) {
 
                 $data = array(
