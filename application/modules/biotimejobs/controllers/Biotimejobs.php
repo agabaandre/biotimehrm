@@ -209,7 +209,7 @@ class Biotimejobs extends MX_Controller
 
 
     //get cron jobs from the server
-    public function getTime($page = FALSE, $userdate = FALSE)
+    public function getTime($page = 1, $userdate = FALSE)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
@@ -243,13 +243,14 @@ class Biotimejobs extends MX_Controller
         //         );
 
         $params = '?' . http_build_query($query);
-        $endpoint = 'iclock/api/transactions/' . $params;
+        $endpoint = 'iclock/api/transactions/' . $params.'/';
 
         //leave options and undefined. guzzle will use the http:query;
 
         $response = $http->getTimeLogs($endpoint, "GET", $headers);
         //return $response;
-        return $response;
+        dd($response);
+       // return $response;
     }
 
 
