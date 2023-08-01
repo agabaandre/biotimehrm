@@ -105,6 +105,7 @@
                       <td data-label="JOB"><?php echo $staff->job; ?></td>
                       <td data-label="TERMS"><?php echo str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $staff->employment_terms))); ?></td>
                       <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
+                      <td data-label="Login_request"><a href="<?php echo base_url() ?>auth/login/<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" class="link">Account request</a></td>
                     </tr>
                   <?php   } ?>
                 </tbody>
