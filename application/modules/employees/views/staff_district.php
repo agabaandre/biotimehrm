@@ -73,6 +73,7 @@
                     <th>Job</th>
                     <th>Employment Terms</th>
                     <th>Card Number</th>
+                    <th>#</th>
                   </tr>
                 </thead>
                 <tbody>
