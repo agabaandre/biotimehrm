@@ -51,13 +51,13 @@
           <div class="">
           </div>
           <div class="card-body">
-            <section class="col-lg-12 ">
+            <section class="col-lg-12 " style="overflow:auto;">
 
               <h5> <?php echo $_SESSION['district']; ?> District Staff </h5>
 
               <div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-
-              <table id="mytab2" class="table table-bordered table-striped" style="width:100;">
+                
+              <table id="mytab2" class="table table-bordered table-repsonsive table-striped" style="width:100;">
                 <thead>
                   <tr>
                     <th>#</th>
