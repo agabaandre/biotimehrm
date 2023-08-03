@@ -392,7 +392,7 @@ $linkquery = $url; // Outputs: Full URL
     // Function to handle form submission
     function submitForm() {
         // Get the form data
-        var formData = $("#syncModalForm").serialize();
+        var formData = $("#biotimesync").serialize();
 
         // Make the AJAX request
         $.ajax({
@@ -415,7 +415,7 @@ $linkquery = $url; // Outputs: Full URL
     }
 
     // Trigger the form submission when the "Sync" button is clicked
-    $(document).on("submit", "#syncModalForm", function(event) {
+    $(document).on("submit", "#biotimesync", function(event) {
         event.preventDefault(); // Prevent the default form submission behavior
         submitForm();
     });
