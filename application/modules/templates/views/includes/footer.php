@@ -397,7 +397,7 @@ $linkquery = $url; // Outputs: Full URL
         // Make the AJAX request
         $.ajax({
             type: "POST",
-            url: "<?php echo base_url('biotime_jobs/custom_logs'); ?>",
+            url: "<?php echo base_url('biotimejobs/custom_logs'); ?>",
             data: formData,
             success: function(response) {
                 // Handle the response if needed
