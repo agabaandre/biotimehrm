@@ -269,27 +269,10 @@ class Api extends RestController
     // Post Staff
     public function staff_list_post()
     {
-        // Check if user is logged in
-        $decoded = $this->validateRequest();
-
-        $data = $this->post();
-
-        // $result = $this->mEmployee->update_staff_record($data);
-        // if ($result) {
-        //     $this->response([
-        //         'status' => 'SUCCESS',
-        //         'message' => 'Staff record updated successfully',
-        //     ], 200);
-        // } else {
-            
-        // }
-
-        dd($data);
-
         $this->response([
-            'status' => 'FAILED',
-            'message' => 'Unable to update staff record',
-        ], 500);
+            'status' => 'SUCCESS',
+            'message' => 'Testing',
+        ], 200);
     }
 
     // Get Staff Details
@@ -403,54 +386,68 @@ class Api extends RestController
     }
 
     // Upload Device Resources
-    public function upload_fingerprints_post()
+    public function upload_fingerprint_post()
     {
+        // Load the necessary libraries
+        $this->load->library('upload');
 
+        // Set upload configuration
+        $config['upload_path'] = './uploads/fingerprints/'; // Change this to your desired upload directory
+        $config['allowed_types'] = 'fpt'; // Allowed image types
+        $config['max_size'] = 2048; // Maximum file size in kilobytes
+        $config['max_width'] = 2000; // Maximum image width
+        $config['max_height'] = 2000; // Maximum image height
 
-
-        // Upload Fingerprints of file_type fpt
-        $config['upload_path'] = './uploads/fingerprints/';
-        $config['allowed_types'] = 'fpt';
-        $config['max_size'] = 10000;
-        $config['overwrite'] = TRUE;
-
-        $this->load->library('upload', $config);
+        // Initialize the upload library with the configuration
+        $this->upload->initialize($config);
 
         if (!$this->upload->do_upload('fingerprint')) {
+            // If the upload fails, return an error response in JSON format
+            $error = array('error' => $this->upload->display_errors());
             $this->response([
-                'status' => false,
-                'message' => $this->upload->display_errors()
-            ], 401);
+                'status' => 'FAILED',
+                'message' => 'Unable to upload fingerprint at the moment',
+                'error' => $error
+            ], 500);
         } else {
-            $this->response([
-                'status' => true,
-                'message' => 'Fingerprint uploaded successfully'
+            $upload_data = $this->upload->data();
+            $data['file_info'] = $upload_data;
+            $this->response(['status' => 'SUCCESS',
+                'message' => 'Fingerprint Uploaded',
+                'file_info' => $upload_data
             ], 200);
         }
     }
 
-    public function upload_faces_post()
+    public function upload_face_post()
     {
+        // Load the necessary libraries
+        $this->load->library('upload');
 
+        // Set upload configuration
+        $config['upload_path'] = './uploads/faces/'; // Change this to your desired upload directory
+        $config['allowed_types'] = 'jpg'; // Allowed image types
+        $config['max_size'] = 2048; // Maximum file size in kilobytes
+        $config['max_width'] = 2000; // Maximum image width
+        $config['max_height'] = 2000; // Maximum image height
 
+        // Initialize the upload library with the configuration
+        $this->upload->initialize($config);
 
-        // Upload Faces of file_type jpg
-        $config['upload_path'] = './uploads/faces/';
-        $config['allowed_types'] = 'jpg';
-        $config['max_size'] = 10000;
-        $config['overwrite'] = TRUE;
-
-        $this->load->library('upload', $config);
-
-        if (!$this->upload->do_upload('face')) {
+        if (!$this->upload->do_upload('image')) {
+            // If the upload fails, return an error response in JSON format
+            $error = array('error' => $this->upload->display_errors());
             $this->response([
-                'status' => false,
-                'message' => $this->upload->display_errors()
-            ], 401);
+                'status' => 'FAILED',
+                'message' => 'Unable to upload picture at the moment',
+                'error' => $error
+            ], 500);
         } else {
-            $this->response([
-                'status' => true,
-                'message' => 'Face uploaded successfully'
+            $upload_data = $this->upload->data();
+            $data['file_info'] = $upload_data;
+            $this->response(['status' => 'SUCCESS',
+                'message' => 'Picture Uploaded',
+                'file_info' => $upload_data
             ], 200);
         }
     }
