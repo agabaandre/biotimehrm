@@ -414,72 +414,20 @@ Credits
       color: rgba(255, 255, 255, 0.2);
     }
   </style>
-  <script>
-    $(document).ready(function() {
-      $("#do_login").click(function() {
-        closeLoginInfo();
-        $(this).parent().find('span').css("display", "none");
-        $(this).parent().find('span').removeClass("i-save");
-        $(this).parent().find('span').removeClass("i-warning");
-        $(this).parent().find('span').removeClass("i-close");
-        var proceed = true;
-        $("#login_form input").each(function() {
-          if (!$.trim($(this).val())) {
-            $(this).parent().find('span').addClass("i-warning");
-            $(this).parent().find('span').css("display", "block");
-            proceed = false;
-          }
-        });
-        if (proceed) //everything looks good! proceed...
-        {
-          $(this).parent().find('span').addClass("i-save");
-          $(this).parent().find('span').css("display", "block");
-        }
-      });
-      //reset previously results and hide all message on .keyup()
-      $("#login_form input").keyup(function() {
-        $(this).parent().find('span').css("display", "none");
-      });
-      openLoginInfo();
-      setTimeout(closeLoginInfo, 1000);
-    });
 
-    function openLoginInfo() {
-      $(document).ready(function() {
-        $('.b-form').css("opacity", "0.01");
-        $('.box-form').css("left", "-37%");
-        $('.box-info').css("right", "-37%");
-      });
-    }
-
-    function closeLoginInfo() {
-      $(document).ready(function() {
-        $('.b-form').css("opacity", "1");
-        $('.box-form').css("left", "0px");
-        $('.box-info').css("right", "-5px");
-      });
-    }
-    $(window).on('resize', function() {
-      closeLoginInfo();
-    });
-  </script>
 </head>
 
 <body class="">
   <div class='box'>
     <div class='box-form'>
-      <div class='box-login-tab'>
-        <!-- <div class="col-md-12" style="text-align: center;">
-                <h3>MoH Attendance Tracking System</h3>
-                <img src="<?php echo base_url(); ?>assets/img/MOH.png" width="270px">
-    </div> -->
-      </div>
-      <div class='box-login-title' style="margin:0 auto; text-align:center;">
-        <center>
-          <h2>HRM LOGIN </h2>
-        </center>
-      </div>
+
       <div class='box-login'>
+
+        <div style="margin:0 auto; text-align:center; color:#000 !important;">
+
+          <p style="color:#000 !important; font-size:28px; font-weight:bold;">HRM iHRIS Attend LOGIN</p>
+
+        </div>
         <img src="<?php echo base_url(); ?>assets/img/MOH.png" width="120" height="120">
         <p style="color:blue;"><?php echo $this->session->flashdata('msg'); ?></p>
         <form class='fieldset-body' id='login_form' role="form" method="post" action="<?php echo base_url(); ?>auth/login">

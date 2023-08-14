@@ -37,7 +37,13 @@ class Svariables extends MX_Controller
 	{
 		$myfile = fopen("log.txt", "r") or die("Unable to open file!");
 
-		return fread($myfile, filesize("log.txt"));
+		$myfiles = fread($myfile, filesize("log.txt"));
+
+	
+		// Escape HTML entities to prevent potential XSS attacks
+		return $logContent = htmlspecialchars($myfiles, ENT_QUOTES);
+
+	
 	}
 	public function logs()
 	{

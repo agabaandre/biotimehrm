@@ -7,6 +7,11 @@ use \utils\HttpUtil;
 class Biotimejobs extends MX_Controller
 {
 
+        private $username;
+        private $password;
+       
+        private $facility;
+        //private $biotimejobs_mdl;
 
     public  function __construct()
     {
@@ -15,7 +20,7 @@ class Biotimejobs extends MX_Controller
         $this->username = Modules::run('svariables/getSettings')->biotime_username;
         $this->password = Modules::run('svariables/getSettings')->biotime_password;
         $this->load->model('biotimejobs_mdl');
-        @$this->facility = $_SESSION['facility'];
+       // $this->facility = $_SESSION['facility'];
     }
 
     public function index()
@@ -204,7 +209,7 @@ class Biotimejobs extends MX_Controller
 
 
     //get cron jobs from the server
-    public function getTime($page = FALSE, $userdate = FALSE)
+    public function getTime($page,$end_date = FALSE,$terminal=FALSE)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
@@ -213,29 +218,31 @@ class Biotimejobs extends MX_Controller
             'Accept' => 'application/json',
             'Authorization' => "JWT " . $this->get_token(),
         ];
-        if (empty($userdate)) {
+        if (empty($end_date)) {
             $edate = date('Y-m-d H:i:s');
+            $sdate = date("Y-m-d H:i:s", strtotime("-24 hours", strtotime($edate)));
         } else {
-            $page = $userdate;
+            $edate = $end_date; 
+         // Use the $edate variable to calculate the start date, which is 24 hours before the end date
+            $sdate = date("Y-m-d H:i:s", strtotime("-24 hours", strtotime($edate)));
         }
 
+        if (!empty($terminal)) {
+            $query = array(
+                'page' => $page,
+                'start_time' => $sdate,
+                'end_time' => $edate,
+                'terminal_sn' => $terminal
+            );
+        }
+        else{
+            $query = array(
+                'page' => $page,
+                'start_time' => $sdate,
+                'end_time' => $edate,
+            );
 
-        //if las sync is empty
-    
-         // $sdate = "2023-01-01 23:59:00";
-        //  $edate = "2023-01-02 23:59:00";
-
-        $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
-        $query = array(
-            'page' => $page, 'start_time' => $sdate,
-            'end_time' => $edate,
-        );
-        //sync specific machine
-        //          $query = array(
-        //             'page' => $page, 'start_time' => $sdate,
-        //             'end_time' => $edate,
-        //             'terminal_sn' => '3929091915178',
-        //         );
+        }
 
         $params = '?' . http_build_query($query);
         $endpoint = 'iclock/api/transactions/' . $params;
@@ -244,21 +251,23 @@ class Biotimejobs extends MX_Controller
 
         $response = $http->getTimeLogs($endpoint, "GET", $headers);
         //return $response;
+        //print_r($sdate);
+        //dd($response);
         return $response;
     }
 
 
-    public function fetchBiotTimeLogs($user_date = FALSE)
+    public function fetchBiotTimeLogs($end_date = FALSE, $terminal = FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        $resp = $this->getTime($page = 1, $user_date);
+        $resp = $this->getTime($page = 1,$end_date = FALSE, $terminal = FALSE);
         $count = $resp->count;
         $pages = (int)ceil($count / 10);
         $rows = array();
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
-            $response = $this->getTime($currentPage, $user_date);
+            $response = $this->getTime($currentPage, $end_date = FALSE, $terminal = FALSE);
             foreach ($response->data as $mydata) {
 
                 $data = array(
@@ -274,7 +283,6 @@ class Biotimejobs extends MX_Controller
             }
         }
 
-
         $message = $this->biotimejobs_mdl->add_time_logs($rows);
 
         $this->logattendance($message);
@@ -287,6 +295,18 @@ class Biotimejobs extends MX_Controller
         }
         $this->biotimeClockin();
         $this->cronjob_register($process, $method, $status);
+    }
+
+    public function custom_logs(){
+        $end_date = date('Y-m-d', strtotime($this->input->get('end_date')));
+        $terminal_sn = $this->input->get('terminal_sn');
+
+        $url = "curl https://attend.health.go.ug/biotimejobs/fetchBiotTimeLogs/" . $end_date . "/" . $terminal_sn;
+        shell_exec("$url");
+       
+       echo json_encode($url);
+
+        
     }
 
 
@@ -320,38 +340,38 @@ class Biotimejobs extends MX_Controller
 
 
         $barea = $this->getbioloc($userdata->new_facility);
+        $bpos = $this->getbiojobs($userdata->job_id);
 
         $http = new HttpUtil();
 
         $body = array(
             'area' => [(string)$barea],
+            'position'=>$bpos
         );
 
-        $endpoint = 'personnel/api/employees/<' . $userdata->biotime_emp_id . '>';
+        $endpoint = 'personnel/api/employees/'.$userdata->biotime_emp_id.'/';
         $headr = array();
         $headr[] = 'Content-length:' . strlen(json_encode($body));
         $headr[] = 'Content-type: application/json';
         $headr[] = 'Authorization: JWT ' . $this->get_token();
 
-        $response = $http->curlsendHttpPost($endpoint, $headr, $body);
+        $response = $http->curlupdateHttpPost($endpoint, $headr, $body);
 
-        echo json_encode($userdata);
+        //dd($response);
 
-        exit();
+        if ($response) {
+            $this->log($response);
+        }
 
-        // if ($response) {
-        //     $this->log($response);
-        // }
-
-        // $process = 6;
-        // $method = "bioitimejobs/update_biotimeuser";
-        // if ($response) {
-        //     $status = "successful";
-        // } else {
-        //     $status = "failed";
-        // }
-        // $this->cronjob_register($process, $method, $status);
-        // return $response;
+        $process = 6;
+        $method = "bioitimejobs/update_biotimeuser";
+        if ($response) {
+            $status = "successful";
+        } else {
+            $status = "failed";
+        }
+        $this->cronjob_register($process, $method, $status);
+        return $response;
     }
 
 
@@ -425,12 +445,12 @@ class Biotimejobs extends MX_Controller
     public function log($message)
     {
         //add double [] at the beggining and at the end of file contents
-        return file_put_contents('logs/log.txt', "\n{" . '"REQUEST DETAILS: ' . date('Y-m-d H:i:s') . ' Time": ' . json_encode($message) . '},', FILE_APPEND);
+        return file_put_contents('logs/log.txt', "\n{" . '"REQUEST DETAILS: ' . date('Y-m-d H:i:s') . ' Time": ' . json_encode($message) . '}\n', FILE_APPEND);
     }
     public function logattendance($message)
     {
         //add double [] at the beggining and at the end of file contents
-        return file_put_contents('logs/fetchatt_log.txt', "\n{" . '"REQUEST DETAILS: ' . date('Y-m-d H:i:s') . ' Time": ' . json_encode($message) . '},', FILE_APPEND);
+        return file_put_contents('logs/fetchatt_log.txt', "\n{" . '"REQUEST DETAILS: ' . date('Y-m-d H:i:s') . ' Time": ' . json_encode($message) . '},\n', FILE_APPEND);
     }
     public function getbiojobs($job)
     {
@@ -522,10 +542,13 @@ class Biotimejobs extends MX_Controller
             $data = array(
                 'id' => $jobs->id,
                 'position_code' => $jobs->position_code,
-                'position_name' => $jobs->posistion_name
+                'position_name' => $jobs->position_name
             );
+     
             array_push($j, $data);
+           
         }
+       // dd($j);
 
         $message = $this->biotimejobs_mdl->save_jobs($j);
         $process = 8;
@@ -603,7 +626,7 @@ class Biotimejobs extends MX_Controller
     }
     // get all biotime deployements
     //get cron jobs from the server
-    public function fetch_biotime_employees($page = FALSE)
+    public function fetch_biotime_employees($page)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtil();
@@ -616,17 +639,21 @@ class Biotimejobs extends MX_Controller
 
         $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
         $query = array(
-            'page' => $page,
+            'page'=>$page
         );
 
         $params = '?' . http_build_query($query);
         $endpoint = 'personnel/api/employees/' . $params;
 
+        //dd($endpoint);
+
         //leave options and undefined. guzzle will use the http:query;
 
         $response = $http->getempData($endpoint, "GET", $headers);
         //return $response;
-        return $response;
+        //dd($response->data);
+     
+     return $response;
     }
     public function biotime_employees()
     {
@@ -635,11 +662,13 @@ class Biotimejobs extends MX_Controller
         ini_set('max_execution_time', 0);
         $resp = $this->fetch_biotime_employees($page = 1);
         $count = $resp->count;
+        //dd($count);
         $pages = (int)ceil($count / 10);
         $rows = array();
-        if (count($resp) > 1) {
+        if ($count > 1) {
             $this->db->truncate('biotime_enrollment');
         }
+        //dd($resp);
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
             $response = $this->fetch_biotime_employees($currentPage);
@@ -652,13 +681,12 @@ class Biotimejobs extends MX_Controller
                     "biotime_facility_id" => $mydata->area[0]->id,
                     "biotime_fac_id" => $mydata->area[0]->area_code
                 );
-                $message = $this->db->insert('biotime_enrollment', $data);
+                $message = $this->db->replace('biotime_enrollment', $data);
                 // array_push($rows, $data);
             }
         }
+       // dd($data);
 
-
-        //print_r($rows);
         $process = 7;
         $method = "bioitimejobs/biotime_employees";
         if ($response) {
@@ -673,8 +701,9 @@ class Biotimejobs extends MX_Controller
     //create multiple new users cronjob
     public function transfer_employees()
     {
+        //effective transfers
         $howmany = array();
-        $query = $this->db->query("SELECT * FROM  biotime_transfers WHERE card_number='018509492'");
+        $query = $this->db->query("SELECT * FROM  biotime_transfers");
         $trasnfers = $query->result();
         foreach ($trasnfers as $newuser) :
 
@@ -684,7 +713,7 @@ class Biotimejobs extends MX_Controller
         endforeach;
         $process = 5;
         $method = "bioitimejobs/tranfer_employees";
-        if ($message) {
+        if (@$message) {
             $status = "successful";
         } else {
             $status = "failed";
@@ -707,47 +736,12 @@ class Biotimejobs extends MX_Controller
 
         $this->biotimeClockout();
         $this->biotimeClockoutnight();
+       // $this->cache_dash_Data();
 
 
         $this->log($message);
     }
-    //clockin and out users depening on gthe biotime clock data
-    //    public function biotimeClockin(){
-    //     ignore_user_abort(true);
-    //     ini_set('max_execution_time',0);
-    //     $areas=$this->db->get('biotime_devices')->result();
-    //     foreach($areas as $area){
-    //     $query=$this->db->query("REPLACE INTO clk_log (
-    //       entry_id,
-    //       ihris_pid,
-    //       facility_id,
-    //       time_in,
-    //       date,
-    //       location,
-    //       source,
-    //       facility)
-    //       SELECT
-
-    //      DISTINCT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as entry_id,
-    //       ihrisdata.ihris_pid,
-    //       facility_id, 
-    //       punch_time,
-    //       DATE(biotime_data.punch_time) as date,
-    //       area_alias,
-    //       'BIO-TIME',
-    //       ihrisdata.facility
-    //       from  biotime_data, ihrisdata where biotime_data.area_alias='$area->area_name' AND (biotime_data.emp_code=ihrisdata.card_number) AND (punch_state='Check In' OR punch_state='0') ");
-
-    //    $message=$area->area_name. " Checkin " .$this->db->affected_rows();
-
-    //   }
-
-    //   $this->biotimeClockout();
-
-
-    //   $this->log($message);
-    //   }
-
+   //rethink the clockin, clockin people as the data is fetched.
     public function biotimeClockout()
     {
         ignore_user_abort(true);
@@ -913,4 +907,5 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
+
 }

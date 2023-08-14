@@ -51,13 +51,13 @@
           <div class="">
           </div>
           <div class="card-body">
-            <section class="col-lg-12 ">
+            <section class="col-lg-12 " style="overflow:auto;">
 
               <h5> <?php echo $_SESSION['district']; ?> District Staff </h5>
 
               <div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-
-              <table id="mytab2" class="table table-bordered table-striped" style="width:100;">
+                
+              <table id="mytab2" class="table table-bordered table-repsonsive table-striped" style="width:100;">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -73,6 +73,7 @@
                     <th>Job</th>
                     <th>Employment Terms</th>
                     <th>Card Number</th>
+                    <th>#</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -105,6 +106,7 @@
                       <td data-label="JOB"><?php echo $staff->job; ?></td>
                       <td data-label="TERMS"><?php echo str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $staff->employment_terms))); ?></td>
                       <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
+                      <td data-label="Login_request"><a href="<?php echo base_url() ?>auth/login/<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" class="link">Account request</a></td>
                     </tr>
                   <?php   } ?>
                 </tbody>

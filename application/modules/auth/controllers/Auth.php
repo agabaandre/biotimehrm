@@ -2,6 +2,7 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 class Auth extends MX_Controller
 {
+  private $module;
   public function __construct()
   {
     parent::__construct();
@@ -28,9 +29,15 @@ class Auth extends MX_Controller
       echo Modules::run("templates/main", $data);
     }
   }
-  public function login()
-  {
+  public function login($user_id=FALSE)
+  { 
+    if(!empty($user_id)){
+      $postdata = array('username' => $user_id);
+    }
+    else{
     $postdata = $this->input->post();
+    }
+
     $person = $this->auth_mdl->loginChecker($postdata);
     // print_r($person);
     // exit;

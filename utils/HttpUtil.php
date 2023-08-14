@@ -7,6 +7,10 @@ use \GuzzleHttp\Promise\Promise;
 use \Psr\Http\Message\ResponseInterface;
 
 class HttpUtil{
+    private $CI;
+    private $client;
+    private $ihrisclient;
+    private $ucmbihrisclient;
 
     public  function __construct(){
 
@@ -38,7 +42,7 @@ class HttpUtil{
     }
     
    
-    public function getData($endpoint, $method="",$headers = [],$options)
+    public function getData($endpoint, $method="",$headers = [],$options = FALSE)
     {
       
        $url=BIO_URL.$endpoint;
@@ -100,7 +104,7 @@ class HttpUtil{
 
         return json_decode((string) $response->getBody()->getContents());
     }
-       public function get_List($endpoint, $method="",$headers = [],$options)
+       public function get_List($endpoint, $method=FALSE,$headers = [],$options=FALSE)
     {
         // die(var_dump($this->get_jwt_auth()));
       

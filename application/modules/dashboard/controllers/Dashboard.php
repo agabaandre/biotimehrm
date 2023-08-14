@@ -27,6 +27,7 @@ class Dashboard extends MX_Controller {
 		$data = $this->dash_mdl->getData();
 	echo json_encode($data);
 	}
+	
 
 
 
