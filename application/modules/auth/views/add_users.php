@@ -13,7 +13,7 @@ $variables = Modules::run("svariables/getSettings");
 ?>
 
 <div class="row">
-  <?php if (($setting->deployment_type != "moh")): ?>
+
   <div class="col-md-12">
     <!-- general form elements disabled -->
     <div class="card card-default">
@@ -119,7 +119,7 @@ $variables = Modules::run("svariables/getSettings");
     <!-- /.card-body -->
   </div>
 
-<?php endif; ?>
+
 
   <div class="col-md-12">
     <!-- general form elements disabled -->
