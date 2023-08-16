@@ -116,6 +116,7 @@ input[type="checkbox"] {
         z-index: 2;
         position: absolute;
         border-radius: 7px;
+        padding: 18px !important;
     }
     .tbrow {
         /* the display was change from block due to poor display*/
