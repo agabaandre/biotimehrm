@@ -33,7 +33,7 @@ class Dashboard_mdl extends CI_Model
 
         //curent _facility_staff
 
-        $fac = $this->db->query("Select distinct(ihris_pid) from ihrisdata where facility_id='$facility'");
+        $fac = $this->db->query("Select ihris_pid from ihrisdata where facility_id='$facility'");
         $mystaff = $data['mystaff'] = $fac->num_rows();
 
         //number of biotime devs
