@@ -17,7 +17,7 @@ class Dashboard extends MX_Controller {
 		$data['module']=$this->dashmodule;
 		$data['title']="Main Dashboard";
 		$data['uptitle']="Main Dashboard";
-		$data['view']="main_dashboard";
+		$data['view']= "main_dashboard";
 		echo Modules::run('templates/main',$data);
 	}
 	public function dashboardData(){
@@ -27,11 +27,14 @@ class Dashboard extends MX_Controller {
 	}
 	public function get_dashboard()
 	{
-		$html_content = $this->load->view('home');
+		$html_content = $this->load->view('home', NULL, TRUE);
+		$response = [
+			'html' => $html_content
+		];
+
 		$this->output
 			->set_content_type('application/json')
-			->set_output(json_encode(['html' => $html_content]));
-		
+			->set_output(json_encode($response));
 	}
 
 	

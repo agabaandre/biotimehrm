@@ -1,3 +1,4 @@
+ <!-- Main content -->
  <style>
    .info-box-main {
      box-shadow: rgba(110, 68, 68, 0.2);
