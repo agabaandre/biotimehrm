@@ -17,7 +17,7 @@ class Dashboard extends MX_Controller {
 		$data['module']=$this->dashmodule;
 		$data['title']="Main Dashboard";
 		$data['uptitle']="Main Dashboard";
-		$data['view']="index";
+		$data['view']="main_dashboard";
 		echo Modules::run('templates/main',$data);
 	}
 	public function dashboardData(){
