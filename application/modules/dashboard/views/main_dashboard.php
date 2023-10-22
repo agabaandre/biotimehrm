@@ -1,7 +1,7 @@
 <div class="table-responsive" id="staff-container">
 	<!-- Table content will be dynamically loaded here -->
 </div>
-<div id="loading-indicator justify-content-center" style="display: none;" style="margin:0 auto;">
+<div id="loading-indicator justify-content-center" style="margin:0 auto;">
 	<img src="<?php echo base_url() ?>assets/images/loader2.gif">
 </div>
 <script>
