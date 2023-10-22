@@ -68,64 +68,37 @@ class Rosta_model extends CI_Model
 		return ($this->db->affected_rows() != 1) ? false : true;
 	}
 	//get attendance report and form 
-	// public function fetch_report($valid_range, $start = NULL, $limit = NULL, $employee = NULL, $filters=NULL)
-	// {
-	// 	$facility = $this->session->userdata['facility'];
-	// 	$employee = $this->input->post('empid');
-	// 	if (!empty($employee)) {
-	// 		$search = "and ihrisdata.ihris_pid='$employee'";
-	// 	} else {
-	// 		$search = "";
-	// 	}
-	// 	if (!empty($employee)) {
-	// 		$psearch = $employee;
-	// 	} else {
-	// 		$psearch = "";
-	// 	}
-	// 	if (!empty($start)) {
-	// 		$limits = " LIMIT $limit,$start";
-	// 	} else {
-	// 		$limits = " ";
-	// 	}
-	// 	$all = $this->db->query("select distinct ihrisdata.ihris_pid,CONCAT(
-	// 			COALESCE(surname,'','')
-	// 			,' ',
-	// 			COALESCE(firstname,'','')
-	// 			,' ',
-	// 			COALESCE(othername,'','')
-	// 		) AS fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
-	// 	$data = $all->result_array();
-	// 	return $data;
-	// }
+	public function fetch_report($valid_range, $start = NULL, $limit = NULL, $employee = NULL, $filters=NULL)
+	{
+		$facility = $this->session->userdata['facility'];
+		$employee = $this->input->post('empid');
+		if (!empty($employee)) {
+			$search = "and ihrisdata.ihris_pid='$employee'";
+		} else {
+			$search = "";
+		}
+		if (!empty($employee)) {
+			$psearch = $employee;
+		} else {
+			$psearch = "";
+		}
+		if (!empty($start)) {
+			$limits = " LIMIT $limit,$start";
+		} else {
+			$limits = " ";
+		}
+		$all = $this->db->query("select distinct ihrisdata.ihris_pid,CONCAT(
+				COALESCE(surname,'','')
+				,' ',
+				COALESCE(firstname,'','')
+				,' ',
+				COALESCE(othername,'','')
+			) AS fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
+		$data = $all->result_array();
+		return $data;
+	}
 
-	public function fetch_report($valid_range, $start = NULL, $limit = NULL, $employee = NULL, $filters = NULL)
-{
-    $facility = $this->session->userdata('facility'); // Use correct array access syntax
-    $employeeId = $this->input->post('empid');
 
-    // Create a new instance of the Query Builder
-    $this->db->select("DISTINCT ihrisdata.ihris_pid, CONCAT(COALESCE(surname, ''), ' ', COALESCE(firstname, ''), ' ', COALESCE(othername, '')) AS fullname, ihrisdata.job")
-             ->from('ihrisdata');
-
-    if (!empty($employeeId)) {
-        $this->db->where('ihrisdata.ihris_pid', $employeeId);
-    }
-
-    if (!empty($filters)) {
-        $this->db->where($filters);
-    }
-
-    $this->db->order_by('surname', 'ASC');
-
-    if (!empty($start)) {
-        $this->db->limit($limit, $start);
-    }
-
-    $query = $this->db->get();
-    $data = $query->result_array();
-
-    return $data;
-}
 
 	public function matches($date)
 	{
