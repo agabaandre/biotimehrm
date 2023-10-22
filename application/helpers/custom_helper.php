@@ -389,4 +389,17 @@ if (!function_exists('full_url')) {
             return "$res\n" . " %";
         }
     }
+	if (!function_exists('arrayToCommaSeparatedString')) {
+		function arrayToCommaSeparatedString($array)
+		{
+			// Wrap each element with double quotes
+			$quotedArray = array_map(function ($element) {
+				return '"' . $element . '"';
+			}, $array);
+
+			// Use the implode function to join the quoted elements with commas
+			$commaSeparatedString = implode(', ', $quotedArray);
+			return $commaSeparatedString;
+		}
+	}
 }

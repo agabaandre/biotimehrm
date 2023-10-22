@@ -1,0 +1,11 @@
+# Use the official Nginx image
+FROM nginx:latest
+
+# Remove default Nginx configuration
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy custom Nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy the  project files to the container
+COPY . /var/www/html

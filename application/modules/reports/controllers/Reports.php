@@ -166,6 +166,7 @@ class Reports extends MX_Controller
 		$month     =  request_fields('month');
 		$csv       =  request_fields('csv');
 
+
 		if (empty($year)) {
 
 			$year  = date('Y');
@@ -207,6 +208,9 @@ class Reports extends MX_Controller
 		$data['grouped_by'] = $group_by;
 		$data['period']     = $valid_rangeto;
 		$data['districts']  = $this->districts_mdl->get_all_Districts();
+		$data['districts']  = $this->districts_mdl->get_all_Districts();
+		$data['regions']  = $this->db->query("SELECT distinct region from ihrisdata WHERE region!='' ORDER BY region asc")->result();
+		$data['institutiontypes']  = $this->db->query("SELECT distinct institutiontype_name from ihrisdata ORDER BY institutiontype_name asc")->result();
 		$data['facilities'] = $this->facilities_mdl->getAll();
 
 		$data['view']       = 'attendance_aggr';

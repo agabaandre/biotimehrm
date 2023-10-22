@@ -1,4 +1,4 @@
- <!-- Main content -->
+ Main content
  <style>
    .info-box-main {
      box-shadow: rgba(110, 68, 68, 0.2);
@@ -351,11 +351,11 @@
  <script src="<?php echo base_url() ?>assets/plugins/moment/moment.min.js"></script>
  <script src="<?php echo base_url() ?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
  <script type="text/javascript">
-   Highcharts.setOptions({
-     colors: ['#28a745', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4']
-   });
-
    $(document).ready(function() {
+     Highcharts.setOptions({
+       colors: ['#28a745', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4']
+     });
+
      knobgauge(0);
 
      (function() {
@@ -616,69 +616,4 @@
        }]
      }))
    };
-   //  // clockin method
-   //  Highcharts.chart('attendance_methods', {
-   //    chart: {
-   //      plotBackgroundColor: null,
-   //      plotBorderWidth: null,
-   //      plotShadow: false,
-   //      type: 'pie',
-   //      height: 300,
-   //      width: 300
-   //    },
-   //    title: {
-   //      text: ''
-   //    },
-   //    tooltip: {
-   //      pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
-   //    },
-   //    accessibility: {
-   //      point: {
-   //        valueSuffix: '%'
-   //      }
-   //    },
-   //    plotOptions: {
-   //      pie: {
-   //        allowPointSelect: true,
-   //        cursor: 'pointer',
-   //        dataLabels: {
-   //          enabled: true,
-   //          format: '<b>{point.name}</b>: {point.percentage:.1f} %',
-   //          connectorColor: 'silver'
-   //        }
-   //      }
-   //    },
-   //    series: [{
-   //      name: 'Share',
-   //      data: [{
-   //          name: 'Manual Form',
-   //          y: 64
-   //        },
-   //        {
-   //          name: 'BioTime',
-   //          y: 11
-   //        },
-   //        {
-   //          name: 'Mobile Phones',
-   //          y: 5
-   //        },
-   //        {
-   //          name: 'None',
-   //          y: 20
-   //        },
-   //      ]
-   //    }],
-   //    credits: [{
-   //      enabled: 'false',
-   //    }],
-   //    exporting: {
-   //      buttons: {
-   //        contextButton: {
-   //          enabled: false
-   //        }
-   //      }
-   //    }
-   //  });
- </script>
- <script>
  </script>

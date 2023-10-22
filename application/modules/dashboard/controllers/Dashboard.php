@@ -7,7 +7,7 @@ class Dashboard extends MX_Controller {
 	public  function __construct(){
 		parent:: __construct();
 
-			$this->dashmodule="dashboard";
+			@$this->dashmodule="dashboard";
 			$this->load->model("dashboard_mdl",'dash_mdl');
 
 			}
@@ -27,6 +27,15 @@ class Dashboard extends MX_Controller {
 		$data = $this->dash_mdl->getData();
 	echo json_encode($data);
 	}
+	public function get_dashboard()
+	{
+		$html_content = $this->load->view('home');
+		$this->output
+			->set_content_type('application/json')
+			->set_output(json_encode(['html' => $html_content]));
+		
+	}
+
 	
 
 

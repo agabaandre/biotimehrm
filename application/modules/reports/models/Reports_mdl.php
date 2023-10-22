@@ -193,11 +193,27 @@ class Reports_mdl extends CI_Model
 
 			foreach ($filters as $key => $value) {
 
-				if (($key !== "rows" && $key !== "group_by" && $key !== "month" && $key !== "year" && $key !== "csv") && !empty($value))
+				if (($key !== "rows" && $key !== "group_by" && $key !== "month" && $key !== "year" && $key !== "csv" && $key !== "region" && $key !== "institution_type") && !empty($value)) {
 					$this->db->where($key, $value);
+				}
+				
+				
+			
+			}
+			
+			if (isset($filters['region'])) {
+
+				$this->db->where_in('region', $filters['region']);
+			
+			}
+			if (isset($filters['institution_type'])) {
+
+				$this->db->where_in('institution_type', $filters['institution_type']);
 			}
 		}
+
 	}
+	
 	public function count_person_attendance($filters = null)
 	{
 

@@ -5,7 +5,7 @@
     color: #FFFFFF; text-align:center;">
      <!-- <img src="../../dist/img/AdminLTELogo.png"
            alt="AdminLTE Logo"
-           class="brand-image img-circle elevation-3"
+           class="brand-image img-$decircle elevation-3"
            style="opacity: .8"> -->
      <span class="brand-text  font-weight-bold" style="text-align:center;"><?php echo $setting->title; ?></span>
    </a>

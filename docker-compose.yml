@@ -1,0 +1,33 @@
+version: "3.8"
+services:
+  mariadb:
+    image: mariadb:latest
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: test 
+      MYSQL_DATABASE: staff
+      MYSQL_USER: root
+      MYSQL_PASSWORD: test
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile-php
+    volumes:
+      - codeigniter_data:/var/www/html
+    depends_on:
+      - mariadb
+
+  apache:
+    build:
+      context: .
+      dockerfile: Dockerfile-apache
+    ports:
+      - "80:80"
+    depends_on:
+      - php
+
+volumes:
+  db_data:
+  codeigniter_data:

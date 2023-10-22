@@ -9,7 +9,7 @@ class Dashboard_mdl extends CI_Model
     {
 
         parent::__Construct();
-        $this->department = $this->session->userdata['department_id'];
+        @$this->department = $this->session->userdata['department_id'];
     }
     public function getData()
     {
@@ -39,17 +39,6 @@ class Dashboard_mdl extends CI_Model
         //number of biotime devs
         $fac = $this->db->query("Select *  from biotime_devices");
         $data['biometrics'] = $fac->num_rows();
-
-        //attendance
-        // $userdata=$this->session->userdata();
-        // $date=$userdata['year'].'-'.$userdata['month'];
-        // $fac=$this->db->query("Select distinct(facility_id) from rosta_rate where date='$date'");
-        // $data['roster']=((($fac->num_rows())/$mystaff)*100).'%';
-
-        // $fac=$this->db->query("Select distinct(facility_id) from attendance_rate where date='$date'");
-        // $data['attendance']=((($fac->num_rows())/$mystaff)*100)."%";
-
-        //get  clock count
 
         $fac = $this->db->query("Select max(last_update) as date  from ihrisdata where facility_id='$facility'");
         $data['ihris_sync'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));

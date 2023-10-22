@@ -37,13 +37,7 @@ class Auth extends MX_Controller
     else{
     $postdata = $this->input->post();
     }
-
     $person = $this->auth_mdl->loginChecker($postdata);
-    // print_r($person);
-    // exit;
-    // $hash = $this->argonhash->make($postdata['password']);
-    // print_r($hash);
-    // exit();
     if (!empty($person->user_id)) {
       $user_group = $person->role;
       $userdata = array(
@@ -70,7 +64,7 @@ class Auth extends MX_Controller
         "date_from" => date("Y-m-d", strtotime("-1 month")),
         "date_to" => date('Y-m-d')
       );
-      //print_r($userdata);
+      
       $this->checkerUser($userdata);
       } else {
       if ($person == "New") {
