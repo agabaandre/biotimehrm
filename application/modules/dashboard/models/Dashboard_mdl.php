@@ -71,6 +71,7 @@ class Dashboard_mdl extends CI_Model
         $fac = $this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg FROM clk_diff WHERE facility_id='$facility' and date_format(date,'%Y-%m')='$date'");
         $data['avg_hours'] = $fac->result()[0]->avg;
 
+		dd($this->db);
         return $data;
     }
 
