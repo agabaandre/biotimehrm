@@ -356,328 +356,268 @@
  			colors: ['#28a745', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4']
  		});
 
- 		function knobgauge(gvalue) {
- 			// Your knobgauge function code here
- 		}
+ 		knobgauge(0);
 
- 		function loadDashboardData() {
- 			return new Promise(function(resolve, reject) {
- 				$.ajax({
- 					type: 'GET',
- 					url: '<?php echo base_url('dashboard/dashboardData') ?>',
- 					dataType: 'json',
- 					data: '',
- 					async: true,
- 					success: function(data) {
- 						// Update dashboard data
- 						$('#workers').text(data.workers);
- 						$('#facilities').text(data.facilities);
- 						$('#departments').text(data.departments);
- 						$('#jobs').text(data.jobs);
- 						$('#mystaff').text(data.mystaff);
- 						$('#ihris_sync').text(data.ihris_sync);
- 						$('#biometrics').text(data.biometrics);
- 						$('#roster').text(data.roster);
- 						$('#attendance').text(data.attendance);
- 						$('#biotime_last').text(data.biotime_last);
- 						$('#present').text(data.present);
- 						$('#offduty').text(data.offduty);
- 						$('#leave').text(data.leave);
- 						$('#request').text(data.request);
- 						$('#requesting').text(data.requesting);
- 						knobgauge(data.avg_hours);
- 						resolve();
- 					},
- 					error: function(error) {
- 						reject(error);
- 					}
+		//dashboard data
+
+ 		(function() {
+ 			$.ajax({
+ 				type: 'GET',
+ 				url: '<?php echo base_url('dashboard/dashboardData') ?>',
+ 				dataType: "json",
+ 				data: '',
+ 				async: true, // Set async to true for asynchronous behavior
+ 				success: function(data) {
+ 					$('#workers').text(data.workers);
+ 					$('#facilities').text(data.facilities);
+ 					$('#departments').text(data.departments);
+ 					$('#jobs').text(data.jobs);
+ 					$('#mystaff').text(data.mystaff);
+ 					$('#ihris_sync').text(data.ihris_sync);
+ 					$('#biometrics').text(data.biometrics);
+ 					$('#roster').text(data.roster);
+ 					$('#attendance').text(data.attendance);
+ 					$('#biotime_last').text(data.biotime_last);
+ 					$('#present').text(data.present);
+ 					$('#offduty').text(data.offduty);
+ 					$('#leave').text(data.leave);
+ 					$('#request').text(data.request);
+ 					$('#requesting').text(data.requesting);
+ 					knobgauge(data.avg_hours);
+ 					//console.log(data);
+ 				}
+ 			});
+ 		})();
+
+
+ 		//attendance calendar
+ 		var base_url = $('.base_url').html();
+ 		$('#dutycalendar').fullCalendar({
+ 			defaultView: 'basicWeek',
+ 			header: {
+ 				left: 'prev, next, today',
+ 				center: 'title',
+ 				right: 'month, basicWeek, basicDay'
+ 			},
+ 			// Get all events stored in database
+ 			eventLimit: true, // allow "more" link when too many events
+ 			events: base_url + 'calendar/getEvents',
+ 			selectable: false,
+ 			selectHelper: true,
+ 			editable: false,
+
+ 			// Mouse over
+ 			eventMouseover: function(calEvent, jsEvent, view) {
+ 				// console.log(calEvent);
+ 				var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
+ 				$("body").append(tooltip);
+ 				$(this).mouseover(function(e) {
+ 					$(this).css('z-index', 10000);
+ 					$('.event-tooltip').fadeIn('500');
+ 					$('.event-tooltip').fadeTo('10', 1.9);
+ 				}).mousemove(function(e) {
+ 					$('.event-tooltip').css('top', e.pageY + 10);
+ 					$('.event-tooltip').css('left', e.pageX + 20);
  				});
- 			});
- 		}
+ 			},
+ 			eventMouseout: function(calEvent, jsEvent) {
+ 				$(this).css('z-index', 8);
+ 				$('.event-tooltip').remove();
+ 			},
+ 			// H
+ 		});
 
- 		function loadAttendanceCalendar() {
- 			var base_url = $('.base_url').html();
- 			$('#attcalendar').fullCalendar({
- 				defaultView: 'basicWeek',
- 				header: {
- 					left: 'prev, next, today',
- 					center: 'title',
- 					right: 'month, basicWeek, basicDay'
- 				},
- 				// Get all events stored in database
- 				eventLimit: true, // allow "more" link when too many events
- 				events: base_url + 'calendar/getattEvents',
- 				selectable: false,
- 				selectHelper: true,
- 				editable: false,
- 				// Mouse over
- 				eventMouseover: function(calEvent, jsEvent, view) {
- 					var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
- 					$("body").append(tooltip);
- 					$(this).mouseover(function(e) {
- 						$(this).css('z-index', 10000);
- 						$('.event-tooltip').fadeIn('500');
- 						$('.event-tooltip').fadeTo('10', 1.9);
- 					}).mousemove(function(e) {
- 						$('.event-tooltip').css('top', e.pageY + 10);
- 						$('.event-tooltip').css('left', e.pageX + 20);
- 					});
- 				},
- 				eventMouseout: function(calEvent, jsEvent) {
- 					$(this).css('z-index', 8);
- 					$('.event-tooltip').remove();
- 				},
- 			});
-
- 		}
-
- 		function loadRosterCalendar() {
- 			var base_url = $('.base_url').html();
- 			$('#dutycalendar').fullCalendar({
- 				defaultView: 'basicWeek',
- 				header: {
- 					left: 'prev, next, today',
- 					center: 'title',
- 					right: 'month, basicWeek, basicDay'
- 				},
- 				// Get all events stored in database
- 				eventLimit: true, // allow "more" link when too many events
- 				events: base_url + 'calendar/getEvents',
- 				selectable: false,
- 				selectHelper: true,
- 				editable: false,
-
- 				// Mouse over
- 				eventMouseover: function(calEvent, jsEvent, view) {
- 					// console.log(calEvent);
- 					var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
- 					$("body").append(tooltip);
- 					$(this).mouseover(function(e) {
- 						$(this).css('z-index', 10000);
- 						$('.event-tooltip').fadeIn('500');
- 						$('.event-tooltip').fadeTo('10', 1.9);
- 					}).mousemove(function(e) {
- 						$('.event-tooltip').css('top', e.pageY + 10);
- 						$('.event-tooltip').css('left', e.pageX + 20);
- 					});
- 				},
- 				eventMouseout: function(calEvent, jsEvent) {
- 					$(this).css('z-index', 8);
- 					$('.event-tooltip').remove();
- 				},
- 				// H
- 			});
-
- 		}
-
- 		function loadGraphs() {
- 			//duty roster calendar
- 			var base_url = $('.base_url').html();
- 			$('#attcalendar').fullCalendar({
- 				defaultView: 'basicWeek',
- 				header: {
- 					left: 'prev, next, today',
- 					center: 'title',
- 					right: 'month, basicWeek, basicDay'
- 				},
- 				// Get all events stored in database
- 				eventLimit: true, // allow "more" link when too many events
- 				events: base_url + 'calendar/getattEvents',
- 				selectable: false,
- 				selectHelper: true,
- 				editable: false,
- 				// Mouse over
- 				eventMouseover: function(calEvent, jsEvent, view) {
- 					var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
- 					$("body").append(tooltip);
- 					$(this).mouseover(function(e) {
- 						$(this).css('z-index', 10000);
- 						$('.event-tooltip').fadeIn('500');
- 						$('.event-tooltip').fadeTo('10', 1.9);
- 					}).mousemove(function(e) {
- 						$('.event-tooltip').css('top', e.pageY + 10);
- 						$('.event-tooltip').css('left', e.pageX + 20);
- 					});
- 				},
- 				eventMouseout: function(calEvent, jsEvent) {
- 					$(this).css('z-index', 8);
- 					$('.event-tooltip').remove();
- 				},
- 			});
+ 		//duty roster calendar
+ 		var base_url = $('.base_url').html();
+ 		$('#attcalendar').fullCalendar({
+ 			defaultView: 'basicWeek',
+ 			header: {
+ 				left: 'prev, next, today',
+ 				center: 'title',
+ 				right: 'month, basicWeek, basicDay'
+ 			},
+ 			// Get all events stored in database
+ 			eventLimit: true, // allow "more" link when too many events
+ 			events: base_url + 'calendar/getattEvents',
+ 			selectable: false,
+ 			selectHelper: true,
+ 			editable: false,
+ 			// Mouse over
+ 			eventMouseover: function(calEvent, jsEvent, view) {
+ 				var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
+ 				$("body").append(tooltip);
+ 				$(this).mouseover(function(e) {
+ 					$(this).css('z-index', 10000);
+ 					$('.event-tooltip').fadeIn('500');
+ 					$('.event-tooltip').fadeTo('10', 1.9);
+ 				}).mousemove(function(e) {
+ 					$('.event-tooltip').css('top', e.pageY + 10);
+ 					$('.event-tooltip').css('left', e.pageX + 20);
+ 				});
+ 			},
+ 			eventMouseout: function(calEvent, jsEvent) {
+ 				$(this).css('z-index', 8);
+ 				$('.event-tooltip').remove();
+ 			},
+ 		});
 
 
- 			//duty roster graph
- 			<?php
-				$graph = Modules::run("reports/dutygraphData");
-				?>
- 			Highcharts.chart('line_graph_roster', {
- 				chart: {
- 					type: 'line'
- 				},
+ 		//duty roster graph
+ 		<?php
+			$graph = Modules::run("reports/dutygraphData");
+			?>
+ 		Highcharts.chart('line_graph_roster', {
+ 			chart: {
+ 				type: 'line'
+ 			},
+ 			title: {
+ 				text: 'Average Number of Employees Scheduled per Month <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>'
+ 			},
+ 			subtitle: {
+ 				text: ''
+ 			},
+ 			xAxis: {
+ 				categories: <?php echo json_encode($graph['period']); ?>
+ 			},
+ 			yAxis: {
  				title: {
- 					text: 'Average Number of Employees Scheduled per Month <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>'
- 				},
- 				subtitle: {
- 					text: ''
- 				},
- 				xAxis: {
- 					categories: <?php echo json_encode($graph['period']); ?>
- 				},
- 				yAxis: {
- 					title: {
- 						text: 'Staff'
- 					}
- 				},
- 				plotOptions: {
- 					line: {
- 						dataLabels: {
- 							enabled: true
- 						},
- 						enableMouseTracking: true
- 					}
- 				},
- 				credits: {
- 					enabled: false
- 				},
- 				series: [{
- 					name: 'Staff',
- 					data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
- 				}]
- 			});
- 			<?php
-				$graph = Modules::run("reports/graphData");
-				?>
- 			Highcharts.chart('line_graph_att', {
- 				chart: {
- 					type: 'line'
- 				},
- 				title: {
- 					text: 'Average Number of Employees Attending per Month - <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]) ?>'
- 				},
- 				subtitle: {
- 					text: ''
- 				},
- 				xAxis: {
- 					categories: <?php echo json_encode($graph['period']); ?>
- 				},
- 				yAxis: {
- 					title: {
- 						text: 'Staff'
- 					}
- 				},
- 				plotOptions: {
- 					line: {
- 						dataLabels: {
- 							enabled: true
- 						},
- 						enableMouseTracking: true
- 					}
- 				},
- 				credits: {
- 					enabled: false
- 				},
- 				series: [{
- 					name: 'Staff',
- 					data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
- 				}]
- 			});
- 			// Average  Hours Gauge
- 			//chart options
- 			function knobgauge(gvalue) {
- 				var gaugeOptions = {
- 					chart: {
- 						type: 'solidgauge',
- 						height: 400,
- 						width: 350
- 					},
- 					pane: {
- 						center: ['50%', '50%'],
- 						size: '100%',
- 						startAngle: 0,
- 						endAngle: 360,
- 						background: {
- 							backgroundColor: Highcharts.defaultOptions.legend.backgroundColor || '#EEE',
- 							innerRadius: '60%',
- 							outerRadius: '100%',
- 							shape: 'arc'
- 						}
- 					},
- 					exporting: {
+ 					text: 'Staff'
+ 				}
+ 			},
+ 			plotOptions: {
+ 				line: {
+ 					dataLabels: {
  						enabled: true
  					},
- 					tooltip: {
- 						enabled: false
+ 					enableMouseTracking: true
+ 				}
+ 			},
+ 			credits: {
+ 				enabled: false
+ 			},
+ 			series: [{
+ 				name: 'Staff',
+ 				data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
+ 			}]
+ 		});
+ 		<?php
+			$graph = Modules::run("reports/graphData");
+			?>
+ 		Highcharts.chart('line_graph_att', {
+ 			chart: {
+ 				type: 'line'
+ 			},
+ 			title: {
+ 				text: 'Average Number of Employees Attending per Month - <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]) ?>'
+ 			},
+ 			subtitle: {
+ 				text: ''
+ 			},
+ 			xAxis: {
+ 				categories: <?php echo json_encode($graph['period']); ?>
+ 			},
+ 			yAxis: {
+ 				title: {
+ 					text: 'Staff'
+ 				}
+ 			},
+ 			plotOptions: {
+ 				line: {
+ 					dataLabels: {
+ 						enabled: true
  					},
- 					// the value axis
- 					yAxis: {
- 						stops: [
- 							[0.1, '#DF5353'], // red
- 							[0.2, '#DDDF0D'], // yellow
- 							[0.3, '#55BF3B'] // green
- 						],
- 						lineWidth: 0,
- 						tickWidth: 0,
- 						minorTickInterval: null,
- 						tickAmount: 2,
- 						title: {
- 							y: -70
- 						},
- 						labels: {
- 							y: 16
- 						}
+ 					enableMouseTracking: true
+ 				}
+ 			},
+ 			credits: {
+ 				enabled: false
+ 			},
+ 			series: [{
+ 				name: 'Staff',
+ 				data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
+ 			}]
+ 		});
+ 		// Average  Hours Gauge
+ 		//chart options
+ 		function knobgauge(gvalue) {
+ 			var gaugeOptions = {
+ 				chart: {
+ 					type: 'solidgauge',
+ 					height: 400,
+ 					width: 350
+ 				},
+ 				pane: {
+ 					center: ['50%', '50%'],
+ 					size: '100%',
+ 					startAngle: 0,
+ 					endAngle: 360,
+ 					background: {
+ 						backgroundColor: Highcharts.defaultOptions.legend.backgroundColor || '#EEE',
+ 						innerRadius: '60%',
+ 						outerRadius: '100%',
+ 						shape: 'arc'
+ 					}
+ 				},
+ 				exporting: {
+ 					enabled: true
+ 				},
+ 				tooltip: {
+ 					enabled: false
+ 				},
+ 				// the value axis
+ 				yAxis: {
+ 					stops: [
+ 						[0.1, '#DF5353'], // red
+ 						[0.2, '#DDDF0D'], // yellow
+ 						[0.3, '#55BF3B'] // green
+ 					],
+ 					lineWidth: 0,
+ 					tickWidth: 0,
+ 					minorTickInterval: null,
+ 					tickAmount: 2,
+ 					title: {
+ 						y: -70
  					},
- 					plotOptions: {
- 						solidgauge: {
- 							dataLabels: {
- 								y: 5,
- 								borderWidth: 0,
- 								useHTML: true
- 							}
+ 					labels: {
+ 						y: 16
+ 					}
+ 				},
+ 				plotOptions: {
+ 					solidgauge: {
+ 						dataLabels: {
+ 							y: 5,
+ 							borderWidth: 0,
+ 							useHTML: true
  						}
  					}
- 				};
- 				//gauge
- 				var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptions, {
- 					title: {
- 						text: 'Average Monthly Hours-<?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>',
- 					},
- 					yAxis: {
- 						min: 0,
- 						max: 24,
- 					},
- 					credits: {
- 						enabled: false
- 					},
- 					series: [{
- 						name: 'Hours',
- 						data: [parseInt(gvalue)],
- 						dataLabels: {
- 							format: '<div style="text-align:center">' +
- 								'<span style="font-size:12px">{y}</span><br/>' +
- 								'<span style="font-size:12px;opacity:0.4">Hrs</span>' +
- 								'</div>'
- 						},
- 						tooltip: {
- 							valueSuffix: ' Hours'
- 						}
- 					}]
- 				}))
+ 				}
  			};
- 		}
-
- 		// Chain the functions in order
- 		loadDashboardData()
- 			.then(function() {
- 				return loadAttendanceCalendar();
- 			})
- 			.then(function() {
- 				return loadRosterCalendar();
- 			})
- 			.then(function() {
- 				return loadGraphs();
- 			})
- 			.catch(function(error) {
- 				console.error('An error occurred:', error);
- 			});
+ 			//gauge
+ 			var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptions, {
+ 				title: {
+ 					text: 'Average Monthly Hours-<?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>',
+ 				},
+ 				yAxis: {
+ 					min: 0,
+ 					max: 24,
+ 				},
+ 				credits: {
+ 					enabled: false
+ 				},
+ 				series: [{
+ 					name: 'Hours',
+ 					data: [parseInt(gvalue)],
+ 					dataLabels: {
+ 						format: '<div style="text-align:center">' +
+ 							'<span style="font-size:12px">{y}</span><br/>' +
+ 							'<span style="font-size:12px;opacity:0.4">Hrs</span>' +
+ 							'</div>'
+ 					},
+ 					tooltip: {
+ 						valueSuffix: ' Hours'
+ 					}
+ 				}]
+ 			}))
+ 		};
  	});
  </script>
