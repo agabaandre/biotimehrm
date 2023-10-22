@@ -2,7 +2,7 @@
 	<!-- Table content will be dynamically loaded here -->
 </div>
 <script>
-	$(document).ready(function() {
+	
 		function fetchDataAndUpdate() {
 			$.ajax({
 				url: '<?php echo base_url() ?>dashboard/get_dashboard',
@@ -27,5 +27,5 @@
 
 		// Update data every 30 minutes (30 * 60 * 1000 milliseconds)
 		setInterval(fetchDataAndUpdate, 30 * 60 * 1000);
-	});
+
 </script>
