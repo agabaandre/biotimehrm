@@ -581,89 +581,90 @@
  					data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
  				}]
  			});
- 			// Average  Hours Gauge
- 			//chart options
- 			function knobgauge(gvalue) {
- 				var gaugeOptions = {
- 					chart: {
- 						type: 'solidgauge',
- 						height: 400,
- 						width: 350
+
+ 		}
+ 		//chart options
+ 		function knobgauge(gvalue) {
+ 			var gaugeOptions = {
+ 				chart: {
+ 					type: 'solidgauge',
+ 					height: 400,
+ 					width: 350
+ 				},
+ 				pane: {
+ 					center: ['50%', '50%'],
+ 					size: '100%',
+ 					startAngle: 0,
+ 					endAngle: 360,
+ 					background: {
+ 						backgroundColor: Highcharts.defaultOptions.legend.backgroundColor || '#EEE',
+ 						innerRadius: '60%',
+ 						outerRadius: '100%',
+ 						shape: 'arc'
+ 					}
+ 				},
+ 				exporting: {
+ 					enabled: true
+ 				},
+ 				tooltip: {
+ 					enabled: false
+ 				},
+ 				// the value axis
+ 				yAxis: {
+ 					stops: [
+ 						[0.1, '#DF5353'], // red
+ 						[0.2, '#DDDF0D'], // yellow
+ 						[0.3, '#55BF3B'] // green
+ 					],
+ 					lineWidth: 0,
+ 					tickWidth: 0,
+ 					minorTickInterval: null,
+ 					tickAmount: 2,
+ 					title: {
+ 						y: -70
  					},
- 					pane: {
- 						center: ['50%', '50%'],
- 						size: '100%',
- 						startAngle: 0,
- 						endAngle: 360,
- 						background: {
- 							backgroundColor: Highcharts.defaultOptions.legend.backgroundColor || '#EEE',
- 							innerRadius: '60%',
- 							outerRadius: '100%',
- 							shape: 'arc'
- 						}
- 					},
- 					exporting: {
- 						enabled: true
- 					},
- 					tooltip: {
- 						enabled: false
- 					},
- 					// the value axis
- 					yAxis: {
- 						stops: [
- 							[0.1, '#DF5353'], // red
- 							[0.2, '#DDDF0D'], // yellow
- 							[0.3, '#55BF3B'] // green
- 						],
- 						lineWidth: 0,
- 						tickWidth: 0,
- 						minorTickInterval: null,
- 						tickAmount: 2,
- 						title: {
- 							y: -70
- 						},
- 						labels: {
- 							y: 16
- 						}
- 					},
- 					plotOptions: {
- 						solidgauge: {
- 							dataLabels: {
- 								y: 5,
- 								borderWidth: 0,
- 								useHTML: true
- 							}
+ 					labels: {
+ 						y: 16
+ 					}
+ 				},
+ 				plotOptions: {
+ 					solidgauge: {
+ 						dataLabels: {
+ 							y: 5,
+ 							borderWidth: 0,
+ 							useHTML: true
  						}
  					}
- 				};
- 				//gauge
- 				var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptions, {
- 					title: {
- 						text: 'Average Monthly Hours-<?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>',
- 					},
- 					yAxis: {
- 						min: 0,
- 						max: 24,
- 					},
- 					credits: {
- 						enabled: false
- 					},
- 					series: [{
- 						name: 'Hours',
- 						data: [parseInt(gvalue)],
- 						dataLabels: {
- 							format: '<div style="text-align:center">' +
- 								'<span style="font-size:12px">{y}</span><br/>' +
- 								'<span style="font-size:12px;opacity:0.4">Hrs</span>' +
- 								'</div>'
- 						},
- 						tooltip: {
- 							valueSuffix: ' Hours'
- 						}
- 					}]
- 				}))
+ 				}
  			};
- 		}
+ 			//gauge
+ 			var chartSpeed = Highcharts.chart('container-hours', Highcharts.merge(gaugeOptions, {
+ 				title: {
+ 					text: 'Average Monthly Hours-<?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]); ?>',
+ 				},
+ 				yAxis: {
+ 					min: 0,
+ 					max: 24,
+ 				},
+ 				credits: {
+ 					enabled: false
+ 				},
+ 				series: [{
+ 					name: 'Hours',
+ 					data: [parseInt(gvalue)],
+ 					dataLabels: {
+ 						format: '<div style="text-align:center">' +
+ 							'<span style="font-size:12px">{y}</span><br/>' +
+ 							'<span style="font-size:12px;opacity:0.4">Hrs</span>' +
+ 							'</div>'
+ 					},
+ 					tooltip: {
+ 						valueSuffix: ' Hours'
+ 					}
+ 				}]
+ 			}))
+ 		};
+
 
  		// Chain the functions in order
  		loadDashboardData()
@@ -676,6 +677,7 @@
  			.then(function() {
  				return loadGraphs();
  			})
+ 		
  			.catch(function(error) {
  				console.error('An error occurred:', error);
  			});
