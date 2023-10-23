@@ -61,7 +61,9 @@
 									for ($year = $currentYear; $year >= ($currentYear - 20); $year--) {
 										for ($month = 1; $month <= 12; $month++) {
 											$monthName = date("F", mktime(0, 0, 0, $month, 1, $year));
-											$value = "$year-$month";
+											$valuef = "$year-$month";
+											$timestamp = strtotime($valuef);
+											$value = $date = date("Y-m", $timestamp);
 											$label = "$monthName $year";
 											$isSelected = (in_array($value, (array) @$search->duty_date)) ? "selected" : "";
 											// Check if this is the current year and month and no selection has been made

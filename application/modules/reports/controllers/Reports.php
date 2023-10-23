@@ -162,7 +162,7 @@ class Reports extends MX_Controller
 	{
 		$search = request_fields();
 		$group_by = (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
-		$month_year = request_fields('month_year');
+		$month_year = request_fields('duty_date');
 		$csv = request_fields('csv');
 
 
@@ -178,6 +178,7 @@ class Reports extends MX_Controller
 		flash_form();
 
 		  $search['duty_date'] = $month_year;
+		  //dd($month_year);
 
 		$totals = $this->reports_mdl->count_aggregated($search, $group_by);
 		$route = "reports/attendance_aggregate";
