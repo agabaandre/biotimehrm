@@ -39,7 +39,7 @@ class Biotimejobs extends MX_Controller
             "password" => $this->password
         );
         $response = $http->sendRequest('jwt-api-token-auth', "POST", $headers, $body, $search = FALSE);
-        dd($response->token);
+        //dd($response->token);
         return $response->token;
     }
 
