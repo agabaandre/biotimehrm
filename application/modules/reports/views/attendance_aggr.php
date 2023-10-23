@@ -47,7 +47,7 @@
 						<div class="row">
 							<div class="col-md-4">
 								<div class="control-group">
-									<label for="month">Select Month and Year:(Max value is 3 months)</label>
+									<label for="month">Select Month and Year:(Max value is 4 months)</label>
 	
 									
 								<select name="duty_date[]" id="month" multiple="multiple" size="3"
