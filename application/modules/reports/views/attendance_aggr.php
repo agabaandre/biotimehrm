@@ -50,20 +50,30 @@
 									<label for="month">Select Month and Year:(Max value is 3 months)</label>
 	
 									
-									<select name="duty_date[]" id="month" multiple="multiple" size="3"
-										onchange="limitSelection(this)" class="form-control">
-										<?php
-										// Generate options for the last 20 years
-										for ($year = date("Y"); $year >= (date("Y") - 20); $year--) {
-											for ($month = 1; $month <= 12; $month++) {
-												$monthName = date("F", mktime(0, 0, 0, $month, 1, $year));
-												$value = "$year-$month";
-												$label = "$monthName $year";
-												echo "<option value='$value'>$label</option>";
+								<select name="duty_date[]" id="month" multiple="multiple" size="3"
+									onchange="limitSelection(this)" class="form-control select2">
+									<?php
+									// Get the current year and month
+									$currentYear = date("Y");
+									$currentMonth = date("n"); // 'n' gives the month without leading zeros
+									
+									// Generate options for the last 20 years
+									for ($year = $currentYear; $year >= ($currentYear - 20); $year--) {
+										for ($month = 1; $month <= 12; $month++) {
+											$monthName = date("F", mktime(0, 0, 0, $month, 1, $year));
+											$value = "$year-$month";
+											$label = "$monthName $year";
+											$isSelected = (in_array($value, (array) @$search->duty_date)) ? "selected" : "";
+											// Check if this is the current year and month and no selection has been made
+											if ($year == $currentYear && $month == $currentMonth && !$isSelected) {
+												$isSelected = "selected";
 											}
+											echo "<option value='$value' $isSelected>$label</option>";
 										}
-										?>
-									</select>
+									}
+									?>
+								</select>
+
 
 								</div>
 
