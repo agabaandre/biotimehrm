@@ -171,7 +171,7 @@ class Reports_mdl extends CI_Model
 
 		$this->db->from("person_att_final");
 		$this->db->group_by("$group_by");
-		$this->db->order_by("$group_by");
+		$this->db->order_by("$group_by", 'ASC');
 
 		$data = $this->db->get()->result();
 		return $data;
