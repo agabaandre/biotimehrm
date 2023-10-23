@@ -34,11 +34,11 @@ class Reports_mdl extends CI_Model
 		$period = array();
 		$targets = array();
 		$target = $this->db->query("SELECT staff from staffing_rate WHERE date like '$date_to%' AND facility_id='$facility'");
-		foreach ($target->result() as $dt) :
+		foreach ($target->result() as $dt):
 			$staff = $dt->staff;
 		endforeach;
 		$query = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from attendance_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
-		foreach ($query->result() as $data) :
+		foreach ($query->result() as $data):
 			array_push($targets, $staff);
 			array_push($period, $data->period);
 			array_push($datas, $data->data);
@@ -53,20 +53,20 @@ class Reports_mdl extends CI_Model
 	public function dutygraphData()
 	{
 
-		$facility  = $_SESSION['facility'];
+		$facility = $_SESSION['facility'];
 		$date_from = date("Y-m", strtotime("-11 month"));
 		$date_to = date('Y-m');
-		$datas   = array();
-		$period  = array();
+		$datas = array();
+		$period = array();
 		$targets = array();
-		$target  = $this->db->query("SELECT staff from staffing_rate WHERE date like '$date_to%' AND facility_id='$facility'");
+		$target = $this->db->query("SELECT staff from staffing_rate WHERE date like '$date_to%' AND facility_id='$facility'");
 
-		foreach ($target->result() as $dt) :
+		foreach ($target->result() as $dt):
 			$staff = $dt->staff;
 		endforeach;
 		$query = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from rosta_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
 
-		foreach ($query->result() as $data) :
+		foreach ($query->result() as $data):
 			array_push($targets, $staff);
 			array_push($period, $data->period);
 			array_push($datas, $data->data);
@@ -86,17 +86,17 @@ class Reports_mdl extends CI_Model
 		$adata = array();
 		$aperiod = array();
 
-		$query  = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from dutydays_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
-		foreach ($query->result() as $data) :
-			$rdate     = $data->period;
+		$query = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from dutydays_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
+		foreach ($query->result() as $data):
+			$rdate = $data->period;
 			$rostadata = $data->data;
 
 			array_push($rdata, $rostadata);
 			array_push($rperiod, $rdate);
 
-			$query2    = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from presence_rate WHERE date='$rdate' AND facility_id='$facility'");
+			$query2 = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from presence_rate WHERE date='$rdate' AND facility_id='$facility'");
 
-			foreach ($query2->result() as $attd) :
+			foreach ($query2->result() as $attd):
 				$attdate = $attd->period;
 				$attdata = $attd->data;
 				array_push($adata, $attdata);
@@ -139,7 +139,7 @@ class Reports_mdl extends CI_Model
 
 
 
-	public function  attendance_aggregates($filters = null, $limit = NULL, $start = NULL, $group_by = "district")
+	public function attendance_aggregates($filters = null, $limit = NULL, $start = NULL, $group_by = "district")
 	{
 
 
@@ -196,15 +196,15 @@ class Reports_mdl extends CI_Model
 				if (($key !== "rows" && $key !== "group_by" && $key !== "month" && $key !== "year" && $key !== "csv" && $key !== "region" && $key !== "institution_type") && !empty($value)) {
 					$this->db->where($key, $value);
 				}
-				
-				
-			
+
+
+
 			}
-			
+
 			if (isset($filters['region'])) {
 
 				$this->db->where_in('region', $filters['region']);
-			
+
 			}
 			if (isset($filters['institution_type'])) {
 
@@ -213,7 +213,7 @@ class Reports_mdl extends CI_Model
 		}
 
 	}
-	
+
 	public function count_person_attendance($filters = null)
 	{
 
@@ -224,7 +224,7 @@ class Reports_mdl extends CI_Model
 
 		return $query->num_rows();
 	}
-	public function  person_attendance_all($filters = null, $limit = NULL, $start = NULL)
+	public function person_attendance_all($filters = null, $limit = NULL, $start = NULL)
 	{
 
 		if ($limit)
@@ -232,7 +232,9 @@ class Reports_mdl extends CI_Model
 
 		$this->apply_aggregation_filter($filters);
 
+
 		$data = $this->db->get("person_att_final")->result();
+		//dd($data);
 		return $data;
 	}
 }

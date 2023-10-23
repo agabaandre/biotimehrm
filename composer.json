@@ -6,10 +6,10 @@
 	"license": "MIT",
 	"authors": [
 		{
-		    "name": "Aidid Alam",
-		    "email": "aididalam11@gmail.com"
+			"name": "Aidid Alam",
+			"email": "aididalam11@gmail.com"
 		}
-    	],
+	],
 	"support": {
 		"forum": "https://github.com/aididalam/Codeigniter-Eloquent-ORM/discussions/1",
 		"wiki": "https://github.com/bcit-ci/CodeIgniter/wiki",
@@ -27,6 +27,11 @@
 		"mpdf/mpdf": "^8.2",
 		"react/react": "^1.4",
 		"guzzlehttp/guzzle": "^7.7"
+	},
+	"autoload": {
+		"psr-4": {
+			"utils\\": "utils/"
+		}
 	},
 	"suggest": {
 		"paragonie/random_compat": "Provides better randomness in PHP 5.x"

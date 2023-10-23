@@ -7,4 +7,5 @@ index.php
 log.txt
 uploads/faces/*.jpg
 uploads/fingerprints/*.fpt
-
+composer-setup.php
+composer.phar

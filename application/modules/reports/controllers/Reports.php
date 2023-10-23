@@ -13,11 +13,11 @@ class Reports extends MX_Controller
 		$this->load->model('reports_mdl');
 		$this->load->model('lists/facilities_mdl');
 		$this->load->model('lists/districts_mdl');
-		$this->module      = "reports";
-		$this->title       = "Reports";
-		$this->filters     = Modules::run('filters/sessionfilters');
+		$this->module = "reports";
+		$this->title = "Reports";
+		$this->filters = Modules::run('filters/sessionfilters');
 		//doesnt require a join on ihrisdata
-		$this->ufilters    = Modules::run('filters/universalfilters');
+		$this->ufilters = Modules::run('filters/universalfilters');
 		// requires a join on ihrisdata with district level
 		$this->distfilters = Modules::run('filters/districtfilters');
 		$this->watermark = FCPATH . "assets/img/MOH.png";
@@ -27,10 +27,10 @@ class Reports extends MX_Controller
 	{
 
 		//$data['requests']=$this->requests;
-		$data['title']  = $this->title;
+		$data['title'] = $this->title;
 		$data['uptitle'] = "Reports";
 
-		$data['view']   = 'reports';
+		$data['view'] = 'reports';
 		$data['module'] = $this->module;
 		echo Modules::run('templates/main', $data);
 	}
@@ -38,31 +38,31 @@ class Reports extends MX_Controller
 	{
 
 		//$data['requests']=$this->requests;
-		$data['title']   = $this->title;
+		$data['title'] = $this->title;
 		$data['uptitle'] = "Duty Roster Reporting";
 
-		$data['view']    = 'roster_rate';
-		$data['module']  = $this->module;
+		$data['view'] = 'roster_rate';
+		$data['module'] = $this->module;
 		echo Modules::run('templates/main', $data);
 	}
 	public function attendanceRate()
 	{
 
 
-		$data['title']   = 'Attendance Reporting Rate';
+		$data['title'] = 'Attendance Reporting Rate';
 		$data['uptitle'] = "Attendance Reporting";
-		$data['view']    = 'attendance_rate';
-		$data['module']  = $this->module;
+		$data['view'] = 'attendance_rate';
+		$data['module'] = $this->module;
 		echo Modules::run('templates/main', $data);
 	}
 	public function attendroster()
 	{
 
 
-		$data['title']   = 'Attendance vs Duty Roster';
+		$data['title'] = 'Attendance vs Duty Roster';
 		$data['uptitle'] = "Attendance Reporting";
-		$data['view']    = 'roster_att';
-		$data['module']  = $this->module;
+		$data['view'] = 'roster_att';
+		$data['module'] = $this->module;
 		echo Modules::run('templates/main', $data);
 	}
 
@@ -78,20 +78,20 @@ class Reports extends MX_Controller
 		return $data;
 	}
 
-	public function  attroData()
+	public function attroData()
 	{
 		$data = $this->reports_mdl->attroData();
 		//print_r($data);
-		echo  json_encode($data, JSON_NUMERIC_CHECK);
+		echo json_encode($data, JSON_NUMERIC_CHECK);
 	}
 
 
 	public function average_hours($syear = FALSE)
 	{
-		$data['title']   = 'Average Hours';
+		$data['title'] = 'Average Hours';
 		$data['uptitle'] = "Average Monthly Hours";
-		$data['view']    = 'average_hours';
-		$data['module']  = $this->module;
+		$data['view'] = 'average_hours';
+		$data['module'] = $this->module;
 		$facility = $_SESSION['facility'];
 
 		$year = $this->input->post('year');
@@ -103,16 +103,16 @@ class Reports extends MX_Controller
 
 		$this->load->library('pagination');
 		$config = array();
-		$config['base_url']  = base_url() . "employees/viewTimeLogs";
+		$config['base_url'] = base_url() . "employees/viewTimeLogs";
 		$config['total_rows'] = $this->db->query("SELECT pid FROM clk_diff WHERE facility_id='$facility' group by date_format(date,'%Y-%m')")->num_rows();
-		$config['per_page']    = 200; //records per page
+		$config['per_page'] = 200; //records per page
 		$config['uri_segment'] = 3; //segment in url  
 		//pagination links styling
-		$config['full_tag_open']  = '<ul class="pagination">';
+		$config['full_tag_open'] = '<ul class="pagination">';
 		$config['full_tag_close'] = '</ul>';
 		$config['attributes'] = ['class' => 'page-link'];
 		$config['first_link'] = false;
-		$config['last_link']  = false;
+		$config['last_link'] = false;
 		$config['first_tag_open'] = '<li class="page-item">';
 		$config['first_tag_close'] = '</li>';
 		$config['prev_link'] = '&laquo';
@@ -131,7 +131,7 @@ class Reports extends MX_Controller
 		$this->pagination->initialize($config);
 		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
 		$data['links'] = $this->pagination->create_links();
-		$data['sums']  = $this->reports_mdl->average_hours($fyear);
+		$data['sums'] = $this->reports_mdl->average_hours($fyear);
 
 		echo Modules::run('templates/main', $data);
 	}
@@ -141,7 +141,7 @@ class Reports extends MX_Controller
 		$this->load->library('M_pdf');
 		$data['sums'] = $this->reports_mdl->average_hours($syear);
 		$html = $this->load->view('averagehours_pdf', $data, true);
-		$fac  = $_SESSION['facility_name'];
+		$fac = $_SESSION['facility_name'];
 		$filename = $fac . "_Average_Hours" . "pdf";
 		ini_set('max_execution_time', 0);
 		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
@@ -160,19 +160,19 @@ class Reports extends MX_Controller
 
 	public function attendance_aggregate()
 	{
-		$search    = request_fields();
-		$group_by  =  (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
-		$year      =  request_fields('year');
-		$month     =  request_fields('month');
-		$csv       =  request_fields('csv');
+		$search = request_fields();
+		$group_by = (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
+		$year = request_fields('year');
+		$month = request_fields('month');
+		$csv = request_fields('csv');
 
 
 		if (empty($year)) {
 
-			$year  = date('Y');
+			$year = date('Y');
 			$month = date('m');
 
-			$search['year']  = $year;
+			$search['year'] = $year;
 			$search['month'] = $month;
 			$search['district'] = $_SESSION['district'];
 		}
@@ -184,18 +184,18 @@ class Reports extends MX_Controller
 
 		$search['duty_date'] = $valid_rangeto;
 
-		$totals   = $this->reports_mdl->count_aggregated($search, $group_by);
-		$route    = "reports/attendance_aggregate";
+		$totals = $this->reports_mdl->count_aggregated($search, $group_by);
+		$route = "reports/attendance_aggregate";
 		$per_page = (request_fields('rows')) ? request_fields('rows') : 144;
-		$segment  = 3;
-		$page     = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
+		$segment = 3;
+		$page = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
 
-		$data['links']      = paginate($route, $totals, $per_page, $segment);
+		$data['links'] = paginate($route, $totals, $per_page, $segment);
 
 		if ($csv)
 			$per_page = null;
 
-		$data['records']    = $this->reports_mdl->attendance_aggregates($search, $per_page, $page, $group_by);
+		$data['records'] = $this->reports_mdl->attendance_aggregates($search, $per_page, $page, $group_by);
 
 		if ($csv) {
 
@@ -203,19 +203,19 @@ class Reports extends MX_Controller
 			return;
 		}
 
-		$data['module']     = $this->module;
-		$data['search']     = (object) $search;
+		$data['module'] = $this->module;
+		$data['search'] = (object) $search;
 		$data['grouped_by'] = $group_by;
-		$data['period']     = $valid_rangeto;
-		$data['districts']  = $this->districts_mdl->get_all_Districts();
-		$data['districts']  = $this->districts_mdl->get_all_Districts();
-		$data['regions']  = $this->db->query("SELECT distinct region from ihrisdata WHERE region!='' ORDER BY region asc")->result();
-		$data['institutiontypes']  = $this->db->query("SELECT distinct institutiontype_name from ihrisdata ORDER BY institutiontype_name asc")->result();
+		$data['period'] = $valid_rangeto;
+		$data['districts'] = $this->districts_mdl->get_all_Districts();
+		$data['districts'] = $this->districts_mdl->get_all_Districts();
+		$data['regions'] = $this->db->query("SELECT distinct region from ihrisdata WHERE region!='' ORDER BY region asc")->result();
+		$data['institutiontypes'] = $this->db->query("SELECT distinct institutiontype_name from ihrisdata ORDER BY institutiontype_name asc")->result();
 		$data['facilities'] = $this->facilities_mdl->getAll();
 
-		$data['view']       = 'attendance_aggr';
-		$data['title']      = 'Attendance Form Summary';
-		$data['uptitle']    = 'Attendance Form Summary';
+		$data['view'] = 'attendance_aggr';
+		$data['title'] = 'Attendance Form Summary';
+		$data['uptitle'] = 'Attendance Form Summary';
 
 
 		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "region", "department_id", "gender"];
@@ -241,16 +241,16 @@ class Reports extends MX_Controller
 			)
 		];
 
-		$total_present  = 0;
-		$total_leave    = 0;
+		$total_present = 0;
+		$total_leave = 0;
 		$total_official = 0;
-		$total_off      = 0;
-		$total_holiday  = 0;
-		$total_absent   = 0;
+		$total_off = 0;
+		$total_holiday = 0;
+		$total_absent = 0;
 		$total_supposed = 0;
 
 		$total_attendance_rate = 0;
-		$total_absentism_rate  = 0;
+		$total_absentism_rate = 0;
 
 		$count = 0;
 
@@ -259,31 +259,31 @@ class Reports extends MX_Controller
 			$count++;
 
 			$supposed_days = $row->days_supposed;
-			$days_worked   = ($row->days_supposed - $row->days_absent);
+			$days_worked = ($row->days_supposed - $row->days_absent);
 
 
 			$attendance_rate = number_format(($days_worked / $supposed_days) * 100, 1);
-			$absentism_rate  = number_format(($row->days_absent / $supposed_days) * 100, 1);
+			$absentism_rate = number_format(($row->days_absent / $supposed_days) * 100, 1);
 
 
-			$present  = number_format(($row->present / $supposed_days) * 100, 1);
+			$present = number_format(($row->present / $supposed_days) * 100, 1);
 			$on_leave = number_format(($row->own_leave / $supposed_days) * 100, 1);
 			$official = number_format(($row->official / $supposed_days) * 100, 1);
-			$off      = number_format(($row->off / $supposed_days) * 100, 1);
-			$holiday  = number_format(($row->holiday / $supposed_days) * 100, 1);
-			$absent   = number_format(($row->absent / $supposed_days) * 100, 1);
+			$off = number_format(($row->off / $supposed_days) * 100, 1);
+			$holiday = number_format(($row->holiday / $supposed_days) * 100, 1);
+			$absent = number_format(($row->absent / $supposed_days) * 100, 1);
 
 			$row = [$row->{$grouped_by}, $row->duty_date, $present, $on_leave, $official, $off, $holiday, $absent, $attendance_rate, $absentism_rate];
 
-			$total_present  += $present;
-			$total_leave    += $on_leave;
+			$total_present += $present;
+			$total_leave += $on_leave;
 			$total_official += $official;
-			$total_off      += $off;
-			$total_holiday  += $holiday;
-			$total_absent   += $absent;
+			$total_off += $off;
+			$total_holiday += $holiday;
+			$total_absent += $absent;
 
 			$total_attendance_rate += $attendance_rate;
-			$total_absentism_rate  += $absentism_rate;
+			$total_absentism_rate += $absentism_rate;
 
 			array_push($exportable, $row);
 		}
@@ -307,14 +307,14 @@ class Reports extends MX_Controller
 	}
 	public function person_attendance_all()
 	{
-		$search    =  request_fields();
-		$year      =  request_fields('year');
-		$month     =  request_fields('month');
-		$csv       =  request_fields('csv');
+		$search = request_fields();
+		$year = request_fields('year');
+		$month = request_fields('month');
+		$csv = request_fields('csv');
 
 
 		if (empty($year)) {
-			$year  = date('Y');
+			$year = date('Y');
 			$month = date('m');
 
 			$search['year'] = $year;
@@ -329,15 +329,16 @@ class Reports extends MX_Controller
 
 		$search['duty_date'] = $valid_rangeto;
 
-		$totals   = $this->reports_mdl->count_person_attendance($search);
-		$route    = "reports/attendance_aggregate";
+		$totals = $this->reports_mdl->count_person_attendance($search);
+		$route = "reports/attendance_aggregate";
 		$per_page = (request_fields('rows')) ? request_fields('rows') : 140;
-		$segment  = 3;
-		$page     = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
+		$segment = 3;
+		$page = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
 
-		$data['links']      = paginate($route, $totals, $per_page, $segment);
-		$data['records']    = $this->reports_mdl->person_attendance_all($search, $per_page, $page);
-		$data['csv']    = $this->reports_mdl->person_attendance_all($search);
+		$data['links'] = paginate($route, $totals, $per_page, $segment);
+		$data['records'] = $this->reports_mdl->person_attendance_all($search, $per_page, $page);
+		// dd($data['records']);
+		$data['csv'] = $this->reports_mdl->person_attendance_all($search);
 
 
 		if ($csv) {
@@ -346,15 +347,15 @@ class Reports extends MX_Controller
 			return;
 		}
 
-		$data['module']     = $this->module;
-		$data['search']     = (object) $search;
-		$data['period']     = $valid_rangeto;
-		$data['districts']  = $this->districts_mdl->get_all_Districts();
+		$data['module'] = $this->module;
+		$data['search'] = (object) $search;
+		$data['period'] = $valid_rangeto;
+		$data['districts'] = $this->districts_mdl->get_all_Districts();
 		$data['facilities'] = $this->facilities_mdl->getAll();
 
-		$data['view']       = 'person_attendance_all';
-		$data['title']      = 'Attendance Form Summary';
-		$data['uptitle']    = 'Attendance Form Summary';
+		$data['view'] = 'person_attendance_all';
+		$data['title'] = 'Attendance Form Summary';
+		$data['uptitle'] = 'Attendance Form Summary';
 
 
 		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "facility"];
@@ -398,18 +399,18 @@ class Reports extends MX_Controller
 
 
 
-			$month_days  = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+			$month_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 			$absent = $month_days - ($row->P + $row->O + $row->R + $row->L);
 			$abrate = number_format(($absent / $month_days), 1) * 100;
 
 			$a_total += $absent;
 			$ar_total += $abrate;
 
-			$row =  [$row->fullname, $row->district, $row->facility_name, $row->duty_date, $row->P, $row->O, $row->R, $row->L, $row->H, $absent, $abrate];
+			$row = [$row->fullname, $row->district, $row->facility_name, $row->duty_date, $row->P, $row->O, $row->R, $row->L, $row->H, $absent, $abrate];
 
 			array_push($exportable, $row);
 		}
-		$rowfoot =  ["Averages", "", "", "", round(($p_total / $count), 0), round(($$o_total / $count), 0), round(($$r_total / $count), 0), round(($l_total / $count), 0), round(($h_total / $count), 0), round(($a_total / $count), 0), round(($ar_total / $count), 0)];
+		$rowfoot = ["Averages", "", "", "", round(($p_total / $count), 0), round(($$o_total / $count), 0), round(($$r_total / $count), 0), round(($l_total / $count), 0), round(($h_total / $count), 0), round(($a_total / $count), 0), round(($ar_total / $count), 0)];
 
 		array_push($exportable, $rowfoot);
 		render_csv_data($exportable, "person_attendance_all" . time(), false);
