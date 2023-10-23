@@ -162,27 +162,22 @@ class Reports extends MX_Controller
 	{
 		$search = request_fields();
 		$group_by = (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
-		$year = request_fields('year');
-		$month = request_fields('month');
+		$month_year = request_fields('month_year');
 		$csv = request_fields('csv');
 
 
 		if (empty($year)) {
 
-			$year = date('Y');
-			$month = date('m');
+			$month_year = date('Y-m');
+			$search['duty_date'] = $month_year;
 
-			$search['year'] = $year;
-			$search['month'] = $month;
 			$search['district'] = $_SESSION['district'];
 		}
 
 
 		flash_form();
 
-		$valid_rangeto = $year . "-" . $month;
-
-		$search['duty_date'] = $valid_rangeto;
+		  $search['duty_date'] = $month_year;
 
 		$totals = $this->reports_mdl->count_aggregated($search, $group_by);
 		$route = "reports/attendance_aggregate";
@@ -206,7 +201,7 @@ class Reports extends MX_Controller
 		$data['module'] = $this->module;
 		$data['search'] = (object) $search;
 		$data['grouped_by'] = $group_by;
-		$data['period'] = $valid_rangeto;
+		$data['period'] = $month_year;
 		$data['districts'] = $this->districts_mdl->get_all_Districts();
 		$data['districts'] = $this->districts_mdl->get_all_Districts();
 		$data['regions'] = $this->db->query("SELECT distinct region from ihrisdata WHERE region!='' ORDER BY region asc")->result();

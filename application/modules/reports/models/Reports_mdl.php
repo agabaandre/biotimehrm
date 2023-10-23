@@ -193,17 +193,19 @@ class Reports_mdl extends CI_Model
 
 			foreach ($filters as $key => $value) {
 
-				if (($key !== "rows" && $key !== "group_by" && $key !== "month" && $key !== "year" && $key !== "csv" && $key !== "region" && $key !== "institution_type") && !empty($value)) {
+				if (($key !== "rows" && $key !== "group_by" && $key !== "month" && $key !== "year" && $key !== "csv" && $key !== "region" && $key !== "institution_type" && $key!=="duty_date" && !empty($value))) {
 					$this->db->where($key, $value);
 				}
-
-
-
 			}
 
 			if (isset($filters['region'])) {
 
 				$this->db->where_in('region', $filters['region']);
+
+			}
+			if (isset($filters['duty_date'])) {
+
+				$this->db->where_in('duty_date', $filters['duty_date']);
 
 			}
 			if (isset($filters['institution_type'])) {
