@@ -9,3 +9,4 @@ uploads/faces/*.jpg
 uploads/fingerprints/*.fpt
 composer-setup.php
 composer.phar
+/cache/
