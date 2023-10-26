@@ -26,7 +26,10 @@
 		"phpmailer/phpmailer": "^6.8",
 		"mpdf/mpdf": "^8.2",
 		"react/react": "^1.4",
-		"guzzlehttp/guzzle": "^7.7"
+		"guzzlehttp/guzzle": "^7.7",
+		"chriskacerguis/codeigniter-restserver": "^3.1",
+		"firebase/php-jwt": "^6.3",
+		"paragonie/sodium_compat": "^1.19"
 	},
 	"autoload": {
 		"psr-4": {
