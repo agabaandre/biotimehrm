@@ -166,11 +166,9 @@ class Reports extends MX_Controller
 		$csv = request_fields('csv');
 
 
-		if (!isset($month_year)) {
+		if (empty($month_year)) {
 
 			$month_year = date('Y-m');
-			$search['duty_date'] = $month_year;
-
 			$search['district'] = $_SESSION['district'];
 		}
 
