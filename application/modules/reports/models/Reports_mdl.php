@@ -177,10 +177,10 @@ class Reports_mdl extends CI_Model
 
 		$data = $this->db->get()->result();
 
-		$sql = $this->db->last_query();
+		//$sql = $this->db->last_query();
 
 		// Print or log the SQL query
-		dd($sql);
+		//dd($sql);
 
 		return $data;
 	}
