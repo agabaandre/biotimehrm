@@ -67,9 +67,9 @@
 											$label = "$monthName $year";
 											$isSelected = (in_array($value, (array) @$search->duty_date)) ? "selected" : "";
 											// Check if this is the current year and month and no selection has been made
-											if ($year == $currentYear && $month == $currentMonth && !$isSelected) {
-												$isSelected = "selected";
-											}
+											// if ($year == $currentYear && $month == $currentMonth && !$isSelected) {
+											// 	$isSelected = "selected";
+											// }
 											echo "<option value='$value' $isSelected>$label</option>";
 										}
 									}
