@@ -301,6 +301,8 @@ class Biotimejobs extends MX_Controller
         $end_date = date('Y-m-d', strtotime($this->input->get('end_date')));
         $terminal_sn = $this->input->get('terminal_sn');
 
+        dd($this->input->get());
+
         $url = "curl https://attend.health.go.ug/biotimejobs/fetchBiotTimeLogs/" . $end_date . "/" . $terminal_sn;
         shell_exec("$url");
 

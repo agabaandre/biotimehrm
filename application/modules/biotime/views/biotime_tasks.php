@@ -211,7 +211,7 @@
                              </div>
                              <div class="modal-body">
                                <!-- Form inside the modal -->
-                               <form action="" method="POST" id="biotimesync"> 
+                               <form action="" method="POST" > 
                                  <div class="form-group">
                                    <label for="end_date">Date Before</label>
                                    <input type="date" name="end_date" class="form-control">
