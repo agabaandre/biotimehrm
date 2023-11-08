@@ -211,7 +211,7 @@
                              </div>
                              <div class="modal-body">
                                <!-- Form inside the modal -->
-                               <form action="<?php echo base_url('biotimejobs/custom_logs'); ?>" method="POST" > 
+                               <form action="<?php echo base_url('biotimejobs/custom_logs'); ?>" method="GET" > 
                                  <div class="form-group">
                                    <label for="end_date">Date Before</label>
                                    <input type="date" name="end_date" class="form-control">
