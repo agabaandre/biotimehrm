@@ -134,8 +134,9 @@ class Auth_mdl extends CI_Model
 
 		$distid = $postdata['district_id'];
 		$facids = $postdata['facility_id'];
-		$parts = explode("_", $facids);
-		$facid = $parts[0];
+		$facd = explode("_", $facids);
+		$facid = $facd[0];
+		$facility = $facd[1];
 
 		//get district
 		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
