@@ -263,7 +263,7 @@ $variables = Modules::run("svariables/getSettings");
 
       //Submit new user data
 
-      $(".user_form").submit(function(e) {
+      $(".user_for").submit(function(e) {
 
         e.preventDefault();
 
@@ -292,8 +292,8 @@ $variables = Modules::run("svariables/getSettings");
 
 
       //Submit user update
-      $(".update_usr").submit(function(e) {
-        //e.preventDefault();
+      $(".update_user").submit(function(e) {
+        e.preventDefault();
         $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
         var formData = new FormData(this);
         console.log(formData);
