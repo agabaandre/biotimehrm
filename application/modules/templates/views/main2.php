@@ -5,7 +5,7 @@
 
 ?>
 <!-- Content Wrapper. Contains page content -->
-
+<div class="content-wrapper">
 <?php
     $this->load->view($module . "/" . $view);
 ?>
@@ -14,3 +14,4 @@
 <?php
     require_once("includes/footer.php");
 ?>
+</div>

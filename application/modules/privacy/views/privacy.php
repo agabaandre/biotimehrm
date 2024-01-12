@@ -3,7 +3,7 @@
   
 
     <div class="card-header with-border">
-      <h5 class="card-title"> Variables</h5>
+      <h5 class="card-title"> HRM Attend Policy</h5>
     </div>
   </div>
 
