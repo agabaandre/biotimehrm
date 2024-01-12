@@ -17,7 +17,7 @@ class Privacy extends MX_Controller
 	public function index()
 	{
 		$data['title'] = "MoH HRM Attend Privacy Policy";
-		$data['uptitle'] = "MoH Privacy Policy";
+		$data['uptitle'] = "MoH HRM Attend Privacy Policy";
 		$data['module'] = 'privacy';
 		$data['view'] = "privacy";
 		
