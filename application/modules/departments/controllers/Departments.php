@@ -40,7 +40,7 @@ class Departments extends MX_Controller
       if (!empty($facilities)) {
 
         foreach ($facilities as $facility) {
-          $opt .= "<option value='" . $facility->facility_id . "__" . $facility->facility . "'>" . ucwords($facility->facility) . "</option>";
+          $opt .= "<option value='" . $facility->facility_id . "_" . $facility->facility . "'>" . ucwords($facility->facility) . "</option>";
         }
       }
 
@@ -239,7 +239,7 @@ class Departments extends MX_Controller
 
     // facility data
     $facdata = array();
-    $facdata = explode("__", $this->input->post('facility'));
+    $facdata = explode("_", $this->input->post('facility'));
 
     $facility_id = $facdata[0];
     $facility_name = $facdata[1];
