@@ -263,7 +263,7 @@ $variables = Modules::run("svariables/getSettings");
 
       //Submit new user data
 
-      $(".user_for").submit(function(e) {
+      $(".user_form").submit(function(e) {
 
         e.preventDefault();
 

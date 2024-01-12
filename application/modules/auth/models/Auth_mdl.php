@@ -133,10 +133,10 @@ class Auth_mdl extends CI_Model
 	{
 
 		$distid = $postdata['district_id'];
-
+		$facilities = $postdata['facility_id'];
 		$facids = $postdata['facility_id'][0];
 				$facd = explode("_", $facids);
-				dd($facd);
+				//dd($facd);
 		$facid = $facd[0];
 		$facility = $facd[1];
 
@@ -171,23 +171,23 @@ class Auth_mdl extends CI_Model
 			return "Operation failed";
 		}
 	}
-	public function user_facilities($facid, $distid, $userid)
+	public function user_facilities($facilities, $distid, $userid)
 	{
 		//get district
 		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
 		$distn = $distname->row()->district;
 
-		for ($i = 0; $i < count($facid); $i++) :
+		for ($i = 1; $i < count($facilities); $i++) :
 
-			$fac_id = $facid[$i];
+			$fac_id = explode('_',$facilities[$i]);
+			$facid = $fac_id[0];
 			$facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
 			$facn = $facname->row()->facility;
 			$insert = array(
 				"user_id" => $userid,
 				"facility_id" => "$fac_id",
-				"district_id" => "$distid",
 				"facility_name" => "$facn",
-				"district_name" => "$distn"
+			
 
 			);
 
