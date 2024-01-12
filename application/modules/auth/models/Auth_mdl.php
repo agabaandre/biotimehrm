@@ -142,8 +142,8 @@ class Auth_mdl extends CI_Model
 		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
 		$distn = $distname->row()->district;
 		//get facility
-		$facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
-		$facn = $facname->row()->facility;
+		// $facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
+		// $facn = $facname->row()->facility;
 
 		$insert = array(
 			'username' => $postdata['username'],
@@ -151,7 +151,7 @@ class Auth_mdl extends CI_Model
 			'email' => $postdata['email'],
 			'password' => $this->password,
 			'facility_id' => "$facid",
-			'facility' => "$facn",
+			'facility' => "$facility",
 			"role" => $postdata['role'],
 			'department' => $postdata['department_id'],
 			'district_id' => "$distn",
