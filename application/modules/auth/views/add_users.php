@@ -22,7 +22,7 @@ $variables = Modules::run("svariables/getSettings");
       </div>
       <!-- /.card-header -->
       <div class="card-body">
-        <form class="user_form" method="post" enctype="multipart/form-data">
+        <form class="user_form" method="post" action="<?php echo base_url()?>auth/addUser" enctype="multipart/form-data">
           <div class="row">
             <div class="col-md-12">
               <button type="submit" class="btn btn-info btn-outline">Save</button>
