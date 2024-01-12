@@ -1,8 +1,6 @@
 <div class="card">
   <div class="col-md-12" style=" background:white; border-radius: 5px;">
-    <?php $i = 1;
-    //print_r($facilitydata);
-    ?>
+  
 
     <div class="card-header with-border">
       <h5 class="card-title"> Variables</h5>

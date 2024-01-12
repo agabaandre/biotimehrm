@@ -1,4 +1,11 @@
 <?php
+
+$userdata = $this->session->get_userdata();
+if (!isset($userdata['names'])) {
+  redirect('auth');
+}
+$permissions = $userdata['permissions'];
+?>
 date_default_timezone_set('Africa/Kampala');
 require_once("includes/header.php");
 require_once("includes/navtop.php");
