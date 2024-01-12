@@ -220,7 +220,7 @@ class Biotimejobs extends MX_Controller
         ];
         if (empty($end_date)) {
             $edate = date('Y-m-d H:i:s');
-            $sdate = date("Y-m-d H:i:s", strtotime("-36 hours", strtotime($edate)));
+            $sdate = date("Y-m-d H:i:s", strtotime("-48 hours", strtotime($edate)));
         } else {
             $edate = $end_date;
             // Use the $edate variable to calculate the start date, which is 24 hours before the end date
