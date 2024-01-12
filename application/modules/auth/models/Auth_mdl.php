@@ -163,7 +163,7 @@ class Auth_mdl extends CI_Model
 
 		$qry = $this->db->insert($this->table, $insert);
 		$userid = $this->db->insert_id();
-		$this->user_facilities($facids, $distid, $userid);
+		$this->user_facilities($facilities, $distid, $userid);
 		$rows = $this->db->affected_rows();
 		if ($rows > 0) {
 			return "User has been Added";
