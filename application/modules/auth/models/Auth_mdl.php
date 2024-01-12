@@ -134,8 +134,8 @@ class Auth_mdl extends CI_Model
 
 		$distid = $postdata['district_id'];
 		$facids = $postdata['facility_id'];
-		$parts = explode("__", $facids);
-		$facid = $parts;
+		$parts = explode("_", $facids);
+		$facid = $parts[0];
 
 		//get district
 		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
@@ -165,7 +165,7 @@ class Auth_mdl extends CI_Model
 		if ($rows > 0) {
 			return "User has been Added";
 		} else {
-			return json_encode($parts);
+			return "Operation failed";
 		}
 	}
 	public function user_facilities($facid, $distid, $userid)
