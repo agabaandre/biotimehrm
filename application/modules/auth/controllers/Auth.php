@@ -172,7 +172,7 @@ class Auth extends MX_Controller
   {
     $postdata = $this->input->post();
     $res = $this->auth_mdl->addUser($postdata);
-    echo $res;
+    echo json_encode($res);
   }
   public function updateUser()
   {
