@@ -165,7 +165,7 @@ class Auth_mdl extends CI_Model
 		if ($rows > 0) {
 			return "User has been Added";
 		} else {
-			return "Operation failed";
+			return json_encode($parts);
 		}
 	}
 	public function user_facilities($facid, $distid, $userid)
