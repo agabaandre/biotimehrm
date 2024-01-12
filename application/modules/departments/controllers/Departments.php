@@ -77,7 +77,7 @@ class Departments extends MX_Controller
       if (!empty($facilities)) {
 
         foreach ($facilities as $facility) {
-          $opt .= "<option value='" . $facility->facility_id . "__" . $facility->facility . "'>" . ucwords($facility->facility) . "</option>";
+          $opt .= "<option value='" . $facility->facility_id . "_" . $facility->facility . "'>" . ucwords($facility->facility) . "</option>";
         }
       }
 
@@ -95,7 +95,7 @@ class Departments extends MX_Controller
 
 
       $facdata = array();
-      $facdata = explode("__", $fac);
+      $facdata = explode("_", $fac);
 
       $fac_id = $facdata[0];
       $facname = $facdata[1];
