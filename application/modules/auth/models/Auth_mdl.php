@@ -136,7 +136,7 @@ class Auth_mdl extends CI_Model
 
 		$facids = $postdata['facility_id'][0];
 				$facd = explode("_", $facids);
-				dd($facids);
+				dd($facd);
 		$facid = $facd[0];
 		$facility = $facd[1];
 
