@@ -25,6 +25,7 @@ class Districts_mdl extends CI_Model {
 	{
         
 		 $permissions = $this->session->userdata('permissions');
+		 dd($permissions);
 		if (!(in_array('46', $permissions))) {
 
 			$district_id = $this->session->userdata('district_id');
