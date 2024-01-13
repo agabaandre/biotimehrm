@@ -200,8 +200,9 @@ class Auth extends MX_Controller
     } //user uploaded with a photo
     else {
       $res = $this->auth_mdl->updateUser($postdata);
+      echo $res;
     } //no photo
-    //echo $res;
+    echo $res;
     //print_r($postdata);
   } //ftn end
   //first time password change

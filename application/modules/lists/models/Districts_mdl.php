@@ -32,7 +32,6 @@ class Districts_mdl extends CI_Model {
 
 		}
 
-
 		$this->db->select('distinct(district_id),district');
 		if(!empty($region)){
 		$this->db->where("region", "$region");
