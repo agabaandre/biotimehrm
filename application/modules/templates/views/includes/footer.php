@@ -174,7 +174,7 @@ $linkquery = $url; // Outputs: Full URL
                                                                                                                                                 } ?>>
                                 <option value="<?php echo urlencode(str_replace(" ", "", ($_SESSION['district_id']))) . "_" . urlencode(str_replace(" ", "", $_SESSION['district'])); ?>"><?php echo $_SESSION['district']; ?></option>
                                 <?php
-                                $districts = Modules::run("lists/switch_districts,$permissions");
+                                $districts = Modules::run("lists/switch_districts");
                                 foreach ($districts as $district) {
                                 ?>
                                     <option value="<?php echo urlencode(str_replace(" ", "", $district->district_id)) . "_" . urlencode(str_replace(" ", "", $district->district)); ?>"><?php echo ucwords($district->district); ?></option>

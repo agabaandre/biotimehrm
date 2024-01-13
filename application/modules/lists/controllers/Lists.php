@@ -33,9 +33,9 @@ class Lists extends MX_Controller
 		return $district;
 	}
 
-	public function switch_districts($permissions)
+	public function switch_districts()
 	{
-		return $this->districts_mdl->switch_all_Districts($permissions);
+		return $this->districts_mdl->switch_all_Districts();
 	}
 	public function get_all_districts()
 	{

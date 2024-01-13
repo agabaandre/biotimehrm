@@ -21,7 +21,7 @@ class Districts_mdl extends CI_Model {
  
 	}
 	
-	public function switch_all_Districts($permissions)
+	public function switch_all_Districts()
 	{
 
 		// if (!(in_array('46', $permissions))) {
