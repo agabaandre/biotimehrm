@@ -23,14 +23,15 @@ class Districts_mdl extends CI_Model {
 	
 	public function switch_all_Districts()
 	{
+        
+		 $permissions = $this->session->userdata('permissions');
+		if (!(in_array('46', $permissions))) {
 
-		// if (!(in_array('46', $permissions))) {
+			$district_id = $this->session->userdata('district_id');
 
-		// 	$district_id = $this->session->userdata('district_id');
+			$region = $this->db->query("SELECT region  from ihris_data WHERE district_id='$district_id'")->row()->region;
 
-		// 	$region = $this->db->query("SELECT region  from ihris_data WHERE district_id='$district_id'")->row()->region;
-
-		// }
+		}
 
 		$this->db->select('distinct(district_id),district');
 		// if(!empty($region)){
