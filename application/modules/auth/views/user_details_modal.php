@@ -50,7 +50,7 @@
 
             <br>
             <strong style="margin-right: 1em;">Facility</strong>
-            <select onchange="getuserDeps($(this).val());" name="facility_id" class="form-control select2 userfacility" style="width:100%;" multiple>
+            <select onchange="getuserDeps($(this).val());" name="facility_id[]" class="form-control select2 userfacility" style="width:100%;" multiple>
 
 
               <option value="<?php echo $user->facility_id; ?>" selected>

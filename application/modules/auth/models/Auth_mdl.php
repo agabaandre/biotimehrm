@@ -184,7 +184,7 @@ class Auth_mdl extends CI_Model
 			$facn = $facname->row()->facility;
 			$insert = array(
 				"user_id" => $userid,
-				"facility_id" => "$fac_id",
+				"facility_id" => "$facid",
 				"facility" => "$facn",
 			
 
@@ -196,10 +196,40 @@ class Auth_mdl extends CI_Model
 
 		endfor;
 	}
+
+
+	public function update_user_facilities($facilities, $userid)
+	{
+		//get district
+
+              if($userid){
+				$this->db->query("DELETE from user_facilities WHERE user_id=$userid");
+			  }
+		for ($i = 1; $i < count($facilities); $i++):
+
+			$fac_id = explode('_', $facilities[$i]);
+			$facid = $fac_id[0];
+			$facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
+			$facn = $facname->row()->facility;
+			$insert = array(
+				"user_id" => $userid,
+				"facility_id" => "$facid",
+				"facility" => "$facn",
+
+
+			);
+
+			$this->db->replace("user_facilities", $insert);
+
+			//logic for mutiple users
+
+		endfor;
+	}
 	// update user's details
 	public function updateUser($postdata)
 	{
 		$distid = $postdata['district_id'];
+		$facilities = $postdata['facility_id'];
 		$facdata = $postdata['facility_id'][0];
 		$depid = $postdata['user_id'];
 		//get district
@@ -226,6 +256,7 @@ class Auth_mdl extends CI_Model
 		$this->db->where('user_id', $uid);
 		$query = $this->db->update($this->table, $savedata);
 		if ($query) {
+			$this->update_user_facilities($facilities, $uid);
 			return "User details updated";
 		} else {
 			return "No changes made";
