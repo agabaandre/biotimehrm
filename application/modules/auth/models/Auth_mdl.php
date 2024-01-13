@@ -200,7 +200,7 @@ class Auth_mdl extends CI_Model
 	public function updateUser($postdata)
 	{
 		$distid = $postdata['district_id'];
-		$facdata = $postdata['facility_id'];
+		$facdata = $postdata['facility_id'][0];
 		$depid = $postdata['user_id'];
 		//get district
 		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
