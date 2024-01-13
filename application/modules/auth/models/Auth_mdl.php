@@ -163,7 +163,7 @@ class Auth_mdl extends CI_Model
 
 		$qry = $this->db->insert($this->table, $insert);
 		$userid = $this->db->insert_id();
-		$this->user_facilities($facilities, $distid, $userid);
+		$this->user_facilities($facilities, $userid);
 		$rows = $this->db->affected_rows();
 		if ($rows > 0) {
 			return "User has been Added";
@@ -171,11 +171,10 @@ class Auth_mdl extends CI_Model
 			return "Operation failed";
 		}
 	}
-	public function user_facilities($facilities, $distid, $userid)
+	public function user_facilities($facilities, $userid)
 	{
 		//get district
-		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
-		$distn = $distname->row()->district;
+	
 
 		for ($i = 1; $i < count($facilities); $i++) :
 
@@ -186,7 +185,7 @@ class Auth_mdl extends CI_Model
 			$insert = array(
 				"user_id" => $userid,
 				"facility_id" => "$fac_id",
-				"facility_name" => "$facn",
+				"facility" => "$facn",
 			
 
 			);
