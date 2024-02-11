@@ -269,10 +269,47 @@ class Api extends RestController
     // Post Staff
     public function staff_list_post()
     {
-        $this->response([
-            'status' => 'SUCCESS',
-            'message' => 'Testing',
-        ], 200);
+        // Get the POST data
+        $post_data = $this->post();
+
+        // Check if any data is received
+        if (!empty($post_data)) {
+            // Accessing specific fields from the received data
+            $enrolled = $post_data['enrolled'];
+            $facility = $post_data['facility'];
+            $facility_id = $post_data['facility_id'];
+            $firstname = $post_data['firstname'];
+            $id = $post_data['id'];
+            $ihris_pid = $post_data['ihris_pid'];
+            $job = $post_data['job'];
+            $surname = $post_data['surname'];
+            $synced = $post_data['synced'];
+            $template = $post_data['template'];
+            $face_data = $post_data['face_data'];
+            $fingerprint_data = $post_data['fingerprint_data'];
+
+            $data = [
+                'ihris_pid' => $ihris_pid,
+                'enrolled' => 1,
+                'face_data' => $face_data,
+                'fingerprint_data' => $fingerprint_data
+            ];
+
+            // Perform any other necessary operations with the data
+            $this->mEmployee->post_staff_list($data);
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Data received successfully',
+                'data' => $post_data,  // You can send back the received data in the response
+            ], 200);
+        } else {
+            // No data received
+            $this->response([
+                'status' => 'FAILURE',
+                'message' => 'No data received',
+            ], 400);
+        }
     }
 
     // Get Staff Details
@@ -307,7 +344,7 @@ class Api extends RestController
         $data = $this->post();
         // For Each Data as a record
         foreach ($data as $record) {
-            $userRecord =  array();
+            $userRecord = array();
             $userRecord['entry_id'] = $record['entry_id'];
             $userRecord['ihris_pid'] = $record['ihris_pid'];
             $userRecord['facility_id'] = $record['facility_id'];
@@ -343,13 +380,11 @@ class Api extends RestController
 
     public function clock_users_post()
     {
-
-
         $data = $this->post();
         $clocked_ids = array();
 
         foreach ($data as $record) {
-            $userRecord =  array();
+            $userRecord = array();
             $userRecord['entry_id'] = $record['entry_id'];
             $userRecord['ihris_pid'] = $record['ihris_pid'];
             $userRecord['facility_id'] = $record['facility_id'];
@@ -412,7 +447,8 @@ class Api extends RestController
         } else {
             $upload_data = $this->upload->data();
             $data['file_info'] = $upload_data;
-            $this->response(['status' => 'SUCCESS',
+            $this->response([
+                'status' => 'SUCCESS',
                 'message' => 'Fingerprint Uploaded',
                 'file_info' => $upload_data
             ], 200);
@@ -445,7 +481,8 @@ class Api extends RestController
         } else {
             $upload_data = $this->upload->data();
             $data['file_info'] = $upload_data;
-            $this->response(['status' => 'SUCCESS',
+            $this->response([
+                'status' => 'SUCCESS',
                 'message' => 'Picture Uploaded',
                 'file_info' => $upload_data
             ], 200);
@@ -455,9 +492,6 @@ class Api extends RestController
     // Check Device Time in sync with server
     public function check_time_get()
     {
-
-
-
         $time = $this->get('time', true);
 
         // Get current server time
@@ -520,5 +554,71 @@ class Api extends RestController
             'message' => 'Success',
             'facilities' => $facilities
         ]);
+    }
+
+    public function clock_user_mobile_post()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $userId = $decoded['user_id'];
+
+            // Extract data from the request
+            $data = array(
+                // Assuming you receive data such as entry_id, ihris_pid, facility_id, time_in, time_out, date, status, location, source, facility from the client
+                'entry_id' => $this->post('entry_id'),
+                'ihris_pid' => $this->post('ihris_pid'),
+                'facility_id' => $this->post('facility_id'),
+                'time_in' => $this->post('time_in'),
+                'time_out' => $this->post('time_out'),
+                'date' => $this->post('date'),
+                'status' => $this->post('status'),
+                'location' => $this->post('location'),
+                'source' => $this->post('source'),
+                'facility' => $this->post('facility')
+            );
+
+            // Call the model method to insert data into the database
+            $this->mEmployee->clock_user_mobile($data);
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Data inserted successfully'
+            ]);
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function enroll_user_mobile_post()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $userId = $decoded['user_id'];
+
+            // Extract data from the request
+            $data = array(
+                // Assuming you receive data such as enrolled, face_data, fingerprint_data, ihris_pid from the client
+                'enrolled' => $this->post('enrolled'),
+                'face_data' => $this->post('face_data'),
+                'fingerprint_data' => $this->post('fingerprint_data'),
+                'ihris_pid' => $this->post('ihris_pid')
+            );
+
+            // Call the model method to insert data into the database
+            $this->mEmployee->enroll_user_mobile($data);
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Data inserted successfully'
+            ]);
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -4,7 +4,7 @@ class Apiemployee_model extends CI_Model
 {
 
     // Get Clock History of a faciliry
-    public function get_clock_history($facilityId) 
+    public function get_clock_history($facilityId)
     {
         $this->db->select('*');
         $this->db->from('clock_history');
@@ -12,7 +12,7 @@ class Apiemployee_model extends CI_Model
         $query = $this->db->get();
         return $query->result();
     }
-    
+
     // Get Staff List 
     public function get_staff_list($facilityId)
     {
@@ -24,6 +24,24 @@ class Apiemployee_model extends CI_Model
 
         $query = $this->db->get();
         return $query->result();
+    }
+
+    // Post Staff List
+    public function post_staff_list($data)
+    {
+        $ihris_pid = $data['ihris_pid'];
+
+        // Check if the record with the given 'ihris_pid' exists
+        $existing_record = $this->db->get_where('mobile_enroll', ['ihris_pid' => $ihris_pid])->row_array();
+
+        if ($existing_record) {
+            // If the record exists, update it
+            $this->db->where('ihris_pid', $ihris_pid);
+            $this->db->update('mobile_enroll', $data);
+        } else {
+            // If the record does not exist, insert it
+            $this->db->insert('mobile_enroll', $data);
+        }
     }
 
     // Get Staff Details
@@ -39,7 +57,6 @@ class Apiemployee_model extends CI_Model
     }
 
     public function enroll($data)
-
     {
         $this->db->insert('fingerprints', $data);
         return $this->db->insert_id();
@@ -51,16 +68,16 @@ class Apiemployee_model extends CI_Model
         return $this->db->insert_id();
     }
 
-    public function get_notifications_list($facilityID) {
+    public function get_notifications_list($facilityID)
+    {
         $this->db->select('*');
         $this->db->where('facility_id', $facilityID);
         $this->db->from('notifications');
         $query = $this->db->get();
 
-        if($query->num_rows()) {
+        if ($query->num_rows()) {
             return $query->result_array();
-        } else 
-        {
+        } else {
             return [];
         }
     }
@@ -131,5 +148,15 @@ class Apiemployee_model extends CI_Model
         $this->db->where('facility', $facilityName);
         $query = $this->db->get();
         return $query->row();
+    }
+
+    public function clock_user_mobile($data)
+    {
+
+    }
+
+    public function enroll_user_mobile($data)
+    {
+        
     }
 }
