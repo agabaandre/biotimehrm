@@ -152,11 +152,31 @@ class Apiemployee_model extends CI_Model
 
     public function clock_user_mobile($data)
     {
-
+        $this->db->insert('clk_log', $data);
+        return $this->db->insert_id(); // Return the ID of the inserted record if needed
     }
 
     public function enroll_user_mobile($data)
     {
-        
+        $this->db->insert('mobile_enroll', $data);
+        return $this->db->insert_id(); // Return the ID of the inserted record if needed
+    }
+
+    public function update_mobile_enroll($data)
+    {
+        // Extract ihris_pid from the data
+        $ihris_pid = $data['ihris_pid'];
+
+        // Check if a record with the given 'ihris_pid' exists in the mobile_enroll table
+        $existing_record = $this->db->get_where('mobile_enroll', ['ihris_pid' => $ihris_pid])->row_array();
+
+        if ($existing_record) {
+            // If the record exists, update it
+            $this->db->where('ihris_pid', $ihris_pid);
+            $this->db->update('mobile_enroll', $data);
+        } else {
+            // If the record does not exist, insert it
+            $this->db->insert('mobile_enroll', $data);
+        }
     }
 }

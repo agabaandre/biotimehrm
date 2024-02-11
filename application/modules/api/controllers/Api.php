@@ -621,4 +621,119 @@ class Api extends RestController
             ], 500);
         }
     }
+
+    // Route for uploading fpt files
+    public function upload_fpt_post()
+    {
+        try {
+            // Load the necessary libraries
+            $this->load->library('upload');
+
+            // Set upload configuration
+            $config['upload_path'] = './uploads/fpt/'; // Change this to your desired upload directory
+            $config['allowed_types'] = 'fpt'; // Allowed file types
+            $config['max_size'] = 2048; // Maximum file size in kilobytes
+
+            // Initialize the upload library with the configuration
+            $this->upload->initialize($config);
+
+            // Perform the upload
+            if (!$this->upload->do_upload('fpt_file')) {
+                // If the upload fails, return an error response
+                $error = $this->upload->display_errors();
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Unable to upload fpt file',
+                    'error' => $error
+                ], 500);
+            } else {
+                // If upload succeeds, get the file data
+                $upload_data = $this->upload->data();
+                $file_path = $upload_data['full_path']; // Path to the uploaded file
+
+                // Read the content of the fpt file
+                $fpt_content = file_get_contents($file_path);
+
+                // Extract ihris_pid from the filename or request data, assuming ihris_pid is included in the request
+                $ihris_pid = $this->post('ihris_pid');
+
+                // Update mobile_enroll table with fingerprint data and ihris_pid
+                $data = array(
+                    'fingerprint_data' => $fpt_content,
+                    'ihris_pid' => $ihris_pid
+                );
+
+                // Call the model method to update mobile_enroll
+                $this->mEmployee->update_mobile_enroll($data);
+
+                // Return success response
+                $this->response([
+                    'status' => 'SUCCESS',
+                    'message' => 'Fingerprint data uploaded and mobile enroll updated successfully'
+                ], 200);
+            }
+        } catch (Exception $e) {
+            // Return error response if any exception occurs
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Route for uploading face images
+    public function upload_face_post()
+    {
+        try {
+            // Load the necessary libraries
+            $this->load->library('upload');
+
+            // Set upload configuration
+            $config['upload_path'] = './uploads/faces/'; // Change this to your desired upload directory
+            $config['allowed_types'] = 'jpg|jpeg|png'; // Allowed image types
+            $config['max_size'] = 2048; // Maximum file size in kilobytes
+
+            // Initialize the upload library with the configuration
+            $this->upload->initialize($config);
+
+            // Perform the upload
+            if (!$this->upload->do_upload('face_image')) {
+                // If the upload fails, return an error response
+                $error = $this->upload->display_errors();
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Unable to upload face image',
+                    'error' => $error
+                ], 500);
+            } else {
+                // If upload succeeds, get the file data
+                $upload_data = $this->upload->data();
+                $file_path = $upload_data['full_path']; // Path to the uploaded file
+
+                // Extract ihris_pid from the filename or request data, assuming ihris_pid is included in the request
+                $ihris_pid = $this->post('ihris_pid');
+
+                // Update mobile_enroll table with face data and ihris_pid
+                $data = array(
+                    'face_data' => $file_path, // Assuming you store the file path in the database
+                    'ihris_pid' => $ihris_pid
+                );
+
+                // Call the model method to update mobile_enroll
+                $this->mEmployee->update_mobile_enroll($data);
+
+                // Return success response
+                $this->response([
+                    'status' => 'SUCCESS',
+                    'message' => 'Face image uploaded and mobile enroll updated successfully'
+                ], 200);
+            }
+        } catch (Exception $e) {
+            // Return error response if any exception occurs
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
