@@ -682,7 +682,7 @@ class Api extends RestController
     }
 
     // Route for uploading face images
-    public function upload_face_post()
+    public function upload_faces_post()
     {
         try {
             // Load the necessary libraries
