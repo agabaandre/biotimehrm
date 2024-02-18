@@ -148,7 +148,7 @@ if($delete){
 $this->log($msg);   
 }
 public function getMohEmployees(){
-$qry=$this->db->query("SELECT distinct ihris_pid,department_id,facility_id FROM ihrisdata WHERE ihrisdata.facility_id IN ('facility|787')");
+$qry=$this->db->query("SELECT distinct ihris_pid,department_id,facility_id FROM ihrisdata WHERE ihrisdata.facility_id='facility|787'");
 	$employees=$qry->result();
 	return $employees;
 }
