@@ -378,46 +378,40 @@ class Api extends RestController
         ], 404);
     }
 
-    public function clock_users_post()
+    public function clock_user_post()
     {
         $data = $this->post();
-        $clocked_ids = array();
 
-        foreach ($data as $record) {
-            $userRecord = array();
-            $userRecord['entry_id'] = $record['entry_id'];
-            $userRecord['ihris_pid'] = $record['ihris_pid'];
-            $userRecord['facility_id'] = $record['facility_id'];
-            $userRecord['time_in'] = $record['time_in'];
-            $userRecord['time_out'] = $record['time_out'];
-            $userRecord['date'] = $record['date'];
-            $userRecord['status'] = $record['status'];
-            // Location, Source, Facility
-            $userRecord['location'] = $record['location'];
-            $userRecord['source'] = $record['source'];
-            $userRecord['facility'] = $record['facility'];
+        // Assuming $data contains only one record, you can directly access it
+        $userRecord = array();
+        $userRecord['entry_id'] = $data['entry_id'];
+        $userRecord['ihris_pid'] = $data['ihris_pid'];
+        $userRecord['facility_id'] = $data['facility_id'];
+        $userRecord['time_in'] = $data['time_in'];
+        $userRecord['time_out'] = $data['time_out'];
+        $userRecord['date'] = $data['date'];
+        $userRecord['status'] = $data['status'];
+        // Location, Source, Facility
+        $userRecord['location'] = $data['location'];
+        $userRecord['source'] = $data['source'];
+        $userRecord['facility'] = $data['facility'];
 
-            $result = $this->mEmployee->clock($userRecord);
+        $result = $this->mEmployee->clock($userRecord);
 
-            if ($result != null) {
-                array_push($clocked_ids, $result);
-            }
-        }
-
-        if (count($clocked_ids) > 0) {
+        if ($result != null) {
             $this->response([
                 'status' => true,
                 'message' => 'Clocking successful',
                 'data' => [
-                    'clocked_ids' => $clocked_ids
+                    'clocked_id' => $result
                 ]
             ], 200);
+        } else {
+            $this->response([
+                'status' => false,
+                'message' => 'Clocking failed'
+            ], 401);
         }
-
-        $this->response([
-            'status' => false,
-            'message' => 'Clocking failed'
-        ], 401);
     }
 
     // Upload Device Resources
