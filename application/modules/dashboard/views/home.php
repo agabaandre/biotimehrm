@@ -667,7 +667,7 @@
 
 
  		// Chain the functions in order
- 		loadDashboardData()
+ 		 loadDashboardData()
  			.then(function() {
  				return loadAttendanceCalendar();
  			})
