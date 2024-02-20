@@ -157,7 +157,7 @@ class Apiemployee_model extends CI_Model
         }
         else if (!empty($data['time_out']))
         {
-        $timeout = array('timeout'=>$data['timeout']);
+        $timeout = array('time_out'=>$data['time_out']);
         $entryid = $data['time_out'];
         $this->db->where('entry_id',"$entryid");
         $this->db->update('clk_log', $timeout);
