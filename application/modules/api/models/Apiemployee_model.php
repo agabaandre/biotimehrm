@@ -158,12 +158,15 @@ class Apiemployee_model extends CI_Model
         else if (!empty($data['time_out']))
         {
         $timeout = array('time_out'=>$data['time_out']);
-        $entryid = $data['time_out'];
-        $this->db->where('entry_id',"$entryid");
-        $this->db->update('clk_log', $timeout);
+        $entryid = array('time_out' => $data['entry_id']);
+
+        $this->clock_out_mobile($entryid,$timeout);
 
         }
         return $this->db->insert_id(); // Return the ID of the inserted record if needed
+    }
+    public function clock_out_mobile($entry_id,$timeout){
+        return $this->db->query("UPDATE clk_log set time_out='$timeout' WHERE entry_id='$entry_id'");
     }
 
     public function enroll_user_mobile($data)
