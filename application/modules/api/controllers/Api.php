@@ -558,8 +558,8 @@ class Api extends RestController
 
             // Extract data from the request
         
-            $facility  = $this->post('facility');   
-            $facility_id = $this->db->query("SELECT  facility_id from  ihrisdata  where facility LIKE '$facility%'")->row()->facility_id;
+            $ihris_pid = $this->post('ihris_pid');
+            $facility_id = $this->db->query("SELECT  facility_id from  ihrisdata  where ihris_pid='$ihris_pid%'")->row()->facility_id;
 
             $tin= $this->post('time_in');
            
