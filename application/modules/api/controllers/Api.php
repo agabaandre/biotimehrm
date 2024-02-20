@@ -557,17 +557,30 @@ class Api extends RestController
             $userId = $decoded['user_id'];
 
             // Extract data from the request
+        
+            $facility  = $this->post('facility');   
+            $facility_id = $this->db->query("SELECT  facility_id from  'ihrisdata'  where facility LIKE '$facility%'")->row()->facility_id;
+
+            $tin= $this->post('time_in');
+            $timein= date('Y-m-d H:s', strtotime($tin));
+
+            $tout = $this->post('time_out');
+            $timeout = date('Y-m-d H:s', strtotime($tout));
+
+            $dt = $this->post('date');
+            $date = date('Y-m-d', strtotime($dt));
+
             $data = array(
                 // Assuming you receive data such as entry_id, ihris_pid, facility_id, time_in, time_out, date, status, location, source, facility from the client
                 'entry_id' => $this->post('entry_id'),
                 'ihris_pid' => $this->post('ihris_pid'),
-                'facility_id' => $this->post('facility_id'),
-                'time_in' => $this->post('time_in'),
-                'time_out' => $this->post('time_out'),
-                'date' => $this->post('date'),
+                'facility_id' => $facility_id,
+                'time_in' => $timein,
+                'time_out' => $timeout,
+                'date' => $dt,
                 'status' => $this->post('status'),
                 'location' => $this->post('location'),
-                'source' => $this->post('source'),
+                'source' => 'Mobile App',
                 'facility' => $this->post('facility')
             );
 
