@@ -562,11 +562,20 @@ class Api extends RestController
             $facility_id = $this->db->query("SELECT  facility_id from  ihrisdata  where facility LIKE '$facility%'")->row()->facility_id;
 
             $tin= $this->post('time_in');
-            $timein= date('Y-m-d H:s', strtotime($tin));
+           
+            $date_time = DateTime::createFromFormat('d/m/Y H:i', $tin);
+            if ($date_time !== false) {
+                $timein = $date_time->format('Y-m-d H:i:s');
+            }
+
 
             $tout = $this->post('time_out');
-            $timeout = date('Y-m-d H:s', strtotime($tout));
 
+            $date_time2 = DateTime::createFromFormat('d/m/Y H:i', $tout);
+            if ($date_time2 !== false) {
+                $timeout = $date_time2->format('Y-m-d H:i:s');
+            }
+          
             $dt = $this->post('date');
             $date = date('Y-m-d', strtotime($dt));
 
