@@ -152,7 +152,17 @@ class Apiemployee_model extends CI_Model
 
     public function clock_user_mobile($data)
     {
+        if(!empty($data['time_in'])){
         $this->db->insert('clk_log', $data);
+        }
+        else if (!empty($data['time_out']))
+        {
+        $timeout = array('timeout'=>$data['timeout']);
+        $entryid = $data['time_out'];
+        $this->db->where('entry_id',"$entryid");
+        $this->db->update('clk_log', $timeout);
+
+        }
         return $this->db->insert_id(); // Return the ID of the inserted record if needed
     }
 
