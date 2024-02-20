@@ -576,7 +576,7 @@ class Api extends RestController
 
             $this->response([
                 'status' => 'SUCCESS',
-                'message' => 'Data inserted successfully'
+                'message' => json_encode($data)
             ]);
         } catch (Exception $e) {
             $this->response([
