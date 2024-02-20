@@ -579,9 +579,11 @@ class Api extends RestController
                 'time_out' => $timeout,
                 'date' => $dt,
                 'status' => $this->post('status'),
-                'location' => $this->post('location'),
+                'location' => $this->post('facility'),
                 'source' => 'Mobile App',
-                'facility' => $this->post('facility')
+                'facility' => $this->post('facility'),
+                'longitude' => $this->post('longitude'),
+                'latitude' => $this->post('latitude'),
             );
 
             // Call the model method to insert data into the database
