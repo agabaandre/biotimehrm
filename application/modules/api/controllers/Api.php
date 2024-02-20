@@ -583,7 +583,7 @@ class Api extends RestController
                 'source' => 'Mobile App',
                 'facility' => $this->post('facility'),
                 'longitude' => $this->post('longitude'),
-                'latitude' => $this->post('latitude'),
+                'latitude' => $this->post('latitude')
             );
 
             // Call the model method to insert data into the database
