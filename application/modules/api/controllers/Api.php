@@ -292,7 +292,8 @@ class Api extends RestController
                 'ihris_pid' => $ihris_pid,
                 'enrolled' => 1,
                 'face_data' => $face_data,
-                'fingerprint_data' => $fingerprint_data
+                'fingerprint_data' => $fingerprint_data,
+                '$template' => $template
             ];
 
             // Perform any other necessary operations with the data
