@@ -266,7 +266,7 @@ class Api extends RestController
         ], 200);
     }
 
-    // Post Staff
+    // SENDING ENROLLMENT RECORDS to the server
     public function staff_list_post()
     {
         // Get the POST data
