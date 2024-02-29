@@ -108,6 +108,7 @@ class Biotimejobs extends MX_Controller
 
         if ($response) {
             $message = $this->biotimejobs_mdl->add_ihrisdata($response);
+            dd(count($response));
             $this->log($message);
         }
         $process = 2;
