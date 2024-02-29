@@ -25,7 +25,7 @@ class Biotimejobs_mdl extends CI_Model
            foreach($response as $data){
                           
             
-                 $query = $this->db->replace('ihrisdata',$data);
+                 $query = $this->db->insert('ihrisdata',$data);
             }
 
         //$delete = $this->db->query("DELETE from ihrisdata where facility_id='facility|787' AND card_number IS NULL");
@@ -50,7 +50,7 @@ class Biotimejobs_mdl extends CI_Model
 
         
         foreach($datas as $data){
-            $query = $this->db->replace('ihrisdata', $data);
+            $query = $this->db->insert('ihrisdata', $data);
         }
         
 
