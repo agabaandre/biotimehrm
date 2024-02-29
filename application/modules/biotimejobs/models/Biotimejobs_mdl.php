@@ -45,10 +45,14 @@ class Biotimejobs_mdl extends CI_Model
 
     }
 
-    public function add_ucmbdata($data)
+    public function add_ucmbdata($datas)
     {
 
-        $query = $this->db->insert_batch('ihrisdata', $data);
+        
+        foreach($datas as $data){
+            $query = $this->db->replace('ihrisdata', $data);
+        }
+        
 
         if ($query) {
             $n = $this->db->query("select ihris_pid from ihrisdata");
