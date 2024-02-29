@@ -17,7 +17,7 @@ class Biotimejobs_mdl extends CI_Model
         //     $this->db->query("TRUNCATE `ihrisdata`");
         // }
         // $query = $this->db->insert_batch('ihrisdata', $data);
-         $this->db->truncate('ihrisdata_staging');
+         $this->db->truncate('ihrisdata');
         
 
            if ($response) {
