@@ -11,12 +11,22 @@ class Biotimejobs_mdl extends CI_Model
     }
 
 
-    public function add_ihrisdata($data)
+    public function add_ihrisdata($response)
     {
-        if (count($data) > 1) {
-            $this->db->query("TRUNCATE `ihrisdata`");
-        }
-        $query = $this->db->insert_batch('ihrisdata', $data);
+        // if (count($data) > 1) {
+        //     $this->db->query("TRUNCATE `ihrisdata`");
+        // }
+        // $query = $this->db->insert_batch('ihrisdata', $data);
+         $this->db->truncate('ihrisdata_staging');
+        
+
+           if ($response) {
+
+           foreach($response as $data){
+                          
+            
+                 $query = $this->db->replace('ihrisdata',$data);
+            }
 
         //$delete = $this->db->query("DELETE from ihrisdata where facility_id='facility|787' AND card_number IS NULL");
 
@@ -28,8 +38,11 @@ class Biotimejobs_mdl extends CI_Model
         } else {
             $message = print_r($this->exect()) . " get_ihrisdata() add_ihrisdata()  IHRIS HRH FAILED ";
         }
+    }
+
 
         return $message;
+
     }
 
     public function add_ucmbdata($data)
