@@ -107,8 +107,9 @@ class Biotimejobs extends MX_Controller
         $response = $http->sendiHRISRequest('apiv1/index.php/api/ihrisdata', "GET", $headers, []);
 
         if ($response) {
-            $message = $this->biotimejobs_mdl->add_ihrisdata($response);
             dd(count($response));
+            $message = $this->biotimejobs_mdl->add_ihrisdata($response);
+           
             $this->log($message);
         }
         $process = 2;
