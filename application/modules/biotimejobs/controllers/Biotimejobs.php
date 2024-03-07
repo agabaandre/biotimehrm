@@ -913,8 +913,10 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function generate_dates($start_date = '2023-07-01', $end_date = '2024-02-19')
+    public function fetch_time_history($start_date = '2023-07-01', $end_date = '2024-02-19')
     {
+        ignore_user_abort(true);
+        ini_set('max_execution_time', 0);
         $dates = array();
         $currentDate = strtotime($start_date); // Convert start date to a timestamp
         $endDate = strtotime($end_date); // Convert end date to a timestamp
