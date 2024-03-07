@@ -923,7 +923,7 @@ class Biotimejobs extends MX_Controller
         while ($currentDate <= $endDate) {
             $dates = date('Y-m-d', $currentDate);
 
-            print_r($dates);
+            print_r($dates).'<br>';
             
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
