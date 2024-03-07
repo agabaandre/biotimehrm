@@ -913,5 +913,19 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
+    public function generate_dates($start_date = '2023-07-01', $end_date = '2024-02-19')
+    {
+        $dates = array();
+        $currentDate = strtotime($start_date); // Convert start date to a timestamp
+        $endDate = strtotime($end_date); // Convert end date to a timestamp
+
+        // Loop through and generate dates
+        while ($currentDate <= $endDate) {
+            $dates[] = date('Y-m-d', $currentDate); // Format the current timestamp as date and add to array
+            $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
+        }
+
+        dd($dates);
+    }
 
 }
