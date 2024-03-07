@@ -921,9 +921,11 @@ class Biotimejobs extends MX_Controller
 
         // Loop through and generate dates
         while ($currentDate <= $endDate) {
-            $dates = date('Y-m-d', $currentDate);
+            $dates = date('Y-m-d H:i:s', $currentDate);
 
-            print_r($dates).'<br>';
+            print_r($dates);
+        
+        //   /$this->fetchBiotTimeLogs($dates = FALSE, $terminal = FALSE);
             
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
