@@ -924,7 +924,7 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function fetch_time_history($start_date = '2023-01-01', $end_date = '2023-12-31', $empcode=FALSE, $terminal_sn=FALSE)
+    public function fetch_time_history($start_date = '2023-01-01', $end_date = '2023-02-29', $empcode=FALSE, $terminal_sn=FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
