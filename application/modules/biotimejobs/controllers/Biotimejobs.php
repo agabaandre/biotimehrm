@@ -942,7 +942,7 @@ class Biotimejobs extends MX_Controller
 
                 // $insert[] = $rowData;
             }
-            print_r($insert);
+            print_r($this->db->affected_rows());
           
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
