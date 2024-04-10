@@ -939,6 +939,7 @@ class Biotimejobs extends MX_Controller
                 );
 
                 $insert[] = $rowData;
+                print_r($insert);
                 $this->biotimejobs_mdl->add_time_logs($insert);
 
                 //dd($this->db->last_query());
@@ -946,7 +947,7 @@ class Biotimejobs extends MX_Controller
                 $this->logattendance("Data for-" . $dates . "\n");
                 }
 
-            echo "\e[31mInserted\e[0m " . $dates . PHP_EOL . PHP_EOL;
+            //echo "\e[31mInserted\e[0m " . $dates . PHP_EOL . PHP_EOL;
 
 
 
