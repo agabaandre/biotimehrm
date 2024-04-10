@@ -203,11 +203,11 @@ class Biotimejobs_mdl extends CI_Model
             $terminal_sn = "AND terminal_sn = '$terminal_sn'";
         }
 
-   
 
 
-        $data = $pg->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time FROM iclock_transaction WHERE DATE_TRUNC('day', punch_time)= '$date' $empcode $terminal_sn" )->result();
-       
+
+        $data = $pg->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, DATE(punch_time) as punch_date FROM iclock_transaction WHERE DATE_TRUNC('day', punch_time) = '$date' $empcode $terminal_sn")->result();
+
 
         return $data;
 
