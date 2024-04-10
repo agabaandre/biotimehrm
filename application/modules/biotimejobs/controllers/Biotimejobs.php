@@ -111,7 +111,7 @@ class Biotimejobs extends MX_Controller
             //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
             foreach($response as $data){
                 $this->db->where_not_in("ihris_pid", "(SELECT DISTINCT ihris_pid FROM ihris_data)");
-                $message = $this->db->insert('ihrisdata', $response);
+                $message = $this->db->insert('ihrisdata', $data);
             }
            
             $this->log($message);
