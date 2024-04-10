@@ -955,6 +955,8 @@ class Biotimejobs extends MX_Controller
 
             $this->db->insert_batch('biotime_data', $insert);
             $this->biotimeClockin();
+
+            $this->db->truncate('biotime_data');
            
           
             // Format the current timestamp as date and add to array
