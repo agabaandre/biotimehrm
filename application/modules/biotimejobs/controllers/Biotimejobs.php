@@ -925,7 +925,7 @@ class Biotimejobs extends MX_Controller
         while ($currentDate <= $endDate) {
             $dates = date('Y-m-d', $currentDate);
 
-            $data = $this->employee_model->get_attendance_data($dates, $empcode, $terminal_sn);
+            $data = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
         
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
