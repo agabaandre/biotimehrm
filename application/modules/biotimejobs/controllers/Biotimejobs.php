@@ -926,11 +926,15 @@ class Biotimejobs extends MX_Controller
             $dates = date('Y-m-d', $currentDate);
 
             $data = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
-        
+
+
+            $this->biotimejobs_mdl->add_daily_logs($data);
+
+
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate);
             $this->biotimeClockin();// Increment current date by 1 day
-            echo "Data for ".$dates. dump($data); 
+            $this->logattendance("Data for-".$dates); 
            
         }
         

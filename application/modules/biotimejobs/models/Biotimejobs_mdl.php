@@ -215,4 +215,30 @@ class Biotimejobs_mdl extends CI_Model
 
     }
 
+
+    public function add_daily_logs($data)
+    {
+        if (count($data) > 1) {
+            $this->db->query("CALL `biotime_cache`()");
+            $this->db->query("TRUNCATE biotime_data");
+        }
+        $query = $this->db->insert('biotime_data', $data);
+        $this->db->query(" DELETE from biotime_data where emp_code='0'");
+
+
+
+
+        if ($query) {
+            $n = $this->db->get("biotime_data");
+
+            $message = print_r($this->exect()) . " fetchBiotTimeLogs()  add_time_logs() Created Logs from Biotime " . $n->num_rows();
+            // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows());
+            // ");
+        } else {
+            $message = print_r($this->exect()) . " fetchBiotTimeLogs()  add_time_logs() Failed ";
+        }
+
+        return $message;
+    }
+
 }
