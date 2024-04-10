@@ -205,10 +205,10 @@ class Biotimejobs_mdl extends CI_Model
         }
 
         // Convert punch_time to date and compare it with the given date
-        $pg->where("DATE_TRUNC('day', punch_time) = ", $date, FALSE);
+        $pg->where("DATE_TRUNC('day', punch_time)", $date);
 
-        $data = $pg->get()->result();
-        return $data;
+        return $data = $pg->get()->result();
+
     }
 
 }
