@@ -17,16 +17,16 @@ class Biotimejobs_mdl extends CI_Model
         //     $this->db->query("TRUNCATE `ihrisdata`");
         // }
         // $query = $this->db->insert_batch('ihrisdata', $data);
-         $this->db->truncate('ihrisdata');
+        //  $this->db->truncate('ihrisdata');
         
 
-           if ($response) {
+        //    if ($response) {
 
-           foreach($response as $data){
+        //    foreach($response as $data){
                           
             
-                 $query = $this->db->insert('ihrisdata',$data);
-            }
+                 $query = $this->db->insert('ihrisdata',$response);
+          //  }
 
         //$delete = $this->db->query("DELETE from ihrisdata where facility_id='facility|787' AND card_number IS NULL");
 
