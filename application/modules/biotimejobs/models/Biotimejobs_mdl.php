@@ -193,21 +193,23 @@ class Biotimejobs_mdl extends CI_Model
         $pg = $this->load->database('pg', TRUE);
 
 
-        $pg->select('emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time');
-        $pg->from('iclock_transaction');
+    
 
         if (!empty($empcode)) {
-            $pg->where("emp_code", $empcode);
+            $empcode = "AND  emp_code ='$empcode'";
         }
 
         if (!empty($terminal_sn)) {
-            $pg->where("terminal_sn", $terminal_sn);
+            $terminal_sn = "AND terminal_sn = '$terminal_sn'";
         }
 
-        // Convert punch_time to date and compare it with the given date
-        $pg->where("DATE_TRUNC('day', punch_time)=", $date);
+   
 
-        return $data = $pg->get()->result();
+
+        $data = $pg->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time FROM iclock_transaction WHERE DATE_TRUNC('day', punch_time)= '$date' $empcode $terminal_sn" );
+       
+
+        return $data;
 
     }
 
