@@ -939,10 +939,10 @@ class Biotimejobs extends MX_Controller
 
                 $insert[] = $rowData;
             }
-            print_r($insert);
+            $message = $this->biotimejobs_mdl->add_time_logs($insert);
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
-            echo "Data for ".$dates. dump($data); 
+            echo "Data for ".$dates. dump($insert); 
         }
         
      
