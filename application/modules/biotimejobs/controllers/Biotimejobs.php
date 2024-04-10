@@ -125,7 +125,7 @@ class Biotimejobs extends MX_Controller
             $status = "failed";
         }
         $this->cronjob_register($process, $method, $status);
-        //$this->get_ucmbdata();
+        $this->get_ucmbdata();
     }
     //employees all enrolled users before creating new ones.
 
@@ -141,7 +141,12 @@ class Biotimejobs extends MX_Controller
         $response = $http->sendUCMBiHRISRequest('apiv1/index.php/api/ihrisdata', "GET", $headers, []);
 
         if ($response) {
-            $message = $this->biotimejobs_mdl->add_ucmbdata($response);
+
+            foreach ($response as $data) {
+
+                $message = $this->db->replace('ihrisdata', $data);
+                ///dd($this->last->query);
+            }
             $this->log($message);
         }
         $process = 2;
