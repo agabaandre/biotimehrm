@@ -38,7 +38,7 @@ class Biotimejobs_mdl extends CI_Model
         } else {
             $message = print_r($this->exect()) . " get_ihrisdata() add_ihrisdata()  IHRIS HRH FAILED ";
         }
-    }
+    
 
 
         return $message;
