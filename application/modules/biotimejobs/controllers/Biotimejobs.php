@@ -930,19 +930,19 @@ class Biotimejobs extends MX_Controller
             $rows = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
            // (array)$rows;
 
-            foreach ($rows as $object) {
-                $rowData = array(
-                    "emp_code" => $object->emp_code,
-                    "terminal_sn" => $object->terminal_sn,
-                    "area_alias" => $object->area_alias,
-                    "longitude" => $object->longitude,
-                    "latitude" => $object->latitude,
-                    "punch_state" => $object->punch_state,
-                    "punch_date" => $object->punch_date // Changed to punch_date to match the object's key
-                );
+            // foreach ($rows as $object) {
+            //     $rowData = array(
+            //         "emp_code" => $object->emp_code,
+            //         "terminal_sn" => $object->terminal_sn,
+            //         "area_alias" => $object->area_alias,
+            //         "longitude" => $object->longitude,
+            //         "latitude" => $object->latitude,
+            //         "punch_state" => $object->punch_state,
+            //         "punch_date" => $object->punch_date // Changed to punch_date to match the object's key
+            //     );
 
-                $insert[] = $rowData;
-            }
+            //     $insert[] = $rowData;
+            // }
 
             //print_r($insert);
             dd($rows);
