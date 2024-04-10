@@ -925,11 +925,24 @@ class Biotimejobs extends MX_Controller
         while ($currentDate <= $endDate) {
             $dates = date('Y-m-d', $currentDate);
 
-            $data = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
+            $rows = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
 
-            $insert = (array) $data;
+            foreach ($rows as $object) {
+                $rowData = array(
+                    "emp_code" => $object->emp_code,
+                    "terminal_sn" => $object->terminal_sn,
+                    "area_alias" => $object->area_alias,
+                    "longitude" => $object->longitude,
+                    "latitude" => $object->latitude,
+                    "punch_state" => $object->punch_state,
+                    "punch_date" => $object->punch_date // Changed to punch_date to match the object's key
+                );
 
-            $this->biotimejobs_mdl->add_time_logs($insert);
+                $insert[] = $rowData;
+                $this->biotimejobs_mdl->add_time_logs($insert);
+                }
+
+           
 
 
             // Format the current timestamp as date and add to array
