@@ -934,8 +934,9 @@ class Biotimejobs extends MX_Controller
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate);
             $this->biotimeClockin();// Increment current date by 1 day
-            $this->logattendance("Data for-".$dates); 
-           
+            $this->logattendance("Data for-" . $dates . "\n");
+
+
         }
         
      
