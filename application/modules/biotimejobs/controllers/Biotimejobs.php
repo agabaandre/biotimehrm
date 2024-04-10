@@ -974,20 +974,8 @@ class Biotimejobs extends MX_Controller
     {
         $date = "2024-01-05";
         $rows = $this->employee_model->get_attendance_data($date, $empcode="", $terminal_s="");
-        foreach ($rows as $object) {
-            $rowData = array(
-                "emp_code" => $object->emp_code,
-                "terminal_sn" => $object->terminal_sn,
-                "area_alias" => $object->area_alias,
-                "longitude" => $object->longitude,
-                "latitude" => $object->latitude,
-                "punch_state" => $object->punch_state,
-                "punch_date" => $object->punch_date // Changed to punch_date to match the object's key
-            );
+      
 
-            $insert[] = $rowData;
-        }
-
-        print_r($insert);
+        dd($rows);
     }
 }
