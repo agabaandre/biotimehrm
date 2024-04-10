@@ -926,9 +926,10 @@ class Biotimejobs extends MX_Controller
             $dates = date('Y-m-d', $currentDate);
 
             $data = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
-             
 
-            $this->biotimejobs_mdl->add_time_logs($data);
+            $insert = (array) $data;
+
+            $this->biotimejobs_mdl->add_time_logs($insert);
 
 
             // Format the current timestamp as date and add to array
