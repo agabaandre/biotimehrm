@@ -111,7 +111,7 @@ class Biotimejobs extends MX_Controller
             //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
             foreach($response as $data){
 
-                $message = $this->db->replace('ihrisdata', $data);
+                $message = $this->db->insert('ihrisdata', $data);
                 dd($this->last->query);
             }
            
