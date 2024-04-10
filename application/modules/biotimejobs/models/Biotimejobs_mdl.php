@@ -190,6 +190,8 @@ class Biotimejobs_mdl extends CI_Model
     }
     public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
     {
+        ignore_user_abort(true);
+        ini_set('max_execution_time', 0);
         $pg = $this->load->database('pg', TRUE);
 
 
