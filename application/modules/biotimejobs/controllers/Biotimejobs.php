@@ -913,13 +913,11 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function fetch_time_history($empcode=FALSE, $terminal_sn=FALSE)
+    public function fetch_time_history($start_date = '2023-06-30', $end_date = '2023-07-01', $empcode=FALSE, $terminal_sn=FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
         $dates = array();
-        $start_date = '2023-01-01';
-        $end_date = '2023-03-05';
         $currentDate = strtotime($start_date); // Convert start date to a timestamp
         $endDate = strtotime($end_date); // Convert end date to a timestamp
 
@@ -927,55 +925,17 @@ class Biotimejobs extends MX_Controller
         while ($currentDate <= $endDate) {
             $dates = date('Y-m-d', $currentDate);
 
-            $rows = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
-           // (array)$rows;
-
-            // foreach ($rows as $object) {
-            //     $rowData = array(
-            //         "emp_code" => $object->emp_code,
-            //         "terminal_sn" => $object->terminal_sn,
-            //         "area_alias" => $object->area_alias,
-            //         "longitude" => $object->longitude,
-            //         "latitude" => $object->latitude,
-            //         "punch_state" => $object->punch_state,
-            //         "punch_date" => $object->punch_date // Changed to punch_date to match the object's key
-            //     );
-
-            //     $insert[] = $rowData;
-            // }
-
-            //print_r($insert);
-            dd($rows);
-            $this->biotimejobs_mdl->add_time_logs($rows);
-            $this->biotimeClockin();// Increment current date by 1 day
-            $this->logattendance("Data for-" . $dates . "\n");
-
-            //echo "\e[31mInserted\e[0m " . $dates . PHP_EOL . PHP_EOL;
-
-
-
-
-
-
+            $data = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
+        
             // Format the current timestamp as date and add to array
-            $currentDate = strtotime('+1 day', $currentDate);
-         
-
-
+            $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
+            echo "Data for ".$dates. dump($data); 
         }
         
      
-    /// echo "Completed Successfuly";
+     echo "Completed Successfuly";
 
       
     }
 
-    public function get_attendance()
-    {
-        $date = "2024-01-05";
-        $rows = $this->employee_model->get_attendance_data($date, $empcode="", $terminal_s="");
-      
-
-        dd($rows);
-    }
 }
