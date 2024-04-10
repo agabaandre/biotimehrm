@@ -938,7 +938,7 @@ class Biotimejobs extends MX_Controller
                     "punch_state" => $object->punch_state,
                     "punch_time" => $datetime // Changed to punch_date to match the object's key
                 );
-                $this->db->insert($rowData, 'biotime_data');
+                $this->db->insert("$rowData", 'biotime_data');
 
                 // $insert[] = $rowData;
             }
