@@ -928,7 +928,6 @@ class Biotimejobs extends MX_Controller
             $rows = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
            // (array)$rows;
 
-            $rows = $this->employee_model->get_attendance_data($date, $empcode, $terminal_sn);
             foreach ($rows as $object) {
                 $rowData = array(
                     "emp_code" => $object->emp_code,
