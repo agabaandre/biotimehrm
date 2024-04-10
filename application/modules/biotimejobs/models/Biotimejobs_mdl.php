@@ -190,8 +190,8 @@ class Biotimejobs_mdl extends CI_Model
     }
     public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
     {
-        ignore_user_abort(true);
-        ini_set('max_execution_time', 0);
+        // ignore_user_abort(true);
+        // ini_set('max_execution_time', 0);
         $pg = $this->load->database('pg', TRUE);
 
 
@@ -210,7 +210,7 @@ class Biotimejobs_mdl extends CI_Model
         $data = $pg->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time FROM iclock_transaction WHERE DATE(punch_time) = '$date' $empcode $terminal_sn")->result();
 
     
-  dd($this->db->last_query());
+         //dd($this->db->last_query());
         return $data;
 
     }
