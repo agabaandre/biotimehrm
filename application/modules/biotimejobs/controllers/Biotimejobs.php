@@ -934,7 +934,7 @@ class Biotimejobs extends MX_Controller
                     "longitude" => $object->longitude,
                     "latitude" => $object->latitude,
                     "punch_state" => $object->punch_state,
-                    "punch_date" => $object->punch_date // Changed to punch_date to match the object's key
+                    "punch_time" => $object->punch_time // Changed to punch_date to match the object's key
                 );
 
                 $insert[] = $rowData;
