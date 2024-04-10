@@ -940,15 +940,20 @@ class Biotimejobs extends MX_Controller
 
                 $insert[] = $rowData;
                 $this->biotimejobs_mdl->add_time_logs($insert);
+                $this->biotimeClockin();// Increment current date by 1 day
+                $this->logattendance("Data for-" . $dates . "\n");
                 }
 
-           
+            echo "\e[31mInserted\e[0m " . $dates . PHP_EOL . PHP_EOL;
+
+
+
+
 
 
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate);
-            $this->biotimeClockin();// Increment current date by 1 day
-            $this->logattendance("Data for-" . $dates . "\n");
+         
 
 
         }
