@@ -928,6 +928,7 @@ class Biotimejobs extends MX_Controller
 
             $rows = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
             foreach ($rows as $object) {
+                $datetime = date("Y-m-d H:i:s", strtotime($object->punch_time));
                 $rowData = array(
                     "emp_code" => $object->emp_code,
                     "terminal_sn" => $object->terminal_sn,
@@ -935,7 +936,7 @@ class Biotimejobs extends MX_Controller
                     "longitude" => $object->longitude,
                     "latitude" => $object->latitude,
                     "punch_state" => $object->punch_state,
-                    "punch_time" => $object->punch_time // Changed to punch_date to match the object's key
+                    "punch_time" => $datetime // Changed to punch_date to match the object's key
                 );
 
                 $insert[] = $rowData;
