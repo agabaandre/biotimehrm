@@ -108,7 +108,8 @@ class Biotimejobs extends MX_Controller
 
         if ($response) {
             dd(count($response));
-            $message = $this->biotimejobs_mdl->add_ihrisdata($response);
+            //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
+            $this ->db->insert_batch('ihrisdata',$response);
            
             $this->log($message);
         }
@@ -120,7 +121,7 @@ class Biotimejobs extends MX_Controller
             $status = "failed";
         }
         $this->cronjob_register($process, $method, $status);
-        $this->get_ucmbdata();
+        //$this->get_ucmbdata();
     }
     //employees all enrolled users before creating new ones.
 
