@@ -938,15 +938,18 @@ class Biotimejobs extends MX_Controller
                     "punch_state" => $object->punch_state,
                     "punch_time" => $datetime // Changed to punch_date to match the object's key
                 );
-                $this->db->insert('biotime_data',$rowData);
+           
 
-                // $insert[] = $rowData;
+                $insert[] = $rowData;
             }
+
+            $this->db->insert_batch('biotime_data', $rowData);
+            $this->biotimeClockin();
            
           
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
-            echo "Data for ".$dates. " ". print_r($this->db->affected_rows());; 
+            echo "Data for ".$dates. " ".($this->db->affected_rows());; 
         }
         
      
