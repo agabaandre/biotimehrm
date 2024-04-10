@@ -927,6 +927,23 @@ class Biotimejobs extends MX_Controller
 
             $rows = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
            // (array)$rows;
+
+            $rows = $this->employee_model->get_attendance_data($date, $empcode, $terminal_sn);
+            foreach ($rows as $object) {
+                $rowData = array(
+                    "emp_code" => $object->emp_code,
+                    "terminal_sn" => $object->terminal_sn,
+                    "area_alias" => $object->area_alias,
+                    "longitude" => $object->longitude,
+                    "latitude" => $object->latitude,
+                    "punch_state" => $object->punch_state,
+                    "punch_date" => $object->punch_date // Changed to punch_date to match the object's key
+                );
+
+                $insert[] = $rowData;
+            }
+
+            //print_r($insert);
             dd($rows);
             $this->biotimejobs_mdl->add_time_logs($rows);
             $this->biotimeClockin();// Increment current date by 1 day
