@@ -112,6 +112,7 @@ class Biotimejobs extends MX_Controller
             foreach($response as $data){
 
                 $message = $this->db->replace('ihrisdata', $data);
+                dd($this->last->query);
             }
            
             $this->log($message);
