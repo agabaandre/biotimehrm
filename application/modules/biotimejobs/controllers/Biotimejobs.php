@@ -913,7 +913,7 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function fetch_time_history($start_date = '2023-01-01', $end_date = '2024-03-02', $empcode=FALSE, $terminal_sn=FALSE)
+    public function fetch_time_history($start_date = '2023-01-01', $end_date = '2023-03-02', $empcode=FALSE, $terminal_sn=FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
@@ -940,6 +940,8 @@ class Biotimejobs extends MX_Controller
 
                 $insert[] = $rowData;
                 $this->biotimejobs_mdl->add_time_logs($insert);
+
+                dd($this->db->last_query());
                 $this->biotimeClockin();// Increment current date by 1 day
                 $this->logattendance("Data for-" . $dates . "\n");
                 }
