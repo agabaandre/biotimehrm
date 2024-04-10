@@ -190,11 +190,10 @@ class Biotimejobs_mdl extends CI_Model
     }
     public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
     {
-        // ignore_user_abort(true);
-        // ini_set('max_execution_time', 0);
         $pg = $this->load->database('pg', TRUE);
 
 
+    
 
         if (!empty($empcode)) {
             $empcode = "AND  emp_code ='$empcode'";
@@ -204,41 +203,14 @@ class Biotimejobs_mdl extends CI_Model
             $terminal_sn = "AND terminal_sn = '$terminal_sn'";
         }
 
+   
 
 
+        $data = $pg->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time FROM iclock_transaction WHERE DATE_TRUNC('day', punch_time)= '$date' $empcode $terminal_sn" )->result();
+       
 
-        $data = $pg->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time FROM iclock_transaction WHERE DATE(punch_time) = '$date' $empcode $terminal_sn")->result();
-
-    
-         //dd($this->db->last_query());
         return $data;
 
-    }
-
-
-    public function add_daily_logs($data)
-    {
-        if (count($data) > 1) {
-            $this->db->query("CALL `biotime_cache`()");
-            $this->db->query("TRUNCATE biotime_data");
-        }
-        $query = $this->db->insert('biotime_data', $data);
-        $this->db->query(" DELETE from biotime_data where emp_code='0'");
-
-
-
-
-        if ($query) {
-            $n = $this->db->get("biotime_data");
-
-            $message = print_r($this->exect()) . " fetchBiotTimeLogs()  add_time_logs() Created Logs from Biotime " . $n->num_rows();
-            // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows());
-            // ");
-        } else {
-            $message = print_r($this->exect()) . " fetchBiotTimeLogs()  add_time_logs() Failed ";
-        }
-
-        return $message;
     }
 
 }
