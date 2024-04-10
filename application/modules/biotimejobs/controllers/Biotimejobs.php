@@ -272,7 +272,8 @@ class Biotimejobs extends MX_Controller
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
             $response = $this->getTime($currentPage, $end_date = FALSE, $terminal = FALSE);
             foreach ($response->data as $mydata) {
-
+                $datetime = date("Y-m-d H:i:s", strtotime($mydata->punch_time));
+             
                 $data = array(
                     "emp_code" => $mydata->emp_code,
                     "terminal_sn" => $mydata->terminal_sn,
@@ -280,7 +281,7 @@ class Biotimejobs extends MX_Controller
                     "longitude" => $mydata->longitude,
                     "latitude" => $mydata->latitude,
                     "punch_state" => $mydata->punch_state,
-                    "punch_time" => $mydata->punch_time
+                    "punch_time" => $datetime
                 );
                 array_push($rows, $data);
             }
