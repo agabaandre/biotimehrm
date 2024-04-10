@@ -913,7 +913,7 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function fetch_time_history($start_date = '2024-01-01', $end_date = '2024-01-31')
+    public function fetch_time_history($start_date = '2023-06-30', $end_date = '2023-07-01', $empcode=FALSE, $terminal_sn=FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
@@ -923,12 +923,10 @@ class Biotimejobs extends MX_Controller
 
         // Loop through and generate dates
         while ($currentDate <= $endDate) {
-            $dates = date('Y-m-d H:i:s', $currentDate);
+            $dates = date('Y-m-d', $currentDate);
 
-           // print_r($dates);
+            $data = $this->employee_model->get_attendance_data($dates, $empcode, $terminal_sn);
         
-           $data = $this->fetchBiotTimeLogs($dates = FALSE, $terminal = FALSE);
-            
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
 

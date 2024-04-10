@@ -188,4 +188,24 @@ class Biotimejobs_mdl extends CI_Model
     {
         return  $this->benchmark->elapsed_time();
     }
+    public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
+    {
+        $this->pg->select('emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time');
+        $this->pg->from('iclock_transaction');
+
+        if (!empty($empcode)) {
+            $this->pg->where("emp_code", $empcode);
+        }
+
+        if (!empty($terminal_sn)) {
+            $this->pg->where("terminal_sn", $terminal_sn);
+        }
+
+        // Convert punch_time to date and compare it with the given date
+        $this->db->where("DATE(punch_time)", $date);
+
+        $data = $this->pg->get()->result();
+        return $data;
+    }
+
 }
