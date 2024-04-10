@@ -931,6 +931,7 @@ class Biotimejobs extends MX_Controller
             $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
 
         }
+        dd($data);
      
      echo "Completed Successfuly";
 
