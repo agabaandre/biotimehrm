@@ -926,26 +926,11 @@ class Biotimejobs extends MX_Controller
             $dates = date('Y-m-d', $currentDate);
 
             $rows = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
-
-            foreach ($rows as $object) {
-                $rowData = array(
-                    "emp_code" => $object->emp_code,
-                    "terminal_sn" => $object->terminal_sn,
-                    "area_alias" => $object->area_alias,
-                    "longitude" => $object->longitude,
-                    "latitude" => $object->latitude,
-                    "punch_state" => $object->punch_state,
-                    "punch_date" => $object->punch_date // Changed to punch_date to match the object's key
-                );
-
-                $insert[] = $rowData;
-                print_r($insert);
-                $this->biotimejobs_mdl->add_time_logs($insert);
-
-                //dd($this->db->last_query());
-                $this->biotimeClockin();// Increment current date by 1 day
-                $this->logattendance("Data for-" . $dates . "\n");
-                }
+            (array)$rows;
+            print_r($rows);
+            $this->biotimejobs_mdl->add_time_logs($rows);
+            $this->biotimeClockin();// Increment current date by 1 day
+            $this->logattendance("Data for-" . $dates . "\n");
 
             //echo "\e[31mInserted\e[0m " . $dates . PHP_EOL . PHP_EOL;
 
