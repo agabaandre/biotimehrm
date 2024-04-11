@@ -954,13 +954,14 @@ class Biotimejobs extends MX_Controller
             }
 
             $this->db->insert_batch('biotime_data', $insert);
-           // $this->biotimeClockin();
+            $this->biotimeClockin();
 
-            $this->db->truncate('biotime_data');
+           // $this->db->truncate('biotime_data');
            
           
             // Format the current timestamp as date and add to array
             $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
+            $this->biotimeClockin();
             echo "Data for ".$dates. " ".($this->db->affected_rows());; 
         }
         
