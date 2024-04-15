@@ -40,7 +40,7 @@ class Dashboard extends MX_Controller {
 	echo json_encode($data);
 	}
 	public function test_cache(){
-		$data = $this->cache->memcached->get('facility');
+		$data = $this->cache->memcached->get('dashboard');
 		print_r($this->session->userdata());
 	dd($data);
 	}
