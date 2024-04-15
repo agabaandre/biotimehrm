@@ -246,6 +246,7 @@ class Departments extends MX_Controller
     if (!empty($facility_id)) {
       $_SESSION['facility_name'] = urldecode($facility_name);
       $_SESSION['facility'] = urldecode($facility_id);
+      $this->cache->memcached->save('facility', $_SESSION['facility'], 43600);
     }
     $redirect = $this->input->post('direct');
     // $facility_id = $this->input->post('facility');

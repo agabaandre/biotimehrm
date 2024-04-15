@@ -24,9 +24,10 @@ class Dashboard extends MX_Controller {
 	}
 	public function dashboardData(){
 
-      if (!$cached_data = $this->cache->memcached->get('dashboard')) {
+      if ((!$cached_data = $this->cache->memcached->get('dashboard'))&& ($this->session->userdata('facility')==$this->cache->memcached->get('facility'))) {
     // Data not found in cache, perform your data retrieval or processing logic here
         $data = $this->dash_mdl->getData();
+    
 
     // Store the processed data in the cache
 		$this->cache->memcached->save('dashboard', $data, 13600); // Cache for 1 hour
