@@ -46,7 +46,7 @@ class Dashboard extends MX_Controller {
 		// 	// Data not found in cache, perform your data retrieval or processing logic here
 		$values = $this->cache->memcached->get('dashboard');
 		if (!empty($values)){
-			echo "cache". $values;
+			dd ("cache". $values);
 		}
 		// 	$data = $this->cache->memcached->get('dashboard');
 		// 	echo "cached";
