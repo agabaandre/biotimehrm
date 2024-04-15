@@ -922,7 +922,7 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function fetch_time_history($start_date = "2023-05-01", $end_date = '2023-05-30', $empcode = FALSE, $terminal_sn = FALSE)
+    public function fetch_time_history($start_date = "2023-01-01", $end_date = '2023-06-30', $empcode = FALSE, $terminal_sn = FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
@@ -973,17 +973,17 @@ class Biotimejobs extends MX_Controller
         }
 
         // Final completion message
-      echo  "\e[32mData insertion completed successfully.\e[0m";
+      echo  "\e[32mData insertion completed successfully.\e[0m\n";
 
         // clcokin
 
        $clock = $this->db->query("CALL copy_clk_log_data()");
        if ($clock){
-       echo  "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized";
+              $this->db->query("CALL insert_actuals()");
+       echo  "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized\n";
 
        }
 
-        $att = $this->markAttendance();
        
 
     }
