@@ -31,6 +31,7 @@ class Dashboard extends MX_Controller {
 		} 
 		else {
 		$data = $this->dash_mdl->getData();
+		$this->cache->memcached->save('dashboard', $data, 13600);
 				
 		}
 
@@ -40,7 +41,13 @@ class Dashboard extends MX_Controller {
 	public function cache_stats(){
 		//$data = $this->dash_mdl->getData();
 		$data =array();
-		$this->cache->memcached->save('dashboard', $data, 13600); // MemCache for 1 hour
+		$cached = $this->cache->memcached->save('dashboard', $data, 13600); // MemCache for 1 hour
+		if ($cached){
+			echo "Success";
+		}
+		else{
+			echo "failed";
+		}
 	}
 	public function get_dashboard()
 	{
