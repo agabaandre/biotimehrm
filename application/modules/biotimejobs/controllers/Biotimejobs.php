@@ -753,7 +753,7 @@ class Biotimejobs extends MX_Controller
 
         $this->biotimeClockout();
         $this->biotimeClockoutnight();
-        // $this->cache_dash_Data();
+        $this->markAttendance();
 
 
         $this->log($message);
@@ -781,7 +781,7 @@ class Biotimejobs extends MX_Controller
 
         echo $message = $this->db->affected_rows() . " Clocked Out";
         $this->log($message);
-        $this->markAttendance();
+        
     }
     //clockout night people
     public function biotimeClockoutnight()
@@ -826,7 +826,7 @@ class Biotimejobs extends MX_Controller
 
         echo $message = $this->db->affected_rows() . " Clocked Out";
         $this->log($message);
-        $this->markAttendance();
+     
     }
     public function markAttendance()
     {
