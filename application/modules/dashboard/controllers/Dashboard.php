@@ -38,6 +38,10 @@ class Dashboard extends MX_Controller {
 		
 	echo json_encode($data);
 	}
+	public function test_cache(){
+		$data =$this->cache->get('dashboard');
+	dd($data);
+	}
 	public function get_dashboard()
 	{
 		$html_content = $this->load->view('home', NULL, TRUE);
