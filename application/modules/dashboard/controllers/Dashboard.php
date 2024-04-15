@@ -46,15 +46,18 @@ class Dashboard extends MX_Controller {
 			// Data not found in cache, perform your data retrieval or processing logic here
 
 			$data = $this->cache->memcached->get('dashboard');
-
+			echo "cached";
+			dd($data);
 			// Store the processed data in the cache
 		} else {
 
 			$data = $this->dash_mdl->getData();
 			$this->cache->memcached->save('dashboard', $data, 13600); // Cache for 1 hour
+			echo "live";
+			dd($data);
 
 		}
-		dd($data);
+	
 	}
 	public function get_dashboard()
 	{
