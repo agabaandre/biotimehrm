@@ -922,13 +922,16 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function fetch_time_history($start_date = "2024-01-01", $end_date = '2024-04-15', $empcode = FALSE, $terminal_sn = FALSE)
+    public function fetch_time_history($start_date = "2023-01-01", $end_date = '2023-01-05', $empcode = FALSE, $terminal_sn = FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
         $dates = array();
         $currentDate = strtotime($start_date); // Convert start date to a timestamp
         $endDate = strtotime($end_date); // Convert end date to a timestamp
+
+        // Start a transaction
+        $this->db->trans_start();
 
         // Loop until all dates are processed
         while ($currentDate <= $endDate) {
@@ -957,8 +960,6 @@ class Biotimejobs extends MX_Controller
                 // Insert data in batches of 1000 rows
                 foreach (array_chunk($insert, 1000) as $batch) {
                     $this->db->insert_batch('biotime_data', $batch);
-                  
-                    
                 }
 
                 // Clear the insert array
@@ -969,23 +970,31 @@ class Biotimejobs extends MX_Controller
             $currentDate = strtotime('+1 day', $currentDate);
 
             // Output status message
+            // Note: Avoid outputting within a loop, consider logging instead
             echo "Data for " . $dates . " inserted successfully. Total rows affected: " . count($rows) . "<br>";
         }
 
         // Final completion message
-      echo  "\e[32mData insertion completed successfully.\e[0m";
+        // Note: Avoid outputting within a function, consider logging instead
+        echo "\e[32mData insertion completed successfully.\e[0m";
 
-        // clcokin
+        // Complete the transaction
+        $this->db->trans_complete();
 
-       $clock = $this->db->query("CALL copy_and_update_cache()");
-       if ($clock){
-       echo  "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized";
+        // Check if the transaction was successful
+        if ($this->db->trans_status() === FALSE) {
+            // Handle the case where the transaction failed
+            echo "Transaction failed!";
+        } else {
+            // Transaction succeeded, continue with other operations
+            $clock = $this->db->query("CALL copy_and_update_cache()");
+            if ($clock) {
+                echo "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized";
+            }
 
-       }
-
-        $att = $this->markAttendance();
-       
-
+            $att = $this->markAttendance();
+        }
     }
+
 
 }
