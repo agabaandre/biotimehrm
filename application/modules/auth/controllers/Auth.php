@@ -79,6 +79,7 @@ class Auth extends MX_Controller
   {
     // print_r("USer".$userdata);
     if (!$userdata['isLoggedIn']) {
+      $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
       redirect("auth");
     } else {
       $this->session->set_userdata($userdata);
