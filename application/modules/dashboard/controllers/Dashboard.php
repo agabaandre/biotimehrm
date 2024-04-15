@@ -9,7 +9,7 @@ class Dashboard extends MX_Controller {
 
 			@$this->dashmodule="dashboard";
 			$this->load->model("dashboard_mdl",'dash_mdl');
-		    $this->load->driver('cache');
+		  
 
 
 	}

@@ -58,7 +58,7 @@ $autoload['packages'] = array();
 |
 |	$autoload['libraries'] = array('user_agent' => 'ua');
 */
-$autoload['libraries'] = array('database', 'session', 'pagination', 'ArgonHash','cache');
+$autoload['libraries'] = array('database', 'session', 'pagination', 'ArgonHash');
 
 /*
 | -------------------------------------------------------------------
@@ -79,7 +79,7 @@ $autoload['libraries'] = array('database', 'session', 'pagination', 'ArgonHash',
 |	$autoload['drivers'] = array('cache' => 'cch');
 |
 */
-$autoload['drivers'] = array();
+$autoload['drivers'] = array('cache');
 
 /*
 | -------------------------------------------------------------------
