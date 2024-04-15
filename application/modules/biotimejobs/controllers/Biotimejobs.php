@@ -784,14 +784,14 @@ class Biotimejobs extends MX_Controller
         
     }
     //clockout night people
-    public function biotimeClockoutnight()
+    public function biotimeClockoutnight($today=FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
 
         //get night shift people.
         $today = date('Y-m-d');
-        $yesterday = date("Y-m-d", strtotime("-1 day"));
+        $yesterday = date($today, strtotime("-1 day"));
 
         $nights = $this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,card_number from duty_rosta,ihrisdata where schedule_id='16' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
     )")->result();
@@ -830,17 +830,16 @@ class Biotimejobs extends MX_Controller
     }
     public function markAttendance()
     {
-        ignore_user_abort(true);
         ini_set('max_execution_time', 0);
         //poplulate actuals
         $query = $this->db->query("CALL insert_actuals()");
 
         $rowsnow = $this->db->affected_rows();
         if ($query) {
-          return  "\e[32m$rowsnow Attendance Records Marked\e[0m";
+          echo "\e[32m$rowsnow Attendance Records Marked\e[0m";
         } else {
 
-           return "\e[31mFailed to Mark\e[0m";
+           echo  "\e[31mFailed to Mark\e[0m";
         }
        
     }
@@ -974,6 +973,8 @@ class Biotimejobs extends MX_Controller
 
         // Final completion message
       echo  "\e[32mData insertion completed successfully.\e[0m\n";
+
+      $this->biotimeClockoutnight($dates);
 
         // clcokin
 
