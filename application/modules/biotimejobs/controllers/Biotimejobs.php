@@ -926,7 +926,7 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function fetch_time_history($start_date = "2023-07-02", $end_date = '2023-08-31', $empcode=FALSE, $terminal_sn=FALSE)
+    public function fetch_time_history($start_date = "2023-07-02", $end_date = '2023-12-31', $empcode = FALSE, $terminal_sn = FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
@@ -934,43 +934,48 @@ class Biotimejobs extends MX_Controller
         $currentDate = strtotime($start_date); // Convert start date to a timestamp
         $endDate = strtotime($end_date); // Convert end date to a timestamp
 
-        // Loop through and generate dates
+        // Loop until all dates are processed
         while ($currentDate <= $endDate) {
             $dates = date('Y-m-d', $currentDate);
+            $insert = array(); // Initialize the insert array for each date
 
+            // Fetch data from the database
             $rows = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
-            foreach ($rows as $object) {
-                $datetime = date("Y-m-d H:i:s", strtotime($object->punch_time));
-                $rowData = array(
-                    "emp_code" => $object->emp_code,
-                    "terminal_sn" => $object->terminal_sn,
-                    "area_alias" => $object->area_alias,
-                    "longitude" => $object->longitude,
-                    "latitude" => $object->latitude,
-                    "punch_state" => $object->punch_state,
-                    "punch_time" => $datetime // Changed to punch_date to match the object's key
-                );
-           
 
-                $insert[] = $rowData;
+            // Check if there is data to insert
+            if (!empty($rows)) {
+                foreach ($rows as $object) {
+                    $datetime = date("Y-m-d H:i:s", strtotime($object->punch_time));
+                    $rowData = array(
+                        "emp_code" => $object->emp_code,
+                        "terminal_sn" => $object->terminal_sn,
+                        "area_alias" => $object->area_alias,
+                        "longitude" => $object->longitude,
+                        "latitude" => $object->latitude,
+                        "punch_state" => $object->punch_state,
+                        "punch_time" => $datetime // Changed to punch_time to match the object's key
+                    );
+                    $insert[] = $rowData;
+                }
+
+                // Insert data in batches of 1000 rows
+                foreach (array_chunk($insert, 1000) as $batch) {
+                    $this->db->insert_batch('biotime_data', $batch);
+                }
+
+                // Clear the insert array
+                $insert = array();
             }
-            $this->db->truncate('biotime_data');
-            $this->db->insert_batch('biotime_data', $insert);
-            $this->biotimeClockin();
 
-         
-           
-               //ld
-            // Format the current timestamp as date and add to array
-            $currentDate = strtotime('+1 day', $currentDate); // Increment current date by 1 day
-            $this->biotimeClockin();
-            echo "Data for ".$dates. " ".($this->db->affected_rows());; 
+            // Increment current date by 1 day
+            $currentDate = strtotime('+1 day', $currentDate);
+
+            // Output status message
+            echo "Data for " . $dates . " inserted successfully. Total rows affected: " . count($rows) . "<br>";
         }
-        
-     
-     echo "Completed Successfuly";
 
-      
+        // Final completion message
+        echo "Data insertion completed successfully.<br>";
     }
 
 }
