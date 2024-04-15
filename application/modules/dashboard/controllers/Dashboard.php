@@ -44,10 +44,12 @@ class Dashboard extends MX_Controller {
 		$cached = $this->cache->memcached->save('dashboard', $data, 13600); // MemCache for 1 hour
 		if ($cached){
 			echo "Success";
+			$data = $this->cache->memcached->get('dashboard');
 		}
 		else{
 			echo "failed";
 		}
+
 	}
 	public function get_dashboard()
 	{
