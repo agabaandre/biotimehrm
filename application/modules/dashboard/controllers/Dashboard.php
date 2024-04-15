@@ -24,12 +24,12 @@ class Dashboard extends MX_Controller {
 	}
 	public function dashboardData(){
 
-      if (!$cached_data = $this->cache->get('dashboard')) {
+      if (!$cached_data = $this->cache->memcached->get('dashboard')) {
     // Data not found in cache, perform your data retrieval or processing logic here
         $data = $this->dash_mdl->getData();
 
     // Store the processed data in the cache
-		$this->cache->save('dashboard', $data, 13600); // Cache for 1 hour
+		$this->cache->memcached->save('dashboard', $data, 13600); // Cache for 1 hour
 		} else {
 			// Data found in cache, return it directly
 			$data = $cached_data;
@@ -39,7 +39,7 @@ class Dashboard extends MX_Controller {
 	echo json_encode($data);
 	}
 	public function test_cache(){
-		$data =$this->cache->get('dashboard');
+		$data = $this->cache->memcached->get('dashboard');
 	dd($data);
 	}
 	public function get_dashboard()
