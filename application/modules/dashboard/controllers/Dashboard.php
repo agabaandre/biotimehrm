@@ -44,7 +44,10 @@ class Dashboard extends MX_Controller {
 	public function test_cache(){
 		// if (($this->cache->memcached->get('bd')) && ($this->session->userdata('facility') == $this->cache->memcached->get('facility'))) {
 		// 	// Data not found in cache, perform your data retrieval or processing logic here
-
+		$values = $this->cache->memcached->get('dashboard');
+		if (!empty($values)){
+			echo $values;
+		}
 		// 	$data = $this->cache->memcached->get('dashboard');
 		// 	echo "cached";
 		// 	dd($this->cache->memcached->get('bd'));
@@ -58,7 +61,7 @@ class Dashboard extends MX_Controller {
 
 		// }
 
-		$values = $this->cache->memcached->get('dashboard');
+		
 		print_r($data);
 	
 	}
