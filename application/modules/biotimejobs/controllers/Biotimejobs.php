@@ -961,7 +961,7 @@ class Biotimejobs extends MX_Controller
                 // Insert data in batches of 1000 rows
                 foreach (array_chunk($insert, 1000) as $batch) {
                     $this->db->insert_batch('biotime_data', $batch);
-                    $this->biotimeClockin();
+                   // $this->biotimeClockin();
                     
                 }
 
