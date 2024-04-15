@@ -24,7 +24,7 @@ class Dashboard extends MX_Controller {
 	}
 	public function dashboardData(){
 
-      if (!$cached_data = $this->cache->get('cached_controller_data')) {
+      if (!$cached_data = $this->cache->get('dashboard')) {
     // Data not found in cache, perform your data retrieval or processing logic here
         $data = $this->dash_mdl->getData();
 
