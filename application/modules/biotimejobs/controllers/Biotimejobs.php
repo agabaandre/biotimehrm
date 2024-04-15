@@ -965,6 +965,7 @@ class Biotimejobs extends MX_Controller
             }
 
             // Increment current date by 1 day
+            $this->biotimeClockoutnight($dates);
             $currentDate = strtotime('+1 day', $currentDate);
 
             // Output status message
@@ -974,7 +975,7 @@ class Biotimejobs extends MX_Controller
         // Final completion message
       echo  "\e[32mData insertion completed successfully.\e[0m\n";
 
-      $this->biotimeClockoutnight($dates);
+     
 
         // clcokin
 
