@@ -360,11 +360,11 @@
  			// Your knobgauge function code here
  		}
 
- 		// function loadDashboardData() {
+ 		function loadDashboardData() {
  		// 	return new Promise(function(resolve, reject) {
  		// 		$.ajax({
  		// 			type: 'GET',
- 		// 			url: '<?php echo base_url('dashboard/dashboardData') ?>',
+ 		// 			url: '<?php //echo base_url('dashboard/dashboardData') ?>',
  		// 			dataType: 'json',
  		// 			data: '',
  		// 			async: true,
@@ -393,7 +393,7 @@
  		// 			}
  		// 		});
  		// 	});
- 		// }
+ 		}
 
  		function loadAttendanceCalendar() {
  			var base_url = $('.base_url').html();
