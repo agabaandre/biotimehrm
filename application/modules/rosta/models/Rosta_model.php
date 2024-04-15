@@ -19,7 +19,7 @@ class Rosta_model extends CI_Model
 		$newenddate = date('Y-m-d', strtotime($start . "+1 days")); //add one to prev date
 		$entry = $newstartdate . $_POST['hpid'];
 		$facility = $this->session->userdata['facility'];
-		$sql = "INSERT INTO duty_rosta (entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_date,duty_rosta.end) VALUES (?,?,?,?,?,?,?,?)";
+		$sql = "INSERT IGNORE INTO duty_rosta (entry_id,facility_id,department_id,ihris_pid,schedule_id,color,duty_date,duty_rosta.`end`) VALUES (?,?,?,?,?,?,?,?)";
 		$done = $this->db->query($sql, array($entry, $facility, $department, $_POST['hpid'], $_POST['duty'], $_POST['color'], $newstartdate, $newenddate));
 		if ($done) {
 			$rows = $this->db->affected_rows();
