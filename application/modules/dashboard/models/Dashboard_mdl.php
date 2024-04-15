@@ -49,7 +49,7 @@ class Dashboard_mdl extends CI_Model
         $fac = $this->db->query("Select max(last_gen) as date  from person_dut_final");
         $data['roster'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
         //Biotime att sync
-        $fac = $this->db->query("Select max(last_sync) as date  from biotime_data");
+        $fac = $this->db->query("Select max(last_sync) as date  from biotime_data_history");
         $data['biotime_last'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
 
         $fac = $this->db->query("SELECT * FROM actuals WHERE  schedule_id = 22 AND actuals.date = '$today' and facility_id='$facility'");
