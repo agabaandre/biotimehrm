@@ -9,8 +9,10 @@ class Dashboard extends MX_Controller {
 
 			@$this->dashmodule="dashboard";
 			$this->load->model("dashboard_mdl",'dash_mdl');
+		    $this->load->driver('cache');
 
-			}
+
+	}
 
 	public function index()
 	{
@@ -21,8 +23,19 @@ class Dashboard extends MX_Controller {
 		echo Modules::run('templates/main',$data);
 	}
 	public function dashboardData(){
+
+      if (!$cached_data = $this->cache->get('cached_controller_data')) {
+    // Data not found in cache, perform your data retrieval or processing logic here
+        $data = $this->dash_mdl->getData();
+
+    // Store the processed data in the cache
+		$this->cache->save('dashboard', $data, 13600); // Cache for 1 hour
+		} else {
+			// Data found in cache, return it directly
+			$data = $cached_data;
+		}
+
 		
-		$data = $this->dash_mdl->getData();
 	echo json_encode($data);
 	}
 	public function get_dashboard()
