@@ -970,7 +970,7 @@ class Biotimejobs extends MX_Controller
             // Increment current date by 1 day
             $this->biotimeClockin();
             $this->db->query("CALL `biotime_cache`()");
-            $this->db->truncate('biotime_data');
+            // $this->db->truncate('biotime_data');
             $currentDate = strtotime('+1 day', $currentDate);
           
 
