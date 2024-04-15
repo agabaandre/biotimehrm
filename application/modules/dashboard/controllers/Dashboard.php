@@ -42,11 +42,14 @@ class Dashboard extends MX_Controller {
 	echo json_encode($data);
 	}
 	public function test_cache(){
-		// if (($this->cache->memcached->get('bd')) && ($this->session->userdata('facility') == $this->cache->memcached->get('facility'))) {
+		// if (($this->cache->memcached->get('bd')) && ($this->session->userdata('facility') == )) {
 		// 	// Data not found in cache, perform your data retrieval or processing logic here
 		$values = $this->cache->memcached->get('dashboard');
 		if (!empty($values)){
-			dd ($values);
+
+			 print_r($values);
+			 print_r($this->cache->memcached->get('facility'));
+			 print_r($this->session->userdata('facility'));
 		}
 		// 	$data = $this->cache->memcached->get('dashboard');
 		// 	echo "cached";
@@ -55,7 +58,7 @@ class Dashboard extends MX_Controller {
 		// } else {
 
 			$data = $this->dash_mdl->getData();
-		    $this->cache->memcached->save('dashboard', $data, 13600); // Cache for 1 hour
+		$this->cache->memcached->save('dashboard', $data, 120);  // Cache for 1 hour
 		// 	echo "live";
 		// 	dd($this->cache->memcached->get('bd'));
 
