@@ -59,6 +59,7 @@ class Dashboard extends MX_Controller {
 		// }
 
 		$data = $this->cache->memcached->get('dashboard');
+		print_r($data);
 	
 	}
 	public function get_dashboard()
