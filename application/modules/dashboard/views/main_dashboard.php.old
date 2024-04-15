@@ -32,10 +32,11 @@
 			});
 		}
 
-		// Fetch data immediately when the page loads
-		fetchDataAndUpdate();
+	// 	// Fetch data immediately when the page loads
+	// 	fetchDataAndUpdate();
 
-		// Update data every 30 minutes (30 * 60 * 1000 milliseconds)
-		setInterval(fetchDataAndUpdate, 30 * 60 * 1000);
-	});
+	// 	// Update data every 30 minutes (30 * 60 * 1000 milliseconds)
+	// 	setInterval(fetchDataAndUpdate, 30 * 60 * 1000);
+ });
+
 </script>
