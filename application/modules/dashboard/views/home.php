@@ -681,5 +681,3 @@
     //    }
     //  });
 </script>
-<script>
-</script>
