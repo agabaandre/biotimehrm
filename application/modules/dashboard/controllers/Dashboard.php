@@ -39,7 +39,7 @@ class Dashboard extends MX_Controller {
 	}
 	public function cache_stats(){
 		$data = $this->dash_mdl->getData();
-		$this->cache->memcached->save('dashboard', $data, 13600); // Cache for 1 hour
+		$this->cache->memcached->save('dashboard', $data, 13600); // MemCache for 1 hour
 	}
 	public function get_dashboard()
 	{
