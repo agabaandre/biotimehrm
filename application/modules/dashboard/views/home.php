@@ -402,7 +402,7 @@
         },
         // Get all events stored in database
         eventLimit: true, // allow "more" link when too many events
-        events: base_url + 'calendar/getattEvents',
+        events: base_url + 'calendar/',
         selectable: false,
         selectHelper: true,
         editable: false,
@@ -435,7 +435,7 @@
         },
         // Get all events stored in database
         eventLimit: true, // allow "more" link when too many events
-        events: base_url + 'calendar/getEvents',
+        events: base_url + '',
         selectable: false,
         selectHelper: true,
         editable: false,
