@@ -987,7 +987,7 @@ class Biotimejobs extends MX_Controller
             echo "Transaction failed!";
         } else {
             // Transaction succeeded, continue with other operations
-            $clock = $this->db->query("CALL copy_and_update_cache()");
+            $clock = $this->db->query("CALL copy_clk_log_data");
             if ($clock) {
                 echo "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized";
             }
