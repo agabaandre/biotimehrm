@@ -31,7 +31,7 @@ class Dashboard extends MX_Controller {
 		} 
 		else {
 		$data = $this->dash_mdl->getData();
-		$this->cache->memcached->save('dashboard', $data, 13600);
+		//$this->cache->memcached->save('dashboard', $data, 13600);
 				
 		}
 
