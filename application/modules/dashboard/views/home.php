@@ -360,40 +360,40 @@
  			// Your knobgauge function code here
  		}
 
- 		function loadDashboardData() {
- 			return new Promise(function(resolve, reject) {
- 				$.ajax({
- 					type: 'GET',
- 					url: '<?php echo base_url('dashboard/dashboardData') ?>',
- 					dataType: 'json',
- 					data: '',
- 					async: true,
- 					success: function(data) {
- 						// Update dashboard data
- 						$('#workers').text(data.workers);
- 						$('#facilities').text(data.facilities);
- 						$('#departments').text(data.departments);
- 						$('#jobs').text(data.jobs);
- 						$('#mystaff').text(data.mystaff);
- 						$('#ihris_sync').text(data.ihris_sync);
- 						$('#biometrics').text(data.biometrics);
- 						$('#roster').text(data.roster);
- 						$('#attendance').text(data.attendance);
- 						$('#biotime_last').text(data.biotime_last);
- 						$('#present').text(data.present);
- 						$('#offduty').text(data.offduty);
- 						$('#leave').text(data.leave);
- 						$('#request').text(data.request);
- 						$('#requesting').text(data.requesting);
- 						knobgauge(data.avg_hours);
- 						resolve();
- 					},
- 					error: function(error) {
- 						reject(error);
- 					}
- 				});
- 			});
- 		}
+ 		// function loadDashboardData() {
+ 		// 	return new Promise(function(resolve, reject) {
+ 		// 		$.ajax({
+ 		// 			type: 'GET',
+ 		// 			url: '<?php echo base_url('dashboard/dashboardData') ?>',
+ 		// 			dataType: 'json',
+ 		// 			data: '',
+ 		// 			async: true,
+ 		// 			success: function(data) {
+ 		// 				// Update dashboard data
+ 		// 				$('#workers').text(data.workers);
+ 		// 				$('#facilities').text(data.facilities);
+ 		// 				$('#departments').text(data.departments);
+ 		// 				$('#jobs').text(data.jobs);
+ 		// 				$('#mystaff').text(data.mystaff);
+ 		// 				$('#ihris_sync').text(data.ihris_sync);
+ 		// 				$('#biometrics').text(data.biometrics);
+ 		// 				$('#roster').text(data.roster);
+ 		// 				$('#attendance').text(data.attendance);
+ 		// 				$('#biotime_last').text(data.biotime_last);
+ 		// 				$('#present').text(data.present);
+ 		// 				$('#offduty').text(data.offduty);
+ 		// 				$('#leave').text(data.leave);
+ 		// 				$('#request').text(data.request);
+ 		// 				$('#requesting').text(data.requesting);
+ 		// 				knobgauge(data.avg_hours);
+ 		// 				resolve();
+ 		// 			},
+ 		// 			error: function(error) {
+ 		// 				reject(error);
+ 		// 			}
+ 		// 		});
+ 		// 	});
+ 		// }
 
  		function loadAttendanceCalendar() {
  			var base_url = $('.base_url').html();
