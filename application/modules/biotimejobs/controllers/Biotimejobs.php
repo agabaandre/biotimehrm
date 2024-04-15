@@ -837,10 +837,10 @@ class Biotimejobs extends MX_Controller
 
         $rowsnow = $this->db->affected_rows();
         if ($query) {
-          echo  "\e[32m$rowsnow Attendance Records Marked\e[0m";
+          return  "\e[32m$rowsnow Attendance Records Marked\e[0m";
         } else {
 
-           echo "\e[31mFailed to Mark\e[0m";
+           return "\e[31mFailed to Mark\e[0m";
         }
        
     }
@@ -982,6 +982,10 @@ class Biotimejobs extends MX_Controller
        echo  "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized";
 
        }
+
+        $att = $this->markAttendance();
+       
+
     }
 
 }
