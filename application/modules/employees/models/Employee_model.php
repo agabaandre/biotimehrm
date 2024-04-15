@@ -634,6 +634,7 @@ class Employee_model extends CI_Model
         }
         $this->db->where("clk_log.ihris_pid", $ihris_pid);
         $this->db->limit($limit, $start);
+        $this->db->order_by('date','DESC');
         $query = $this->db->get("clk_log");
         $data['timelogs'] = $query->result();
         //======userdata====
