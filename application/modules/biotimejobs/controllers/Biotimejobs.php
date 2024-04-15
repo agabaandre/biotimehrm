@@ -833,20 +833,16 @@ class Biotimejobs extends MX_Controller
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
         //poplulate actuals
-        $query = $this->db->query("REPLACE INTO actuals( entry_id, facility_id, department_id, ihris_pid, schedule_id, color,
-     actuals.date, actuals.end,stream ) SELECT DISTINCT CONCAT( clk_log.date, ihrisdata.ihris_pid ) AS entry_id, ihrisdata.facility_id, 
-     ihrisdata.department, ihrisdata.ihris_pid, schedules.schedule_id, schedules.color, clk_log.date, DATE_ADD(date, INTERVAL 01 DAY),clk_log.source FROM ihrisdata, 
-     clk_log, schedules WHERE ihrisdata.ihris_pid = clk_log.ihris_pid AND schedules.schedule_id =22 AND CONCAT( clk_log.date, ihrisdata.ihris_pid )
-      NOT IN (SELECT entry_id from actuals)");
+        $query = $this->db->query("CALL insert_actuals()");
 
         $rowsnow = $this->db->affected_rows();
         if ($query) {
-            echo $msg = "<font color='green'>" . $rowsnow . "  Attendance Records Marked</font><br>";
+          echo  "\e[32m$rowsnow Attendance Records Marked\e[0m";
         } else {
 
-            echo $msg = "<font color='red'>Failed to Mark</font><br>";
+           echo "\e[31mFailed to Mark\e[0m";
         }
-        $this->log($msg);
+       
     }
 
     //every 30th day monthly
@@ -977,12 +973,14 @@ class Biotimejobs extends MX_Controller
         }
 
         // Final completion message
-        echo "Data insertion completed successfully.<br>";
+      echo  "\e[32mData insertion completed successfully.\e[0m";
+
         // clcokin
 
        $clock = $this->db->query("CALL copy_and_update_cache()");
        if ($clock){
-        echo $this->db->affected_rows()." Recognised";
+       echo  "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized";
+
        }
     }
 
