@@ -977,13 +977,13 @@ class Biotimejobs extends MX_Controller
 
         // clcokin
 
-       $clock = $this->db->query("CALL copy_clk_log_data()");
-       if ($clock){
-       echo  "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized";
+    //    $clock = $this->db->query("CALL copy_clk_log_data()");
+    //    if ($clock){
+    //    echo  "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized";
 
-       }
+    //    }
 
-        $att = $this->markAttendance();
+    //     $att = $this->markAttendance();
        
 
     }
