@@ -25,7 +25,7 @@ class Dashboard extends MX_Controller {
 	public function dashboardData(){
 
 		
-		$data = $this->dash_mdl->getData();
+		$data = $this->dash_mdl->stats();
 	
 
 		
