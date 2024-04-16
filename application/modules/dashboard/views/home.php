@@ -384,7 +384,7 @@
                 $('#leave').text(data.leave);
                 $('#request').text(data.request);
                 $('#requesting').text(data.requesting);
-                knobgauge(data.avg_hours);
+                // knobgauge(data.avg_hours);
                 console.log(data);
             }
         });
