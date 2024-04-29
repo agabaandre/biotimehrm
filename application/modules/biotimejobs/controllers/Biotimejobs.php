@@ -1000,7 +1000,7 @@ class Biotimejobs extends MX_Controller
     public function fetch_daily_attendance(){
       
         $end_date = date('Y-m-d');
-        $this->terminals();
+       
         $machines = $this->db->get('biotime_devices')->result();
        foreach ($machines as $machine) {
         $machine = $machine->sn;
@@ -1012,6 +1012,8 @@ class Biotimejobs extends MX_Controller
         $this->biotimeClockin();
        
        }
+
+        $this->terminals();
 
       
 
