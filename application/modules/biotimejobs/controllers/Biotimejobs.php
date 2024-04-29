@@ -1008,7 +1008,7 @@ class Biotimejobs extends MX_Controller
         $start_timestamp = strtotime($startdate);
         $start = date('Y-m-d', $start_timestamp);
         $facility = $machine->area_name;
-        $this->fetch_time_history($startdate,$end_date,$machine,$facility);
+        $this->fetch_time_history($start,$end_date,$machine,$facility);
         $this->biotimeClockin();
        
        }
