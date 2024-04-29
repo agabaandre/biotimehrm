@@ -172,7 +172,7 @@ class Biotimejobs_mdl extends CI_Model
     {
 
        
-            $this->db->truncate('biotime_devices');
+        $this->db->truncate('biotime_devices');
         
         $query = $this->db->insert_batch('biotime_devices', $data);
         if ($query) {
