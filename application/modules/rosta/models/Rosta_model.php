@@ -154,35 +154,68 @@ class Rosta_model extends CI_Model
 		$rows = $all->num_rows();
 		return $rows;
 	}
-	public function fetch_tabs($valid_range, $start, $limit, $employee = FALSE, $filters=FALSE)
+	public function fetch_tabs($valid_range, $start, $limit, $employee = FALSE, $filters = FALSE)
 	{
 		$facility = $this->session->userdata['facility'];
-		$employee = $this->input->post('empid');
-		if (!empty($employee)) {
-			$search = "and ihrisdata.ihris_pid='$employee'";
-		} else {
-			$search = "";
-		}
-		if (!empty($employee)) {
-			$psearch = $employee;
-		} else {
-			$psearch = "";
+		$employeeId = $this->input->post('empid');
+
+		$searchCondition = $employeeId ? "AND ihrisdata.ihris_pid = ?" : "";
+		$limitCondition = !empty($start) ? "LIMIT ?, ?" : "";
+
+		$sql = "SELECT DISTINCT ihrisdata.ihris_pid,
+                   CONCAT(COALESCE(surname,''), ' ',
+                          COALESCE(firstname,''), ' ',
+                          COALESCE(othername,'')) AS fullname,
+                   ihrisdata.job
+            FROM ihrisdata
+            WHERE $filters $searchCondition
+            ORDER BY surname ASC
+            $limitCondition";
+
+		$bindings = array();
+		if ($employeeId) {
+			$bindings[] = $employeeId;
 		}
 		if (!empty($start)) {
-			$limits = " LIMIT $limit,$start";
-		} else {
-			$limits = " ";
+			$bindings[] = $start;
+			$bindings[] = $limit;
 		}
-		$all = $this->db->query("select distinct ihrisdata.ihris_pid,CONCAT(
-				COALESCE(surname,'','')
-				,' ',
-				COALESCE(firstname,'','')
-				,' ',
-				COALESCE(othername,'','')
-			) AS fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
-		$data = $all->result_array();
+
+		$query = $this->db->query($sql, $bindings);
+		$data = $query->result_array();
+
 		return $data;
 	}
+
+	// public function fetch_tabs($valid_range, $start, $limit, $employee = FALSE, $filters=FALSE)
+	// {
+	// 	$facility = $this->session->userdata['facility'];
+	// 	$employee = $this->input->post('empid');
+	// 	if (!empty($employee)) {
+	// 		$search = "and ihrisdata.ihris_pid='$employee'";
+	// 	} else {
+	// 		$search = "";
+	// 	}
+	// 	if (!empty($employee)) {
+	// 		$psearch = $employee;
+	// 	} else {
+	// 		$psearch = "";
+	// 	}
+	// 	if (!empty($start)) {
+	// 		$limits = " LIMIT $limit,$start";
+	// 	} else {
+	// 		$limits = " ";
+	// 	}
+	// 	$all = $this->db->query("select distinct ihrisdata.ihris_pid,CONCAT(
+	// 			COALESCE(surname,'','')
+	// 			,' ',
+	// 			COALESCE(firstname,'','')
+	// 			,' ',
+	// 			COALESCE(othername,'','')
+	// 		) AS fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
+	// 	$data = $all->result_array();
+	// 	return $data;
+	// }
 	public function fetchleave_tabs($date_range, $start, $limit, $employee = NULL)
 	{
 		$department = $this->department;
