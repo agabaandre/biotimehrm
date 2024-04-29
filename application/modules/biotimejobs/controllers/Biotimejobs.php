@@ -1010,8 +1010,19 @@ class Biotimejobs extends MX_Controller
         echo $start = date('Y-m-d', $new_timestamp);
         $facility = $machine->area_name;
         echo "Start Synchronisation for " . $device . " " . $facility;
-        $this->fetch_time_history($start,$end_date,$device,$facility);
-        $this->biotimeClockin();
+         
+            // Convert end date to timestamp
+            $end_timestamp = strtotime($end_date);
+
+            // Calculate the difference in seconds
+            $difference_seconds = $end_timestamp - $start_timestamp;
+
+            // If you want to convert the difference to days, you can do so
+            $difference_days = $difference_seconds / (60 * 60 * 24);
+            if($difference_days<60){
+            $this->fetch_time_history($start,$end_date,$device,$facility);
+            $this->biotimeClockin();
+            }
        
        }
 
@@ -1019,7 +1030,7 @@ class Biotimejobs extends MX_Controller
 
         $this->db->query("CALL `biotime_cache`()");
         $this->db->query("TRUNCATE biotime_data");
-
+      
       
 
 
