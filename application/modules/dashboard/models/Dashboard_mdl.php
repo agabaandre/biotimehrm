@@ -78,10 +78,45 @@ class Dashboard_mdl extends CI_Model
 
     public function stats()
     {
+
         $facility = $_SESSION['facility'];
+        //count health workers
         $userdata = $this->session->userdata();
         $date = $userdata['year'] . '-' . $userdata['month'];
         $today = date('Y-m-d');
+
+        $staff = $this->db->query("Select distinct(ihris_pid) from ihrisdata");
+        $data['workers'] = $staff->num_rows();
+        //count facilities
+        $fac = $this->db->query("Select * from facilities");
+        $data['facilities'] = $fac->num_rows();
+        //departments
+        $fac = $this->db->query("Select distinct(department) from ihrisdata");
+        $data['departments'] = $fac->num_rows();
+        //jobs
+        $fac = $this->db->query("Select * from jobs");
+        $data['jobs'] = $fac->num_rows();
+
+        //curent _facility_staff
+
+        $fac = $this->db->query("Select ihris_pid from ihrisdata where facility_id='$facility'");
+        $mystaff = $data['mystaff'] = $fac->num_rows();
+
+        //number of biotime devs
+        $fac = $this->db->query("Select *  from biotime_devices");
+        $data['biometrics'] = $fac->num_rows();
+
+        $fac = $this->db->query("Select max(last_update) as date  from ihrisdata where facility_id='$facility'");
+        $data['ihris_sync'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
+        //Att gen
+        $fac = $this->db->query("Select max(last_gen) as date  from person_att_final");
+        $data['attendance'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
+        //Roster gen
+        $fac = $this->db->query("Select max(last_gen) as date  from person_dut_final");
+        $data['roster'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
+        //Biotime att sync
+        $fac = $this->db->query("Select max(last_sync) as date  from biotime_data_history");
+        $data['biotime_last'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
 
         // Combine queries for similar data retrieval
         $queries = [
@@ -90,7 +125,6 @@ class Dashboard_mdl extends CI_Model
             "SELECT max(last_gen) as date FROM person_dut_final",
             "SELECT max(last_sync) as date FROM biotime_data"
         ];
-        $data = [];
         foreach ($queries as $query) {
             $fac = $this->db->query($query);
             $data[] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
