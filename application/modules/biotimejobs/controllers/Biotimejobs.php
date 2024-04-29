@@ -1001,14 +1001,14 @@ class Biotimejobs extends MX_Controller
       
         $end_date = date('Y-m-d');
        
-        $machines = $this->db->get('biotime_devices')->result();
+        $machines = $this->db->query("SELECT * FROM biotime_devices")->result();
        foreach ($machines as $machine) {
-        $machine = $machine->sn;
+        $device = $machine->sn;
         $startdate = $machine->last_activity;
         $start_timestamp = strtotime($startdate);
         $start = date('Y-m-d', $start_timestamp);
         $facility = $machine->area_name;
-        $this->fetch_time_history($start,$end_date,$machine,$facility);
+        $this->fetch_time_history($start,$end_date,$device,$facility);
         $this->biotimeClockin();
        
        }
