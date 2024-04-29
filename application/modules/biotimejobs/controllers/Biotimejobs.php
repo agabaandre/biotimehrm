@@ -1006,7 +1006,8 @@ class Biotimejobs extends MX_Controller
         $device = $machine->sn;
         $startdate = $machine->last_activity;
         $start_timestamp = strtotime($startdate);
-        $start = date('Y-m-d', $start_timestamp);
+        $new_timestamp = $start_timestamp - 86400; // Subtracting one day (86400 seconds)
+        echo $start = date('Y-m-d', $new_timestamp);
         $facility = $machine->area_name;
         echo "Start Synchronisation for " . $device . " " . $facility;
         $this->fetch_time_history($start,$end_date,$device,$facility);
