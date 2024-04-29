@@ -30,7 +30,7 @@ class Dashboard extends MX_Controller {
     // // Store the processed data in the cache
 	// 	} 
 	// 	else {
-		$data = $this->dash_mdl->getData();
+		$data = $this->dash_mdl->stats();
 		// $this->cache->memcached->save('dashboard', $data, 10800); //e
 				
 		// }
@@ -38,7 +38,7 @@ class Dashboard extends MX_Controller {
 		
 	echo json_encode($data);
 	}
-	
+
 	public function cache_stats(){
 		//$data = $this->dash_mdl->getData();
 		$data =array();
