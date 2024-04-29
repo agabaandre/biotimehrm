@@ -935,7 +935,7 @@ class Biotimejobs extends MX_Controller
         $dates = array();
         $currentDate = strtotime($start_date); // Convert start date to a timestamp
         $endDate = strtotime($end_date); // Convert end date to a timestamp
-        echo "Start Synchronisation for ".$terminal_sn. " ". $facility;
+        
         // Loop until all dates are processed
         while ($currentDate <= $endDate) {
             $dates = date('Y-m-d', $currentDate);
@@ -1008,12 +1008,16 @@ class Biotimejobs extends MX_Controller
         $start_timestamp = strtotime($startdate);
         $start = date('Y-m-d', $start_timestamp);
         $facility = $machine->area_name;
+        echo "Start Synchronisation for " . $device . " " . $facility;
         $this->fetch_time_history($start,$end_date,$device,$facility);
         $this->biotimeClockin();
        
        }
 
         $this->terminals();
+
+        $this->db->query("CALL `biotime_cache`()");
+        $this->db->query("TRUNCATE biotime_data");
 
       
 
