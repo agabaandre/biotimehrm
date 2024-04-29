@@ -1017,4 +1017,11 @@ class Biotimejobs extends MX_Controller
 
     }
 
+    public function daily_logs($ihris_pid,$date){
+        $this->db->where("date", "$date");
+        $this->db->where("ihris_pid","$ihris_pid");
+       $data =  $this->db->get('clk_log')->row();
+    echo json_encode($data);
+    }
+
 }
