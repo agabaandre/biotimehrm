@@ -997,7 +997,7 @@ class Biotimejobs extends MX_Controller
 
     }
 
-    public function fetch_daily_attenance(){
+    public function fetch_daily_attendance(){
       
         $end_date = date('Y-m-d');
         $this->terminals();
