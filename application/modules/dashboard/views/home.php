@@ -462,7 +462,7 @@
     });
     //duty roster graph
     <?php
-    $graph = Modules::run("reports/dutygraphData");
+    //$graph = Modules::run("reports/dutygraphData");
     ?>
     Highcharts.chart('line_graph_roster', {
         chart: {
@@ -499,7 +499,7 @@
         }]
     });
     <?php
-    $graph = Modules::run("reports/graphData");
+  //  $graph = Modules::run("reports/graphData");
     ?>
     Highcharts.chart('line_graph_att', {
         chart: {
