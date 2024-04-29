@@ -190,7 +190,7 @@ class Reports extends MX_Controller
 			$per_page = null;
 
 		$data['records'] = $this->reports_mdl->attendance_aggregates($search, $per_page, $page, $group_by);
-
+        dd($this->db->last_query());
 		if ($csv) {
 
 			$this->export_aggregates_csv($data['records'], $group_by);
