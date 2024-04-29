@@ -928,14 +928,14 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function fetch_time_history($start_date = "2024-04-20", $end_date = '2024-04-29', $empcode = FALSE, $terminal_sn = FALSE)
+    public function fetch_time_history($start_date, $end_date, $terminal_sn = FALSE,$facility=FALSE, $empcode = FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
         $dates = array();
         $currentDate = strtotime($start_date); // Convert start date to a timestamp
         $endDate = strtotime($end_date); // Convert end date to a timestamp
-
+        echo "Start Synchronisation for ".$terminal_sn. " ". $facility;
         // Loop until all dates are processed
         while ($currentDate <= $endDate) {
             $dates = date('Y-m-d', $currentDate);
@@ -976,7 +976,7 @@ class Biotimejobs extends MX_Controller
             $currentDate = strtotime('+1 day', $currentDate);
 
             // Output status message
-            echo "Data for " . $dates . " inserted successfully. Total rows affected: " . count($rows) . "<br>";
+            echo "Data for " . $dates . " inserted successfully. Total rows affected: " . count($rows) . " ".$terminal_sn."<br>";
         }
 
         // Final completion message
@@ -994,6 +994,26 @@ class Biotimejobs extends MX_Controller
        //}
 
        
+
+    }
+
+    public function fetch_daily_attenance(){
+      
+        $end_date = date('Y-m-d');
+        $machines = $this->db->get('biotime_devices')->result();
+       foreach ($machines as $machine) {
+        $machine = $machine->sn;
+        $startdate = $machine->last_activity;
+        $start_timestamp = strtotime($startdate);
+        $start = date('Y-m-d', $start_timestamp);
+        $facility = $machine->area_name;
+        $this->fetch_time_history($startdate,$end_date,$machine,$facility);
+        $this->biotimeClockin();
+       
+       }
+
+      
+
 
     }
 
