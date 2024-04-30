@@ -31,8 +31,10 @@ if (count($duties) > 0) {
 <?php } ?>
 
 <?php
-$posted_value = $month.'-'.$year;
-$current = date('m-Y');
+$pv = $year.'-'.$month;
+$posted_date = date('Y-m', strtotime($pv));
+$current_value = date('Y-m');
+
 if ($posted_value>$current_value) {
 	$state = "disabled";
 } 

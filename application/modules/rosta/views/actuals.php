@@ -35,6 +35,17 @@ function dayState($day, $scheduled)
 if (count($duties) > 0) {
 ?>
 <?php } ?>
+
+<?php
+$pv = $year . '-' . $month;
+$posted_date = date('Y-m', strtotime($pv));
+$current_value = date('Y-m');
+
+if ($posted_value > $current_value) {
+	$state = "disabled";
+}
+
+?>
 <div class="card">
 	<div class="">
 	</div>
