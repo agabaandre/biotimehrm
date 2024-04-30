@@ -42,7 +42,7 @@ if ($posted_timestamp > $current_timestamp) {
 	$state = "disabled";
 }
 
-print_r($state);
+//print_r($state);
 
 ?>
 <div class="card">
@@ -200,7 +200,7 @@ print_r($state);
 									</span>
 									<?php
 									for ($i = 1; $i < ($monthdays + 1); $i++) {
-										$state = "";
+	
 										$date_d = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i);
 										$pid    = $singleduty['ihris_pid'];
 										$entry_id = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i) . $singleduty['ihris_pid'];
@@ -209,7 +209,7 @@ print_r($state);
 										$record_type = (!empty($duty_letter)) ? "update duty" : "new duty";
 									?>
 										<span class="cell" data-label="Day<?php echo $i; ?>">
-											<input type="text" style="padding:0px; text-align: center;" class="<?php echo $record_type ?>" id="<?php echo $entry_id; ?>" day="<?php echo $i; ?>" pid="<?php echo $pid; ?>" pattern="[A-Za-z]+" size="1px" maxlength="1" title="Letters only for Duty" value="<?php echo $duty_letter; ?>" <?php echo $state; ?>>
+											<input type="text" style="padding:0px; text-align: center;" class="<?php echo $record_type ?>" id="<?php echo $entry_id; ?>" day="<?php echo $i; ?>" pid="<?php echo $pid; ?>" pattern="[A-Za-z]+" size="1px" maxlength="1" title="Letters only for Duty" value="<?php echo $duty_letter; ?>" <?php echo @$state; ?>>
 										</span>
 									<?php } // end for , one that loops tds 
 									?>
