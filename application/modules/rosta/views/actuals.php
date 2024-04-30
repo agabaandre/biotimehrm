@@ -45,7 +45,7 @@ if ($posted_value>$current_value) {
 	$state = "disabled";
 	
 }
-print_r($state);
+print_r($current_value);
 
 ?>
 <div class="card">
