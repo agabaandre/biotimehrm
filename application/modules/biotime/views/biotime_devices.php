@@ -42,12 +42,15 @@
                   <td data-label="Last Sync"><?php echo $machine->last_activity; ?></td>
                   <td data-label="Finger prints"><?php echo $machine->user_count; ?></td>
                   <td data-label="iP Address"><?php echo $machine->ip_address; ?></td>
-                  <td data-label="Status"><?php $todaydate = date('Y-m-d', strtotime($machine->last_activity));
-                                          if ($todaydate = date('Y-m-d')) {
-                                            echo "<p style='color:green'>Active</p>";
-                                          } else {
-                                            "<p style='color:red'>InActive</p>";
-                                          } ?></td>
+                  <td data-label="Status"><?php
+                  $todaydate = date('Y-m-d', strtotime($machine->last_activity));
+                  if ($todaydate === date('Y-m-d')) {
+                    echo "<p style='color:green'>Active</p>";
+                  } else {
+                    echo "<p style='color:red'>Inactive</p>";
+                  }
+                  ?>
+
 
 
                 </tr>
