@@ -43,6 +43,7 @@ $current_value = date('Y-m');
 
 if ($posted_value > $current_value) {
 	$state = "disabled";
+	print_r($state);
 }
 
 ?>
