@@ -32,6 +32,8 @@ if (count($duties) > 0) {
 
 <?php
 $pv = $year.'-'.$month;
+
+print_r($pv);
 $posted_date = date('Y-m', strtotime($pv));
 $current_value = date('Y-m');
 $posted_timestamp = strtotime($posted_date);
