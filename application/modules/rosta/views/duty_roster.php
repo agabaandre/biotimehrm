@@ -22,9 +22,22 @@ function dayState($day, $scheduled)
 	}
 	echo $state;
 } //color
+
+
+
+echo $state;
 if (count($duties) > 0) {
 ?>
 <?php } ?>
+
+<?php
+$posted_value = $month.'-'.$year;
+$current = date('m-Y');
+if ($posted_value>$current_value) {
+	$state = "disabled";
+} 
+
+?>
 <div class="card">
 	<div class="">
 	</div>
