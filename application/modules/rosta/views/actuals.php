@@ -41,12 +41,6 @@ $pv = $year . '-' . $month;
 $posted_date = date('Y-m', strtotime($pv));
 $current_value = date('Y-m');
 
-if ($posted_value>$current_value) {
-	$state = "disabled";
-	
-}
-print_r($current_value);
-
 ?>
 <div class="card">
 	<div class="">
@@ -184,7 +178,7 @@ print_r($current_value);
 									} else {
 										$color = "";
 									}
-									if (biotime_facility($facility) > 0) {
+									if ((biotime_facility($facility) > 0)|| ($posted_value>$current_value)) {
 										$state = "disabled";
 									}
 
