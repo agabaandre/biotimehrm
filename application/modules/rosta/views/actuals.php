@@ -41,11 +41,11 @@ $pv = $year . '-' . $month;
 $posted_date = date('Y-m', strtotime($pv));
 $current_value = date('Y-m');
 
-if ($posted_value > $current_value) {
+if ($posted_value>$current_value) {
 	$state = "disabled";
 	
 }
-print_r($posted_date);
+print_r($state);
 
 ?>
 <div class="card">
