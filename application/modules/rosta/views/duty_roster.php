@@ -31,7 +31,7 @@ if (count($duties) > 0) {
 <?php } ?>
 
 <?php
-$pv = $year.'-'.$month;
+$pv = $this->input->post('year').'-'.$this->input->post('month');
 
 print_r($pv);
 $posted_date = date('Y-m', strtotime($pv));
