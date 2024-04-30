@@ -11,11 +11,11 @@ function dayState($day, $scheduled)
 {
 	$user = $_SESSION['role'];
 	//its today or day in the past
-	// if (strtotime($day) < strtotime(date('Y-m-d')) && !empty($scheduled) && $user !== 'sadmin') {
-	// 	$state = "disabled";
-	// } else if (strtotime($day) < strtotime(date('Y-m-d')) && empty($scheduled) && $user !== 'sadmin') {
-	// 	$state = "";
-	// }
+	if (strtotime($day) < strtotime(date('Y-m-d')) && !empty($scheduled) && $user !== 'sadmin') {
+	$state = "disabled";
+	 } else if (strtotime($day) < strtotime(date('Y-m-d')) && empty($scheduled) && $user !== 'sadmin') {
+		$state = "";
+	}
 	//if they are scheduled to work
 	if (strtotime($day) > strtotime(date('Y-m-d'))) {
 		 $state = "disabled";
