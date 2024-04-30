@@ -199,7 +199,9 @@
 
 					<td><?php echo  $r_days; ?></td>
 					<td><?php echo  $present; ?></td>
-					<td><?php echo days_absent_helper($present, $r_days); ?></td>
+					<td><?php $ab = days_absent_helper($present, $r_days); if($ab<=0){ echo 0;} else{ echo $ab; 
+
+						};?></td>
 					<td data-label="Percentage Pr"><?php
 													echo  per_present_helper($present, $r_days);
 													?>

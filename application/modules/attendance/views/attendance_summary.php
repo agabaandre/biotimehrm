@@ -236,7 +236,9 @@
 
 						<span class="cell stcell " data-label="D"><?php echo  $r_days; ?></span>
 						<span class="cell stcell " data-label="D"><?php echo  $present; ?></span>
-						<span class="cell stcell" data-label="AB"><?php echo days_absent_helper($present, $r_days);
+						<span class="cell stcell" data-label="AB"><?php $ab = days_absent_helper($present, $r_days); if($ab<=0){ echo 0;} else{ echo $ab; 
+
+						};
 																	?>
 						</span>
 
