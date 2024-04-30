@@ -33,7 +33,6 @@ if (count($duties) > 0) {
 <?php
 $pv = $this->input->post('year').'-'.$this->input->post('month');
 
-print_r($pv);
 $posted_date = date('Y-m', strtotime($pv));
 $current_value = date('Y-m');
 $posted_timestamp = strtotime($posted_date);
@@ -43,6 +42,7 @@ if ($posted_timestamp > $current_timestamp) {
 	$state = "disabled";
 }
 
+print_r($state);
 
 ?>
 <div class="card">
