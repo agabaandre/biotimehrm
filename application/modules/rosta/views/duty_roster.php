@@ -11,16 +11,16 @@ function dayState($day, $scheduled)
 {
 	$user = $_SESSION['role'];
 	//its today or day in the past
-	if (strtotime($day) < strtotime(date('Y-m-d')) && !empty($scheduled) && $user !== 'sadmin') {
-		$state = "disabled";
-	} else if (strtotime($day) < strtotime(date('Y-m-d')) && empty($scheduled) && $user !== 'sadmin') {
-		$state = "";
-	}
+	// if (strtotime($day) < strtotime(date('Y-m-d')) && !empty($scheduled) && $user !== 'sadmin') {
+	// 	$state = "disabled";
+	// } else if (strtotime($day) < strtotime(date('Y-m-d')) && empty($scheduled) && $user !== 'sadmin') {
+	// 	$state = "";
+	// }
 	//if they are scheduled to work
 	if (strtotime($day) > strtotime(date('Y-m-d'))) {
-		$state = "disabled";
+		 $state = "disabled";
 	}
-	echo $state;
+	// echo $state;
 } //color
 
 
@@ -34,10 +34,13 @@ if (count($duties) > 0) {
 $pv = $year.'-'.$month;
 $posted_date = date('Y-m', strtotime($pv));
 $current_value = date('Y-m');
+$posted_timestamp = strtotime($posted_date);
+$current_timestamp = strtotime(date('Y-m') . ' +1 day');
 
-if ($posted_value>$current_value) {
+if ($posted_timestamp > $current_timestamp) {
 	$state = "disabled";
-} 
+}
+
 
 ?>
 <div class="card">
