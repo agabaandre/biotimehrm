@@ -39,7 +39,10 @@ if (count($duties) > 0) {
 <?php
 $pv = $year . '-' . $month;
 $posted_date = date('Y-m', strtotime($pv));
+
 $current_value = date('Y-m');
+$posted_timestamp = strtotime($posted_date);
+$current_timestamp = strtotime(date('Y-m'));
 
 ?>
 <div class="card">
@@ -178,7 +181,7 @@ $current_value = date('Y-m');
 									} else {
 										$color = "";
 									}
-									if ((biotime_facility($facility) > 0)|| ($posted_value>$current_value)) {
+									if ((biotime_facility($facility) > 0)|| ($posted_timestamp>$current_timestamp)) {
 										$state = "disabled";
 									}
 
