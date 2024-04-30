@@ -56,17 +56,21 @@ if (count($duties) > 0) {
 											</select>
 										</div>
 									</div>
-									<div class="col-md-3">
-										<div class="control-group">
-											<input type="hidden" id="year" value="<?php echo $year; ?>">
-											<select class="form-control select2" name="year" onchange="this.form.submit()">
-												<option><?php echo $year; ?></option>
-												<?php for ($i = -5; $i <= 25; $i++) {  ?>
-													<option><?php echo 2017 + $i; ?></option>
-												<?php }  ?>
-											</select>
-										</div>
-									</div>
+												<div class="col-md-3">
+					   <div class="control-group">
+						<input type="hidden" id="year" value="<?php echo $year; ?>">
+														<select class="form-control select2" name="year" onchange="this.form.submit()">
+															<option><?php echo $year; ?></option>
+															<?php
+															$currentYear = date("Y");
+															for ($i = -5; $i <= 0; $i++) {
+																$yearToAdd = $currentYear + $i;
+																?>
+																<option><?php echo $yearToAdd; ?></option>
+															<?php } ?>
+														</select>
+													</div>
+												</div>
 									<div class="col-md-3">
 										<div class="control-group">
 											<?php
