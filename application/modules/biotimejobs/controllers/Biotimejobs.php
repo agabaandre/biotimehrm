@@ -998,7 +998,7 @@ class Biotimejobs extends MX_Controller
     }
 
     public function fetch_daily_attendance(){
-      
+        $this->db->query("CALL `biotime_cache`()");
         $end_date = date('Y-m-d');
        
         $machines = $this->db->query("SELECT * FROM biotime_devices")->result();
@@ -1028,8 +1028,8 @@ class Biotimejobs extends MX_Controller
 
         $this->terminals();
 
-        $this->db->query("CALL `biotime_cache`()");
-        $this->db->query("TRUNCATE biotime_data");
+       
+        //$this->db->query("TRUNCATE biotime_data");
       
       
 
