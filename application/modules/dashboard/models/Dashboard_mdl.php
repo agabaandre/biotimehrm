@@ -115,7 +115,7 @@ class Dashboard_mdl extends CI_Model
         $fac = $this->db->query("Select max(last_gen) as date  from person_dut_final");
         $data['roster'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
         //Biotime att sync
-        $fac = $this->db->query("Select max(last_sync) as date  from biotime_data_history");
+        $fac = $this->db->query("Select min(last_sync) as date  from biotime_data");
         $data['biotime_last'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
 
         // Combine queries for similar data retrieval
