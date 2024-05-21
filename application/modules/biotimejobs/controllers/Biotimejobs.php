@@ -755,6 +755,8 @@ class Biotimejobs extends MX_Controller
         $this->biotimeClockoutnight();
         $this->markAttendance();
 
+        $this->db->query("CALL `biotime_cache`();");
+
 
         $this->log($message);
     }
@@ -998,7 +1000,7 @@ class Biotimejobs extends MX_Controller
     }
 
     public function fetch_daily_attendance(){
-        $this->db->query("CALL `biotime_cache`()");
+       
         $end_date = date('Y-m-d');
        
         $machines = $this->db->query("SELECT * FROM biotime_devices")->result();
