@@ -757,6 +757,8 @@ class Biotimejobs extends MX_Controller
 
         $this->db->query("CALL `biotime_cache`();");
 
+        $this->db->query("TRUNCATE TABLE biotime_data");
+
 
         $this->log($message);
     }
