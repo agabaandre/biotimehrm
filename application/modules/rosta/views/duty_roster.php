@@ -218,7 +218,7 @@ if ($posted_timestamp > $current_timestamp) {
 							?>
 						</div>
 						<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-						<?php if ($state != "" && $_SESSION['role'] !== "sadmin") {
+						<?php if ($state=='disabled' && $_SESSION['role'] !== "sadmin") {
 							echo "<center><h4><font color='red'>  Editing is locked , please contact the Admin</font></h4></center>";
 						}
 						?>
