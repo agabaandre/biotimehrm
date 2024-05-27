@@ -29,18 +29,18 @@ echo $state;
 if (count($duties) > 0) {
 ?>
 <?php } ?>
-
 <?php
 $pv = $this->input->post('year').'-'.$this->input->post('month');
 
 $posted_date = date('Y-m', strtotime($pv));
 $current_value = date('Y-m');
 $posted_timestamp = strtotime($posted_date);
-$current_timestamp = strtotime(date('Y-m') . ' +1 day');
+$current_timestamp = strtotime('first day of +2 months');
 
 if ($posted_timestamp > $current_timestamp) {
-	$state = "disabled";
+    $state = "disabled";
 }
+
 
 //print_r($state);
 
@@ -220,6 +220,8 @@ if ($posted_timestamp > $current_timestamp) {
 						<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 						<?php if ($state=='disabled' && $_SESSION['role'] !== "sadmin") {
 							echo "<center><h4><font color='red'>  Editing is locked , please contact the Admin</font></h4></center>";
+
+
 						}
 						?>
 					</div>
