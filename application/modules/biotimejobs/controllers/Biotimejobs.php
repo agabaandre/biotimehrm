@@ -1049,11 +1049,12 @@ class Biotimejobs extends MX_Controller
     echo json_encode($data);
     }
 
-	public function attendace_data($valid_range, $empid,$dep=FALSE)
+	public function attendace_data($valid_range, $fempid,$dep=FALSE)
 	{
 	    if (empty($valid_range)){
             $valid_range = date('Y-m');
         } 
+        $empid = urldecode($fempid);
 
 		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep);
 		
@@ -1109,7 +1110,7 @@ class Biotimejobs extends MX_Controller
 			);
 			array_push($records, $days);
 		}
-        dd($this->db->last_query());
+       // dd($this->db->last_query());
 
 		echo json_encode($records);
 	}
