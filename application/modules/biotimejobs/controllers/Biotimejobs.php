@@ -1049,7 +1049,7 @@ class Biotimejobs extends MX_Controller
     echo json_encode($data);
     }
 
-	public function attsums_csv($valid_range, $empid)
+	public function attendace_data($valid_range, $empid)
 	{
 	
 		$empid = $this->input->get('empid');
