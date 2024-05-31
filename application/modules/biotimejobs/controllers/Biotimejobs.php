@@ -1051,7 +1051,9 @@ class Biotimejobs extends MX_Controller
 
 	public function attendace_data($valid_range, $empid)
 	{
-	
+	    if (empty($valid_range)){
+            $valid_range = date('Y-m');
+        } 
 		$empid = $this->input->get('empid');
 		$dep = $this->input->get('department');
 		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep);
