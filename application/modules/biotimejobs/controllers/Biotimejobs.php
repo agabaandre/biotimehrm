@@ -1,4 +1,5 @@
 <?php
+use function GuzzleHttp\json_encode;
 date_default_timezone_set('Africa/Kampala');
 defined('BASEPATH') or exit('No direct script access allowed');
 
@@ -1048,4 +1049,66 @@ class Biotimejobs extends MX_Controller
     echo json_encode($data);
     }
 
+	public function attsums_csv($valid_range, $empid)
+	{
+	
+		$empid = $this->input->get('empid');
+		$dep = $this->input->get('department');
+		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep);
+		
+		$records = array(); //output each row of the data, format line as csv and write to file pointer
+		foreach ($datas as $data) {
+			$roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
+			if (!empty($data['P'])) {
+				$present = $data['P'];
+			} else {
+				$present = 0;
+			}
+			if (!empty($data['O'])) {
+				$off = $data['O'];
+			} else {
+				$off = 0;
+			};
+			if (!empty($data['L'])) {
+				$leave = $data['L'];
+			} else {
+				$leave = 0;
+			};
+			if (!empty($data['R'])) {
+				$request = $data['R'];
+			} else {
+				$request = 0;
+			};
+			if (!empty($data['P'])) {
+				$present = $data['P'];
+			} else {
+				$present = 0;
+			};
+			if (!empty($data['H'])) {
+				$holiday = $data['H'];
+			} else {
+				$holiday = 0;
+			};
+			$duty_date = $data['duty_date'];
+			$eve = $roster['Evening'][0]->days;
+			$day = $roster['Day'][0]->days;
+			$night = $roster['Night'][0]->days;
+			$r_days = ($eve + $day + $night);
+			if ($r_days == 0) {
+				$r_days = 22;
+			}
+			$absent = days_absent_helper($present, $r_days);
+
+			$per =  per_present_helper($present, $r_days);
+			$days = array(
+			"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department_id'], "Duty Date" => $duty_date, "Off
+		    Duty" => $off,
+				"Official
+		    Request" => $request, "Leave" => $leave, "Holiday" => $holiday,  "Total Days Expected" => $r_days, "Total Days Worked" => $present, "Total Days Absent" => $absent, "% Present" => $per
+			);
+			array_push($records, $days);
+		}
+
+		echo json_encode($records);
+	}
 }

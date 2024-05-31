@@ -132,4 +132,4 @@ $autoload['language'] = array();
 |
 |	$autoload['model'] = array('first_model' => 'first');
 */
-$autoload['model'] = array('dashboard/dashboard_mdl' => 'dash_mdl');
+$autoload['model'] = array('dashboard/dashboard_mdl' => 'dash_mdl','attendance/attendance_model' => 'attendance_model');
