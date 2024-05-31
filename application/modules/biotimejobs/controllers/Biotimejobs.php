@@ -1058,7 +1058,7 @@ class Biotimejobs extends MX_Controller
 
 		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep,'api');
 		
-		$records = array(); //output each row of the data, format line as csv and write to file pointer
+      //output each row of the data, format line as csv and write to file pointer
 		foreach ($datas as $data) {
 			$roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
 			if (!empty($data['P'])) {
@@ -1103,15 +1103,11 @@ class Biotimejobs extends MX_Controller
 
 			$per =  per_present_helper($present, $r_days);
 			$days = array(
-			"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department_id'], "Duty Date" => $duty_date, "Off
-		    Duty" => $off,
-				"Official
-		    Request" => $request, "Leave" => $leave, "Holiday" => $holiday,  "Total Days Expected" => $r_days, "Total Days Worked" => $present, "Total Days Absent" => $absent, "% Present" => $per
-			);
-			array_push($records, $days);
+			"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department_id'], "Duty Date" => $duty_date, "Off Duty" => $off, "Official Request" => $request, "Leave" => $leave, "Holiday" => $holiday,  "Total Days Expected at Work" => $r_days, "Total Days Worked" => $present, "Total Days Absent" => $absent, "% Present" => $per);
+			
 		}
        // dd($this->db->last_query());
 
-		echo json_encode($records);
+		echo json_encode($days);
 	}
 }
