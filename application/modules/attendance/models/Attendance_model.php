@@ -227,10 +227,10 @@ class 	Attendance_model extends CI_Model
 		return $rows;
 	}
 
-	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $department = NULL)
+	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $department = NULL,$endpoint=FALSE)
 	{
 		$facility = $_SESSION['facility'];
-			if (!empty($facility)) {
+			if (!empty($facility)&&($endpoint=='api')) {
 			$facility = "and facility_id='$facility'";
 		} else {
 			$facility = "";

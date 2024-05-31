@@ -1056,7 +1056,7 @@ class Biotimejobs extends MX_Controller
         } 
         $empid = urldecode($fempid);
 
-		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep);
+		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep,'api');
 		
 		$records = array(); //output each row of the data, format line as csv and write to file pointer
 		foreach ($datas as $data) {
