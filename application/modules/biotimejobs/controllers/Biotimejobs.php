@@ -1110,7 +1110,7 @@ class Biotimejobs extends MX_Controller
 			);
 			array_push($records, $days);
 		}
-        //dd($this->db->last_query());
+        dd($this->db->last_query());
 
 		echo json_encode($records);
 	}
