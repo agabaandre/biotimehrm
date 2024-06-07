@@ -232,19 +232,19 @@ class 	Attendance_model extends CI_Model
 		$facility_id = $_SESSION['facility'];
 
 		if (!empty($facility_id)&&($endpoint!='api')) {
-			$facility = "and facility_id='$facility_id'";
+			$facilityf = "and facility_id='$facility_id'";
 		} else {
-			$facility = "";
+			$facilityf = "";
 		}
 		if (!empty($facility) && ($endpoint== 'api')) {
-			$facility = "and facility_id='$facility'";
+			$facilityf = "and facility_id='$facility'";
 		} else {
-			$facility = "";
+			$facilityf = "";
 		}
 		if (!empty($district) && ($endpoint == 'api')) {
-			$district = "and district='$district'";
+			$districtf = "and district='$district'";
 		} else {
-			$district = "";
+			$districtf = "";
 		}
 		if (!empty($employee)&&($endpoint!='api')) {
 			$search = "and ihris_pid='$employee'";
@@ -262,7 +262,7 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$limits = " ";
 		}
-		$query = $this->db->query("SELECT * from person_att_final  WHERE duty_date='$valid_range' $facility $search $dep  $limits");
+		$query = $this->db->query("SELECT * from person_att_final  WHERE duty_date='$valid_range' $facilityf $districtf $search $dep  $limits");
 		$data = $query->result_array();
 		return $data;
 	} //summary
