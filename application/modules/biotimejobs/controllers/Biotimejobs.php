@@ -1116,37 +1116,117 @@ class Biotimejobs extends MX_Controller
 	// 	echo json_encode($days);
 	// }
 
+    // public function attendance_data($valid_range, $district = FALSE, $facility_id = FALSE)
+    // {
+    //     if (empty($valid_range)) {
+    //         $valid_range = date('Y-m');
+    //     }
+    //     $facility = urldecode($facility_id);
+    //     $district = urldecode($district);
+    //     $empid = "";
+    //     $dep = "";
+
+    //     $datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district, $facility, $empid, $dep, 'api');
+
+    //     $attendanceData = [];
+
+    //     foreach ($datas as $data) {
+    //         $roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
+    //         $ihris_pid = $data['ihris_pid'];
+    //         $facility_id = $data["facility_id"];
+    //         $district_id = $data["district"];
+    //         $cardnumber = get_field($data['ihris_pid'],'card_number');
+    //         $nin = get_field($data['ihris_pid'], 'nin');
+    //         $ipps = get_field($data['ihris_pid'], 'ipps');
+    //         $present = !empty($data['P']) ? $data['P'] : 0;
+    //         $off = !empty($data['O']) ? $data['O'] : 0;
+    //         $leave = !empty($data['L']) ? $data['L'] : 0;
+    //         $request = !empty($data['R']) ? $data['R'] : 0;
+    //         $holiday = !empty($data['H']) ? $data['H'] : 0;
+    //         $duty_date = $data['duty_date'];
+    //         $eve = $roster['Evening'][0]->days;
+    //         $day = $roster['Day'][0]->days;
+    //         $night = $roster['Night'][0]->days;
+    //         $r_days = ($eve + $day + $night);
+    //         if ($r_days == 0) {
+    //             $r_days = 22;
+    //         }
+
+    //         $absent = days_absent_helper($present, $r_days);
+    //         $per = per_present_helper($present, $r_days);
+
+    //         // Construct the normal JSON data structure
+    //         $attendance = [
+    //             "ihris_pid"=> $ihris_pid,
+    //             "ipps"=>$ipps,
+    //             'nin'=>$nin,
+    //             "card_number"=>$cardnumber,
+    //             "facility_id" => $facility_id,
+    //             "district" => $district_id,
+    //             "Name" => $data['fullname'],
+    //             "Job" => $data['job'],
+    //             "Department" => $data['department_id'],
+    //             "Duty Date" => $duty_date,
+    //             "Off Duty" => $off,
+    //             "Official Request" => $request,
+    //             "Leave" => $leave,
+    //             "Holiday" => $holiday,
+    //             "Total Days Expected at Work" => $r_days,
+    //             "Total Days Worked" => $present,
+    //             "Total Days Absent" => $absent,
+    //             "% Present" => $per
+    //         ];
+
+    //         $attendanceData[] = $attendance;
+    //     }
+
+    //     echo json_encode($attendanceData);
+    // }
     public function attendance_data($valid_range, $district = FALSE, $facility_id = FALSE)
     {
+        // Set the default date range if not provided
         if (empty($valid_range)) {
             $valid_range = date('Y-m');
         }
+
+        // Decode URL parameters
         $facility = urldecode($facility_id);
         $district = urldecode($district);
+
+        // Initialize necessary variables
         $empid = "";
         $dep = "";
 
+        // Fetch attendance summary data
         $datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district, $facility, $empid, $dep, 'api');
+
+        // Pre-fetch fields to reduce redundant database queries
+        $ihris_pids = array_column($datas, 'ihris_pid');
+        $fields = $this->get_fields_for_ihris_pids($ihris_pids, ['card_number', 'nin', 'ipps']);
 
         $attendanceData = [];
 
         foreach ($datas as $data) {
-            $roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
             $ihris_pid = $data['ihris_pid'];
-            $facility_id = $data["facility_id"];
-            $district_id = $data["district"];
-            $cardnumber = get_field($data['ihris_pid'],'card_number');
-            $nin = get_field($data['ihris_pid'], 'nin');
-            $ipps = get_field($data['ihris_pid'], 'ipps');
+
+            // Fetch roster data
+            $roster = Modules::run('attendance/attrosta', $valid_range, urlencode($ihris_pid));
+
+            // Use pre-fetched fields
+            $cardnumber = $fields[$ihris_pid]['card_number'];
+            $nin = $fields[$ihris_pid]['nin'];
+            $ipps = $fields[$ihris_pid]['ipps'];
+
             $present = !empty($data['P']) ? $data['P'] : 0;
             $off = !empty($data['O']) ? $data['O'] : 0;
             $leave = !empty($data['L']) ? $data['L'] : 0;
             $request = !empty($data['R']) ? $data['R'] : 0;
             $holiday = !empty($data['H']) ? $data['H'] : 0;
             $duty_date = $data['duty_date'];
-            $eve = $roster['Evening'][0]->days;
-            $day = $roster['Day'][0]->days;
-            $night = $roster['Night'][0]->days;
+
+            $eve = isset($roster['Evening'][0]) ? $roster['Evening'][0]->days : 0;
+            $day = isset($roster['Day'][0]) ? $roster['Day'][0]->days : 0;
+            $night = isset($roster['Night'][0]) ? $roster['Night'][0]->days : 0;
             $r_days = ($eve + $day + $night);
             if ($r_days == 0) {
                 $r_days = 22;
@@ -1157,12 +1237,12 @@ class Biotimejobs extends MX_Controller
 
             // Construct the normal JSON data structure
             $attendance = [
-                "ihris_pid"=> $ihris_pid,
-                "ipps"=>$ipps,
-                'nin'=>$nin,
-                "card_number"=>$cardnumber,
-                "facility_id" => $facility_id,
-                "district" => $district_id,
+                "ihris_pid" => $ihris_pid,
+                "ipps" => $ipps,
+                "nin" => $nin,
+                "card_number" => $cardnumber,
+                "facility_id" => $data["facility_id"],
+                "district" => $data["district"],
                 "Name" => $data['fullname'],
                 "Job" => $data['job'],
                 "Department" => $data['department_id'],
@@ -1182,4 +1262,20 @@ class Biotimejobs extends MX_Controller
 
         echo json_encode($attendanceData);
     }
+
+    private function get_fields_for_ihris_pids($ihris_pids, $fields)
+    {
+        $this->db->select('ihris_pid, ' . implode(', ', $fields));
+        $this->db->from('ihrisdata');
+        $this->db->where_in('ihris_pid', $ihris_pids);
+        $query = $this->db->get();
+
+        $result = [];
+        foreach ($query->result_array() as $row) {
+            $result[$row['ihris_pid']] = $row;
+        }
+
+        return $result;
+    }
+
 }
