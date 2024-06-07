@@ -1116,13 +1116,13 @@ class Biotimejobs extends MX_Controller
 	// 	echo json_encode($days);
 	// }
 
-    public function attendance_data($valid_range, $district = FALSE, $facility_id = FALSE)
+    public function attendance_data($valid_range, $district_id = FALSE, $facility_id = FALSE)
     {
         if (empty($valid_range)) {
             $valid_range = date('Y-m');
         }
         $facility = urldecode($facility_id);
-        $district = urldecode($district);
+        $district = urldecode($district_id);
         $empid = "";
         $dep = "";
 
