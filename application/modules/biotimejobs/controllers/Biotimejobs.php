@@ -1128,7 +1128,7 @@ class Biotimejobs extends MX_Controller
 
         $datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district, $facility, $empid, $dep, 'api');
 
-        $fhirObservations = [];
+        $attendanceData = [];
 
         foreach ($datas as $data) {
             $roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
@@ -1150,56 +1150,25 @@ class Biotimejobs extends MX_Controller
             $absent = days_absent_helper($present, $r_days);
             $per = per_present_helper($present, $r_days);
 
-            // Construct FHIR Observation resource
-            $observation = [
-                "resourceType" => "Observation",
-                "id" => uniqid(),
-                "status" => "final",
-                "category" => [
-                    [
-                        "coding" => [
-                            [
-                                "system" => "http://terminology.hl7.org/CodeSystem/observation-category",
-                                "code" => "activity",
-                                "display" => "Activity"
-                            ]
-                        ],
-                        "text" => "Attendance"
-                    ]
-                ],
-                "code" => [
-                    "coding" => [
-                        [
-                            "system" => "http://loinc.org",
-                            "code" => "9279-1",
-                            "display" => "Attendance Record"
-                        ]
-                    ],
-                    "text" => "Attendance"
-                ],
-                "subject" => [
-                    "reference" => "Practitioner/" . $data['ihris_pid'],
-                    "display" => $data['fullname']
-                ],
-                "effectiveDateTime" => $duty_date,
-                "valueString" => json_encode([
-                    "Job" => $data['job'],
-                    "Department" => $data['department_id'],
-                    "Off Duty" => $off,
-                    "Official Request" => $request,
-                    "Leave" => $leave,
-                    "Holiday" => $holiday,
-                    "Total Days Expected at Work" => $r_days,
-                    "Total Days Worked" => $present,
-                    "Total Days Absent" => $absent,
-                    "% Present" => $per
-                ])
+            // Construct the normal JSON data structure
+            $attendance = [
+                "Name" => $data['fullname'],
+                "Job" => $data['job'],
+                "Department" => $data['department_id'],
+                "Duty Date" => $duty_date,
+                "Off Duty" => $off,
+                "Official Request" => $request,
+                "Leave" => $leave,
+                "Holiday" => $holiday,
+                "Total Days Expected at Work" => $r_days,
+                "Total Days Worked" => $present,
+                "Total Days Absent" => $absent,
+                "% Present" => $per
             ];
 
-            $fhirObservations[] = $observation;
+            $attendanceData[] = $attendance;
         }
 
-        echo json_encode($fhirObservations);
+        echo json_encode($attendanceData);
     }
-
 }
