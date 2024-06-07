@@ -262,7 +262,7 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$limits = " ";
 		}
-		$query = $this->db->query("SELECT * from person_att_final JOIN WHERE duty_date='$valid_range' $facility $search $dep  $limits");
+		$query = $this->db->query("SELECT * from person_att_final  WHERE duty_date='$valid_range' $facility $search $dep  $limits");
 		$data = $query->result_array();
 		return $data;
 	} //summary
