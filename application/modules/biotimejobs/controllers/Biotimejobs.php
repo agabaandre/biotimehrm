@@ -1049,70 +1049,157 @@ class Biotimejobs extends MX_Controller
     echo json_encode($data);
     }
 
-	public function attendace_data($valid_range,$district=FALSE,$facility_id=FALSE)
-	{
-	    if (empty($valid_range)){
+	// public function attendace_data($valid_range,$district=FALSE,$facility_id=FALSE)
+	// {
+	//     if (empty($valid_range)){
+    //         $valid_range = date('Y-m');
+    //     } 
+    //     $facility = urldecode($facility_id);
+    //     $district = urldecode($district);
+    //     $empid = "";
+    //     $dep="";
+ 
+	// 	$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district,$facility,$empid, $dep, 'api');
+		
+    //   //output each row of the data, format line as csv and write to file pointer
+	// 	foreach ($datas as $data) {
+	// 		$roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
+	// 		if (!empty($data['P'])) {
+	// 			$present = $data['P'];
+	// 		} else {
+	// 			$present = 0;
+	// 		}
+	// 		if (!empty($data['O'])) {
+	// 			$off = $data['O'];
+	// 		} else {
+	// 			$off = 0;
+	// 		};
+	// 		if (!empty($data['L'])) {
+	// 			$leave = $data['L'];
+	// 		} else {
+	// 			$leave = 0;
+	// 		};
+	// 		if (!empty($data['R'])) {
+	// 			$request = $data['R'];
+	// 		} else {
+	// 			$request = 0;
+	// 		};
+	// 		if (!empty($data['P'])) {
+	// 			$present = $data['P'];
+	// 		} else {
+	// 			$present = 0;
+	// 		};
+	// 		if (!empty($data['H'])) {
+	// 			$holiday = $data['H'];
+	// 		} else {
+	// 			$holiday = 0;
+	// 		};
+	// 		$duty_date = $data['duty_date'];
+	// 		$eve = $roster['Evening'][0]->days;
+	// 		$day = $roster['Day'][0]->days;
+	// 		$night = $roster['Night'][0]->days;
+	// 		$r_days = ($eve + $day + $night);
+	// 		if ($r_days == 0) {
+	// 			$r_days = 22;
+	// 		}
+    //         //get addition identifiers.
+
+	// 		$absent = days_absent_helper($present, $r_days);
+
+	// 		$per =  per_present_helper($present, $r_days);
+	// 		$days = array(
+	// 		"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department_id'], "Duty Date" => $duty_date, "Off Duty" => $off, "Official Request" => $request, "Leave" => $leave, "Holiday" => $holiday,  "Total Days Expected at Work" => $r_days, "Total Days Worked" => $present, "Total Days Absent" => $absent, "% Present" => $per);
+			
+	// 	}
+    //    // dd($this->db->last_query());
+
+	// 	echo json_encode($days);
+	// }
+
+    public function attendance_data($valid_range, $district = FALSE, $facility_id = FALSE)
+    {
+        if (empty($valid_range)) {
             $valid_range = date('Y-m');
-        } 
+        }
         $facility = urldecode($facility_id);
         $district = urldecode($district);
         $empid = "";
-        $dep="";
- 
-		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district,$facility,$empid, $dep, 'api');
-		
-      //output each row of the data, format line as csv and write to file pointer
-		foreach ($datas as $data) {
-			$roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
-			if (!empty($data['P'])) {
-				$present = $data['P'];
-			} else {
-				$present = 0;
-			}
-			if (!empty($data['O'])) {
-				$off = $data['O'];
-			} else {
-				$off = 0;
-			};
-			if (!empty($data['L'])) {
-				$leave = $data['L'];
-			} else {
-				$leave = 0;
-			};
-			if (!empty($data['R'])) {
-				$request = $data['R'];
-			} else {
-				$request = 0;
-			};
-			if (!empty($data['P'])) {
-				$present = $data['P'];
-			} else {
-				$present = 0;
-			};
-			if (!empty($data['H'])) {
-				$holiday = $data['H'];
-			} else {
-				$holiday = 0;
-			};
-			$duty_date = $data['duty_date'];
-			$eve = $roster['Evening'][0]->days;
-			$day = $roster['Day'][0]->days;
-			$night = $roster['Night'][0]->days;
-			$r_days = ($eve + $day + $night);
-			if ($r_days == 0) {
-				$r_days = 22;
-			}
-            //get addition identifiers.
+        $dep = "";
 
-			$absent = days_absent_helper($present, $r_days);
+        $datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district, $facility, $empid, $dep, 'api');
 
-			$per =  per_present_helper($present, $r_days);
-			$days = array(
-			"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department_id'], "Duty Date" => $duty_date, "Off Duty" => $off, "Official Request" => $request, "Leave" => $leave, "Holiday" => $holiday,  "Total Days Expected at Work" => $r_days, "Total Days Worked" => $present, "Total Days Absent" => $absent, "% Present" => $per);
-			
-		}
-       // dd($this->db->last_query());
+        $fhirObservations = [];
 
-		echo json_encode($days);
-	}
+        foreach ($datas as $data) {
+            $roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
+
+            $present = !empty($data['P']) ? $data['P'] : 0;
+            $off = !empty($data['O']) ? $data['O'] : 0;
+            $leave = !empty($data['L']) ? $data['L'] : 0;
+            $request = !empty($data['R']) ? $data['R'] : 0;
+            $holiday = !empty($data['H']) ? $data['H'] : 0;
+            $duty_date = $data['duty_date'];
+            $eve = $roster['Evening'][0]->days;
+            $day = $roster['Day'][0]->days;
+            $night = $roster['Night'][0]->days;
+            $r_days = ($eve + $day + $night);
+            if ($r_days == 0) {
+                $r_days = 22;
+            }
+
+            $absent = days_absent_helper($present, $r_days);
+            $per = per_present_helper($present, $r_days);
+
+            // Construct FHIR Observation resource
+            $observation = [
+                "resourceType" => "Observation",
+                "id" => uniqid(),
+                "status" => "final",
+                "category" => [
+                    [
+                        "coding" => [
+                            [
+                                "system" => "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "code" => "activity",
+                                "display" => "Activity"
+                            ]
+                        ],
+                        "text" => "Attendance"
+                    ]
+                ],
+                "code" => [
+                    "coding" => [
+                        [
+                            "system" => "http://loinc.org",
+                            "code" => "9279-1",
+                            "display" => "Attendance Record"
+                        ]
+                    ],
+                    "text" => "Attendance"
+                ],
+                "subject" => [
+                    "reference" => "Patient/" . $data['ihris_pid'],
+                    "display" => $data['fullname']
+                ],
+                "effectiveDateTime" => $duty_date,
+                "valueString" => json_encode([
+                    "Job" => $data['job'],
+                    "Department" => $data['department_id'],
+                    "Off Duty" => $off,
+                    "Official Request" => $request,
+                    "Leave" => $leave,
+                    "Holiday" => $holiday,
+                    "Total Days Expected at Work" => $r_days,
+                    "Total Days Worked" => $present,
+                    "Total Days Absent" => $absent,
+                    "% Present" => $per
+                ])
+            ];
+
+            $fhirObservations[] = $observation;
+        }
+
+        echo json_encode($fhirObservations);
+    }
+
 }
