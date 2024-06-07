@@ -1134,7 +1134,10 @@ class Biotimejobs extends MX_Controller
             $roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
             $ihris_pid = $data['ihris_pid'];
             $facility_id = $data["facility_id"];
-            $district_id = 
+            $district_id = $data["district"];
+            $cardnumber = get_field($data['ihris_pid'],'card_number');
+            $nin = get_field($data['ihris_pid'], 'nin');
+            $ipps = get_field($data['ihris_pid'], 'ipps');
             $present = !empty($data['P']) ? $data['P'] : 0;
             $off = !empty($data['O']) ? $data['O'] : 0;
             $leave = !empty($data['L']) ? $data['L'] : 0;
@@ -1155,6 +1158,9 @@ class Biotimejobs extends MX_Controller
             // Construct the normal JSON data structure
             $attendance = [
                 "ihris_pid"=> $ihris_pid,
+                "ipps"=>$ipps,
+                'nin'=>$nin,
+                "card_number"=>$cardnumber,
                 "facility_id" => $facility_id,
                 "district" => $district_id,
                 "Name" => $data['fullname'],

@@ -402,5 +402,13 @@ if (!function_exists('full_url')) {
 			return $commaSeparatedString;
 		}
 	}
+    if (!function_exists('get_field')) {
+        function get_field($user_id, $field_name)
+        {
+
+            $ci = &get_instance();
+            return @$ci->db->query("SELECT $field_name from ihrisdata where ihris_pid= '$user_id'")->row()->$field_name;
+        }
+    }
 
 }
