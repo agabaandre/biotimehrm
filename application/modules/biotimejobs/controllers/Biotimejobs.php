@@ -1056,7 +1056,8 @@ class Biotimejobs extends MX_Controller
         } 
         $facility = urldecode($facility_id);
         $district = urldecode($facility_id);
-        $empid =NULL;
+        $empid = "";
+        $dep="";
  
 		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district,$facility,$empid, $dep, 'api');
 		
