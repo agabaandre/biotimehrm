@@ -1055,7 +1055,7 @@ class Biotimejobs extends MX_Controller
             $valid_range = date('Y-m');
         } 
         $facility = urldecode($facility_id);
-        $district = urldecode($facility_id);
+        $district = urldecode($district);
         $empid = "";
         $dep="";
  
