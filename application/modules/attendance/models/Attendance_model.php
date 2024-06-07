@@ -227,15 +227,26 @@ class 	Attendance_model extends CI_Model
 		return $rows;
 	}
 
-	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $department = NULL,$endpoint=FALSE)
+	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL,  $district = FALSE,$facility = FALSE, $employee = NULL, $department = FALSE, $endpoint=FALSE)
 	{
-		$facility = $_SESSION['facility'];
-			if (!empty($facility)&&($endpoint!='api')) {
+		$facility_id = $_SESSION['facility'];
+
+		if (!empty($facility_id)&&($endpoint!='api')) {
+			$facility = "and facility_id='$facility_id'";
+		} else {
+			$facility = "";
+		}
+		if (!empty($facility) && ($endpoint== 'api')) {
 			$facility = "and facility_id='$facility'";
 		} else {
 			$facility = "";
 		}
-		if (!empty($employee)) {
+		if (!empty($district) && ($endpoint == 'api')) {
+			$district = "and district='$district'";
+		} else {
+			$district = "";
+		}
+		if (!empty($employee)&&($endpoint!='api')) {
 			$search = "and ihris_pid='$employee'";
 		} else {
 			$search = "";
@@ -251,7 +262,7 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$limits = " ";
 		}
-		$query = $this->db->query("SELECT * from person_att_final WHERE duty_date='$valid_range' $facility $search $dep  $limits");
+		$query = $this->db->query("SELECT * from person_att_final JOIN WHERE duty_date='$valid_range' $facility $search $dep  $limits");
 		$data = $query->result_array();
 		return $data;
 	} //summary

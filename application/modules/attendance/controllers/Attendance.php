@@ -33,7 +33,10 @@ class Attendance extends MX_Controller
 		$month = $this->input->get('month');
 		$year = $this->input->get('year');
 		$empid = $this->input->get('empid');
-		$dep = $this->input->get('department');
+		$dep="";
+		$facility="";
+		$district="";
+	
 
 		if (!empty($month)) {
 			$_SESSION['month'] = $month;
@@ -86,7 +89,8 @@ class Attendance extends MX_Controller
 		$this->pagination->initialize($config);
 		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits
 		$data['links'] = $this->pagination->create_links();
-		$data['sums'] = $this->attendance_model->attendance_summary($date, $this->filters, $config['per_page'], $page, $empid, $dep);
+		//attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL,  $district = FALSE,$facility = FALSE, $employee = NULL, $department = FALSE, $endpoint=FALSE)
+		$data['sums'] = $this->attendance_model->attendance_summary($date, $this->filters, $config['per_page'], $page, $district, $facility, $empid, $dep);
 		$data['view'] = 'attendance_summary';
 		$data['title'] = 'Attendance Form Summary';
 		$data['uptitle'] = 'Attendance Form Summary';

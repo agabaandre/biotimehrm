@@ -1049,14 +1049,16 @@ class Biotimejobs extends MX_Controller
     echo json_encode($data);
     }
 
-	public function attendace_data($valid_range, $fempid,$dep=FALSE)
+	public function attendace_data($valid_range,$district=FALSE,$facility_id=FALSE)
 	{
 	    if (empty($valid_range)){
             $valid_range = date('Y-m');
         } 
-        $empid = urldecode($fempid);
-
-		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep,'api');
+        $facility = urldecode($facility_id);
+        $district = urldecode($facility_id);
+        $empid =NULL;
+ 
+		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district,$facility,$empid, $dep, 'api');
 		
       //output each row of the data, format line as csv and write to file pointer
 		foreach ($datas as $data) {
@@ -1099,6 +1101,8 @@ class Biotimejobs extends MX_Controller
 			if ($r_days == 0) {
 				$r_days = 22;
 			}
+            //get addition identifiers.
+
 			$absent = days_absent_helper($present, $r_days);
 
 			$per =  per_present_helper($present, $r_days);
