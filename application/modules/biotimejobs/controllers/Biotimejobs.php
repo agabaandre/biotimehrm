@@ -1154,7 +1154,7 @@ class Biotimejobs extends MX_Controller
 
             // Construct the normal JSON data structure
             $attendance = [
-                "ihris_pid"=>$data['$ihris_pid'],
+                "ihris_pid"=> $ihris_pid,
                 "facility_id" => $facility_id,
                 "district" => $district_id,
                 "Name" => $data['fullname'],
