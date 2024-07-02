@@ -46,7 +46,7 @@
                <p> - Attendance by Institution Type, Region, District, Facility, Facility Level </p>
              </li>
              <li><a href="<?php echo base_url() ?>reports/person_attendance_all">Person Attendance All </a>
-               <p> - Attendance for all Individuals by Facility, District, Region</p>
+               <p> - Attendance for all Individuals by Facility, District, Region (For General Administrative Purposes)</p>
              </li>
 
 
