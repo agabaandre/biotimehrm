@@ -129,7 +129,11 @@ class Reports_mdl extends CI_Model
 	{
 
 		$this->apply_aggregation_filter($filters);
-
+		if(isset($filters->facility_name)){
+		$facility_id = $_SESSION['facility'];
+		$this->db->where("facility_id","$facility_id");
+		}
+   
 		$this->db->from("person_att_final");
 		$this->db->group_by("$group_by");
 		$query = $this->db->get();

@@ -1191,7 +1191,7 @@ class Biotimejobs extends MX_Controller
 
         // Decode URL parameters
         $facility = urldecode($facility_id);
-        $district = urldecode($district);
+        $district = ucwords(urldecode($district));
 
         // Initialize necessary variables
         $empid = "";
