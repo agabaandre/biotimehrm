@@ -243,7 +243,7 @@ class Reports_mdl extends CI_Model
 
 		$this->apply_aggregation_filter($filters);
 
-
+                $this->db->order_by("facility_name","ASC");
 		$data = $this->db->get("person_att_final")->result();
 		//dd($data);
 		return $data;
