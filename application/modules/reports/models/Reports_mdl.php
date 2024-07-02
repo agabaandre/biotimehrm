@@ -242,7 +242,7 @@ class Reports_mdl extends CI_Model
 		if ($limit){
 			$this->db->limit($limit, $start);
 		}
-		if ($filters->facility_name === '') {
+		if ($filters->facility_name == null) {
 			$facility_id = $_SESSION['facility'];
 			$this->db->where("facility_id", "$facility_id");
 		}
