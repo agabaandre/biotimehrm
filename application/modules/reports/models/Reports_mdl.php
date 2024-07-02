@@ -239,14 +239,16 @@ class Reports_mdl extends CI_Model
 	public function person_attendance_all($filters = null, $limit = NULL, $start = NULL)
 	{
 
-		if ($limit)
+		if ($limit){
 			$this->db->limit($limit, $start);
+		}
+		if ($filters->facility_name === '') {
+			$facility_id = $_SESSION['facility'];
+			$this->db->where("facility_id", "$facility_id");
+		}
 
 		$this->apply_aggregation_filter($filters);
-				// if ($filters->facility_name=="") {
-				// 	$facility_id = $_SESSION['facility'];
-				// 	$this->db->where("facility_id", "$facility_id");
-				// }
+				
 
                 $this->db->order_by("facility_name","ASC");
 		$data = $this->db->get("person_att_final")->result();
