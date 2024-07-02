@@ -233,14 +233,14 @@ class 	Attendance_model extends CI_Model
 
 		if (!empty($facility_id)&&($endpoint!='api')) {
 			$facilityf = "and facility_id='$facility_id'";
-		} else {
-			$facilityf = "";
-		}
-		if (!empty($facility) && ($endpoint== 'api')) {
+		} else if (!empty($facility) && ($endpoint == 'api')) {
 			$facilityf = "and facility_id='$facility'";
-		} else {
-			$facilityf = "";
 		}
+		else{
+			$facilityf = "";
+
+		}
+	
 		if (!empty($district) && ($endpoint == 'api')) {
 			$districtf = "and district='$district'";
 		} else {
