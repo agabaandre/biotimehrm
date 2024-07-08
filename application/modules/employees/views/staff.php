@@ -42,7 +42,7 @@
                     </td>
                     <td data-label="GENDER"><?php echo $staff->gender; ?></td>
                     <td data-label="DATE OF BIRTH"><?php echo $staff->birth_date; ?></td>
-                                        <td data-label="IPPS"><?php if($staff->ipps!=null){ echo ($staff->ipps);} ?></td>
+                                        <td data-label="IPPS"><?php if($staff->ipps!=null){ echo ($staff->ipps*1);} ?></td>
                                         <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
                     <td data-label="TELEPHONE"><?php if (empty($staff->mobile)) {
                                                   echo @$staff->mobile;

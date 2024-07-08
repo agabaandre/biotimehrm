@@ -110,7 +110,7 @@ class Biotimejobs extends MX_Controller
         if ($response) {
             //dd(count($response));
             //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
-            $this->db->query("TRUNCATE TABLE ihrisdata");
+            $this->db->query("TRUNCATE table ihrisdata");
             foreach($response as $data){
 
                 $message = $this->db->replace('ihrisdata', $data);
@@ -128,8 +128,24 @@ class Biotimejobs extends MX_Controller
         }
         $this->cronjob_register($process, $method, $status);
         $this->get_ucmbdata();
+        $this->update_ipps();
     }
     //employees all enrolled users before creating new ones.
+
+    public function update_ipps()
+    {
+        // Select records where card_number is NULL and ipps is NOT NULL
+        $ipps_nos = $this->db->query("SELECT ihris_pid, ipps FROM ihrisdata WHERE card_number IS NULL AND ipps IS NOT NULL")->result();
+
+        foreach ($ipps_nos as $ipps_no) {
+            $ipps = $ipps_no->ipps;
+            $id = $ipps_no->ihris_pid;
+
+            // Update the card_number for each record
+            $this->db->query("UPDATE ihrisdata SET card_number = '$ipps' WHERE ihris_pid = '$id'");
+        }
+    }
+
 
 
     public function get_ucmbdata()
@@ -143,7 +159,6 @@ class Biotimejobs extends MX_Controller
         $response = $http->sendUCMBiHRISRequest('apiv1/index.php/api/ihrisdata', "GET", $headers, []);
 
         if ($response) {
-            $this->db->query("TRUNCATE TABLE ihrisdata");
 
             foreach ($response as $data) {
 
@@ -336,16 +351,9 @@ class Biotimejobs extends MX_Controller
         $howmany = array();
         $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id IN(SELECT area_code from biotime_devices) AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
         $newusers = $query->result();
-     
         foreach ($newusers as $newuser):
-            if($newuser->card_number!=null) {
-                $empid=$newuser->card_number;
-            }
-            else{
-                $empid = $newuser->ipps;
-            }
 
-            $message = $this->create_new_biotimeuser($newuser->firstname, $newuser->surname, $empid, $newuser->facility_id, $newuser->department_id, $newuser->job_id);
+            $message = $this->create_new_biotimeuser($newuser->firstname, $newuser->surname, $newuser->card_number, $newuser->facility_id, $newuser->department_id, $newuser->job_id);
 
 
         endforeach;
@@ -405,7 +413,7 @@ class Biotimejobs extends MX_Controller
     //enroll new users (Front End Action that requires login);
     public function get_new_users($facility)
     {
-        $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number OR ihrisdata.ipps NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
+        $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
         $query->result();
     }
 
@@ -467,7 +475,7 @@ class Biotimejobs extends MX_Controller
         } else {
             $status = "failed";
         }
-       $this->cronjob_register($process, $method, $status);
+        $this->cronjob_register($process, $method, $status);
     }
     public function log($message)
     {
