@@ -110,6 +110,7 @@ class Biotimejobs extends MX_Controller
         if ($response) {
             //dd(count($response));
             //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
+            $this->db->query("TRUNCATE TABLE ihrisdata");
             foreach($response as $data){
 
                 $message = $this->db->replace('ihrisdata', $data);
@@ -142,6 +143,7 @@ class Biotimejobs extends MX_Controller
         $response = $http->sendUCMBiHRISRequest('apiv1/index.php/api/ihrisdata', "GET", $headers, []);
 
         if ($response) {
+            $this->db->query("TRUNCATE TABLE ihrisdata");
 
             foreach ($response as $data) {
 
@@ -334,9 +336,16 @@ class Biotimejobs extends MX_Controller
         $howmany = array();
         $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id IN(SELECT area_code from biotime_devices) AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
         $newusers = $query->result();
+     
         foreach ($newusers as $newuser):
+            if($newuser->card_number!=null) {
+                $empid=$newuser->card_number;
+            }
+            else{
+                $empid = $newuser->ipps;
+            }
 
-            $message = $this->create_new_biotimeuser($newuser->firstname, $newuser->surname, $newuser->card_number, $newuser->facility_id, $newuser->department_id, $newuser->job_id);
+            $message = $this->create_new_biotimeuser($newuser->firstname, $newuser->surname, $empid, $newuser->facility_id, $newuser->department_id, $newuser->job_id);
 
 
         endforeach;
@@ -396,7 +405,7 @@ class Biotimejobs extends MX_Controller
     //enroll new users (Front End Action that requires login);
     public function get_new_users($facility)
     {
-        $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
+        $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number OR ihrisdata.ipps NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
         $query->result();
     }
 
@@ -458,7 +467,7 @@ class Biotimejobs extends MX_Controller
         } else {
             $status = "failed";
         }
-        $this->cronjob_register($process, $method, $status);
+       $this->cronjob_register($process, $method, $status);
     }
     public function log($message)
     {
