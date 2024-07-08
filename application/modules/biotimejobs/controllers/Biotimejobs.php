@@ -138,7 +138,7 @@ class Biotimejobs extends MX_Controller
         $ipps_nos = $this->db->query("SELECT ihris_pid, ipps FROM ihrisdata WHERE card_number IS NULL AND ipps IS NOT NULL")->result();
 
         foreach ($ipps_nos as $ipps_no) {
-            $ipps = $ipps_no->ipps;
+            $ipps = $ipps_no->ipps*1;
             $id = $ipps_no->ihris_pid;
 
             // Update the card_number for each record
@@ -352,8 +352,9 @@ class Biotimejobs extends MX_Controller
         $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id IN(SELECT area_code from biotime_devices) AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
         $newusers = $query->result();
         foreach ($newusers as $newuser):
+            $id =$newuser->card_number;
 
-            $message = $this->create_new_biotimeuser($newuser->firstname, $newuser->surname, $newuser->card_number, $newuser->facility_id, $newuser->department_id, $newuser->job_id);
+            $message = $this->create_new_biotimeuser($newuser->firstname, $newuser->surname, $id, $newuser->facility_id, $newuser->department_id, $newuser->job_id);
 
 
         endforeach;
