@@ -8,7 +8,7 @@ class Employee_model extends CI_Model
     }
     public function get_employees($filters)
     {
-        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where $filters");
+        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id,ipps from  ihrisdata where $filters");
         $result = $query->result();
         return $result;
     }
