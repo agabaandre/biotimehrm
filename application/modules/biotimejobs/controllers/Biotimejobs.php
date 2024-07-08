@@ -788,7 +788,7 @@ class Biotimejobs extends MX_Controller
         ini_set('max_execution_time', 0);
         //$query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
 
-        $query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid)  AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
+        $query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.emp_code=ihrisdata.ipps)  AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
         $entry_id = $query->result();
 
         foreach ($entry_id as $entry) {
@@ -855,8 +855,61 @@ class Biotimejobs extends MX_Controller
         //night shift
 
         echo $message = $this->db->affected_rows() . " Clocked Out";
+
+        $this->biotimeClockoutnight_ipps();
         $this->log($message);
      
+    }
+
+    //clockout night people ipps
+    public function biotimeClockoutnight_ipps($dates = FALSE)
+    {
+        ignore_user_abort(true);
+        ini_set('max_execution_time', 0);
+
+        //get night shift people.
+        if (!empty($today)) {
+            $today = $dates;
+        } else {
+            $today = date('Y-m-d');
+
+        }
+        $yesterday = date($today, strtotime("-1 day"));
+
+        $nights = $this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,ipps as card_number from duty_rosta,ihrisdata where schedule_id='16' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
+         )")->result();
+        foreach ($nights as $night):
+            //yesterdays entry_id 
+            $nights = $yesterday . $night->person_id;
+
+            $querys = $this->db->query("SELECT punch_time,punch_state from biotime_data,ihrisdata where (biotime_data.emp_code='$night->card_number') AND DATE(biotime_data.punch_time)='$today' ");
+            $entry = $querys->row();
+            //get time in for the log
+            $timein = $this->db->query("select time_in from clk_log WHERE entry_id='$nights'")->row()->time_in;
+
+
+            $initial_time = strtotime($timein) / 3600;
+            $final_time = strtotime($entry->punch_time) / 3600;
+            $hours_worked = round(($final_time - $initial_time), 1);
+            //echo $final_time;
+            if (($final_time > 0) && ($hours_worked <= 15)):
+                $this->db->set('time_out', "$entry->punch_time");
+                //  $this->db->where("time_in <","$entry->punch_time");
+                //todays entry
+                $this->db->where('entry_id', "$nights");
+                $query = $this->db->update('clk_log');
+                // print_r($entry);
+                // echo "<br>";
+            endif;
+
+
+
+        endforeach;
+        //night shift
+
+        echo $message = $this->db->affected_rows() . " Clocked Out";
+        $this->log($message);
+
     }
     public function markAttendance()
     {
