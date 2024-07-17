@@ -246,6 +246,7 @@ class Reports_mdl extends CI_Model
 		// 	$facility_id = $_SESSION['facility'];
 		// 	$this->db->where("facility_id", "$facility_id");
 		// }
+		dd($filters);
 
 		$this->apply_aggregation_filter($filters);
 				
