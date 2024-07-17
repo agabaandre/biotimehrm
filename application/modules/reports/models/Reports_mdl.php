@@ -242,10 +242,10 @@ class Reports_mdl extends CI_Model
 		if ($limit){
 			$this->db->limit($limit, $start);
 		}
-		if ($filters->facility_name == '') {
-			$facility_id = $_SESSION['facility'];
-			$this->db->where("facility_id", "$facility_id");
-		}
+		// if ($filters->facility_name == '') {
+		// 	$facility_id = $_SESSION['facility'];
+		// 	$this->db->where("facility_id", "$facility_id");
+		// }
 
 		$this->apply_aggregation_filter($filters);
 				
