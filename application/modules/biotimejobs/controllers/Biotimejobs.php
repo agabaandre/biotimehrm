@@ -1280,7 +1280,7 @@ class Biotimejobs extends MX_Controller
                 "Name" => $data['fullname'],
                 "Job" => $data['job'],
                 "Department" => $data['department_id'],
-                "Duty Date" => $duty_date,
+                "Duty Date" => $duty_date . '-01',
                 "Off Duty" => $off,
                 "Official Request" => $request,
                 "Leave" => $leave,
@@ -1326,7 +1326,7 @@ class Biotimejobs extends MX_Controller
                         [
                             "url" => "http://ihris.org/fhir/StructureDefinition/ihris-attendance",
                             "extension" => [
-                                ["url" => "period", "valueDate" => $data["Duty Date"]],
+                                ["url" => "period", "valueDate" => $data["Duty Date"]].'-01',
                                 ["url" => "present", "valueInteger" => $data["Total Days Worked"]],
                                 ["url" => "absent", "valueInteger" => $data["Total Days Absent"]],
                                 ["url" => "offDuty", "valueInteger" => $data["Off Duty"]],
