@@ -1312,7 +1312,7 @@ class Biotimejobs extends MX_Controller
             $entry = [
                 "resource" => [
                     "resourceType" => "Basic",
-                    "id" => uniqid(), // Generate a unique ID for each entry
+                     // Generate a unique ID for each entry
                     "meta" => [
                         "profile" => ["http://ihris.org/fhir/StructureDefinition/ihris-basic-attendance"]
                     ],
@@ -1339,7 +1339,7 @@ class Biotimejobs extends MX_Controller
                 ],
                 "request" => [
                     "method" => "PUT",
-                    "url" => "Basic/" . uniqid() // Generate a unique URL for each entry
+                    "url" => "Basic" // Generate a unique URL for each entry
                 ]
             ];
 
