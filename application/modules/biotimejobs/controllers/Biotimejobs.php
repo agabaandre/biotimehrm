@@ -1242,7 +1242,7 @@ class Biotimejobs extends MX_Controller
         $attendanceData = [];
 
         foreach ($datas as $data) {
-            dd($data);
+           // dd($data);
             $ihris_pid = $data['ihris_pid'];
             $ihris5_pid = $data['ihris5_pid'];
 
@@ -1351,12 +1351,7 @@ class Biotimejobs extends MX_Controller
         return $fhirData;
     }
 
-    public function get_ihris5_id($ihris4_id){
-                $this->db->where('ihris4_pid',$ihris4_id);
-        return  $this->db->get('data_mapper')->row()->ihris5_pid;
-
-
-    }
+   
 
     public function get_ihris5data()
     {
