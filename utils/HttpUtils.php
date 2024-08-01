@@ -20,6 +20,7 @@ class HttpUtils
         $this->CI = &get_instance();
         $this->client = new Client(['base_uri' => BIO_URL]);
         $this->ihrisclient = new Client(['base_uri' => iHRIS_URL]);
+        $this->ihris5client = new Client(['base_uri' => iHRIS_URL]);
         $this->ucmbihrisclient = new Client(['base_uri' => UCMBiHRIS_URL]);
     }
 
@@ -35,6 +36,14 @@ class HttpUtils
 
         $request = new Request($method, $endpoint . "/", $headers, json_encode($body));
         $response = $this->ihrisclient->send($request);
+        return json_decode((string) $response->getBody()->getContents());
+        //$result = json_decode($response->getBody()->getContents());
+    }
+    public function sendiHRIS5Request($endpoint = "", $method = "", $headers = [], $body = [])
+    {
+
+        $request = new Request($method, $endpoint . "/", $headers, json_encode($body));
+        $response = $this->ihris5client->send($request);
         return json_decode((string) $response->getBody()->getContents());
         //$result = json_decode($response->getBody()->getContents());
     }

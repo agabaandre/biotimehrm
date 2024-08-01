@@ -1349,5 +1349,115 @@ class Biotimejobs extends MX_Controller
         return $fhirData;
     }
 
+    public function get_ihris5data()
+    {
+        $http = new HttpUtils();
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ];
+      $districts  = $this->db->get('hris5_districts')->result();
+      foreach($districts as $district){
+
+        $dist =$district->name;
+        $response = $http->sendiHRIS5Request('ihrisdata/'.$dist.'/', "GET", $headers, []);
+
+        if ($response) {
+            //dd(count($response));
+            //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
+            $this->db->query("TRUNCATE table ihrisdata");
+            foreach ($response as $insert) {
+
+                    dd($insert);
+                    $data = array(
+                        'ihris_pid' => $this->input->post('ihris_pid'),
+                        'district_id' => $this->input->post('district_id'),
+                        'district' => $this->input->post('district'),
+                        'dhis_facility_id' => $this->input->post('dhis_facility_id'),
+                        'dhis_district_id' => $this->input->post('dhis_district_id'),
+                        'nin' => $this->input->post('nin'),
+                        'card_number' => $this->input->post('card_number'),
+                        'ipps' => $this->input->post('ipps'),
+                        'facility_type_id' => $this->input->post('facility_type_id'),
+                        'facility_id' => $this->input->post('facility_id'),
+                        'facility' => $this->input->post('facility'),
+                        'department_id' => $this->input->post('department_id'),
+                        'department' => $this->input->post('department'),
+                        'division' => $this->input->post('division'),
+                        'section' => $this->input->post('section'),
+                        'unit' => $this->input->post('unit'),
+                        'job_id' => $this->input->post('job_id'),
+                        'job' => $this->input->post('job'),
+                        'employment_terms' => $this->input->post('employment_terms'),
+                        'salary_grade' => $this->input->post('salary_grade'),
+                        'surname' => $this->input->post('surname'),
+                        'firstname' => $this->input->post('firstname'),
+                        'othername' => $this->input->post('othername'),
+                        'mobile' => $this->input->post('mobile'),
+                        'telephone' => $this->input->post('telephone'),
+                        'institution_type_id' => $this->input->post('institution_type_id'),
+                        'institutiontype_name' => $this->input->post('institutiontype_name'),
+                        'last_update' => $this->input->post('last_update'),
+                        'gender' => $this->input->post('gender'),
+                        'birth_date' => $this->input->post('birth_date'),
+                        'cadre' => $this->input->post('cadre'),
+                        'email' => $this->input->post('email'),
+                        'region' => $this->input->post('region')
+                    );
+
+
+                $message = $this->db->replace('ihrisdata', $data);
+                ///dd($this->last->query);
+            }
+
+            $this->log($message);
+        }
+        $process = 2;
+        $method = "bioitimejobs/get_ihris5data";
+        if (count($response) > 0) {
+            $status = "successful";
+        } else {
+            $status = "failed";
+        }
+    }
+        
+    }
+
+    public function get_districts()
+    {
+        $http = new HttpUtils();
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ];
+     
+        $response = $http->sendiHRIS5Request('ihrisdata/districts/', "GET", $headers, []);
+
+        if ($response) {
+            //dd(count($response));
+            //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
+            $this->db->query("TRUNCATE table ihris5_districts");
+            foreach ($response as $insert) {
+                    
+                dd($insert);
+
+                $message = $this->db->insert('ihris5_districts', $data);
+                ///dd($this->last->query);
+            }
+
+            $this->log($message);
+        }
+        $process = 2;
+        $method = "bioitimejobs/ihris5_districts";
+        if (count($response) > 0) {
+            $status = "successful";
+        } else {
+            $status = "failed";
+        }
+    }
+        
+    }
+
+
 
 }
