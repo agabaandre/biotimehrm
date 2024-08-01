@@ -1461,7 +1461,7 @@ class Biotimejobs extends MX_Controller
             $status = "failed";
         }
     }
-    public function remap_person_id(){
+    public function remap_data(){
 
        $map_values = $this->db->query("SELECT ihrisdata.ihris_pid as ihris4_pid, ihrisdata5.ihris_pid as ihris5_pid FROM ihrisdata,ihrisdata5 WHERE (ihrisdata.card_number=ihrisdata5.card_number OR ihrisdata.ipps=ihrisdata5.ipps OR ihrisdata.nin=ihrisdata5.nin )AND  ihrisdata.nin IS NOT NULL AND ihrisdata.ipps IS NOT NULL AND ihrisdata.cardnumber IS NOT NULL ")->result();
        if($map_values){
