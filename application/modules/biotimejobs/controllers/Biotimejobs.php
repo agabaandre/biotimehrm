@@ -1463,10 +1463,35 @@ class Biotimejobs extends MX_Controller
     }
     public function remap_data(){
 
-       $map_values = $this->db->query("SELECT ihrisdata.ihris_pid as ihris4_pid, ihrisdata5.ihris_pid as ihris5_pid FROM ihrisdata,ihrisdata5 WHERE (ihrisdata.card_number=ihrisdata5.card_number OR ihrisdata.ipps=ihrisdata5.ipps OR ihrisdata.nin=ihrisdata5.nin )AND  ihrisdata.nin IS NOT NULL AND ihrisdata.ipps IS NOT NULL AND ihrisdata.cardnumber IS NOT NULL ")->result();
-       if($map_values){
-        $this->db->insert_batch('data_mapper',$map_values);
-       }
+        // Optimized and fixed query to get matching values
+        $this->db->select('ihrisdata.ihris_pid as ihris4_pid, ihrisdata5.ihris_pid as ihris5_pid');
+        $this->db->from('ihrisdata');
+        $this->db->join(
+            'ihrisdata5',
+            'ihrisdata.card_number = ihrisdata5.card_number OR 
+     ihrisdata.ipps = ihrisdata5.ipps OR 
+     ihrisdata.nin = ihrisdata5.nin'
+        );
+        $this->db->where('ihrisdata.nin IS NOT NULL');
+        $this->db->where('ihrisdata.ipps IS NOT NULL');
+        $this->db->where('ihrisdata.card_number IS NOT NULL');
+
+        $query = $this->db->get();
+        $map_values = $query->result();
+
+        // Check if there are values to insert
+        if (!empty($map_values)) {
+            foreach ($map_values as $insert) {
+                $data = array(
+                    'ihris4_pid' => $insert->ihris4_pid,
+                    'ihris5_pid' => $insert->ihris5_pid
+                );
+
+                // Using REPLACE to avoid duplicates
+                $this->db->replace('data_mapper', $data);
+            }
+        }
+
     }
         
     
