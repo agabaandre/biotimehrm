@@ -1356,7 +1356,7 @@ class Biotimejobs extends MX_Controller
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
         ];
-      $districts  = $this->db->get('hris5_districts')->result();
+      $districts  = $this->db->get('ihris5_districts')->result();
       foreach($districts as $district){
 
         $dist = str_replace(" district","",$district->name);
