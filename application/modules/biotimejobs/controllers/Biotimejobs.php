@@ -1296,7 +1296,7 @@ class Biotimejobs extends MX_Controller
             $attendanceData[] = $attendance;
         }
 
-        if ($fhir) {
+        if ($fhir==TRUE) {
             echo json_encode($this->convert_to_fhir($attendanceData));
         } else {
             echo json_encode($attendanceData);
