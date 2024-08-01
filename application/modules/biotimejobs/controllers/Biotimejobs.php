@@ -1217,7 +1217,7 @@ class Biotimejobs extends MX_Controller
     }
 
 
-    public function attendance_data($valid_range, $district = FALSE, $facility_id = FALSE, $fhir = FALSE)
+    public function attendance_data($fhir,$valid_range, $district = FALSE, $facility_id = FALSE)
     {
         // Set the default date range if not provided
         if (empty($valid_range)) {
