@@ -1367,7 +1367,9 @@ class Biotimejobs extends MX_Controller
             //dd(count($response));
             //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
             $this->db->query("TRUNCATE table ihrisdata");
-            foreach ($response['entry'] as $insert) {
+            foreach ($response->entry as $insert) {
+
+
 
                     $data = array(
                         'ihris_pid' => $insert['ihris_pid'],
