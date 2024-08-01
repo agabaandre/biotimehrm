@@ -1357,7 +1357,7 @@ class Biotimejobs extends MX_Controller
             'Accept' => 'application/json',
         ];
       $districts  = $this->db->get('ihris5_districts')->result();
-        $this->db->query("TRUNCATE table ihrisdata");
+        $this->db->query("TRUNCATE table ihrisdata5");
       foreach($districts as $district){
 
        //s $dist = str_replace(" District","",$district->name);
@@ -1412,7 +1412,7 @@ class Biotimejobs extends MX_Controller
                     //dd($data);
 
 
-                $message = $this->db->replace('ihrisdata', $data);
+                $message = $this->db->replace('ihrisdata5', $data);
                 ///dd($this->last->query);
             }
 
@@ -1460,6 +1460,13 @@ class Biotimejobs extends MX_Controller
         } else {
             $status = "failed";
         }
+    }
+    public function remap_person_id(){
+
+       $map_values = $this->db->query("SELECT ihrisdata.ihris_pid as ihris4_pid, ihrisdata5.ihris_pid as ihris5_pid FROM ihrisdata,ihrisdata5 WHERE (ihrisdata.card_number=ihrisdata5.card_number OR ihrisdata.ipps=ihrisdata5.ipps OR ihrisdata.nin=ihrisdata5.nin )AND  ihrisdata.nin IS NOT NULL AND ihrisdata.ipps IS NOT NULL AND ihrisdata.cardnumber IS NOT NULL ")->result();
+       if($map_values){
+        $this->db->insert_batch('data_mapper',$map_values);
+       }
     }
         
     
