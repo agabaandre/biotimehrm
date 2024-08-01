@@ -1323,7 +1323,7 @@ class Biotimejobs extends MX_Controller
                         [
                             "url" => "http://ihris.org/fhir/StructureDefinition/ihris-practitioner-reference",
                             "valueReference" => [
-                                "reference" => "Practitioner/" . $data["ihris5_pid"]
+                                "reference" => "Practitioner/" . $data["ihris_pid"]
                             ]
                         ],
                         [
