@@ -1357,6 +1357,7 @@ class Biotimejobs extends MX_Controller
             'Accept' => 'application/json',
         ];
       $districts  = $this->db->get('ihris5_districts')->result();
+        $this->db->query("TRUNCATE table ihrisdata");
       foreach($districts as $district){
 
        //s $dist = str_replace(" District","",$district->name);
@@ -1366,7 +1367,7 @@ class Biotimejobs extends MX_Controller
         if ($response) {
             //dd(count($response));
             //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
-            $this->db->query("TRUNCATE table ihrisdata");
+        
             foreach ($response->entry as $insert) {
                 //dd($insert);
 
