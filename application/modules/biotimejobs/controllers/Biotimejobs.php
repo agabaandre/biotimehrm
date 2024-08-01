@@ -1359,7 +1359,7 @@ class Biotimejobs extends MX_Controller
       $districts  = $this->db->get('ihris5_districts')->result();
       foreach($districts as $district){
 
-        $dist = str_replace(" district","",$district->name);
+        $dist = str_replace(" District","",$district->name);
         $response = $http->sendiHRIS5Request('ihrisdata/'.$dist, "GET", $headers, []);
 
         if ($response) {
