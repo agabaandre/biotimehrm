@@ -12,6 +12,7 @@ class HttpUtils
     private $CI;
     private $client;
     private $ihrisclient;
+     private $ihris5client;
     private $ucmbihrisclient;
 
     public function __construct()
