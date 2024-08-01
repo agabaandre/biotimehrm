@@ -21,7 +21,7 @@ class HttpUtils
         $this->CI = &get_instance();
         $this->client = new Client(['base_uri' => BIO_URL]);
         $this->ihrisclient = new Client(['base_uri' => iHRIS_URL]);
-        $this->ihris5client = new Client(['base_uri' => iHRIS_URL]);
+        $this->ihris5client = new Client(['base_uri' => iHRIS5_URL]);
         $this->ucmbihrisclient = new Client(['base_uri' => UCMBiHRIS_URL]);
     }
 

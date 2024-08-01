@@ -1360,7 +1360,7 @@ class Biotimejobs extends MX_Controller
       foreach($districts as $district){
 
         $dist =$district->name;
-        $response = $http->sendiHRIS5Request('ihrisdata/'.$dist.'/', "GET", $headers, []);
+        $response = $http->sendiHRIS5Request('ihrisdata/'.$dist, "GET", $headers, []);
 
         if ($response) {
             //dd(count($response));
@@ -1431,7 +1431,7 @@ class Biotimejobs extends MX_Controller
             'Accept' => 'application/json',
         ];
      
-        $response = $http->sendiHRIS5Request('ihrisdata/districts/', "GET", $headers, []);
+        $response = $http->sendiHRIS5Request('ihrisdata/districts', "GET", $headers, []);
 
         if ($response) {
             //dd(count($response));
