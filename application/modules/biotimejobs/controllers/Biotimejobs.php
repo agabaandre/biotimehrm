@@ -1242,6 +1242,7 @@ class Biotimejobs extends MX_Controller
         $attendanceData = [];
 
         foreach ($datas as $data) {
+            dd($data);
             $ihris_pid = $data['ihris_pid'];
             $ihris5_pid = $data['ihris5_pid'];
 
