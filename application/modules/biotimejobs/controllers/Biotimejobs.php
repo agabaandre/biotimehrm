@@ -1311,6 +1311,7 @@ class Biotimejobs extends MX_Controller
         ];
 
         foreach ($attendanceData as $data) {
+            dd($data);
             $entry = [
                 "resource" => [
                     "resourceType" => "Basic",
