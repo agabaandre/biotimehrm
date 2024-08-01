@@ -1439,9 +1439,9 @@ class Biotimejobs extends MX_Controller
             $this->db->query("TRUNCATE table ihris5_districts");
             foreach ($response as $insert) {
                     
-                dd($insert);
+              //  dd($insert);
 
-                $message = $this->db->insert('ihris5_districts', $data);
+                $message = $this->db->insert('ihris5_districts', $insert);
                 ///dd($this->last->query);
             }
 
