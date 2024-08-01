@@ -1371,41 +1371,43 @@ class Biotimejobs extends MX_Controller
 
 
 
-                    $data = array(
-                        'ihris_pid' => $insert['ihris_pid'],
-                        'district_id' => $insert['district_id'],
-                        'district' => $insert['district'],
-                        'dhis_facility_id' => $insert['district_id'], // Assuming dhis_facility_id should map to district_id in JSON
-                        'dhis_district_id' => $insert['dhis_district_id'],
-                        'nin' => isset($insert['nin']) ? $insert['nin'] : null,
-                        'card_number' => $insert['card_number'],
-                        'ipps' => $insert['ipps'],
-                        'facility_type_id' => $insert['facility_type_id'],
-                        'facility_id' => null, // Assuming facility_id is not present in JSON
-                        'facility' => $insert['facility'],
-                        'department_id' => null, // Assuming department_id is not present in JSON
-                        'department' => null, // Assuming department is not present in JSON
-                        'division' => null, // Assuming division is not present in JSON
-                        'section' => null, // Assuming section is not present in JSON
-                        'unit' => null, // Assuming unit is not present in JSON
-                        'job_id' => $insert['job_id'],
-                        'job' => $insert['job'],
-                        'employment_terms' => $insert['employmentTerms'],
-                        'salary_grade' => isset($insert['salary_grade']) ? $insert['salary_grade'] : null,
-                        'surname' => $insert['surname'],
-                        'firstname' => $insert['firstname'],
-                        'othername' => $insert['othername'],
-                        'mobile' => isset($insert['mobile']) ? $insert['mobile'] : null,
-                        'telephone' => isset($insert['telephone']) ? $insert['telephone'] : null,
-                        'institution_type_id' => null, // Assuming institution_type_id is not present in JSON
-                        'institutiontype_name' => null, // Assuming institutiontype_name is not present in JSON
-                        'last_update' => $insert['last_updated'],
-                        'gender' => $insert['gender'],
-                        'birth_date' => date('Y-m-d', strtotime($insert['birth_date'])),
-                        'cadre' => isset($insert['cadre']) ? $insert['cadre'] : null,
-                        'email' => isset($insert['email']) ? $insert['email'] : null,
-                        'region' => $insert['region']
-                    );
+                
+                         $data = array(
+                'ihris_pid' => $insert->ihris_pid,
+                'district_id' => $insert->district_id,
+                'district' => $insert->district,
+                'dhis_facility_id' => $insert->district_id, // Assuming dhis_facility_id should map to district_id in JSON
+                'dhis_district_id' => $insert->dhis_district_id,
+                'nin' => isset($insert->nin) ? $insert->nin : null,
+                'card_number' => $insert->card_number,
+                'ipps' => $insert->ipps,
+                'facility_type_id' => $insert->facility_type_id,
+                'facility_id' => null, // Assuming facility_id is not present in JSON
+                'facility' => $insert->facility,
+                'department_id' => null, // Assuming department_id is not present in JSON
+                'department' => null, // Assuming department is not present in JSON
+                'division' => null, // Assuming division is not present in JSON
+                'section' => null, // Assuming section is not present in JSON
+                'unit' => null, // Assuming unit is not present in JSON
+                'job_id' => $insert->job_id,
+                'job' => $insert->job,
+                'employment_terms' => $insert->employmentTerms,
+                'salary_grade' => isset($insert->salary_grade) ? $insert->salary_grade : null,
+                'surname' => $insert->surname,
+                'firstname' => $insert->firstname,
+                'othername' => $insert->othername,
+                'mobile' => isset($insert->mobile) ? $insert->mobile : null,
+                'telephone' => isset($insert->telephone) ? $insert->telephone : null,
+                'institution_type_id' => null, // Assuming institution_type_id is not present in JSON
+                'institutiontype_name' => null, // Assuming institutiontype_name is not present in JSON
+                'last_update' => $insert->last_updated,
+                'gender' => $insert->gender,
+                'birth_date' => date('Y-m-d', strtotime($insert->birth_date)),
+                'cadre' => isset($insert->cadre) ? $insert->cadre : null,
+                'email' => isset($insert->email) ? $insert->email : null,
+                'region' => $insert->region
+            );
+                    
 
 
                     dd($data);
