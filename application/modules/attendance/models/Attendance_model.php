@@ -267,6 +267,42 @@ class 	Attendance_model extends CI_Model
 		return $data;
 	} //summary
 
+	public function attendance5_summary($valid_range, $filters, $start = NULL, $limit = NULL, $district = FALSE, $facility = FALSE, $employee = NULL, $department = FALSE, $endpoint = FALSE)
+	{
+		$this->db->select('*');
+		$this->db->from('person_att_final');
+		$this->db->join('data_mapper', 'person_att_final.ihris_pid = data_mapper.ihris4_pid');
+		$this->db->where('duty_date', $valid_range);
+
+		if ($endpoint != 'api') {
+			$facility_id = $_SESSION['facility'];
+			if (!empty($facility_id)) {
+				$this->db->where('facility_id', $facility_id);
+			}
+			if (!empty($employee)) {
+				$this->db->where('ihris_pid', $employee);
+			}
+		} else {
+			if (!empty($facility)) {
+				$this->db->where('facility_id', $facility);
+			}
+			if (!empty($district)) {
+				$this->db->where('district', $district);
+			}
+		}
+
+		if (!empty($department)) {
+			$this->db->where('department_id', $department);
+		}
+
+		if (!empty($limit) && !empty($start)) {
+			$this->db->limit($limit, $start);
+		}
+
+		$query = $this->db->get();
+		return $query->result_array();
+	}
+
 	public function countAttendanceSummary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $department = NULL)
 	{
 		$facility = $_SESSION['facility'];

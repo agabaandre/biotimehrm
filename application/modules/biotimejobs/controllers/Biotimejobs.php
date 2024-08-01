@@ -1233,7 +1233,7 @@ class Biotimejobs extends MX_Controller
         $dep = "";
 
         // Fetch attendance summary data
-        $datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district, $facility, $empid, $dep, 'api');
+        $datas = $this->attendance_model->attendance5_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $district, $facility, $empid, $dep, 'api');
 
         // Pre-fetch fields to reduce redundant database queries
         $ihris_pids = array_column($datas, 'ihris_pid');
@@ -1243,6 +1243,7 @@ class Biotimejobs extends MX_Controller
 
         foreach ($datas as $data) {
             $ihris_pid = $data['ihris_pid'];
+            $ihris5_pid = $data['ihris5_pid'];
 
             // Fetch roster data
             $roster = Modules::run('attendance/attrosta', $valid_range, urlencode($ihris_pid));
@@ -1271,7 +1272,7 @@ class Biotimejobs extends MX_Controller
             $per = per_present_helper($present, $r_days);
 
             $attendance = [
-                "ihris_pid" =>$this->get_ihris5_id($ihris_pid),
+                "ihris_pid" => $ihris5_pid,
                 "ipps" => $ipps,
                 "nin" => $nin,
                 "card_number" => $cardnumber,
@@ -1320,7 +1321,7 @@ class Biotimejobs extends MX_Controller
                         [
                             "url" => "http://ihris.org/fhir/StructureDefinition/ihris-practitioner-reference",
                             "valueReference" => [
-                                "reference" => "Practitioner/" . $this->get_ihris5_id($data["ihris_pid"])
+                                "reference" => "Practitioner/" . $data["ihris5_pid"]
                             ]
                         ],
                         [
@@ -1350,7 +1351,7 @@ class Biotimejobs extends MX_Controller
     }
 
     public function get_ihris5_id($ihris4_id){
-        $this->db->where('ihris4_pid',$ihris4_id);
+                $this->db->where('ihris4_pid',$ihris4_id);
         return  $this->db->get('data_mapper')->row()->ihris5_pid;
 
 
