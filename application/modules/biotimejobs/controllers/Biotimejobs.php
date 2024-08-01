@@ -1290,7 +1290,7 @@ class Biotimejobs extends MX_Controller
                 "Expected" => $r_days,
                 "Total Days Worked" => $present,
                 "Total Days Absent" => $absent,
-                "percent" => $per
+                "percent" => intval(round(str_replace(" %","",$per),0))
             ];
 
             $attendanceData[] = $attendance;
