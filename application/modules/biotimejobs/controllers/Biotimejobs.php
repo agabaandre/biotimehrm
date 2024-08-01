@@ -1287,10 +1287,10 @@ class Biotimejobs extends MX_Controller
                 "Official Request" => $request,
                 "Leave" => $leave,
                 "Holiday" => $holiday,
-                "Total Days Expected at Work" => $r_days,
+                "Expected" => $r_days,
                 "Total Days Worked" => $present,
                 "Total Days Absent" => $absent,
-                "% Present" => $per
+                "percent" => $per
             ];
 
             $attendanceData[] = $attendance;
@@ -1335,7 +1335,9 @@ class Biotimejobs extends MX_Controller
                                 ["url" => "offDuty", "valueInteger" => $data["Off Duty"]],
                                 ["url" => "leave", "valueInteger" => $data["Leave"]],
                                 ["url" => "request", "valueInteger" => $data["Official Request"]],
-                                ["url" => "holidays", "valueInteger" => $data["Holiday"]]
+                                ["url" => "holidays", "valueInteger" => $data["Holiday"]],
+                                ["url" => "expected", "valueInteger" => $data["Expected"]],
+                                ["url" => "percentPresent", "valueInteger" => $data["percent"]]
                             ]
                         ]
                     ]
