@@ -1368,7 +1368,7 @@ class Biotimejobs extends MX_Controller
             //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
             $this->db->query("TRUNCATE table ihrisdata");
             foreach ($response->entry as $insert) {
-                dd($insert);
+                //dd($insert);
 
 
 
@@ -1377,8 +1377,6 @@ class Biotimejobs extends MX_Controller
                 'ihris_pid' => $insert->ihris_pid,
                 'district_id' => $insert->district_id,
                 'district' => $insert->district,
-                'dhis_facility_id' => $insert->district_id, // Assuming dhis_facility_id should map to district_id in JSON
-                'dhis_district_id' => $insert->dhis_district_id,
                 'nin' => isset($insert->nin) ? $insert->nin : null,
                 'card_number' => $insert->card_number,
                 'ipps' => $insert->ipps,
@@ -1399,9 +1397,8 @@ class Biotimejobs extends MX_Controller
                 'othername' => $insert->othername,
                 'mobile' => isset($insert->mobile) ? $insert->mobile : null,
                 'telephone' => isset($insert->telephone) ? $insert->telephone : null,
-                'institution_type_id' => null, // Assuming institution_type_id is not present in JSON
-                'institutiontype_name' => null, // Assuming institutiontype_name is not present in JSON
-                'last_update' => $insert->last_updated,
+                'institution_type_id' =>  $insert->facility_type_id,
+                'institutiontype_name' =>  $insert->facility_type_id, 
                 'gender' => $insert->gender,
                 'birth_date' => date('Y-m-d', strtotime($insert->birth_date)),
                 'cadre' => isset($insert->cadre) ? $insert->cadre : null,
