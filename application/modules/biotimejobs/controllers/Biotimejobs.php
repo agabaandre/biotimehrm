@@ -1387,7 +1387,7 @@ class Biotimejobs extends MX_Controller
                 'department' => null, // Assuming department is not present in JSON
                 'division' => null, // Assuming division is not present in JSON
                 'section' => null, // Assuming section is not present in JSON
-                'unit' => null, // Assuming unit is not present in JSON
+                'unit' => '', // Assuming unit is not present in JSON
                 'job_id' => $insert->job_id,
                 'job' => $insert->job,
                 'employment_terms' => $insert->employmentTerms,
