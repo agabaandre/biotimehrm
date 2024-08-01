@@ -1271,7 +1271,7 @@ class Biotimejobs extends MX_Controller
             $per = per_present_helper($present, $r_days);
 
             $attendance = [
-                "ihris_pid" => $ihris_pid,
+                "ihris_pid" =>$this->get_ihris5_id($ihris_pid),
                 "ipps" => $ipps,
                 "nin" => $nin,
                 "card_number" => $cardnumber,
@@ -1320,7 +1320,7 @@ class Biotimejobs extends MX_Controller
                         [
                             "url" => "http://ihris.org/fhir/StructureDefinition/ihris-practitioner-reference",
                             "valueReference" => [
-                                "reference" => "Practitioner/" . $data["ihris_pid"]
+                                "reference" => "Practitioner/" . $this->get_ihris5_id($data["ihris_pid"])
                             ]
                         ],
                         [
@@ -1347,6 +1347,13 @@ class Biotimejobs extends MX_Controller
         }
 
         return $fhirData;
+    }
+
+    public function get_ihris5_id($ihris4_id){
+        $this->db->where('ihris4_pid',$ihris4_id);
+        return  $this->db->get('data_mapper')->row()->ihris5_pid;
+
+
     }
 
     public function get_ihris5data()
