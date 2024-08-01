@@ -1359,51 +1359,54 @@ class Biotimejobs extends MX_Controller
       $districts  = $this->db->get('ihris5_districts')->result();
       foreach($districts as $district){
 
-        $dist = str_replace(" District","",$district->name);
+       //s $dist = str_replace(" District","",$district->name);
+        $dist = 'Mbale';
         $response = $http->sendiHRIS5Request('ihrisdata/'.$dist, "GET", $headers, []);
 
         if ($response) {
             //dd(count($response));
             //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
             $this->db->query("TRUNCATE table ihrisdata");
-            foreach ($response as $insert) {
+            foreach ($response['entry'] as $insert) {
 
-                    dd($insert);
                     $data = array(
-                        'ihris_pid' => $this->input->post('ihris_pid'),
-                        'district_id' => $this->input->post('district_id'),
-                        'district' => $this->input->post('district'),
-                        'dhis_facility_id' => $this->input->post('dhis_facility_id'),
-                        'dhis_district_id' => $this->input->post('dhis_district_id'),
-                        'nin' => $this->input->post('nin'),
-                        'card_number' => $this->input->post('card_number'),
-                        'ipps' => $this->input->post('ipps'),
-                        'facility_type_id' => $this->input->post('facility_type_id'),
-                        'facility_id' => $this->input->post('facility_id'),
-                        'facility' => $this->input->post('facility'),
-                        'department_id' => $this->input->post('department_id'),
-                        'department' => $this->input->post('department'),
-                        'division' => $this->input->post('division'),
-                        'section' => $this->input->post('section'),
-                        'unit' => $this->input->post('unit'),
-                        'job_id' => $this->input->post('job_id'),
-                        'job' => $this->input->post('job'),
-                        'employment_terms' => $this->input->post('employment_terms'),
-                        'salary_grade' => $this->input->post('salary_grade'),
-                        'surname' => $this->input->post('surname'),
-                        'firstname' => $this->input->post('firstname'),
-                        'othername' => $this->input->post('othername'),
-                        'mobile' => $this->input->post('mobile'),
-                        'telephone' => $this->input->post('telephone'),
-                        'institution_type_id' => $this->input->post('institution_type_id'),
-                        'institutiontype_name' => $this->input->post('institutiontype_name'),
-                        'last_update' => $this->input->post('last_update'),
-                        'gender' => $this->input->post('gender'),
-                        'birth_date' => $this->input->post('birth_date'),
-                        'cadre' => $this->input->post('cadre'),
-                        'email' => $this->input->post('email'),
-                        'region' => $this->input->post('region')
+                        'ihris_pid' => $insert['ihris_pid'],
+                        'district_id' => $insert['district_id'],
+                        'district' => $insert['district'],
+                        'dhis_facility_id' => $insert['district_id'], // Assuming dhis_facility_id should map to district_id in JSON
+                        'dhis_district_id' => $insert['dhis_district_id'],
+                        'nin' => isset($insert['nin']) ? $insert['nin'] : null,
+                        'card_number' => $insert['card_number'],
+                        'ipps' => $insert['ipps'],
+                        'facility_type_id' => $insert['facility_type_id'],
+                        'facility_id' => null, // Assuming facility_id is not present in JSON
+                        'facility' => $insert['facility'],
+                        'department_id' => null, // Assuming department_id is not present in JSON
+                        'department' => null, // Assuming department is not present in JSON
+                        'division' => null, // Assuming division is not present in JSON
+                        'section' => null, // Assuming section is not present in JSON
+                        'unit' => null, // Assuming unit is not present in JSON
+                        'job_id' => $insert['job_id'],
+                        'job' => $insert['job'],
+                        'employment_terms' => $insert['employmentTerms'],
+                        'salary_grade' => isset($insert['salary_grade']) ? $insert['salary_grade'] : null,
+                        'surname' => $insert['surname'],
+                        'firstname' => $insert['firstname'],
+                        'othername' => $insert['othername'],
+                        'mobile' => isset($insert['mobile']) ? $insert['mobile'] : null,
+                        'telephone' => isset($insert['telephone']) ? $insert['telephone'] : null,
+                        'institution_type_id' => null, // Assuming institution_type_id is not present in JSON
+                        'institutiontype_name' => null, // Assuming institutiontype_name is not present in JSON
+                        'last_update' => $insert['last_updated'],
+                        'gender' => $insert['gender'],
+                        'birth_date' => date('Y-m-d', strtotime($insert['birth_date'])),
+                        'cadre' => isset($insert['cadre']) ? $insert['cadre'] : null,
+                        'email' => isset($insert['email']) ? $insert['email'] : null,
+                        'region' => $insert['region']
                     );
+
+
+                    dd($data);
 
 
                 $message = $this->db->replace('ihrisdata', $data);
