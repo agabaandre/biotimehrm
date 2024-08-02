@@ -1297,8 +1297,10 @@ class Biotimejobs extends MX_Controller
         }
 
         if ($fhir==TRUE) {
+            header('Content-Type: application/json; charset=utf-8');
             echo json_encode($this->convert_to_fhir($attendanceData));
         } else {
+            header('Content-Type: application/json; charset=utf-8');
             echo json_encode($attendanceData);
         }
     }
@@ -1350,6 +1352,7 @@ class Biotimejobs extends MX_Controller
 
             $fhirData["entry"][] = $entry;
         }
+        //header('Content-Type: application/json; charset=utf-8');
 
         return $fhirData;
     }
