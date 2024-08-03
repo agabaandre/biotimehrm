@@ -1509,7 +1509,7 @@ class Biotimejobs extends MX_Controller
         $valid_range = '2024-07';
         $district='MBALE';
         $body = $this->attendance_data('FALSE',$valid_range,$district);
-        dd($body);
+       // dd($body);
         $http = new HttpUtils();
 
 
@@ -1522,7 +1522,7 @@ class Biotimejobs extends MX_Controller
         $response = $http->curlsendiHRIS5HttpPost($endpoint, $headr, $body);
 
         if ($response) {
-        //dd($response);
+        dd($response);
         }
 
         $process = 6;
