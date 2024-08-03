@@ -1503,6 +1503,36 @@ class Biotimejobs extends MX_Controller
         }
 
     }
+    public function fhir_Server_post()
+    {
+        $valid_range = '2024-07';
+        $district='MBALE';
+        $body = $this->attendance_data('TRUE',$valid_range,$district);
+dd($body);
+        $http = new HttpUtils();
+
+
+        $endpoint = 'hapi/fhir/';
+        $headr = array();
+        $headr[] = 'Content-length:' . strlen($body);
+        $headr[] = 'Content-type: application/json';
+       // $headr[] = 'Authorization: JWT ' . $this->get_token();
+
+        $response = $http->curlsendiHRIS5HttpPost($endpoint, $headr, $body);
+
+        if ($response) {
+        dd($response);
+        }
+
+        $process = 6;
+        $method = "Post to FHIR";
+        if ($response) {
+           echo  $status = "successful";
+        } else {
+          echo   $status = "failed";
+        }
+        $this->cronjob_register($process, $method, $status);
+    }
         
     
 
