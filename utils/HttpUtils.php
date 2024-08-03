@@ -199,7 +199,7 @@ class HttpUtils
     {
         $url = iHRIS5_URL . $endpoint;
         $ch = curl_init($url);
-
+        dd($url);
         //post values
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -211,11 +211,8 @@ class HttpUtils
         );
         //time to wait while waiting for connection...indefinite
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
-
         curl_setopt($ch, CURLOPT_POST, 1);
-        //set curl time..processing time out
         curl_setopt($ch, CURLOPT_TIMEOUT, 200);
-        // Perform the request, and save content to $result
         $result = curl_exec($ch);
         //curl error handling
         $curl_errno = curl_errno($ch);

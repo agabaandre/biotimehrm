@@ -1525,14 +1525,7 @@ class Biotimejobs extends MX_Controller
         dd($response);
         }
 
-        $process = 6;
-        $method = "Post to FHIR";
-        if ($response) {
-           echo  $status = "successful";
-        } else {
-          echo   $status = "failed";
-        }
-        $this->cronjob_register($process, $method, $status);
+      
     }
         
     
