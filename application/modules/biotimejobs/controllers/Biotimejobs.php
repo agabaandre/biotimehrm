@@ -1296,7 +1296,7 @@ class Biotimejobs extends MX_Controller
             $attendanceData[] = $attendance;
         }
 
-        if ($fhir==TRUE) {
+        if ($fhir=='view') {
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode($this->convert_to_fhir($attendanceData));
              
@@ -1522,7 +1522,7 @@ class Biotimejobs extends MX_Controller
         $response = $http->curlsendiHRIS5HttpPost($endpoint, $headr, $body);
 
         if ($response) {
-        dd($response);
+        //dd($response);
         }
 
         $process = 6;
