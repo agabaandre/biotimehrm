@@ -201,11 +201,9 @@ class HttpUtils
         $ch = curl_init($url);
 
         //post values
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-        // Option to Return the Result, rather than just true/false
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-        // Set Request Headers
         curl_setopt(
             $ch,
             CURLOPT_HTTPHEADER,
