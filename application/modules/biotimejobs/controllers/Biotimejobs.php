@@ -1299,9 +1299,10 @@ class Biotimejobs extends MX_Controller
         if ($fhir==TRUE) {
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode($this->convert_to_fhir($attendanceData));
+             
         } else {
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode($attendanceData);
+           return json_encode($this->convert_to_fhir($attendanceData));
+           
         }
     }
     private function convert_to_fhir($attendanceData)
@@ -1508,7 +1509,7 @@ class Biotimejobs extends MX_Controller
         $valid_range = '2024-07';
         $district='MBALE';
         $body = $this->attendance_data('TRUE',$valid_range,$district);
-        dd($body);
+        //dd($body);
         $http = new HttpUtils();
 
 
