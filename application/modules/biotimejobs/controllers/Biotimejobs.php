@@ -1301,7 +1301,7 @@ class Biotimejobs extends MX_Controller
             echo json_encode($this->convert_to_fhir($attendanceData));
              
         } else {
-           return json_encode($this->convert_to_fhir($attendanceData));
+           return $this->convert_to_fhir($attendanceData);
            
         }
     }
