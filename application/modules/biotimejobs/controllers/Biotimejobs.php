@@ -1508,8 +1508,8 @@ class Biotimejobs extends MX_Controller
     {
         $valid_range = '2024-07';
         $district='MBALE';
-        $body = $this->attendance_data('FALSE',$valid_range,$district);
-       // dd($body);
+        $body = $this->attendance_data('view',$valid_range,$district);
+       dd($body);
         $http = new HttpUtils();
 
 
