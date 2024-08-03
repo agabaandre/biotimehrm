@@ -202,6 +202,7 @@ class HttpUtils
     
         //post values
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+        //curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT'); // Set to PUT
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
         curl_setopt(

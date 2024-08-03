@@ -1346,8 +1346,8 @@ class Biotimejobs extends MX_Controller
                     ]
                 ],
                 "request" => [
-                    "method" => "PUT",
-                    "url" => "Basic/" . $data["ihris_pid"] // Generate a unique URL for each entry
+                    "method" => "POST",
+                    "url" => "Basic" // Generate a unique URL for each entry
                 ]
             ];
 
