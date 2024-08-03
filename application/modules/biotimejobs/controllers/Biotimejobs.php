@@ -1515,8 +1515,8 @@ class Biotimejobs extends MX_Controller
 
         $endpoint = 'hapi/fhir';
         $headr = array();
-        $headr[] = 'Content-length:' . strlen(json_encode($body));
-        $headr[] = 'Content-type: application/json';
+       // $headr[] = 'Content-length:' . strlen(json_encode($body));
+        //$headr[] = 'Content-type: application/json';
        // $headr[] = 'Authorization: JWT ' . $this->get_token();
 
         $response = $http->curlsendiHRIS5HttpPost($endpoint, $headr, $body);
