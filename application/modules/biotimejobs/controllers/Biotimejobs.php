@@ -1507,28 +1507,27 @@ class Biotimejobs extends MX_Controller
     public function fhir_Server_post()
     {
         $valid_range = '2024-07';
-        $district='MBALE';
-        $body = $this->attendance_data('false',$valid_range,$district);
-      // dd($body);
+        $district = 'MBALE';
+        $body = $this->attendance_data('false', $valid_range, $district);
+        // dd($body);
         $http = new HttpUtils();
 
-
         $endpoint = 'hapi/fhir';
-        $headr = array();
-       // $headr[] = 'Content-length:' . strlen(json_encode($body));
-        //$headr[] = 'Content-type: application/json';
-       // $headr[] = 'Authorization: JWT ' . $this->get_token();
+        $headers = array(
+            'Content-Type: application/fhir+json',
+            'Content-Length: ' . strlen(json_encode($body)),
+            //'Authorization: JWT ' . $this->get_token()
+        );
 
-        $response = $http->curlsendiHRIS5HttpPost($endpoint, $headr, $body);
+        $response = $http->curlsendiHRIS5HttpPost($endpoint, $headers, $body);
 
         if ($response) {
-        dd($response);
+            dd($response);
         }
-
-      
     }
-        
-    
+
+
+
 
 
 
