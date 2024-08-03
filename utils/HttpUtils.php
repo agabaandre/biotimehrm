@@ -199,7 +199,7 @@ class HttpUtils
     {
         $url = iHRIS5_URL . $endpoint;
         $ch = curl_init($url);
-        dd($ch);
+        $ch;
         //post values
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
