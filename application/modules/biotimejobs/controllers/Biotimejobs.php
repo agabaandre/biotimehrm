@@ -1426,6 +1426,7 @@ class Biotimejobs extends MX_Controller
                 $message = $this->db->replace('ihrisdata5', $data);
                 ///dd($this->last->query);
             }
+            $this->remap_data();
 
             $this->log($message);
         }
