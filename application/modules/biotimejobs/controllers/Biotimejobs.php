@@ -1530,7 +1530,8 @@ public function ihris5jobs(){
 // Sample FHIR resource data (JSON)
         $http = new HttpUtils();
         $headers = [
-         
+            'Content-Type: application/fhir+json',
+            'Accept' => '*',
         ];
 
         $response = $http->sendiHRIS5Request('hapi/fhir/Basic?_profile=http://ihris.org/fhir/StructureDefinition/ihris-manage-job', "GET", $headers, []);
