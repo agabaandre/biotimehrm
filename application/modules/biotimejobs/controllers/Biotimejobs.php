@@ -1534,7 +1534,7 @@ public function ihris5jobs(){
             'Accept' => '*',
         ];
 
-        $response = $http->sendiHRIS5Request('hapi/fhir/Basic?_profile=http://ihris.org/fhir/StructureDefinition/ihris-manage-job', "GET", $headers, []);
+        $response = $http->curlgetihris5Http('hapi/fhir/Basic?_profile=http://ihris.org/fhir/StructureDefinition/ihris-manage-job', "GET", $headers);
 var_dump($response);
 // Decode the JSON string into an associative array
 $fhirData = json_decode($response, true);
