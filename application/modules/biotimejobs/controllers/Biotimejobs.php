@@ -1526,6 +1526,53 @@ class Biotimejobs extends MX_Controller
             dd($response);
         }
     }
+public function ihris5jobs(){
+// Sample FHIR resource data (JSON)
+        $http = new HttpUtils();
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ];
+
+        $response = $http->sendiHRIS5Request('hapi/fhir/Basic?_profile=http://ihris.org/fhir/StructureDefinition/ihris-manage-job', "GET", $headers, []);
+dd($response);
+// Decode the JSON string into an associative array
+$fhirData = json_decode($response, true);
+
+// Initialize an array to hold the formatted data
+$formattedData = [];
+
+if (isset($fhirData['entry'])) {
+    foreach ($fhirData['entry'] as $entry) {
+        $jobName = '';
+        $dhis2Uuid = '';
+
+        // Iterate through the extensions to find the job name and dhis2_uuid
+        foreach ($entry['resource']['extension'] as $extension) {
+            if ($extension['url'] === 'http://ihris.org/fhir/StructureDefinition/ihris-basic-name') {
+                $jobName = $extension['valueString'];
+            }
+            if ($extension['url'] === 'http://ihris.org/fhir/StructureDefinition/ihris-dhis2-id') {
+                $dhis2Uuid = $extension['valueString'];
+            }
+        }
+
+        // Add the job name and empty dhis2_uuid to the formatted data
+        $formattedData[] = [
+            'dhis2_uuid' => $dhis2Uuid,
+            'job_name' => $jobName
+        ];
+    }
+}
+
+// Encode the formatted data into JSON
+$jsonOutput = json_encode($formattedData, JSON_PRETTY_PRINT);
+
+// Output the JSON
+dd($jsonOutput);
+
+}
+
 
 
 
