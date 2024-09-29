@@ -381,37 +381,50 @@ class Api extends RestController
 
     public function clock_user_post()
     {
-        $data = $this->post();
+        // Get the JSON input
+        $input = $this->post(); // Assuming you're using a framework that processes POST requests this way
 
         // Assuming $data contains only one record, you can directly access it
         $userRecord = array();
-        $userRecord['entry_id'] = $data['entry_id'];
-        $userRecord['ihris_pid'] = $data['ihris_pid'];
-        $userRecord['facility_id'] = $data['facility_id'];
-        $userRecord['time_in'] = $data['time_in'];
-        $userRecord['time_out'] = $data['time_out'];
-        $userRecord['date'] = $data['date'];
-        $userRecord['status'] = $data['status'];
-        // Location, Source, Facility
-        $userRecord['location'] = $data['location'];
-        $userRecord['source'] = $data['source'];
-        $userRecord['facility'] = $data['facility'];
 
+        // Assign the values from the input to the $userRecord array
+        $userRecord['clock_status'] = $input['clock_status'];
+
+        // Convert the `clock_time` to a valid timestamp
+        $clockTimestamp = strtotime($input['clock_time']); // Get Unix timestamp
+        $userRecord['clock_time'] = date('Y-m-d H:i:s', $clockTimestamp); // Convert to MySQL DATETIME format
+
+        $userRecord['id'] = $input['id'];
+        $userRecord['ihris_pid'] = $input['ihris_pid'];
+        $userRecord['name'] = $input['name'];
+        $userRecord['synced'] = $input['synced'];
+
+        // Get latitude, longitude, and facility_id from the input
+        $userRecord['latitude'] = $input['latitude'];
+        $userRecord['longitude'] = $input['longitude'];
+        $userRecord['facility_id'] = $input['facility_id'];
+
+        $userRecord['source'] = 'mobile';
+
+        // Construct the entry_id: {timestamp}_{ihris_pid}
+        $userRecord['entry_id'] = $clockTimestamp . '_' . $input['ihris_pid'];
+
+        // Process or save the $userRecord data as needed, such as saving to a database
         $result = $this->mEmployee->clock($userRecord);
 
-        if ($result != null) {
+        if ($result['status']) {
+            // Return a success message or further processing
             $this->response([
                 'status' => true,
-                'message' => 'Clocking successful',
-                'data' => [
-                    'clocked_id' => $result
-                ]
+                'message' => 'User clock record received successfully',
+                'data' => $userRecord
             ], 200);
         } else {
             $this->response([
                 'status' => false,
-                'message' => 'Clocking failed'
-            ], 401);
+                'message' => 'Unable to clock in at the moment',
+                'data' => $userRecord,
+            ], 400);
         }
     }
 
@@ -558,12 +571,12 @@ class Api extends RestController
             $userId = $decoded['user_id'];
 
             // Extract data from the request
-        
+
             $ihris_pid = $this->post('ihris_pid');
             $facility_id = $this->db->query("SELECT  facility_id from  ihrisdata  where ihris_pid='$ihris_pid'")->row()->facility_id;
 
-            $tin= $this->post('time_in');
-           
+            $tin = $this->post('time_in');
+
             $date_time = DateTime::createFromFormat('d/m/Y H:i', $tin);
             if ($date_time !== false) {
                 $timein = $date_time->format('Y-m-d H:i:s');
@@ -576,7 +589,7 @@ class Api extends RestController
             if ($date_time2 !== false) {
                 $timeout = $date_time2->format('Y-m-d H:i:s');
             }
-          
+
             $dt = $this->post('date');
             $date = date('Y-m-d', strtotime($dt));
 

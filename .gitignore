@@ -10,3 +10,4 @@ uploads/fingerprints/*.fpt
 composer-setup.php
 composer.phar
 /cache/
+.aider*
