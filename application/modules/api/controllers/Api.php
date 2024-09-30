@@ -430,6 +430,7 @@ class Api extends RestController
         // Get Facility Name
         $facilityName = $this->mEmployee->get_facility_name($userRecord["facility_id"]);
         $userRecord["location"] = $facilityName;
+        $userRecord["facility"] = $facilityName;
 
         // Save the user record
         $result = $this->mEmployee->clock($userRecord);
