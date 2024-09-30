@@ -380,7 +380,22 @@ class Api extends RestController
         $userRecord['date'] = 'CURRENT TIME in Y-m-d';
         $userRecord['status'] = $input['clock_status'] == "IN" ? "CLOCKED_IN" : "CLOCKED_OUT";
 
-        $userRecord["shift"] = "A 24 hour day has 4 shifts Morning, Afternoon, Evening, Night Shift, choose one basing on time";
+        // Set timezone to Africa/Kampala
+        date_default_timezone_set('Africa/Kampala');
+
+        // Get the current hour in 24-hour format
+        $currentHour = date('H');
+
+        // Determine the shift based on the time of day
+        if ($currentHour >= 6 && $currentHour < 14) {
+            $userRecord["shift"] = "Morning";
+        } elseif ($currentHour >= 14 && $currentHour < 22) {
+            $userRecord["shift"] = "Afternoon";
+        } elseif ($currentHour >= 22 || $currentHour < 2) {
+            $userRecord["shift"] = "Evening";
+        } else {
+            $userRecord["shift"] = "Night";
+        }
 
         // Get Facility Name
         $facilityName = $this->mEmployee->get_facility_name($userRecord["facility_id"]);
