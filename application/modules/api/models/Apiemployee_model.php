@@ -91,8 +91,17 @@ class Apiemployee_model extends CI_Model
 
     public function clock($data)
     {
-        $this->db->insert('mobileclk_log', $data);
-        return $this->db->insert_id();
+        if ($this->db->insert('mobileclk_log', $data)) {
+            return [
+                'status' => true,
+                'insert_id' => $this->db->insert_id()
+            ];
+        } else {
+            return [
+                'status' => false,
+                'error' => $this->db->error() // Capture the database error
+            ];
+        }
     }
 
     public function get_notifications_list($facilityID)
@@ -179,13 +188,14 @@ class Apiemployee_model extends CI_Model
 
     public function clock_user_mobile($data)
     {
-     
+
         $this->db->insert('clk_log', $data);
-        
-        
+
+
         return $this->db->insert_id(); // Return the ID of the inserted record if needed
     }
-    public function clock_out_mobile($entry_id,$timeout){
+    public function clock_out_mobile($entry_id, $timeout)
+    {
         return $this->db->query("UPDATE clk_log set time_out='$timeout' WHERE entry_id='$entry_id'");
     }
 

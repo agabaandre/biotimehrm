@@ -347,7 +347,6 @@ class Api extends RestController
             'face_data' => $input['face_data'],
             'fingerprint_data' => $input['fingerprint_data'],
             'ihris_pid' => $input['ihris_pid'],
-            'facility' => $input['facility'],
             'facility_id' => $input['facility_id'],
             'firstname' => $input['firstname'],
             'surname' => $input['surname'],
@@ -379,80 +378,77 @@ class Api extends RestController
     public function clock_user_post()
     {
         // Get the JSON input
-        $input = $this->post(); // Assuming you're using a framework that processes POST requests this way
+        $input = $this->post();
 
-        // Assuming $data contains only one record, you can directly access it
         $userRecord = array();
 
-        // Convert the `clock_time` to a valid timestamp
-        $clockTimestamp = strtotime($input['clock_time']); // Get Unix timestamp
-        $userRecord['clock_time'] = date('Y-m-d', $clockTimestamp); // Convert to MySQL DATETIME format
-
-        // $userRecord['id'] = $input['id'];
-        
-        $userRecord['name'] = $input['name'];
-        $userRecord['synced'] = $input['synced'];
-
-        
-        
-
-        $userRecord['source'] = 'mobile';
+        // Set the current date and time from the server
+        date_default_timezone_set('Africa/Kampala');
+        $currentDate = date('Y-m-d');
+        $currentTime = date('Y-m-d H:i:s');
 
         // Construct the entry_id: {timestamp}_{ihris_pid}
-        $userRecord['entry_id'] = $clockTimestamp . '|' . $input['ihris_pid'];
+        $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
         $userRecord['ihris_pid'] = $input['ihris_pid'];
+        $userRecord['name'] = $input['name'];
+        $userRecord['synced'] = $input['synced'];
         $userRecord['facility_id'] = $input['facility_id'];
+        $userRecord['source'] = 'mobile';
+        $userRecord['latitude'] = $input['latitude'];
+        $userRecord['longitude'] = $input['longitude'];
 
-        $userRecord['time_in'] = null;
-        $userRecord['time_out'] = null;
-        $userRecord['date'] = 'CURRENT TIME in Y-m-d';
-        $userRecord['status'] = $input['clock_status'] == "IN" ? "CLOCKED_IN" : "CLOCKED_OUT";
+        // Set the current date
+        $userRecord['date'] = $currentDate;
 
-        // Set timezone to Africa/Kampala
-        date_default_timezone_set('Africa/Kampala');
+        // Determine clock status and set time_in or time_out
+        if ($input['clock_status'] == "IN") {
+            $userRecord['time_in'] = $currentTime;
+            $userRecord['time_out'] = null;
+            $userRecord['status'] = "CLOCKED_IN";
+        } elseif ($input['clock_status'] == "OUT") {
+            $userRecord['time_out'] = $currentTime;
+            $userRecord['time_in'] = null;
+            $userRecord['status'] = "CLOCKED_OUT";
+        } else {
+            $this->response([
+                'status' => false,
+                'message' => 'Invalid clock status',
+            ], 400);
+            return;
+        }
 
-        // Get the current hour in 24-hour format
+        // Determine the shift based on the current hour
         $currentHour = date('H');
-
-        // Determine the shift based on the time of day
         if ($currentHour >= 6 && $currentHour < 14) {
             $userRecord["shift"] = "Morning";
         } elseif ($currentHour >= 14 && $currentHour < 22) {
             $userRecord["shift"] = "Afternoon";
-        } elseif ($currentHour >= 22 || $currentHour < 2) {
-            $userRecord["shift"] = "Evening";
         } else {
             $userRecord["shift"] = "Night";
         }
 
         // Get Facility Name
         $facilityName = $this->mEmployee->get_facility_name($userRecord["facility_id"]);
-
         $userRecord["location"] = $facilityName;
 
-        $userRecord["source"] = "mobile";
-
-        // Get latitude, longitude, and facility_id from the input
-        $userRecord['latitude'] = $input['latitude'];
-        $userRecord['longitude'] = $input['longitude'];
-
-
-        // Process or save the $userRecord data as needed, such as saving to a database
+        // Save the user record
         $result = $this->mEmployee->clock($userRecord);
 
         if ($result['status']) {
-            // Return a success message or further processing
+            // Successful insert
             $this->response([
                 'status' => true,
                 'message' => 'User clock record received successfully',
                 'data' => $userRecord
             ], 200);
         } else {
+            // Failed insert, include the specific error message
             $this->response([
                 'status' => false,
-                'message' => 'Unable to clock in at the moment',
+                'message' => 'Failed to clock in due to database error',
+                'error' => $result['error'],
                 'data' => $userRecord,
-            ], 400);
+            ], 500); // Internal Server Error
         }
     }
 
