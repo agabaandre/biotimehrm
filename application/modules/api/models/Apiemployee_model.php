@@ -62,7 +62,7 @@ class Apiemployee_model extends CI_Model
         $enrollData = [
             'ihris_pid' => $data['ihris_pid'],
             'face_data' => $data['face_data'],
-            'fingerprint_data' => $data['fingerprint_data'],
+            'fingerprint_data' => json_encode($data['fingerprint_data']),
             'enrolled' => $data['face_enrolled'] || $data['fingerprint_enrolled'] ? 1 : 0,
             'facility_id' => $data['facility_id'],
             'firstname' => $data['firstname'],
