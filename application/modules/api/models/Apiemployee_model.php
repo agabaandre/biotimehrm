@@ -58,8 +58,34 @@ class Apiemployee_model extends CI_Model
 
     public function enroll($data)
     {
-        // $this->db->insert('fingerprints', $data);
-        
+        // Extract the required fields from the $data array
+        $enrollData = [
+            'ihris_pid' => $data['ihris_pid'],
+            'face_data' => $data['face_data'],
+            'fingerprint_data' => $data['fingerprint_data'],
+            'enrolled' => $data['face_enrolled'] || $data['fingerprint_enrolled'] ? 1 : 0,
+            'facility_id' => $data['facility_id'],
+            'firstname' => $data['firstname'],
+            'surname' => $data['surname'],
+            'job' => $data['job'],
+            'synced' => $data['synced'],
+            'template_id' => $data['template_id'],
+            'face_enrolled' => $data['face_enrolled'],
+            'fingerprint_enrolled' => $data['fingerprint_enrolled']
+        ];
+
+        // Check if a record with the given 'ihris_pid' exists in the mobile_enroll table
+        $existing_record = $this->db->get_where('mobile_enroll', ['ihris_pid' => $enrollData['ihris_pid']])->row_array();
+
+        if ($existing_record) {
+            // If the record exists, update it
+            $this->db->where('ihris_pid', $enrollData['ihris_pid']);
+            $this->db->update('mobile_enroll', $enrollData);
+        } else {
+            // If the record does not exist, insert it
+            $this->db->insert('mobile_enroll', $enrollData);
+        }
+
         return $this->db->insert_id();
     }
 
