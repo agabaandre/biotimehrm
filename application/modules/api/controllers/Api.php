@@ -342,10 +342,38 @@ class Api extends RestController
         // Get the JSON input
         $input = $this->post(); // Assuming you're using a framework that processes POST requests this way
 
-        // Assuming $data contains only one record, you can directly access it
-        $userRecord = array();
+        // Extract required fields from the input
+        $userRecord = [
+            'face_data' => $input['face_data'],
+            'fingerprint_data' => $input['fingerprint_data'],
+            'ihris_pid' => $input['ihris_pid'],
+            'facility' => $input['facility'],
+            'facility_id' => $input['facility_id'],
+            'firstname' => $input['firstname'],
+            'surname' => $input['surname'],
+            'job' => $input['job'],
+            'synced' => $input['synced'],
+            'template_id' => $input['template_id'],
+            'face_enrolled' => $input['face_enrolled'],
+            'fingerprint_enrolled' => $input['fingerprint_enrolled']
+        ];
 
+        // Call the model method to enroll the user
+        $result = $this->mEmployee->enroll($userRecord);
 
+        if ($result) {
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'User enrolled successfully',
+                'data' => $userRecord
+            ], 200);
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Unable to enroll user at the moment',
+                'data' => $userRecord
+            ], 400);
+        }
     }
 
     public function clock_user_post()
