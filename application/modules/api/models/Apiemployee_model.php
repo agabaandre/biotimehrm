@@ -64,7 +64,7 @@ class Apiemployee_model extends CI_Model
 
     public function clock($data)
     {
-        $this->db->insert('clk_log', $data);
+        $this->db->insert('mobileclk_log', $data);
         return $this->db->insert_id();
     }
 
