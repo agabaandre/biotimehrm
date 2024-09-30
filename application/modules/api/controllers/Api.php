@@ -390,7 +390,7 @@ class Api extends RestController
         // Construct the entry_id: {timestamp}_{ihris_pid}
         $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
         $userRecord['ihris_pid'] = $input['ihris_pid'];
-        $userRecord['name'] = $input['name'];
+        // $userRecord['name'] = $input['name'];
         $userRecord['synced'] = $input['synced'];
         $userRecord['facility_id'] = $input['facility_id'];
         $userRecord['source'] = 'mobile';
