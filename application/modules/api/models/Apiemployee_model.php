@@ -86,7 +86,22 @@ class Apiemployee_model extends CI_Model
             $this->db->insert('mobile_enroll', $enrollData);
         }
 
-        return $this->db->insert_id();
+        if ($existing_record) {
+            // If the record exists, update it
+            $this->db->where('ihris_pid', $enrollData['ihris_pid']);
+            if ($this->db->update('mobile_enroll', $enrollData)) {
+                return ['status' => true, 'message' => 'Record updated successfully'];
+            } else {
+                return ['status' => false, 'message' => 'Failed to update record'];
+            }
+        } else {
+            // If the record does not exist, insert it
+            if ($this->db->insert('mobile_enroll', $enrollData)) {
+                return ['status' => true, 'message' => 'Record inserted successfully'];
+            } else {
+                return ['status' => false, 'message' => 'Failed to insert record'];
+            }
+        }
     }
 
     public function clock($data)

@@ -360,16 +360,16 @@ class Api extends RestController
         // Call the model method to enroll the user
         $result = $this->mEmployee->enroll($userRecord);
 
-        if ($result) {
+        if ($result['status']) {
             $this->response([
                 'status' => 'SUCCESS',
-                'message' => 'User enrolled successfully',
+                'message' => $result['message'],
                 'data' => $userRecord
             ], 200);
         } else {
             $this->response([
                 'status' => 'FAILED',
-                'message' => 'Unable to enroll user at the moment',
+                'message' => $result['message'],
                 'data' => $userRecord
             ], 400);
         }
