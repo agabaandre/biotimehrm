@@ -337,46 +337,15 @@ class Api extends RestController
     }
 
     // Enroll Users
-    public function enroll_users_post()
+    public function enroll_user_post()
     {
-        //Array of enrolled ids
-        $enrolled_ids = array();
+        // Get the JSON input
+        $input = $this->post(); // Assuming you're using a framework that processes POST requests this way
 
-        $data = $this->post();
-        // For Each Data as a record
-        foreach ($data as $record) {
-            $userRecord = array();
-            $userRecord['entry_id'] = $record['entry_id'];
-            $userRecord['ihris_pid'] = $record['ihris_pid'];
-            $userRecord['facility_id'] = $record['facility_id'];
-            $userRecord['face_data'] = $record['face_data'];
-            $userRecord['fingerprint'] = $record['fingerprint'];
-            $userRecord['location'] = $record['location'];
-            $userRecord['card_number'] = $record['card_number'];
-            $userRecord['enroll_date'] = $record['enroll_date'];
-            $userRecord['device'] = $record['device'];
+        // Assuming $data contains only one record, you can directly access it
+        $userRecord = array();
 
-            $result = $this->mEmployee->enroll($userRecord);
 
-            if ($result != null) {
-                array_push($enrolled_ids, $result);
-            }
-        }
-
-        if (count($enrolled_ids) > 0) {
-            $this->response([
-                'status' => true,
-                'message' => 'Enrollment successful',
-                'data' => [
-                    'enrolled_ids' => $enrolled_ids
-                ]
-            ], 200);
-        }
-
-        $this->response([
-            'status' => false,
-            'message' => 'Enrollment failed'
-        ], 404);
     }
 
     public function clock_user_post()
@@ -387,27 +356,43 @@ class Api extends RestController
         // Assuming $data contains only one record, you can directly access it
         $userRecord = array();
 
-        // Assign the values from the input to the $userRecord array
-        $userRecord['clock_status'] = $input['clock_status'];
-
         // Convert the `clock_time` to a valid timestamp
         $clockTimestamp = strtotime($input['clock_time']); // Get Unix timestamp
-        $userRecord['clock_time'] = date('Y-m-d H:i:s', $clockTimestamp); // Convert to MySQL DATETIME format
+        $userRecord['clock_time'] = date('Y-m-d', $clockTimestamp); // Convert to MySQL DATETIME format
 
-        $userRecord['id'] = $input['id'];
-        $userRecord['ihris_pid'] = $input['ihris_pid'];
+        // $userRecord['id'] = $input['id'];
+        
         $userRecord['name'] = $input['name'];
         $userRecord['synced'] = $input['synced'];
 
-        // Get latitude, longitude, and facility_id from the input
-        $userRecord['latitude'] = $input['latitude'];
-        $userRecord['longitude'] = $input['longitude'];
-        $userRecord['facility_id'] = $input['facility_id'];
+        
+        
 
         $userRecord['source'] = 'mobile';
 
         // Construct the entry_id: {timestamp}_{ihris_pid}
-        $userRecord['entry_id'] = $clockTimestamp . '_' . $input['ihris_pid'];
+        $userRecord['entry_id'] = $clockTimestamp . '|' . $input['ihris_pid'];
+        $userRecord['ihris_pid'] = $input['ihris_pid'];
+        $userRecord['facility_id'] = $input['facility_id'];
+
+        $userRecord['time_in'] = null;
+        $userRecord['time_out'] = null;
+        $userRecord['date'] = 'CURRENT TIME in Y-m-d';
+        $userRecord['status'] = $input['clock_status'] == "IN" ? "CLOCKED_IN" : "CLOCKED_OUT";
+
+        $userRecord["shift"] = "A 24 hour day has 4 shifts Morning, Afternoon, Evening, Night Shift, choose one basing on time";
+
+        // Get Facility Name
+        $facilityName = $this->mEmployee->get_facility_name($userRecord["facility_id"]);
+
+        $userRecord["location"] = $facilityName;
+
+        $userRecord["source"] = "mobile";
+
+        // Get latitude, longitude, and facility_id from the input
+        $userRecord['latitude'] = $input['latitude'];
+        $userRecord['longitude'] = $input['longitude'];
+
 
         // Process or save the $userRecord data as needed, such as saving to a database
         $result = $this->mEmployee->clock($userRecord);
