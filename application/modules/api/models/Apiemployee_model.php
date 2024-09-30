@@ -168,6 +168,16 @@ class Apiemployee_model extends CI_Model
         return $this->db->insert_id(); // Return the ID of the inserted record if needed
     }
 
+    public function get_facility_name($facilityId)
+    {
+        $this->db->select('facility');
+        $this->db->from('facilities');
+        $this->db->where('facility_id', $facilityId);
+        $query = $this->db->get();
+        $result = $query->row();
+        return $result ? $result->facility : null;
+    }
+
     public function update_mobile_enroll($data)
     {
         // Extract ihris_pid from the data
