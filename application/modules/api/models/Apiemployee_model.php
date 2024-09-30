@@ -58,7 +58,8 @@ class Apiemployee_model extends CI_Model
 
     public function enroll($data)
     {
-        $this->db->insert('fingerprints', $data);
+        // $this->db->insert('fingerprints', $data);
+        
         return $this->db->insert_id();
     }
 
