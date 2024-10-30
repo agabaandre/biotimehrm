@@ -16,7 +16,7 @@ class Apiemployee_model extends CI_Model
     // Get Staff List 
     public function get_staff_list($facilityId)
     {
-        $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, surname, firstname, othername, job, ihrisdata.facility_id, ihrisdata.facility, mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
+        $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname, ihrisdata.firstname, ihrisdata.othername, ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
         $this->db->from('ihrisdata');
         $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
         $this->db->join('user', 'user.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
