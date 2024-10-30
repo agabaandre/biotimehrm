@@ -16,15 +16,23 @@ class Apiemployee_model extends CI_Model
     // Get Staff List 
     public function get_staff_list($facilityId)
     {
-        $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname, ihrisdata.firstname, ihrisdata.othername, ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
+        $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as ihrisdata_surname, ihrisdata.firstname as ihrisdata_firstname, ihrisdata.othername, ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
         $this->db->from('ihrisdata');
         $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
         $this->db->join('user', 'user.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
         $this->db->where('ihrisdata.facility_id', $facilityId);
 
         $query = $this->db->get();
-        return $query->result();
+
+        if ($query) {
+            return $query->result();
+        } else {
+            // Handle the error for debugging
+            log_message('error', 'Database query failed: ' . $this->db->last_query());
+            return false;
+        }
     }
+
 
     // Post Staff List
     public function post_staff_list($data)
