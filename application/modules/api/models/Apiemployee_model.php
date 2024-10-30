@@ -58,14 +58,65 @@ class Apiemployee_model extends CI_Model
 
     public function enroll($data)
     {
-        $this->db->insert('fingerprints', $data);
-        return $this->db->insert_id();
+        // Extract the required fields from the $data array
+        $enrollData = [
+            'ihris_pid' => $data['ihris_pid'],
+            'face_data' => $data['face_data'],
+            'fingerprint_data' => json_encode($data['fingerprint_data']),
+            'enrolled' => $data['face_enrolled'] || $data['fingerprint_enrolled'] ? 1 : 0,
+            'facility_id' => $data['facility_id'],
+            'firstname' => $data['firstname'],
+            'surname' => $data['surname'],
+            'job' => $data['job'],
+            'synced' => $data['synced'],
+            'template_id' => $data['template_id'],
+            'face_enrolled' => $data['face_enrolled'],
+            'fingerprint_enrolled' => $data['fingerprint_enrolled']
+        ];
+
+        // Check if a record with the given 'ihris_pid' exists in the mobile_enroll table
+        $existing_record = $this->db->get_where('mobile_enroll', ['ihris_pid' => $enrollData['ihris_pid']])->row_array();
+
+        if ($existing_record) {
+            // If the record exists, update it
+            $this->db->where('ihris_pid', $enrollData['ihris_pid']);
+            $this->db->update('mobile_enroll', $enrollData);
+        } else {
+            // If the record does not exist, insert it
+            $this->db->insert('mobile_enroll', $enrollData);
+        }
+
+        if ($existing_record) {
+            // If the record exists, update it
+            $this->db->where('ihris_pid', $enrollData['ihris_pid']);
+            if ($this->db->update('mobile_enroll', $enrollData)) {
+                return ['status' => true, 'message' => 'Record updated successfully'];
+            } else {
+                return ['status' => false, 'message' => 'Failed to update record'];
+            }
+        } else {
+            // If the record does not exist, insert it
+            if ($this->db->insert('mobile_enroll', $enrollData)) {
+                return ['status' => true, 'message' => 'Record inserted successfully'];
+            } else {
+                return ['status' => false, 'message' => 'Failed to insert record'];
+            }
+        }
     }
 
     public function clock($data)
     {
-        $this->db->insert('clk_log', $data);
-        return $this->db->insert_id();
+        if ($this->db->insert('mobileclk_log', $data)) {
+            return [
+                'status' => true,
+                'insert_id' => $this->db->insert_id()
+            ];
+        } else {
+            return [
+                'status' => false,
+                'error' => $this->db->error() // Capture the database error
+            ];
+        }
     }
 
     public function get_notifications_list($facilityID)
@@ -152,13 +203,14 @@ class Apiemployee_model extends CI_Model
 
     public function clock_user_mobile($data)
     {
-     
+
         $this->db->insert('clk_log', $data);
-        
-        
+
+
         return $this->db->insert_id(); // Return the ID of the inserted record if needed
     }
-    public function clock_out_mobile($entry_id,$timeout){
+    public function clock_out_mobile($entry_id, $timeout)
+    {
         return $this->db->query("UPDATE clk_log set time_out='$timeout' WHERE entry_id='$entry_id'");
     }
 
@@ -166,6 +218,16 @@ class Apiemployee_model extends CI_Model
     {
         $this->db->insert('mobile_enroll', $data);
         return $this->db->insert_id(); // Return the ID of the inserted record if needed
+    }
+
+    public function get_facility_name($facilityId)
+    {
+        $this->db->select('facility');
+        $this->db->from('facilities');
+        $this->db->where('facility_id', $facilityId);
+        $query = $this->db->get();
+        $result = $query->row();
+        return $result ? $result->facility : null;
     }
 
     public function update_mobile_enroll($data)

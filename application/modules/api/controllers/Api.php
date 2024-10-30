@@ -337,81 +337,119 @@ class Api extends RestController
     }
 
     // Enroll Users
-    public function enroll_users_post()
+    public function enroll_user_post()
     {
-        //Array of enrolled ids
-        $enrolled_ids = array();
+        // Get the JSON input
+        $input = $this->post(); // Assuming you're using a framework that processes POST requests this way
 
-        $data = $this->post();
-        // For Each Data as a record
-        foreach ($data as $record) {
-            $userRecord = array();
-            $userRecord['entry_id'] = $record['entry_id'];
-            $userRecord['ihris_pid'] = $record['ihris_pid'];
-            $userRecord['facility_id'] = $record['facility_id'];
-            $userRecord['face_data'] = $record['face_data'];
-            $userRecord['fingerprint'] = $record['fingerprint'];
-            $userRecord['location'] = $record['location'];
-            $userRecord['card_number'] = $record['card_number'];
-            $userRecord['enroll_date'] = $record['enroll_date'];
-            $userRecord['device'] = $record['device'];
+        // Extract required fields from the input
+        $userRecord = [
+            'face_data' => $input['face_data'],
+            'fingerprint_data' => $input['fingerprint_data'],
+            'ihris_pid' => $input['ihris_pid'],
+            'facility_id' => $input['facility_id'],
+            'firstname' => $input['firstname'],
+            'surname' => $input['surname'],
+            'job' => $input['job'],
+            'synced' => $input['synced'],
+            'template_id' => $input['template_id'],
+            'face_enrolled' => $input['face_enrolled'],
+            'fingerprint_enrolled' => $input['fingerprint_enrolled']
+        ];
 
-            $result = $this->mEmployee->enroll($userRecord);
+        // Call the model method to enroll the user
+        $result = $this->mEmployee->enroll($userRecord);
 
-            if ($result != null) {
-                array_push($enrolled_ids, $result);
-            }
-        }
-
-        if (count($enrolled_ids) > 0) {
+        if ($result['status']) {
             $this->response([
-                'status' => true,
-                'message' => 'Enrollment successful',
-                'data' => [
-                    'enrolled_ids' => $enrolled_ids
-                ]
+                'status' => 'SUCCESS',
+                'message' => $result['message'],
+                'data' => $userRecord
             ], 200);
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => $result['message'],
+                'data' => $userRecord
+            ], 400);
         }
-
-        $this->response([
-            'status' => false,
-            'message' => 'Enrollment failed'
-        ], 404);
     }
 
     public function clock_user_post()
     {
-        $data = $this->post();
+        // Get the JSON input
+        $input = $this->post();
 
-        // Assuming $data contains only one record, you can directly access it
         $userRecord = array();
-        $userRecord['entry_id'] = $data['entry_id'];
-        $userRecord['ihris_pid'] = $data['ihris_pid'];
-        $userRecord['facility_id'] = $data['facility_id'];
-        $userRecord['time_in'] = $data['time_in'];
-        $userRecord['time_out'] = $data['time_out'];
-        $userRecord['date'] = $data['date'];
-        $userRecord['status'] = $data['status'];
-        // Location, Source, Facility
-        $userRecord['location'] = $data['location'];
-        $userRecord['source'] = $data['source'];
-        $userRecord['facility'] = $data['facility'];
 
-        $result = $this->mEmployee->clock($userRecord);
+        // Set the current date and time from the server
+        date_default_timezone_set('Africa/Kampala');
+        $currentDate = date('Y-m-d');
+        $currentTime = date('Y-m-d H:i:s');
 
-        if ($result != null) {
-            $this->response([
-                'status' => true,
-                'message' => 'Clocking successful',
-                'data' => [
-                    'clocked_id' => $result
-                ]
-            ], 200);
+        // Construct the entry_id: {timestamp}_{ihris_pid}
+        $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
+        $userRecord['ihris_pid'] = $input['ihris_pid'];
+        // $userRecord['name'] = $input['name'];
+        // $userRecord['synced'] = $input['synced'];
+        $userRecord['facility_id'] = $input['facility_id'];
+        $userRecord['source'] = 'mobile';
+        $userRecord['latitude'] = $input['latitude'];
+        $userRecord['longitude'] = $input['longitude'];
+
+        // Set the current date
+        $userRecord['date'] = $currentDate;
+
+        // Determine clock status and set time_in or time_out
+        if ($input['clock_status'] == "IN") {
+            $userRecord['time_in'] = $currentTime;
+            $userRecord['time_out'] = null;
+            $userRecord['status'] = "CLOCKED_IN";
+        } elseif ($input['clock_status'] == "OUT") {
+            $userRecord['time_out'] = $currentTime;
+            $userRecord['time_in'] = null;
+            $userRecord['status'] = "CLOCKED_OUT";
         } else {
             $this->response([
                 'status' => false,
-                'message' => 'Clocking failed'
-            ], 401);
+                'message' => 'Invalid clock status',
+            ], 400);
+            return;
+        }
+
+        // Determine the shift based on the current hour
+        $currentHour = date('H');
+        if ($currentHour >= 6 && $currentHour < 14) {
+            $userRecord["shift"] = "Morning";
+        } elseif ($currentHour >= 14 && $currentHour < 22) {
+            $userRecord["shift"] = "Afternoon";
+        } else {
+            $userRecord["shift"] = "Night";
+        }
+
+        // Get Facility Name
+        $facilityName = $this->mEmployee->get_facility_name($userRecord["facility_id"]);
+        $userRecord["location"] = $facilityName;
+        $userRecord["facility"] = $facilityName;
+
+        // Save the user record
+        $result = $this->mEmployee->clock($userRecord);
+
+        if ($result['status']) {
+            // Successful insert
+            $this->response([
+                'status' => true,
+                'message' => 'User clock record received successfully',
+                'data' => $userRecord
+            ], 200);
+        } else {
+            // Failed insert, include the specific error message
+            $this->response([
+                'status' => false,
+                'message' => 'Failed to clock in due to database error',
+                'error' => $result['error'],
+                'data' => $userRecord,
+            ], 500); // Internal Server Error
         }
     }
 
@@ -558,12 +596,12 @@ class Api extends RestController
             $userId = $decoded['user_id'];
 
             // Extract data from the request
-        
+
             $ihris_pid = $this->post('ihris_pid');
             $facility_id = $this->db->query("SELECT  facility_id from  ihrisdata  where ihris_pid='$ihris_pid'")->row()->facility_id;
 
-            $tin= $this->post('time_in');
-           
+            $tin = $this->post('time_in');
+
             $date_time = DateTime::createFromFormat('d/m/Y H:i', $tin);
             if ($date_time !== false) {
                 $timein = $date_time->format('Y-m-d H:i:s');
@@ -576,7 +614,7 @@ class Api extends RestController
             if ($date_time2 !== false) {
                 $timeout = $date_time2->format('Y-m-d H:i:s');
             }
-          
+
             $dt = $this->post('date');
             $date = date('Y-m-d', strtotime($dt));
 
