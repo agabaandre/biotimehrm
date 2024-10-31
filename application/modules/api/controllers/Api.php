@@ -299,8 +299,8 @@ class Api extends RestController
             $surname = $post_data['surname'];
             $synced = $post_data['synced'];
             $template = $post_data['template'];
-            $face_data = $faces_data;
-            $fingerprint_data = $finger_data;
+            $face_data = NULL;
+            $fingerprint_data = NULL;
 
             $data = [
                 'ihris_pid' => $ihris_pid,
