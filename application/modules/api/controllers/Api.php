@@ -271,7 +271,21 @@ class Api extends RestController
     {
         // Get the POST data
         $post_data = $this->post();
+        if($post_data['face_data']=='null'){
+            $faces_data =NULL;
 
+        } 
+        else{
+            $faces_data =$post_data['face_data'];
+            
+        }
+        if ($post_data['fingerprint_data'] == 'null') {
+            $finger_data = NULL;
+
+        } else {
+            $finger_data = $post_data['fingerprint_data'];
+
+        }
         // Check if any data is received
         if (!empty($post_data)) {
             // Accessing specific fields from the received data
@@ -285,8 +299,8 @@ class Api extends RestController
             $surname = $post_data['surname'];
             $synced = $post_data['synced'];
             $template = $post_data['template'];
-            $face_data = $post_data['face_data'];
-            $fingerprint_data = $post_data['fingerprint_data'];
+            $face_data = $faces_data;
+            $fingerprint_data = $finger_data;
 
             $data = [
                 'ihris_pid' => $ihris_pid,
