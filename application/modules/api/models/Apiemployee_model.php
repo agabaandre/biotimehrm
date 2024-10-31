@@ -15,42 +15,61 @@ class Apiemployee_model extends CI_Model
 
     // Get Staff List 
     public function get_staff_list($facilityId)
-    {
-        $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as surname, ihrisdata.firstname as firstname, ihrisdata.othername as othername, ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
-        $this->db->from('ihrisdata');
-        $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
-        $this->db->join('user', 'user.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
-        $this->db->where('ihrisdata.facility_id', $facilityId);
-
-        $query = $this->db->get();
-
-        if ($query) {
-            return $query->result();
-        } else {
-            // Handle the error for debugging
-            log_message('error', 'Database query failed: ' . $this->db->last_query());
-            return false;
-        }
-    }
+	{
+	    $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as surname, ihrisdata.firstname as firstname, ihrisdata.othername as othername, ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
+	    $this->db->from('ihrisdata');
+	    $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
+	    $this->db->join('user', 'user.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
+	    $this->db->where('ihrisdata.facility_id', $facilityId);
+	
+	    $query = $this->db->get();
+	
+	    if ($query) {
+	        $result = $query->result();
+	
+	        // Modify fingerprint_data to always return an array
+	        foreach ($result as $staff) {
+	            if (is_string($staff->fingerprint_data)) {
+	                // Convert fingerprint_data string to an array
+	                $staff->fingerprint_data = [$staff->fingerprint_data];
+	            } elseif ($staff->fingerprint_data === null) {
+	                // If fingerprint_data is null, set it as an empty array
+	                $staff->fingerprint_data = [];
+	            }
+	        }
+	
+	        return $result;
+	    } else {
+	        // Handle the error for debugging
+	        log_message('error', 'Database query failed: ' . $this->db->last_query());
+	        return false;
+	    }
+	}
 
 
     // Post Staff List
     public function post_staff_list($data)
-    {
-        $ihris_pid = $data['ihris_pid'];
+	{
+	    $ihris_pid = $data['ihris_pid'];
+	
+	    // Remove keys with null values from the data array
+	    $data = array_filter($data, function($value) {
+	        return !is_null($value);
+	    });
+	
+	    // Check if the record with the given 'ihris_pid' exists
+	    $existing_record = $this->db->get_where('mobile_enroll', ['ihris_pid' => $ihris_pid])->row_array();
+	
+	    if ($existing_record) {
+	        // If the record exists, update it
+	        $this->db->where('ihris_pid', $ihris_pid);
+	        $this->db->update('mobile_enroll', $data);
+	    } else {
+	        // If the record does not exist, insert it
+	        $this->db->insert('mobile_enroll', $data);
+	    }
+	}
 
-        // Check if the record with the given 'ihris_pid' exists
-        $existing_record = $this->db->get_where('mobile_enroll', ['ihris_pid' => $ihris_pid])->row_array();
-
-        if ($existing_record) {
-            // If the record exists, update it
-            $this->db->where('ihris_pid', $ihris_pid);
-            $this->db->update('mobile_enroll', $data);
-        } else {
-            // If the record does not exist, insert it
-            $this->db->insert('mobile_enroll', $data);
-        }
-    }
 
     // Get Staff Details
     public function get_staff_details($id, $facilityId)
