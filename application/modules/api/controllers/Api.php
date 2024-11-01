@@ -358,8 +358,8 @@ class Api extends RestController
 
         // Extract required fields from the input
         $userRecord = [
-            'face_data' => $input['face_data'],
-            'fingerprint_data' => $input['fingerprint_data'],
+            'face_data' => $input['face_data'] ?: null,
+            'fingerprint_data' => $input['fingerprint_data'] ?: null,
             'ihris_pid' => $input['ihris_pid'],
             'facility_id' => $input['facility_id'],
             'firstname' => $input['firstname'],
