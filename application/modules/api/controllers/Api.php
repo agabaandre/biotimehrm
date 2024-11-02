@@ -234,7 +234,7 @@ class Api extends RestController
 
 
     // Get Staff List
-    public function get_staff_list($facilityId)
+    public function staff_list_get($facilityId)
 	{
 	    $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as surname, 
 	        ihrisdata.firstname as firstname, ihrisdata.othername as othername, 
