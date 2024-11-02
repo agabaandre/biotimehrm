@@ -234,37 +234,62 @@ class Api extends RestController
 
 
     // Get Staff List
-    public function staff_list_get()
-    {
-        // Checj if user is logged in
-        $decoded = $this->validateRequest();
-
-        // Check if facility_name was passed in as query parameter
-        $facility_name = $this->get('facility_name');
-
-        $facilityId = $decoded['facility_id'];
-
-        if (isset($facility_name)) {
-
-            // Decode & get the facility with this name
-            $facility = urldecode($facility_name);
-            $facility = $this->mEmployee->get_facility_by_name($facility);
-
-            // Get the id of the facility
-            $facilityId = $facility->facility_id;
-        }
-
-        // Dump faciltity
-        // dd($facilityId);
-
-        $staffList = $this->mEmployee->get_staff_list($facilityId);
-
-        $this->response([
-            'status' => 'SUCCESS',
-            'message' => 'Staff list fetched successfully',
-            'staff' => $staffList,
-        ], 200);
-    }
+    public function get_staff_list($facilityId)
+	{
+	    $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as surname, 
+	        ihrisdata.firstname as firstname, ihrisdata.othername as othername, 
+	        ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, 
+	        mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
+	    $this->db->from('ihrisdata');
+	    $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
+	    $this->db->join('user', 'user.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
+	    $this->db->where('ihrisdata.facility_id', $facilityId);
+	
+	    $query = $this->db->get();
+	
+	    if ($query) {
+	        $result = $query->result();
+	
+	        // Process each staff record to clean and validate data
+	        foreach ($result as $staff) {
+	            // Handle fingerprint data
+	            if ($staff->fingerprint_data !== null) {
+	                // Try to decode if it's a JSON string
+	                $decoded = json_decode($staff->fingerprint_data, true);
+	                
+	                if ($decoded !== null) {
+	                    // If successfully decoded JSON, filter out null/empty values
+	                    $staff->fingerprint_data = array_values(array_filter($decoded, function($item) {
+	                        return $item !== null && $item !== 'null' && $item !== '';
+	                    }));
+	                } else {
+	                    // If not JSON, check if it's a string "null" or actual fingerprint data
+	                    if ($staff->fingerprint_data === 'null' || empty($staff->fingerprint_data)) {
+	                        $staff->fingerprint_data = [];
+	                    } else {
+	                        // Single fingerprint data entry
+	                        $staff->fingerprint_data = [$staff->fingerprint_data];
+	                    }
+	                }
+	            } else {
+	                $staff->fingerprint_data = [];
+	            }
+	
+	            // Ensure enrolled is boolean
+	            $staff->enrolled = ($staff->enrolled == '1' || $staff->enrolled === true) ? true : false;
+	
+	            // Clean up face data
+	            if ($staff->face_data === 'null' || empty($staff->face_data)) {
+	                $staff->face_data = null;
+	            }
+	        }
+	
+	        return $result;
+	    } else {
+	        log_message('error', 'Database query failed: ' . $this->db->last_query());
+	        return false;
+	    }
+	}
 
     // SENDING ENROLLMENT RECORDS to the server
     public function staff_list_post()
