@@ -376,44 +376,80 @@ class Api extends RestController
     }
 
     // Enroll Users
-    public function enroll_user_post()
-    {
-        // Get the JSON input
-        $input = $this->post(); // Assuming you're using a framework that processes POST requests this way
-
-        // Extract required fields from the input
-        $userRecord = [
-            'face_data' => $input['face_data'] ?: null,
-            'fingerprint_data' => $input['fingerprint_data'] ?: null,
-            'ihris_pid' => $input['ihris_pid'],
-            'facility_id' => $input['facility_id'],
-            'firstname' => $input['firstname'],
-            'surname' => $input['surname'],
-            'job' => $input['job'],
-            'synced' => $input['synced'],
-            'template_id' => $input['template_id'],
-            'face_enrolled' => $input['face_enrolled'],
-            'fingerprint_enrolled' => $input['fingerprint_enrolled']
-        ];
-
-        // Call the model method to enroll the user
-        $result = $this->mEmployee->enroll($userRecord);
-
-        if ($result['status']) {
-            $this->response([
-                'status' => 'SUCCESS',
-                'message' => $result['message'],
-                'data' => $userRecord
-            ], 200);
-        } else {
-            $this->response([
-                'status' => 'FAILED',
-                'message' => $result['message'],
-                'data' => $userRecord
-            ], 400);
-        }
-    }
-
+    public function enroll_user_post() 
+	{
+	    // Get the JSON input
+	    $input = $this->post();
+	
+	    // Validate and sanitize fingerprint data
+	    $fingerprintData = $input['fingerprint_data'] ?? null;
+	    if ($fingerprintData === 'null' || $fingerprintData === null || $fingerprintData === '') {
+	        $fingerprintData = null;
+	    } else if (is_string($fingerprintData)) {
+	        // If it's a JSON string, decode it
+	        $decoded = json_decode($fingerprintData, true);
+	        if (json_last_error() === JSON_ERROR_NONE) {
+	            $fingerprintData = $decoded;
+	        }
+	    }
+	
+	    // Validate and sanitize face data
+	    $faceData = $input['face_data'] ?? null;
+	    if ($faceData === 'null' || $faceData === '' || $faceData === 'undefined') {
+	        $faceData = null;
+	    }
+	
+	    // Determine enrollment status based on actual data presence
+	    $faceEnrolled = !empty($faceData);
+	    $fingerprintEnrolled = !empty($fingerprintData);
+	    $enrolled = ($faceEnrolled || $fingerprintEnrolled) ? 1 : 0;
+	
+	    // Construct sanitized user record
+	    $userRecord = [
+	        'face_data' => $faceData,
+	        'fingerprint_data' => $fingerprintData,
+	        'ihris_pid' => trim($input['ihris_pid']),
+	        'facility_id' => trim($input['facility_id']),
+	        'firstname' => trim($input['firstname']),
+	        'surname' => trim($input['surname']),
+	        'job' => trim($input['job']),
+	        'synced' => $input['synced'] ?? 0,
+	        'template_id' => $input['template_id'] ?? null,
+	        'face_enrolled' => $faceEnrolled ? 1 : 0,
+	        'fingerprint_enrolled' => $fingerprintEnrolled ? 1 : 0,
+	        'enrolled' => $enrolled
+	    ];
+	
+	    // Validate required fields
+	    $requiredFields = ['ihris_pid', 'facility_id', 'firstname', 'surname'];
+	    foreach ($requiredFields as $field) {
+	        if (empty($userRecord[$field])) {
+	            $this->response([
+	                'status' => 'FAILED',
+	                'message' => "Missing required field: {$field}",
+	                'data' => null
+	            ], 400);
+	            return;
+	        }
+	    }
+	
+	    // Call the model method to enroll the user
+	    $result = $this->mEmployee->enroll($userRecord);
+	
+	    if ($result['status']) {
+	        $this->response([
+	            'status' => 'SUCCESS',
+	            'message' => $result['message'],
+	            'data' => $userRecord
+	        ], 200);
+	    } else {
+	        $this->response([
+	            'status' => 'FAILED',
+	            'message' => $result['message'],
+	            'data' => $userRecord
+	        ], 400);
+	    }
+	}
     public function clock_user_post()
     {
         // Get the JSON input
