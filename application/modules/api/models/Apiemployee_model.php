@@ -14,37 +14,62 @@ class Apiemployee_model extends CI_Model
     }
 
     // Get Staff List 
-    public function get_staff_list($facilityId)
-	{
-	    $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as surname, ihrisdata.firstname as firstname, ihrisdata.othername as othername, ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
-	    $this->db->from('ihrisdata');
-	    $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
-	    $this->db->join('user', 'user.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
-	    $this->db->where('ihrisdata.facility_id', $facilityId);
-	
-	    $query = $this->db->get();
-	
-	    if ($query) {
-	        $result = $query->result();
-	
-	        // Modify fingerprint_data to always return an array
-	        foreach ($result as $staff) {
-	            if (is_string($staff->fingerprint_data)) {
-	                // Convert fingerprint_data string to an array
-	                $staff->fingerprint_data = [$staff->fingerprint_data];
-	            } elseif ($staff->fingerprint_data === null) {
-	                // If fingerprint_data is null, set it as an empty array
-	                $staff->fingerprint_data = [];
-	            }
-	        }
-	
-	        return $result;
-	    } else {
-	        // Handle the error for debugging
-	        log_message('error', 'Database query failed: ' . $this->db->last_query());
-	        return false;
-	    }
-	}
+    ppublic function get_staff_list($facilityId)
+{
+    $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as surname, 
+        ihrisdata.firstname as firstname, ihrisdata.othername as othername, 
+        ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, 
+        mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
+    $this->db->from('ihrisdata');
+    $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
+    $this->db->join('user', 'user.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
+    $this->db->where('ihrisdata.facility_id', $facilityId);
+
+    $query = $this->db->get();
+
+    if ($query) {
+        $result = $query->result();
+
+        // Process each staff record to clean and validate data
+        foreach ($result as $staff) {
+            // Handle fingerprint data
+            if ($staff->fingerprint_data !== null) {
+                // Try to decode if it's a JSON string
+                $decoded = json_decode($staff->fingerprint_data, true);
+                
+                if ($decoded !== null) {
+                    // If successfully decoded JSON, filter out null/empty values
+                    $staff->fingerprint_data = array_values(array_filter($decoded, function($item) {
+                        return $item !== null && $item !== 'null' && $item !== '';
+                    }));
+                } else {
+                    // If not JSON, check if it's a string "null" or actual fingerprint data
+                    if ($staff->fingerprint_data === 'null' || empty($staff->fingerprint_data)) {
+                        $staff->fingerprint_data = [];
+                    } else {
+                        // Single fingerprint data entry
+                        $staff->fingerprint_data = [$staff->fingerprint_data];
+                    }
+                }
+            } else {
+                $staff->fingerprint_data = [];
+            }
+
+            // Ensure enrolled is boolean
+            $staff->enrolled = ($staff->enrolled == '1' || $staff->enrolled === true) ? true : false;
+
+            // Clean up face data
+            if ($staff->face_data === 'null' || empty($staff->face_data)) {
+                $staff->face_data = null;
+            }
+        }
+
+        return $result;
+    } else {
+        log_message('error', 'Database query failed: ' . $this->db->last_query());
+        return false;
+    }
+}
 
 
     // Post Staff List
