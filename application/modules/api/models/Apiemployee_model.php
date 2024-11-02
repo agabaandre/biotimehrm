@@ -83,53 +83,70 @@ class Apiemployee_model extends CI_Model
         return $user;
     }
 
-    public function enroll($data)
-    {
-        // Extract the required fields from the $data array
-        $enrollData = [
-            'ihris_pid' => $data['ihris_pid'],
-            'face_data' => $data['face_data'],
-            'fingerprint_data' => json_encode($data['fingerprint_data']),
-            'enrolled' => $data['face_enrolled'] || $data['fingerprint_enrolled'] ? 1 : 0,
-            'facility_id' => $data['facility_id'],
-            'firstname' => $data['firstname'],
-            'surname' => $data['surname'],
-            'job' => $data['job'],
-            'synced' => $data['synced'],
-            'template_id' => $data['template_id'],
-            'face_enrolled' => $data['face_enrolled'],
-            'fingerprint_enrolled' => $data['fingerprint_enrolled']
-        ];
-
-        // Check if a record with the given 'ihris_pid' exists in the mobile_enroll table
-        $existing_record = $this->db->get_where('mobile_enroll', ['ihris_pid' => $enrollData['ihris_pid']])->row_array();
-
-        if ($existing_record) {
-            // If the record exists, update it
-            $this->db->where('ihris_pid', $enrollData['ihris_pid']);
-            $this->db->update('mobile_enroll', $enrollData);
-        } else {
-            // If the record does not exist, insert it
-            $this->db->insert('mobile_enroll', $enrollData);
-        }
-
-        if ($existing_record) {
-            // If the record exists, update it
-            $this->db->where('ihris_pid', $enrollData['ihris_pid']);
-            if ($this->db->update('mobile_enroll', $enrollData)) {
-                return ['status' => true, 'message' => 'Record updated successfully'];
-            } else {
-                return ['status' => false, 'message' => 'Failed to update record'];
-            }
-        } else {
-            // If the record does not exist, insert it
-            if ($this->db->insert('mobile_enroll', $enrollData)) {
-                return ['status' => true, 'message' => 'Record inserted successfully'];
-            } else {
-                return ['status' => false, 'message' => 'Failed to insert record'];
-            }
-        }
-    }
+    public function enroll($data) 
+	{
+	    // Prepare the enrollment data
+	    $enrollData = [
+	        'ihris_pid' => $data['ihris_pid'],
+	        'face_data' => $data['face_data'],
+	        'fingerprint_data' => is_array($data['fingerprint_data']) ? 
+	            json_encode(array_filter($data['fingerprint_data'], function($v) { 
+	                return $v !== null && $v !== 'null' && $v !== ''; 
+	            })) : null,
+	        'enrolled' => $data['enrolled'],
+	        'facility_id' => $data['facility_id'],
+	        'firstname' => $data['firstname'],
+	        'surname' => $data['surname'],
+	        'job' => $data['job'],
+	        'synced' => $data['synced'],
+	        'template_id' => $data['template_id'],
+	        'face_enrolled' => $data['face_enrolled'],
+	        'fingerprint_enrolled' => $data['fingerprint_enrolled']
+	    ];
+	
+	    try {
+	        // Begin transaction
+	        $this->db->trans_begin();
+	
+	        // Check for existing record
+	        $existing_record = $this->db->get_where('mobile_enroll', [
+	            'ihris_pid' => $enrollData['ihris_pid']
+	        ])->row_array();
+	
+	        if ($existing_record) {
+	            // Update existing record
+	            $this->db->where('ihris_pid', $enrollData['ihris_pid']);
+	            $this->db->update('mobile_enroll', $enrollData);
+	            $message = 'Record updated successfully';
+	        } else {
+	            // Insert new record
+	            $this->db->insert('mobile_enroll', $enrollData);
+	            $message = 'Record inserted successfully';
+	        }
+	
+	        // Commit or rollback transaction
+	        if ($this->db->trans_status() === FALSE) {
+	            $this->db->trans_rollback();
+	            return [
+	                'status' => false,
+	                'message' => 'Database error occurred: ' . $this->db->error()['message']
+	            ];
+	        }
+	
+	        $this->db->trans_commit();
+	        return [
+	            'status' => true,
+	            'message' => $message
+	        ];
+	
+	    } catch (Exception $e) {
+	        $this->db->trans_rollback();
+	        return [
+	            'status' => false,
+	            'message' => 'Error occurred: ' . $e->getMessage()
+	        ];
+	    }
+	}
 
     public function clock($data)
     {
