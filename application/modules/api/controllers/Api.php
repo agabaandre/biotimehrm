@@ -234,7 +234,7 @@ class Api extends RestController
 
 
     // Get Staff List
-    public function staff_list_get($facilityId)
+    public function staff_list_get()
 	{
 	    // Check if user is logged in
         $decoded = $this->validateRequest();
