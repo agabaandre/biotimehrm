@@ -213,48 +213,48 @@
 <!-- /.row (main row) -->
 </div><!-- /.container-fluid -->
 </section>
-<!-- /.content -->
- <script>
- document.addEventListener("DOMContentLoaded", function() {
-  
-  // Select all forms with the class "user_form" and attach submit event listeners
-  document.querySelectorAll(".user_form").forEach(form => {
-    form.addEventListener("submit", function(e) {
-      e.preventDefault();
+<script>
 
-       // Serialize form data
-      const formData = new FormData(form);
-      const url = "<?php echo base_url()?>auth/addUser";
+ $(document).ready(function() {
 
-      // Send the form data using Fetch API
-      fetch(url, {
-        method: 'POST',
-        body: new URLSearchParams(formData)
-      })
-      .then(response => response.text())
-      .then(result => {
+  // Submit new user data
+  $(".user_form").submit(function(e) {
+    e.preventDefault();
+
+    // Display loading indicator
+    var base_url ="<?php echo base_url()?>";
+    $('.status').html('<img style="max-height:50px" src="' + baseUrl + 'assets/img/loading.gif">');
+    
+    var formData = $(this).serialize();
+    var url = baseUrl + "auth/addUser";
+
+    $.ajax({
+      url: url,
+      method: 'POST',
+      data: formData,
+      success: function(result) {
         console.log(result);
-        setTimeout(() => {
+        setTimeout(function() {
           // Display the result in .status
-          document.querySelector('.status').innerHTML = result;
-          
-          // If notify function is available, show notification; otherwise, use alert as fallback
-          if (typeof notify === 'function') {
-            notify(result, 'info');
+          $('.status').html(result);
+
+          // Display notification
+          if (typeof $.notify === 'function') {
+            $.notify(result, 'info');
           } else {
-            alert(result); // Fallback if notify function is unavailable
+            alert(result); // Fallback alert if $.notify is unavailable
           }
-          
-          // Clear the status and click all elements with the class "clear" to reset forms
-          document.querySelector('.status').innerHTML = '';
-          document.querySelectorAll('.clear').forEach(button => button.click());
+
+          // Clear status and trigger clear button click
+          $('.status').html('');
+          $('.clear').click();
         }, 1000);
-      })
-      .catch(error => console.error('Error:', error));
-    });
-  });
-
+      },
+      error: function(xhr, status, error) {
+        console.error('Error:', error);
+        $('.status').html('An error occurred. Please try again.');
+      }
+    }); // End of ajax call
+  }); // End of form submit
 });
-
-
- </script>
+</script>
