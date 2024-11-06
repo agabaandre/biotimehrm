@@ -161,6 +161,12 @@ class Auth_mdl extends CI_Model
 			'status' => 1
 		);
 
+		if ($postdata['is_incharge===1']) {
+			$ihris_pid = $postdata['ihris_pid'];
+			$this->db->query("UPDATE `ihrisdata` SET `is_incharge` = '1' WHERE `ihrisdata`.`ihris_pid` = '$ihris_pid'");
+
+		}
+ 
 		$qry = $this->db->insert($this->table, $insert);
 		$userid = $this->db->insert_id();
 		$this->user_facilities($facilities, $userid);

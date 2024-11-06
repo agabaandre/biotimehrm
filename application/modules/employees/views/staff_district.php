@@ -116,32 +116,23 @@
                       <td data-label="Login_request">
                         <form class="user_form" method="post" action="<?php echo base_url() ?>auth/addUser"
                           enctype="multipart/form-data">
-
                           <input type="text" name="name" autocomplete="off" class="form-control" value="<?= $fullname ?>">
-
-
-                          <input type="hidden" name="role" autocomplete="off" value="21" class="form-control">
-
-
-
-                          <input type="hidden" required name="username" autocomplete="off"
+                          <input type="text" name="role" autocomplete="off" value="21" class="form-control">
+                          <input type="text" required name="username" autocomplete="off"
                             value="<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" class="form-control"
                             placeholder="Username" required />
-
-
-                          <input type="hidden" required name="password"
+                          <input type="text" required name="ihris_pid" autocomplete="off"
+                            value="<?=$staff->ihris_pid; ?>" class="form-control">
+                          <input type="text" required name="password"
                             value="<?php echo $variables = Modules::run("svariables/getSettings")->default_password; ?> "
                             class="form-control" readonly />
-
-                          <input type="email" required name="email" class="form-control"
+                          <input type="text" required name="email" class="form-control"
                             value="<?php echo $staff->email; ?>" placeholder="Email" required />
                           <input type="text" required name="district_id" class="form-control"
                             value="<?php echo $staff->district_id; ?>">
-
                           <input type="text" name="facility_id[]" value="<?php echo $staff->facility_id; ?>" />
                           <input type="text" name="department_id" value="" />
                           <input type="text" name="is_incharge" value="1" />
-
 
             </div>
           </div>
