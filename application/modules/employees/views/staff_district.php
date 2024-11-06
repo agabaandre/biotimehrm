@@ -222,10 +222,7 @@
     form.addEventListener("submit", function(e) {
       e.preventDefault();
 
-      // Show loading indicator
-      document.querySelector('.status').innerHTML = '<img style="max-height:50px" src="' + baseUrl + 'assets/img/loading.gif">';
-
-      // Serialize form data
+       // Serialize form data
       const formData = new FormData(form);
       const url = "<?php echo base_url()?>auth/addUser";
 
