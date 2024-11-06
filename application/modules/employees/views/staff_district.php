@@ -222,7 +222,7 @@
     e.preventDefault();
 
     // Display loading indicator
-    var base_url ="<?php echo base_url()?>";
+    var baseUrl ="<?php echo base_url()?>";
     $('.status').html('<img style="max-height:50px" src="' + baseUrl + 'assets/img/loading.gif">');
     
     var formData = $(this).serialize();
