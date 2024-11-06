@@ -113,80 +113,80 @@
                         <?php echo str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $staff->employment_terms))); ?>
                       </td>
                       <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
-                      <td data-label="Login_request">
-                        <!-- Button to Open the Modal -->
-<?php if ($staff->is_incharge == 1) { ?>
-                          <!-- Button for users who are already in charge -->
-                          <button type="button" class="btn btn-info" data-toggle="modal" data-target="#inchargeModal">
-                            Assign Incharge
-                          </button>
-                        <?php } else { ?>
-                          <!-- Button for users who are not in charge -->
-                          <button type="button" class="btn btn-info" data-toggle="modal" data-target="#confirmAssignModal">
-                            Assign Incharge
-                          </button>
-                        <?php } ?>
-                        
-                        <!-- Modal for users who are already in charge -->
-                        <div class="modal fade" id="inchargeModal" tabindex="-1" role="dialog" aria-labelledby="inchargeModalLabel"
-                          aria-hidden="true">
-                          <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                              <div class="modal-header">
-                                <h5 class="modal-title" id="inchargeModalLabel">Incharge Status</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                  <span aria-hidden="true">&times;</span>
-                                </button>
-                              </div>
-                              <div class="modal-body">
-                                User is already an Incharge.
-                              </div>
-                              <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <!-- Confirmation Modal for assigning incharge -->
-                        <div class="modal fade" id="confirmAssignModal" tabindex="-1" role="dialog" aria-labelledby="confirmAssignModalLabel"
-                          aria-hidden="true">
-                          <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                              <div class="modal-header">
-                                <h5 class="modal-title" id="confirmAssignModalLabel">Confirm Assign Incharge</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                  <span aria-hidden="true">&times;</span>
-                                </button>
-                              </div>
-                              <div class="modal-body">
-                                Are you sure you want to assign this user as an incharge?
-                              </div>
-                              <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                <!-- Form submission button within the modal -->
-                                <form class="user_form" method="post" action="<?php echo base_url() ?>auth/addUser"
-                                  enctype="multipart/form-data">
-                                  <input type="hidden" name="name" value="<?= $fullname ?>">
-                                  <input type="hidden" name="role" value="21">
-                                  <input type="hidden" name="username" value="<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
-                                  <input type="hidden" name="ihris_pid" value="<?= $staff->ihris_pid; ?>">
-                                  <input type="hidden" name="password"
-                                    value="<?php echo Modules::run("svariables/getSettings")->default_password; ?>">
-                                  <input type="hidden" name="email" value="<?php echo $staff->email; ?>">
-                                  <input type="hidden" name="district_id" value="<?php echo $staff->district_id; ?>">
-                                  <input type="hidden" name="facility_id[]" value="<?php echo $staff->facility_id; ?>">
-                                  <input type="hidden" name="department_id" value="">
-                                  <input type="hidden" name="is_incharge" value="1">
-                                  <button type="submit" class="btn btn-info">Confirm Assign</button>
-                                </form>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        
+           <td data-label="Login_request">
+          <!-- Button to Open the Modal -->
+          <?php if ($staff->is_incharge == 1) { ?>
+              <!-- Button for users who are already in charge -->
+              <button type="button" class="btn btn-info" data-toggle="modal" data-target="#inchargeModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
+                Assign Incharge
+              </button>
+            <?php } else { ?>
+              <!-- Button for users who are not in charge -->
+              <button type="button" class="btn btn-info" data-toggle="modal"
+                data-target="#confirmAssignModal<?= $staff->ihris_pid; ?>">
+                Assign Incharge
+              </button>
+            <?php } ?>
+          
+            <!-- Modal for users who are already in charge -->
+            <div class="modal fade" id="inchargeModal<?= $staff->ihris_pid; ?>" tabindex="-1" role="dialog"
+              aria-labelledby="inchargeModalLabel<?= $staff->ihris_pid; ?>" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="inchargeModalLabel<?= $staff->ihris_pid; ?>">Incharge Status</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    User is already an Incharge.
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          
+            <!-- Confirmation Modal for assigning incharge -->
+            <div class="modal fade" id="confirmAssignModal<?= $staff->ihris_pid; ?>" tabindex="-1" role="dialog"
+              aria-labelledby="confirmAssignModalLabel<?= $staff->ihris_pid; ?>" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="confirmAssignModalLabel<?= $staff->ihris_pid; ?>">Confirm Assign Incharge</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    Are you sure you want to assign this user as an incharge?
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <!-- Form submission button within the modal -->
+                    <form class="user_form" method="post" action="<?php echo base_url() ?>auth/addUser"
+                      enctype="multipart/form-data">
+                      <input type="hidden" name="name" value="<?= $fullname ?>">
+                      <input type="hidden" name="role" value="21">
+                      <input type="hidden" name="username" value="<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
+                      <input type="hidden" name="ihris_pid" value="<?= $staff->ihris_pid; ?>">
+                      <input type="hidden" name="password"
+                        value="<?php echo Modules::run("svariables/getSettings")->default_password; ?>">
+                      <input type="hidden" name="email" value="<?php echo $staff->email; ?>">
+                      <input type="hidden" name="district_id" value="<?php echo $staff->district_id; ?>">
+                      <input type="hidden" name="facility_id[]" value="<?php echo $staff->facility_id; ?>">
+                      <input type="hidden" name="department_id" value="">
+                      <input type="hidden" name="is_incharge" value="1">
+                      <button type="submit" class="btn btn-info">Confirm Assign</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
           </td>
+
           </tr>
         <?php } ?>
         </tbody>
