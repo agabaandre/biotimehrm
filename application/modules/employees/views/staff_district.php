@@ -227,7 +227,7 @@
 
       // Serialize form data
       const formData = new FormData(form);
-      const url = baseUrl + "auth/addUser";
+      const url = "<?php echo base_url()?>" + "auth/addUser";
 
       // Send the form data using Fetch API
       fetch(url, {
