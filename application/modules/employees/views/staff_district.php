@@ -215,35 +215,49 @@
 </section>
 <!-- /.content -->
  <script>
-   $(document).ready(function() {
+ document.addEventListener("DOMContentLoaded", function() {
+  
+  // Select all forms with the class "user_form" and attach submit event listeners
+  document.querySelectorAll(".user_form").forEach(form => {
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
 
+      // Show loading indicator
+      document.querySelector('.status').innerHTML = '<img style="max-height:50px" src="' + baseUrl + 'assets/img/loading.gif">';
 
-      //Submit new user data
+      // Serialize form data
+      const formData = new FormData(form);
+      const url = baseUrl + "auth/addUser";
 
-      $(".user_form").submit(function(e) {
-
-        e.preventDefault();
-
-        $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
-        var formData = $(this).serialize();
-        // console.log(formData);
-        var url = "<?php echo base_url(); ?>auth/addUser";
-        $.ajax({
-          url: url,
-          method: 'post',
-          data: formData,
-          success: function (result) {
-            console.log(result);
-            setTimeout(function () {
-              $('.status').html(result);
-              $.notify(result, 'info');
-              $('.status').html('');
-              $('.clear').click();
-            }, 1000);
-
-
+      // Send the form data using Fetch API
+      fetch(url, {
+        method: 'POST',
+        body: new URLSearchParams(formData)
+      })
+      .then(response => response.text())
+      .then(result => {
+        console.log(result);
+        setTimeout(() => {
+          // Display the result in .status
+          document.querySelector('.status').innerHTML = result;
+          
+          // If notify function is available, show notification; otherwise, use alert as fallback
+          if (typeof notify === 'function') {
+            notify(result, 'info');
+          } else {
+            alert(result); // Fallback if notify function is unavailable
           }
-        }); //ajax
+          
+          // Clear the status and click all elements with the class "clear" to reset forms
+          document.querySelector('.status').innerHTML = '';
+          document.querySelectorAll('.clear').forEach(button => button.click());
+        }, 1000);
+      })
+      .catch(error => console.error('Error:', error));
+    });
+  });
 
-      }); //form submit
+});
+
+
  </script>
