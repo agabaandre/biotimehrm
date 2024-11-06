@@ -140,7 +140,11 @@
                     </button>
                   </div>
                   <div class="modal-body">
+                     
+                    <b><?php echo $fullname; ?></b>
+                    <br>
                     User is already an Incharge.
+
                   </div>
                   <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -160,8 +164,12 @@
                       <span aria-hidden="true">&times;</span>
                     </button>
                   </div>
-                  <div class="modal-body">
+                  < class="modal-body">
+                   
+                   <b><?php echo $fullname; ?></b>
+                      <br>
                     Are you sure you want to assign this user as an incharge?
+                   
                   </div>
                   <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
