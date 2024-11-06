@@ -114,10 +114,11 @@
                       </td>
                       <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
            <td data-label="Login_request">
-          <!-- Button to Open the Modal -->
-          <?php if ($staff->is_incharge == 1) { ?>
+  <!-- Button to Open the Modal -->
+  <?php if ($staff->is_incharge == 1) { ?>
               <!-- Button for users who are already in charge -->
-              <button type="button" class="btn btn-info" data-toggle="modal" data-target="#inchargeModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
+              <button type="button" class="btn btn-info" data-toggle="modal"
+                data-target="#inchargeModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
                 Assign Incharge
               </button>
             <?php } else { ?>
@@ -129,22 +130,21 @@
             <?php } ?>
           
             <!-- Modal for users who are already in charge -->
-            <div class="modal fade" id="inchargeModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" tabindex="-1" role="dialog"
-              aria-labelledby="inchargeModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" aria-hidden="true">
+            <div class="modal fade" id="inchargeModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" tabindex="-1"
+              role="dialog" aria-labelledby="inchargeModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>"
+              aria-hidden="true">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <h5 class="modal-title" id="inchargeModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">Incharge Status</h5>
+                    <h5 class="modal-title" id="inchargeModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
+                      Incharge Status</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                     </button>
                   </div>
                   <div class="modal-body">
-                     
-                    <b><?php echo $fullname; ?></b>
-                    <br>
+                    <b><?php echo $fullname; ?></b><br>
                     User is already an Incharge.
-
                   </div>
                   <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -154,29 +154,30 @@
             </div>
           
             <!-- Confirmation Modal for assigning incharge -->
-            <div class="modal fade" id="confirmAssignModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" tabindex="-1" role="dialog"
-              aria-labelledby="confirmAssignModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" aria-hidden="true">
+            <div class="modal fade" id="confirmAssignModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>"
+              tabindex="-1" role="dialog"
+              aria-labelledby="confirmAssignModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>"
+              aria-hidden="true">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <h5 class="modal-title" id="confirmAssignModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">Confirm Assign Incharge</h5>
+                    <h5 class="modal-title"
+                      id="confirmAssignModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">Confirm Assign
+                      Incharge</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                     </button>
                   </div>
-                  < class="modal-body">
-                   
-                   <b><?php echo $fullname; ?></b>
-                      <br>
+                  <div class="modal-body">
+                    <b><?php echo $fullname; ?></b><br>
                     Are you sure you want to assign this user as an incharge?
-                   
                   </div>
                   <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     <!-- Form submission button within the modal -->
-                    <form class="user_form" method="post" action="<?php echo base_url() ?>auth/addUser"
+                    <form class="user_form" method="post" action="<?php echo base_url(); ?>auth/addUser"
                       enctype="multipart/form-data">
-                      <input type="hidden" name="name" value="<?= $fullname ?>">
+                      <input type="hidden" name="name" value="<?= $fullname; ?>">
                       <input type="hidden" name="role" value="21">
                       <input type="hidden" name="username" value="<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
                       <input type="hidden" name="ihris_pid" value="<?= $staff->ihris_pid; ?>">
@@ -194,6 +195,7 @@
               </div>
             </div>
           </td>
+
 
           </tr>
         <?php } ?>
