@@ -123,18 +123,18 @@
             <?php } else { ?>
               <!-- Button for users who are not in charge -->
               <button type="button" class="btn btn-info" data-toggle="modal"
-                data-target="#confirmAssignModal<?= $staff->ihris_pid; ?>">
+                data-target="#confirmAssignModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
                 Assign Incharge
               </button>
             <?php } ?>
           
             <!-- Modal for users who are already in charge -->
-            <div class="modal fade" id="inchargeModal<?= $staff->ihris_pid; ?>" tabindex="-1" role="dialog"
-              aria-labelledby="inchargeModalLabel<?= $staff->ihris_pid; ?>" aria-hidden="true">
+            <div class="modal fade" id="inchargeModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" tabindex="-1" role="dialog"
+              aria-labelledby="inchargeModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" aria-hidden="true">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <h5 class="modal-title" id="inchargeModalLabel<?= $staff->ihris_pid; ?>">Incharge Status</h5>
+                    <h5 class="modal-title" id="inchargeModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">Incharge Status</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                     </button>
@@ -150,12 +150,12 @@
             </div>
           
             <!-- Confirmation Modal for assigning incharge -->
-            <div class="modal fade" id="confirmAssignModal<?= $staff->ihris_pid; ?>" tabindex="-1" role="dialog"
-              aria-labelledby="confirmAssignModalLabel<?= $staff->ihris_pid; ?>" aria-hidden="true">
+            <div class="modal fade" id="confirmAssignModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" tabindex="-1" role="dialog"
+              aria-labelledby="confirmAssignModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" aria-hidden="true">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <h5 class="modal-title" id="confirmAssignModalLabel<?= $staff->ihris_pid; ?>">Confirm Assign Incharge</h5>
+                    <h5 class="modal-title" id="confirmAssignModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">Confirm Assign Incharge</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                     </button>
