@@ -45,7 +45,7 @@ class Employee_model extends CI_Model
         $affilter = $_SESSION['ffilter'];
         $ajfilter = $_SESSION['jfilter'];
 
-        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $affilter $ajfilter $limits");
+        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,department_id,facility,facility_id,district,district_id,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $affilter $ajfilter $limits");
         if ($count == 'count') {
             return $query->num_rows();
         } else if ($csv == 1) {
