@@ -36,7 +36,7 @@ public function login($user_id = FALSE)
   //dd($postdata);
     // Check login credentials
     $person = $this->auth_mdl->loginChecker($postdata);
-    dd(password_algos());
+    //dd(password_algos());
 
     // If a valid user is found
     if (!empty($person->user_id)) {
@@ -65,7 +65,7 @@ public function login($user_id = FALSE)
             "date_from" => date("Y-m-d", strtotime("-1 month")),
             "date_to" => date('Y-m-d')
         );
-  dd($userdata);
+  //dd($userdata);
         // Check user login state and redirect accordingly
         if (!$userdata['isLoggedIn']) {
             $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
