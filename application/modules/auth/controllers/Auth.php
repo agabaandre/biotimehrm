@@ -36,7 +36,8 @@ public function login($user_id = FALSE)
   //dd($postdata);
     // Check login credentials
     $person = $this->auth_mdl->loginChecker($postdata);
-   // dd($person);
+    dd(password_algos());
+
     // If a valid user is found
     if (!empty($person->user_id)) {
         $user_group = $person->role;
