@@ -30,41 +30,60 @@ class Auth extends MX_Controller
     }
   }
 public function login($user_id = FALSE)
-{ 
-    if (!empty($user_id)) {
-        $postdata = array('username' => $user_id);
-    } else {
-        $postdata = $this->input->post();
-    }
+{
+    // Prepare post data
+    $postdata = !empty($user_id) ? array('username' => $user_id) : $this->input->post();
 
+    // Check login credentials
     $person = $this->auth_mdl->loginChecker($postdata);
 
+    // If a valid user is found
     if (!empty($person->user_id)) {
         $user_group = $person->role;
         $userdata = array(
             "names" => $person->name,
             "user_id" => $person->user_id,
-            // ... other session data
-            "isLoggedIn" => true
+            "ihris_pid" => $person->ihris_pid,
+            "username" => $person->username,
+            "role" => $person->group_name,
+            "state" => $person->status,
+            "dateChanged" => $person->changed,
+            "changed" => $person->isChanged,
+            "isLoggedIn" => true,
+            "facility" => $person->facility_id,
+            "facility_name" => $person->facility,
+            "department" => $person->department,
+            "permissions" => $this->auth_mdl->getUserPerms($user_group),
+            "department_id" => $person->department_id,
+            "division" => $person->division,
+            "unit" => $person->unit,
+            "district_id" => $person->district_id,
+            "district" => $person->district,
+            "year" => date('Y'),
+            "month" => date('m'),
+            "date_from" => date("Y-m-d", strtotime("-1 month")),
+            "date_to" => date('Y-m-d')
         );
 
-        $this->checkerUser($userdata);
-
-        // Redirect to the dashboard
-        redirect('dashboard');
-        exit; // Terminate script execution
+        // Check user login state and redirect accordingly
+        if (!$userdata['isLoggedIn']) {
+            $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
+            $this->session->set_flashdata('msg', "Unauthorized access detected.");
+            redirect("auth");
+        } else {
+            $this->session->set_userdata($userdata);
+            redirect("dashboard");
+        }
     } else {
         // Handle login failure
-        if ($person == "New") {
-            $this->session->set_flashdata('msg', "First time access detected. Contact the Admin for Activation.");
-        } else {
-            $this->session->set_flashdata('msg', "Login Failed. Wrong credentials.");
-        }
-        // Redirect to the login page
-        redirect('auth');
-        exit; // Terminate script execution
+        $msg = ($person == "New")
+            ? "First time access detected, Contact the Admin for Activation"
+            : "Login Failed, Wrong credentials";
+        $this->session->set_flashdata('msg', $msg);
+        redirect("auth");
     }
 }
+
 
 
   public function checkerUser($userdata)
