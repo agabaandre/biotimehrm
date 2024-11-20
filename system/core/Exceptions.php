@@ -242,7 +242,6 @@ public function show_php_error($severity, $message, $filepath, $line)
 
     $severity = isset($this->levels[$severity]) ? $this->levels[$severity] : $severity;
 
-    // For safety reasons, we don't show the full file path in non-CLI requests
     if (!is_cli()) {
         $filepath = str_replace('\\', '/', $filepath);
         if (FALSE !== strpos($filepath, '/')) {
@@ -255,31 +254,24 @@ public function show_php_error($severity, $message, $filepath, $line)
         $template = 'cli' . DIRECTORY_SEPARATOR . 'error_php';
     }
 
-    // Clear any unexpected output buffers
+    // Clean all output buffers to prevent conflicts
     while (ob_get_level() > $this->ob_level) {
-        @ob_end_clean(); // Safely clean any active output buffer
+        @ob_end_clean();
     }
 
-    // Start a fresh buffer to capture the error template output
+    // Start output buffering for the error message
     ob_start();
     include($templates_path . $template . '.php');
     $buffer = ob_get_clean();
 
-    // Check if headers have already been sent
+    // Output the error message or log if headers are sent
     if (!headers_sent()) {
         echo $buffer;
     } else {
-        // Log error details if headers are already sent
-        error_log('Headers already sent while handling PHP error. Severity: ' . $severity . ', Message: ' . $message . ', Filepath: ' . $filepath . ', Line: ' . $line);
-
-        // If headers are already sent, send minimal plain-text error output
-        if (is_cli()) {
-            echo "Error [$severity]: $message in $filepath on line $line" . PHP_EOL;
-        } else {
-            echo "<pre>Error [$severity]: $message in $filepath on line $line</pre>";
-        }
+        error_log("Headers already sent in $filepath on line $line. Error output suppressed.");
     }
 }
+
 
 
 }
