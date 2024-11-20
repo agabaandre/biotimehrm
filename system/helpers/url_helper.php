@@ -531,38 +531,34 @@ if ( ! function_exists('redirect'))
 	 */
 	function redirect($uri = '', $method = 'auto', $code = NULL)
 {
-    if (headers_sent($file, $line)) {
-        throw new Exception("Headers already sent in $file on line $line. Cannot redirect to $uri.");
-    }
-
-    if ( ! preg_match('#^(\w+:)?//#i', $uri))
-    {
+    if (!preg_match('#^(\w+:)?//#i', $uri)) {
         $uri = site_url($uri);
     }
 
-    if ($method === 'auto' && isset($_SERVER['SERVER_SOFTWARE']) && strpos($_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS') !== FALSE)
-    {
+    // IIS environment likely? Use 'refresh' for better compatibility
+    if ($method === 'auto' && isset($_SERVER['SERVER_SOFTWARE']) && strpos($_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS') !== FALSE) {
         $method = 'refresh';
-    }
-    elseif ($method !== 'refresh' && (empty($code) OR ! is_numeric($code)))
-    {
-        if (isset($_SERVER['SERVER_PROTOCOL'], $_SERVER['REQUEST_METHOD']) && $_SERVER['SERVER_PROTOCOL'] === 'HTTP/1.1')
-        {
+    } elseif ($method !== 'refresh' && (empty($code) || !is_numeric($code))) {
+        if (isset($_SERVER['SERVER_PROTOCOL'], $_SERVER['REQUEST_METHOD']) && $_SERVER['SERVER_PROTOCOL'] === 'HTTP/1.1') {
             $code = ($_SERVER['REQUEST_METHOD'] !== 'GET') ? 303 : 307;
-        }
-        else
-        {
+        } else {
             $code = 302;
         }
     }
 
-    switch ($method)
-    {
+    // Check if headers have already been sent
+    if (headers_sent($file, $line)) {
+        echo "Error: Headers already sent in $file on line $line. Cannot redirect.";
+        exit;
+    }
+
+    // Perform the redirect
+    switch ($method) {
         case 'refresh':
-            header('Refresh:0;url='.$uri);
+            header('Refresh:0;url=' . $uri);
             break;
         default:
-            header('Location: '.$uri, TRUE, $code);
+            header('Location: ' . $uri, TRUE, $code);
             break;
     }
     exit;
