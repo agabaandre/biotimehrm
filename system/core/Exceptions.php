@@ -236,39 +236,41 @@ class CI_Exceptions {
 	public function show_php_error($severity, $message, $filepath, $line)
 	{
 		$templates_path = config_item('error_views_path');
-		if (empty($templates_path))
-		{
-			$templates_path = VIEWPATH.'errors'.DIRECTORY_SEPARATOR;
+		if (empty($templates_path)) {
+			$templates_path = VIEWPATH . 'errors' . DIRECTORY_SEPARATOR;
 		}
-
+	
 		$severity = isset($this->levels[$severity]) ? $this->levels[$severity] : $severity;
-
-		// For safety reasons we don't show the full file path in non-CLI requests
-		if ( ! is_cli())
-		{
+	
+		// For safety reasons, we don't show the full file path in non-CLI requests
+		if (!is_cli()) {
 			$filepath = str_replace('\\', '/', $filepath);
-			if (FALSE !== strpos($filepath, '/'))
-			{
+			if (FALSE !== strpos($filepath, '/')) {
 				$x = explode('/', $filepath);
-				$filepath = $x[count($x)-2].'/'.end($x);
+				$filepath = $x[count($x) - 2] . '/' . end($x);
 			}
-
-			$template = 'html'.DIRECTORY_SEPARATOR.'error_php';
+	
+			$template = 'html' . DIRECTORY_SEPARATOR . 'error_php';
+		} else {
+			$template = 'cli' . DIRECTORY_SEPARATOR . 'error_php';
 		}
-		else
-		{
-			$template = 'cli'.DIRECTORY_SEPARATOR.'error_php';
+	
+		// Clear any unexpected output buffers
+		while (ob_get_level() > $this->ob_level + 1) {
+			@ob_end_clean(); // Use @ to suppress errors during cleanup
 		}
-
-		if (ob_get_level() > $this->ob_level + 1)
-		{
-			ob_end_flush();
-		}
+	
 		ob_start();
-		include($templates_path.$template.'.php');
-		$buffer = ob_get_contents();
-		ob_end_clean();
-		echo $buffer;
+		include($templates_path . $template . '.php');
+		$buffer = ob_get_clean();
+	
+		if (!headers_sent()) {
+			// Only send the error output if headers have not been sent
+			echo $buffer;
+		} else {
+			// Log the error if headers have already been sent
+			error_log('Headers already sent: Cannot display error message properly. Severity: ' . $severity . ', Message: ' . $message);
+		}
 	}
 
 }
