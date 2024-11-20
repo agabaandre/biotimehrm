@@ -64,7 +64,7 @@ public function login($user_id = FALSE)
             "date_from" => date("Y-m-d", strtotime("-1 month")),
             "date_to" => date('Y-m-d')
         );
-
+  dd($userdata);
         // Check user login state and redirect accordingly
         if (!$userdata['isLoggedIn']) {
             $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
