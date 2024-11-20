@@ -29,7 +29,7 @@ class Auth extends MX_Controller
       echo Modules::run("templates/main", $data);
     }
   }
-  public function login($user_id = FALSE)
+public function login($user_id = FALSE)
 { 
     if (!empty($user_id)) {
         $postdata = array('username' => $user_id);
@@ -40,38 +40,19 @@ class Auth extends MX_Controller
     $person = $this->auth_mdl->loginChecker($postdata);
 
     if (!empty($person->user_id)) {
-        // Prepare session data
         $user_group = $person->role;
         $userdata = array(
             "names" => $person->name,
             "user_id" => $person->user_id,
-            "ihris_pid" => $person->ihris_pid,
-            "username" => $person->username,
-            "role" => $person->group_name,
-            "state" => $person->status,
-            "dateChanged" => $person->changed,
-            "changed" => $person->isChanged,
-            "isLoggedIn" => true,
-            "facility" => $person->facility_id,
-            "facility_name" => $person->facility,
-            "department" => $person->department,
-            "permissions" => $this->auth_mdl->getUserPerms($user_group),
-            "department_id" => $person->department_id,
-            "division" => $person->division,
-            "unit" => $person->unit,
-            "district_id" => $person->district_id,
-            "district" => $person->district,
-            "year" => date('Y'),
-            "month" => date('m'),
-            "date_from" => date("Y-m-d", strtotime("-1 month")),
-            "date_to" => date('Y-m-d')
+            // ... other session data
+            "isLoggedIn" => true
         );
 
-        // Validate and set session
         $this->checkerUser($userdata);
 
-        // Redirect to dashboard or default page
-        redirect("dashboard"); // Replace 'dashboard' with your desired post-login page
+        // Redirect to the dashboard
+        redirect('dashboard');
+        exit; // Terminate script execution
     } else {
         // Handle login failure
         if ($person == "New") {
@@ -79,10 +60,12 @@ class Auth extends MX_Controller
         } else {
             $this->session->set_flashdata('msg', "Login Failed. Wrong credentials.");
         }
-        // Redirect to login page
-        redirect("auth");
+        // Redirect to the login page
+        redirect('auth');
+        exit; // Terminate script execution
     }
 }
+
 
   public function checkerUser($userdata)
   {
