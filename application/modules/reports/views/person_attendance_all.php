@@ -194,32 +194,34 @@
                     <span class="cell stcell ">Absent</span>
                     <span class="cell stcell ">% Absenteeism</span>
                 </div>
-                <?php
+               <?php
 
-				$mydate = @$search->year . "-" . @$search->month;
-				$no = (!empty($this->uri->segment(3))) ? $this->uri->segment(3) : 1;
+$mydate = @$search->year . "-" . @$search->month;
+$no = (!empty($this->uri->segment(3))) ? $this->uri->segment(3) : 1;
 
-				$total_present  = 0;
-				$total_leave    = 0;
-				$total_official = 0;
-				$total_off      = 0;
-				$total_holiday  = 0;
-				$total_absent   = 0;
-				$total_supposed = 0;
+$total_present  = 0;
+$total_leave    = 0;
+$total_official = 0;
+$total_off      = 0;
+$total_holiday  = 0;
+$total_absent   = 0;
+$total_supposed = 0;
 
-				foreach ($records as $row) {
+foreach ($records as $row) {
 
-					$dates = explode("-", $row->duty_date);
+    $dates = explode("-", $row->duty_date);
+    $month_days  = cal_days_in_month(CAL_GREGORIAN, $dates[1], $dates[0]);
 
+    // Check if $supposed_days is set and not zero
+    if (!empty($supposed_days) && $supposed_days > 0) {
+        $absentism_rate  = ($row->days_absent / $supposed_days) * 100;
+    } else {
+        $absentism_rate  = 0; // Default value when division is not possible
+    }
 
+    // Continue with the rest of your code
+?>
 
-
-					$month_days  = cal_days_in_month(CAL_GREGORIAN, $dates[1], $dates[0]);
-
-					$absentism_rate  = ($row->days_absent / $supposed_days) * 100;
-
-
-				?>
                 <div class="table-row tbrow strow">
                     <input type="radio" name="expand" class="fa fa-angle-double-down trigger">
                     <span class="cell stcell" data-label="#">
