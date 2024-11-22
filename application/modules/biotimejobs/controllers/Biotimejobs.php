@@ -1052,7 +1052,7 @@ class Biotimejobs extends MX_Controller
             $currentDate = strtotime('+1 day', $currentDate);
 
             // Output status message
-            echo "Data for " . $dates . " inserted successfully. Total rows affected: " . count($rows) . " ".$terminal_sn."<br>";
+            echo "Data for " . $dates . " inserted successfully. Total rows affected: " . $this->db->affected_rows() . " ".$terminal_sn."<br>";
         }
 
         // Final completion message
