@@ -263,8 +263,7 @@ class Biotimejobs_mdl extends CI_Model
 
 
 
-    //process batches
-    public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
+public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
 {
     // PostgreSQL connection details
     $batch_size = 500;
@@ -274,7 +273,6 @@ class Biotimejobs_mdl extends CI_Model
     if (!$pg_conn) {
         throw new Exception("Connection to PostgreSQL failed!");
     }
-
 
     // Build dynamic conditions for the query
     $conditions = "DATE_TRUNC('day', punch_time) = '$date'"; // Fixed date condition
@@ -303,6 +301,7 @@ class Biotimejobs_mdl extends CI_Model
     // Prepare data for MySQL insertion in batches
     $batch = [];
     $row_count = 0;
+    $inserted_count = 0;
 
     while ($row = pg_fetch_assoc($result)) {
         $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
@@ -320,7 +319,9 @@ class Biotimejobs_mdl extends CI_Model
 
         // Insert batch into MySQL when the batch size is reached
         if (count($batch) >= $batch_size) {
-            if (!$this->db->insert_batch('biotime_data', $batch)) {
+            if ($this->db->insert_batch('biotime_data', $batch)) {
+                $inserted_count += count($batch);
+            } else {
                 log_message('error', 'Batch insert failed: ' . $this->db->error()['message']);
             }
             $batch = []; // Clear the batch array
@@ -329,7 +330,9 @@ class Biotimejobs_mdl extends CI_Model
 
     // Insert any remaining rows in the batch
     if (!empty($batch)) {
-        if (!$this->db->insert_batch('biotime_data', $batch)) {
+        if ($this->db->insert_batch('biotime_data', $batch)) {
+            $inserted_count += count($batch);
+        } else {
             log_message('error', 'Final batch insert failed: ' . $this->db->error()['message']);
         }
     }
@@ -341,9 +344,10 @@ class Biotimejobs_mdl extends CI_Model
     if ($row_count === 0) {
         echo "No attendance data found for the given parameters.";
     } else {
-        echo "Attendance data synced successfully! Total rows inserted: $row_count.";
+        echo "Attendance data synced successfully! Total rows retrieved: $row_count. Total rows inserted: $inserted_count.";
     }
 }
+
 
     
     
