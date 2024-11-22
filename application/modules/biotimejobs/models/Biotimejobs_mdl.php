@@ -191,7 +191,7 @@ class Biotimejobs_mdl extends CI_Model
     public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
     {
         $pg = $this->load->database('pg', TRUE);
-		dd($pg);
+		//dd($pg);
 
 
     
@@ -208,7 +208,7 @@ class Biotimejobs_mdl extends CI_Model
 
 
         $data = $pg->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time FROM iclock_transaction WHERE DATE_TRUNC('day', punch_time)= '$date' $empcode $terminal_sn" )->result();
-       
+        dd($data);
 
         return $data;
 
