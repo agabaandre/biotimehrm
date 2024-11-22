@@ -226,7 +226,7 @@ class Biotimejobs_mdl extends CI_Model
     
         // Fetch all rows as associative arrays
         $rows = pg_fetch_all($result);
-        dd($rows);
+        print_r($rows);
     
         // Close PostgreSQL connection
         pg_close($pg_conn);
