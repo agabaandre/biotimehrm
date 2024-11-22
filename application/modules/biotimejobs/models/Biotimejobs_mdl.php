@@ -189,78 +189,86 @@ class Biotimejobs_mdl extends CI_Model
         return  $this->benchmark->elapsed_time();
     }
     public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
+{
+    // PostgreSQL connection details
+    $batch_size = 500;
+    $pg_conn = pg_connect("host=172.27.1.101 port=7496 dbname=biotime user=postgres password=attendee@2020");
+
+    // Check PostgreSQL connection
+    if (!$pg_conn) {
+        throw new Exception("Connection to PostgreSQL failed!");
+    }
+
     
-    {
-        // PostgreSQL connection details
-        $batch_size = 500;
-        $pg_conn = pg_connect("host=172.27.1.101 port=7496 dbname=biotime user=postgres password=attendee@2020");
-    
-        // Check PostgreSQL connection
-        if (!$pg_conn) {
-            throw new Exception("Connection to PostgreSQL failed!");
-        }
-    
-        // Build dynamic conditions for the query
-        $conditions = "DATE_TRUNC('day', punch_time) = '$date'"; // Fixed date condition
-    
-        if (!empty($empcode)) {
-            $conditions .= " AND emp_code = '$empcode'";
-        }
-    
-        if (!empty($terminal_sn)) {
-            $conditions .= " AND terminal_sn = '$terminal_sn'";
-        }
-    
-        // Construct the full query
-        $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
-                  FROM iclock_transaction 
-                  WHERE $conditions";
-    
-        // Execute the query
-        $result = pg_query($pg_conn, $query);
-    
-        // Check for query errors
-        if (!$result) {
-            throw new Exception("Error executing query: " . pg_last_error($pg_conn));
-        }
-    
-        // Fetch all rows as associative arrays
-        $rows = pg_fetch_all($result);
-        print_r(count($rows));
-        exit();
-    
-        // Close PostgreSQL connection
-        pg_close($pg_conn);
-    
-        // If no rows are found, exit early
-        if (empty($rows)) {
-            echo  "No attendance data found for the given parameters.";
-        }
-    
-        // Prepare data for MySQL insertion
-        $insert = [];
-        foreach ($rows as $row) {
-            $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
-            $insert[] = [
-                "emp_code" => $row['emp_code'],
-                "terminal_sn" => $row['terminal_sn'],
-                "area_alias" => $row['area_alias'],
-                "longitude" => $row['longitude'],
-                "latitude" => $row['latitude'],
-                "punch_state" => $row['punch_state'],
-                "punch_time" => $datetime,
-            ];
-        }
-    
-        // Insert data into MySQL in batches
-        foreach (array_chunk($insert, $batch_size) as $batch) {
+    // Build dynamic conditions for the query
+    $conditions = "DATE_TRUNC('day', punch_time) = '$date'"; // Fixed date condition
+
+    if (!empty($empcode)) {
+        $conditions .= " AND emp_code = '$empcode'";
+    }
+
+    if (!empty($terminal_sn)) {
+        $conditions .= " AND terminal_sn = '$terminal_sn'";
+    }
+
+    // Construct the full query
+    $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
+              FROM iclock_transaction 
+              WHERE $conditions";
+
+    // Execute the query
+    $result = pg_query($pg_conn, $query);
+
+    // Check for query errors
+    if (!$result) {
+        throw new Exception("Error executing query: " . pg_last_error($pg_conn));
+    }
+
+    // Prepare data for MySQL insertion in batches
+    $batch = [];
+    $row_count = 0;
+
+    while ($row = pg_fetch_assoc($result)) {
+        $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
+        $batch[] = [
+            "emp_code" => $row['emp_code'],
+            "terminal_sn" => $row['terminal_sn'],
+            "area_alias" => $row['area_alias'],
+            "longitude" => $row['longitude'],
+            "latitude" => $row['latitude'],
+            "punch_state" => $row['punch_state'],
+            "punch_time" => $datetime,
+        ];
+
+        $row_count++;
+
+        // Insert batch into MySQL when the batch size is reached
+        if (count($batch) >= $batch_size) {
             if (!$this->db->insert_batch('biotime_data', $batch)) {
                 log_message('error', 'Batch insert failed: ' . $this->db->error()['message']);
             }
+            $batch = []; // Clear the batch array
         }
-    
-        echo  "Attendance data synced successfully!";
     }
+
+    // Insert any remaining rows in the batch
+    if (!empty($batch)) {
+        if (!$this->db->insert_batch('biotime_data', $batch)) {
+            log_message('error', 'Final batch insert failed: ' . $this->db->error()['message']);
+        }
+    }
+
+    // Close PostgreSQL connection
+    pg_close($pg_conn);
+
+    // Return the result
+    if ($row_count === 0) {
+        echo "No attendance data found for the given parameters.";
+    } else {
+        echo "Attendance data synced successfully! Total rows inserted: $row_count.";
+    }
+}
+
     
     
 
