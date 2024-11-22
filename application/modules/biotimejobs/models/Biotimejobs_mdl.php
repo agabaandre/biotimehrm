@@ -189,9 +189,10 @@ class Biotimejobs_mdl extends CI_Model
         return  $this->benchmark->elapsed_time();
     }
     public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
+    
     {
         // PostgreSQL connection details
-        $batch_size = 200;
+        $batch_size = 500;
         $pg_conn = pg_connect("host=172.27.1.101 port=7496 dbname=biotime user=postgres password=attendee@2020");
     
         // Check PostgreSQL connection
@@ -200,28 +201,25 @@ class Biotimejobs_mdl extends CI_Model
         }
     
         // Build dynamic conditions for the query
-        $conditions = "DATE_TRUNC('day', punch_time) = $1";
-        $params = [$date];
+        $conditions = "DATE_TRUNC('day', punch_time) = '$date'"; // Fixed date condition
     
         if (!empty($empcode)) {
-            $conditions .= " AND emp_code = $2";
-            $params[] = $empcode;
+            $conditions .= " AND emp_code = '$empcode'";
         }
     
         if (!empty($terminal_sn)) {
-            $placeholder = count($params) + 1;
-            $conditions .= " AND terminal_sn = $" . $placeholder;
-            $params[] = $terminal_sn;
+            $conditions .= " AND terminal_sn = '$terminal_sn'";
         }
     
-        // PostgreSQL query
+        // Construct the full query
         $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
                   FROM iclock_transaction 
                   WHERE $conditions";
     
         // Execute the query
-        $result = pg_query_params($pg_conn, $query, $params);
+        $result = pg_query($pg_conn, $query);
     
+        // Check for query errors
         if (!$result) {
             throw new Exception("Error executing query: " . pg_last_error($pg_conn));
         }
@@ -229,10 +227,12 @@ class Biotimejobs_mdl extends CI_Model
         // Fetch all rows as associative arrays
         $rows = pg_fetch_all($result);
     
+        // Close PostgreSQL connection
         pg_close($pg_conn);
     
+        // If no rows are found, exit early
         if (empty($rows)) {
-            return "No attendance data found.";
+            echo  "No attendance data found for the given parameters.";
         }
     
         // Prepare data for MySQL insertion
@@ -250,15 +250,16 @@ class Biotimejobs_mdl extends CI_Model
             ];
         }
     
-        // Insert data in batches
+        // Insert data into MySQL in batches
         foreach (array_chunk($insert, $batch_size) as $batch) {
             if (!$this->db->insert_batch('biotime_data', $batch)) {
                 log_message('error', 'Batch insert failed: ' . $this->db->error()['message']);
             }
         }
     
-        return "Attendance data synced successfully!";
+        echo  "Attendance data synced successfully!";
     }
+    
     
 
     
