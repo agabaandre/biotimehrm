@@ -1081,7 +1081,7 @@ class Biotimejobs extends MX_Controller
        foreach ($machines as $machine) {
         $device = $machine->sn;
         //$startdate = $machine->last_activity;
-		   $startdate="2024-11-21 00:00";
+		   $startdate="2024-11-21";
 	 
         $start_timestamp = strtotime($startdate);
         $new_timestamp = $start_timestamp - 86400; // Subtracting one day (86400 seconds)
