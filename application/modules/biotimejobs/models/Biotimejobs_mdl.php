@@ -188,51 +188,38 @@ class Biotimejobs_mdl extends CI_Model
     {
         return  $this->benchmark->elapsed_time();
     }
-    public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
-    {
-        // PostgreSQL connection details
-        $conn = pg_connect("host=172.27.1.101 port=7496 dbname=biotime user=postgres password=attendee@2020");
-    
-        if (!$conn) {
-            throw new Exception("Connection to PostgreSQL failed!");
-        }
-    
-        // Base query
-        $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
-                  FROM iclock_transaction 
-                  WHERE DATE_TRUNC('day', punch_time) = $1";
-    
-        $params = [$date]; // Date as the first parameter
-    
-        // Add conditions dynamically
-        if (!empty($empcode)) {
-            $query .= " AND emp_code = $2";
-            $params[] = $empcode;
-        }
-    
-        if (!empty($terminal_sn)) {
-            $query .= " AND terminal_sn = $3";
-            $params[] = $terminal_sn;
-        }
-    
-        // Prepare and execute the query
-        $result = pg_query_params($conn, $query, $params);
-    
-        if (!$result) {
-            throw new Exception("Error executing query: " . pg_last_error($conn));
-        }
-    
-        // Fetch all results as stdClass objects
-        $data = [];
-        while ($row = pg_fetch_object($result)) {
-            $data[] = $row;
-        }
-    
-        // Close the connection
-        pg_close($conn);
-    
-        return $data; // Return an array of stdClass objects
+    public function fetch_time_history($start_date, $end_date, $device)
+{
+    // PostgreSQL connection details
+    $conn = pg_connect("host=172.27.1.105 port=7496 dbname=biotime user=postgres password=attendee@2020");
+
+    if (!$conn) {
+        throw new Exception("Connection to PostgreSQL failed!");
     }
+
+    // Query with explicit parameter casting
+    $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
+              FROM iclock_transaction 
+              WHERE DATE_TRUNC('day', punch_time) BETWEEN $1::date AND $2::date 
+              AND terminal_sn = $3";
+
+    $params = [$start_date, $end_date, $device];
+
+    $result = pg_query_params($conn, $query, $params);
+
+    if (!$result) {
+        throw new Exception("Error executing query: " . pg_last_error($conn));
+    }
+
+    // Fetch all data as an associative array
+    $data = pg_fetch_all($result);
+
+    // Close the connection
+    pg_close($conn);
+
+    return $data ?: []; // Return an empty array if no data is found
+}
+
     
 
     // public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
