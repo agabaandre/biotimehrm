@@ -191,7 +191,7 @@ class Biotimejobs_mdl extends CI_Model
     public function get_attendance_data($start_date, $end_date, $device)
 {
     // PostgreSQL connection details
-    $conn = pg_connect("host=172.27.1.105 port=7496 dbname=biotime user=postgres password=attendee@2020");
+    $conn = pg_connect("host=172.27.1.101 port=7496 dbname=biotime user=postgres password=attendee@2020");
 
     if (!$conn) {
         throw new Exception("Connection to PostgreSQL failed!");
