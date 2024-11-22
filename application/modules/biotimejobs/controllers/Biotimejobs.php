@@ -1018,34 +1018,34 @@ class Biotimejobs extends MX_Controller
             $insert = array(); // Initialize the insert array for each date
 
             // Fetch data from the database
-            $rows = $this->biotimejobs_mdl->get_attendance_data($dates, $empcode, $terminal_sn);
+            $rows = $this->biotimejobs_mdl->sync_attendance_data($dates, $empcode, $terminal_sn);
 
             // Check if there is data to insert
-            if (!empty($rows)) {
-                foreach ($rows as $object) {
-                    $datetime = date("Y-m-d H:i:s", strtotime($object->punch_time));
-                    $rowData = array(
-                        "emp_code" => $object->emp_code,
-                        "terminal_sn" => $object->terminal_sn,
-                        "area_alias" => $object->area_alias,
-                        "longitude" => $object->longitude,
-                        "latitude" => $object->latitude,
-                        "punch_state" => $object->punch_state,
-                        "punch_time" => $datetime // Changed to punch_time to match the object's key
-                    );
-                    $insert[] = $rowData;
-                }
+            // if (!empty($rows)) {
+            //     foreach ($rows as $object) {
+            //         $datetime = date("Y-m-d H:i:s", strtotime($object->punch_time));
+            //         $rowData = array(
+            //             "emp_code" => $object->emp_code,
+            //             "terminal_sn" => $object->terminal_sn,
+            //             "area_alias" => $object->area_alias,
+            //             "longitude" => $object->longitude,
+            //             "latitude" => $object->latitude,
+            //             "punch_state" => $object->punch_state,
+            //             "punch_time" => $datetime // Changed to punch_time to match the object's key
+            //         );
+            //         $insert[] = $rowData;
+            //     }
 
-                // Insert data in batches of 1000 rows
-                foreach (array_chunk($insert, 1000) as $batch) {
-                    $this->db->insert_batch('biotime_data', $batch);
+            //     // Insert data in batches of 1000 rows
+            //     foreach (array_chunk($insert, 1000) as $batch) {
+            //         $this->db->insert_batch('biotime_data', $batch);
                   
                     
-                }
+            //     }
 
-                // Clear the insert array
-                $insert = array();
-            }
+            //     // Clear the insert array
+            //     $insert = array();
+            // }
 
             // Increment current date by 1 day
             $this->biotimeClockoutnight($dates);

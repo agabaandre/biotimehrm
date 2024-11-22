@@ -188,38 +188,78 @@ class Biotimejobs_mdl extends CI_Model
     {
         return  $this->benchmark->elapsed_time();
     }
-    public function get_attendance_data($start_date, $end_date, $device)
-{
-    // PostgreSQL connection details
-    $conn = pg_connect("host=172.27.1.101 port=7496 dbname=biotime user=postgres password=attendee@2020");
-
-    if (!$conn) {
-        throw new Exception("Connection to PostgreSQL failed!");
+    public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
+    {
+        // PostgreSQL connection details
+        $batch_size = 200;
+        $pg_conn = pg_connect("host=172.27.1.101 port=7496 dbname=biotime user=postgres password=attendee@2020");
+    
+        // Check PostgreSQL connection
+        if (!$pg_conn) {
+            throw new Exception("Connection to PostgreSQL failed!");
+        }
+    
+        // Build dynamic conditions for the query
+        $conditions = "DATE_TRUNC('day', punch_time) = $1";
+        $params = [$date];
+    
+        if (!empty($empcode)) {
+            $conditions .= " AND emp_code = $2";
+            $params[] = $empcode;
+        }
+    
+        if (!empty($terminal_sn)) {
+            $placeholder = count($params) + 1;
+            $conditions .= " AND terminal_sn = $" . $placeholder;
+            $params[] = $terminal_sn;
+        }
+    
+        // PostgreSQL query
+        $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
+                  FROM iclock_transaction 
+                  WHERE $conditions";
+    
+        // Execute the query
+        $result = pg_query_params($pg_conn, $query, $params);
+    
+        if (!$result) {
+            throw new Exception("Error executing query: " . pg_last_error($pg_conn));
+        }
+    
+        // Fetch all rows as associative arrays
+        $rows = pg_fetch_all($result);
+    
+        pg_close($pg_conn);
+    
+        if (empty($rows)) {
+            return "No attendance data found.";
+        }
+    
+        // Prepare data for MySQL insertion
+        $insert = [];
+        foreach ($rows as $row) {
+            $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
+            $insert[] = [
+                "emp_code" => $row['emp_code'],
+                "terminal_sn" => $row['terminal_sn'],
+                "area_alias" => $row['area_alias'],
+                "longitude" => $row['longitude'],
+                "latitude" => $row['latitude'],
+                "punch_state" => $row['punch_state'],
+                "punch_time" => $datetime,
+            ];
+        }
+    
+        // Insert data in batches
+        foreach (array_chunk($insert, $batch_size) as $batch) {
+            if (!$this->db->insert_batch('biotime_data', $batch)) {
+                log_message('error', 'Batch insert failed: ' . $this->db->error()['message']);
+            }
+        }
+    
+        return "Attendance data synced successfully!";
     }
-
-    // Query with explicit parameter casting
-    $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
-              FROM iclock_transaction 
-              WHERE DATE_TRUNC('day', punch_time) BETWEEN $1::date AND $2::date 
-              AND terminal_sn = $3";
-
-    $params = [$start_date, $end_date, $device];
-    dd($params);
-
-    $result = pg_query_params($conn, $query, $params);
-
-    if (!$result) {
-        throw new Exception("Error executing query: " . pg_last_error($conn));
-    }
-
-    // Fetch all data as an associative array
-    $data = pg_fetch_all($result);
-
-    // Close the connection
-    pg_close($conn);
-
-    return $data ?: []; // Return an empty array if no data is found
-}
+    
 
     
 
