@@ -1080,8 +1080,8 @@ class Biotimejobs extends MX_Controller
         $machines = $this->db->query("SELECT * FROM biotime_devices")->result();
        foreach ($machines as $machine) {
         $device = $machine->sn;
-        //$startdate = $machine->last_activity;
-		   $startdate="2024-11-21";
+        $startdate = $machine->last_activity;
+		   //$startdate="2024-11-21";
 	 
         $start_timestamp = strtotime($startdate);
         $new_timestamp = $start_timestamp - 86400; // Subtracting one day (86400 seconds)
