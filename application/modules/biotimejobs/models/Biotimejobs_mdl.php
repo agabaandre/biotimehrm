@@ -204,6 +204,7 @@ class Biotimejobs_mdl extends CI_Model
               AND terminal_sn = $3";
 
     $params = [$start_date, $end_date, $device];
+    dd($params);
 
     $result = pg_query_params($conn, $query, $params);
 
