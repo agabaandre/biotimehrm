@@ -188,7 +188,7 @@ class Biotimejobs_mdl extends CI_Model
     {
         return  $this->benchmark->elapsed_time();
     }
-    public function fetch_time_history($start_date, $end_date, $device)
+    public function get_attendance_data($start_date, $end_date, $device)
 {
     // PostgreSQL connection details
     $conn = pg_connect("host=172.27.1.105 port=7496 dbname=biotime user=postgres password=attendee@2020");
