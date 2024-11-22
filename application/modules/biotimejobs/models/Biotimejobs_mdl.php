@@ -189,29 +189,79 @@ class Biotimejobs_mdl extends CI_Model
         return  $this->benchmark->elapsed_time();
     }
     public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
-    {
-        $pg = $this->load->database('pg', TRUE);
-		//dd($pg);
+{
+    // PostgreSQL connection details
+    $conn = pg_connect("host=172.27.1.105 port=7496 dbname=biotime user=postgres password=attendee@2020");
+
+    if (!$conn) {
+        throw new Exception("Connection to PostgreSQL failed!");
+    }
+
+    // Base query
+    $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
+              FROM iclock_transaction 
+              WHERE DATE_TRUNC('day', punch_time) = $1";
+
+    $params = [$date]; // Date as the first parameter
+
+    // Add conditions dynamically
+    if (!empty($empcode)) {
+        $query .= " AND emp_code = $2";
+        $params[] = $empcode;
+    }
+
+    if (!empty($terminal_sn)) {
+        $query .= " AND terminal_sn = $3";
+        $params[] = $terminal_sn;
+    }
+
+    // Prepare and execute the query
+    $result = pg_query_params($conn, $query, $params);
+
+    if (!$result) {
+        throw new Exception("Error executing query: " . pg_last_error($conn));
+    }
+
+    // Fetch all results
+    $data = pg_fetch_all($result);
+
+    // Close the connection
+    pg_close($conn);
+
+    return $data ?: []; // Return empty array if no data found
+}
+
+    // public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
+    // {
+       
+
+    //             $conn = pg_connect("host=172.27.1.105 port=7496 dbname=biotime user=postgres password=attendee@2020");
+    //             if ($conn) {
+    //                 echo "Connection successful!";
+    //             } else {
+    //                 echo "Connection failed!";
+    //             }
+
 
 
     
 
-        if (!empty($empcode)) {
-            $empcode = "AND  emp_code ='$empcode'";
-        }
+    //     if (!empty($empcode)) {
+    //         $empcode = "AND  emp_code ='$empcode'";
+    //     }
 
-        if (!empty($terminal_sn)) {
-            $terminal_sn = "AND terminal_sn = '$terminal_sn'";
-        }
+    //     if (!empty($terminal_sn)) {
+    //         $terminal_sn = "AND terminal_sn = '$terminal_sn'";
+    //     }
 
    
 
 
-        $data = $pg->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time FROM iclock_transaction WHERE DATE_TRUNC('day', punch_time)= '$date' $empcode $terminal_sn" )->result();
-        //($data);
+    //     $data = $conn->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time FROM iclock_transaction WHERE DATE_TRUNC('day', punch_time)= '$date' $empcode $terminal_sn" )->result();
+    //     //($data);
 
-        return $data;
+    //     return $data;
 
-    }
+    // }
 
 }
