@@ -1979,7 +1979,7 @@ function PrintBodyBackgrounds() {
 	if ($this->bodyBackgroundColor) {
 		$s .= 'q ' .$this->SetFColor($this->bodyBackgroundColor, true)."\n";
 		if ($this->bodyBackgroundColor[0]==5) {	// RGBa
-			$s .= $this->SetAlpha(ord($this->bodyBackgroundColor{4})/100, 'Normal', true, 'F')."\n";
+			$s .= $this->SetAlpha(ord($this->bodyBackgroundColor[4])/100, 'Normal', true, 'F')."\n";
 		}
 		else if ($this->bodyBackgroundColor[0]==6) {	// CMYKa
 			$s .= $this->SetAlpha(ord($this->bodyBackgroundColor[5])/100, 'Normal', true, 'F')."\n";
