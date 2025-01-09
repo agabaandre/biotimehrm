@@ -219,7 +219,10 @@
                     </tr>
                     <tr>
                       <td colspan="4" style="font-weight:bold;">TOTAL DAYS WORKED</td>
-                      <td style="font-weight:bold;"><?php echo $wdays; ?> out of <?php echo totalDutys($totalDuty) . " "; ?> Days</td>
+                      <td style="font-weight:bold;">
+                        
+                      <?php if($wdays>=$totalDuty){echo $wdays."Days out of".totalDutys($totalDuty);}else{echo $wdays."Days";} ?>
+                </td>
                     </tr>
                     <tr>
                       <td colspan="4" style="font-weight:bold;">TOTAL HOURS WORKED</td>
