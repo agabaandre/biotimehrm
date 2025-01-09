@@ -225,7 +225,7 @@
                       <td colspan="4" style="font-weight:bold;">TOTAL DAYS WORKED</td>
                       <td style="font-weight:bold;">
                         
-                      <?php if($wdays<=$totalDuty){echo $wdays."Days out of".totalDutys($totalDuty);}else{echo $wdays."Days";} ?>
+                      <?php if($wdays<=$totalDuty){echo $wdays." Days out of".totalDutys($totalDuty);}else{echo $wdays." Days";} ?>
                 </td>
                     </tr>
                     <tr>
