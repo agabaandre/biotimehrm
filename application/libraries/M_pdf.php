@@ -13,7 +13,7 @@ class M_pdf {
         // Default PDF settings
         $defaultConfig = [
             'mode' => 'utf-8',
-            'format' => 'A4-L', // Landscape Mode
+            'format' => 'A4', // Landscape Mode
             'default_font' => 'Arial'
         ];
 
