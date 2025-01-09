@@ -1,31 +1,39 @@
 <?php
+if (!defined('BASEPATH')) exit('No direct script access allowed');
+
+// Load Composer's autoload
+require_once APPPATH . '../vendor/autoload.php';
+
 use Mpdf\Mpdf;
 
-class ML_pdf {
-    protected $mpdf;
+class M_pdf {
+    public $pdf;
 
     public function __construct($params = []) {
-        // Set default configuration with landscape format
+        // Default PDF settings
         $defaultConfig = [
             'mode' => 'utf-8',
-            'format' => 'A4-L', // Use 'A4-L' for landscape format
+            'format' => 'A4-L', // Landscape Mode
             'default_font' => 'Arial'
         ];
 
+        // Merge user params with defaults
         $config = array_merge($defaultConfig, $params);
 
-        $this->mpdf = new Mpdf($config);
+        // Initialize Mpdf
+        $this->pdf = new Mpdf($config);
     }
 
     public function loadHtml($html) {
-        $this->mpdf->WriteHTML($html);
+        $this->pdf->WriteHTML($html);
     }
 
     public function output($filename = 'document.pdf', $destination = 'I') {
-        return $this->mpdf->Output($filename, $destination);
+        return $this->pdf->Output($filename, $destination);
     }
 
-    public function getMpdfInstance() {
-        return $this->mpdf;
+    public function getInstance() {
+        return $this->pdf;
     }
 }
+?>
