@@ -183,6 +183,10 @@
                     <?php
                       $totalLeaves += 1;
                     } ?>
+										 <tr>
+                 <td colspan="4">Total Scheduled/Roster Days(D)</td>
+                 <td><?= totalDutys($totalDuty) ?> Days</td>
+                </tr>
                     <tr>
                       <td colspan="4">Total Leave Days(L)</td>
                       <td><?= $totalLeaves ?> Days</td>
