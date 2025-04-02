@@ -97,40 +97,86 @@ class Biotimejobs extends MX_Controller
     }
     //cron job
     //Fetches ihris stafflsit via the api
-    public function get_ihrisdata()
-    {
-        $http = new HttpUtils();
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ];
+    // public function get_ihrisdata()
+    // {
+    //     $http = new HttpUtils();
+    //     $headers = [
+    //         'Content-Type' => 'application/json',
+    //         'Accept' => 'application/json',
+    //     ];
 
-        $response = $http->sendiHRISRequest('apiv1/index.php/api/ihrisdata', "GET", $headers, []);
+    //     $response = $http->sendiHRISRequest('apiv1/index.php/api/ihrisdata', "GET", $headers, []);
 
-        if ($response) {
-            //dd(count($response));
-            //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
-            $this->db->query("TRUNCATE table ihrisdata");
-            foreach($response as $data){
+    //     if ($response) {
+    //         //dd(count($response));
+    //         //$message = $this->biotimejobs_mdl->add_ihrisdata($response);
+    //         $this->db->query("TRUNCATE table ihrisdata");
+    //         foreach($response as $data){
 
-                $message = $this->db->replace('ihrisdata', $data);
-                ///dd($this->last->query);
-            }
+    //             $message = $this->db->replace('ihrisdata', $data);
+    //             ///dd($this->last->query);
+    //         }
            
-            $this->log($message);
-        }
-        $process = 2;
-        $method = "bioitimejobs/get_ihrisdata";
-        if (count($response) > 0) {
-            $status = "successful";
-        } else {
-            $status = "failed";
-        }
-        $this->cronjob_register($process, $method, $status);
-        $this->get_ucmbdata();
-        $this->update_ipps();
-    }
+    //         $this->log($message);
+    //     }
+    //     $process = 2;
+    //     $method = "bioitimejobs/get_ihrisdata";
+    //     if (count($response) > 0) {
+    //         $status = "successful";
+    //     } else {
+    //         $status = "failed";
+    //     }
+    //     $this->cronjob_register($process, $method, $status);
+    //     $this->get_ucmbdata();
+    //     $this->update_ipps();
+    // }
     //employees all enrolled users before creating new ones.
+	public function get_ihrisdata()
+{
+    $http = new HttpUtils();
+    $headers = [
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+    ];
+
+    $response = $http->sendiHRISRequest('apiv1/index.php/api/ihrisdata', "GET", $headers, []);
+
+    if ($response) {
+        // Optional: You can truncate if you want to replace all data every time.
+        // $this->db->query("TRUNCATE table ihrisdata");
+
+        $inserted = 0;
+        $errors = [];
+
+        foreach ($response as $data) {
+            try {
+                // Use REPLACE INTO or INSERT ... ON DUPLICATE KEY UPDATE
+                $this->db->replace('ihrisdata', $data); // Assumes primary key/unique key exists in table
+                $inserted++;
+            } catch (Exception $e) {
+                // Continue on error, but log it
+                $errors[] = $e->getMessage();
+                continue;
+            }
+        }
+
+        $this->log("Inserted: $inserted. Errors: " . count($errors));
+        if (!empty($errors)) {
+            foreach ($errors as $error) {
+                $this->log("Insert error: $error");
+            }
+        }
+    }
+
+    $process = 2;
+    $method = "bioitimejobs/get_ihrisdata";
+    $status = (count($response) > 0) ? "successful" : "failed";
+    $this->cronjob_register($process, $method, $status);
+
+    $this->get_ucmbdata();
+    $this->update_ipps();
+}
+
 
     public function update_ipps()
     {
