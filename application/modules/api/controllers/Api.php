@@ -451,19 +451,25 @@ class Api extends RestController
         // Set the current date
         $userRecord['date'] = $currentDate;
 
-        // Determine clock status and set time_in or time_out
-        if ($input['clock_status'] == "IN") {
+        // Normalize clock status to handle various formats
+        $clockStatus = strtoupper(trim($input['clock_status']));
+        
+        // Log the value for debugging
+        log_message('debug', 'Clock status received: ' . $clockStatus);
+        
+        // More flexible validation that accepts variations
+        if ($clockStatus == "IN" || $clockStatus == "CLOCK_IN" || $clockStatus == "CLOCKED_IN" || $clockStatus == "CLOCKIN") {
             $userRecord['time_in'] = $currentTime;
             $userRecord['time_out'] = null;
             $userRecord['status'] = "CLOCKED_IN";
-        } elseif ($input['clock_status'] == "OUT") {
+        } elseif ($clockStatus == "OUT" || $clockStatus == "CLOCK_OUT" || $clockStatus == "CLOCKED_OUT" || $clockStatus == "CLOCKOUT") {
             $userRecord['time_out'] = $currentTime;
             $userRecord['time_in'] = null;
             $userRecord['status'] = "CLOCKED_OUT";
         } else {
             $this->response([
                 'status' => false,
-                'message' => 'Invalid clock status',
+                'message' => 'Invalid clock status: "' . $input['clock_status'] . '". Expected "IN" or "OUT"',
             ], 400);
             return;
         }
@@ -514,8 +520,8 @@ class Api extends RestController
 
         // Set upload configuration
         $config['upload_path'] = './uploads/fingerprints/'; // Upload directory
-        $config['allowed_types'] = 'fpt|dat'; // Allowed fingerprint data types
-        $config['max_size'] = 2048; // Maximum file size in kilobytes
+        $config['allowed_types'] = 'fpt|dat|*'; // Allowing all file types for fingerprint data
+        $config['max_size'] = 10240; // 10MB
         $config['encrypt_name'] = TRUE; // Encrypt file name for security
 
         // Initialize the upload library with the configuration
@@ -532,7 +538,8 @@ class Api extends RestController
             return;
         }
 
-        if (!$this->upload->do_upload('fingerprintData')) {
+        // Use exactly the field name from BiometricUtils.java
+        if (!$this->upload->do_upload('fingerprint')) {
             // If the upload fails, return an error response
             $error = $this->upload->display_errors();
             $this->response([
@@ -559,18 +566,6 @@ class Api extends RestController
     {
         $decoded = $this->validateRequest();
         
-        // Load the necessary libraries
-        $this->load->library('upload');
-
-        // Set upload configuration
-        $config['upload_path'] = './uploads/faces/'; // Upload directory
-        $config['allowed_types'] = 'jpg|jpeg|png'; // Allowed image types
-        $config['max_size'] = 2048; // Maximum file size in kilobytes
-        $config['encrypt_name'] = TRUE; // Encrypt file name for security
-
-        // Initialize the upload library with the configuration
-        $this->upload->initialize($config);
-
         // Get the staff ID from the request
         $staffId = $this->post('staff_id');
         
@@ -582,6 +577,25 @@ class Api extends RestController
             return;
         }
 
+        // Prepare user-specific directory and sanitize staff ID
+        $pathInfo = $this->sanitize_and_prepare_path($staffId, 'faces');
+        $sanitizedStaffId = $pathInfo['sanitized_id'];
+        $userDir = $pathInfo['dir'];
+        
+        // Load the necessary libraries
+        $this->load->library('upload');
+
+        // Set upload configuration
+        $config['upload_path'] = $userDir; // User-specific directory
+        $config['allowed_types'] = 'jpg|jpeg|png|gif|image/*'; // Allowed image types
+        $config['max_size'] = 10240; // 10MB
+        $config['file_name'] = $sanitizedStaffId; // Use sanitized staff ID as filename
+        $config['overwrite'] = TRUE; // Overwrite existing file
+
+        // Initialize the upload library with the configuration
+        $this->upload->initialize($config);
+
+        // Use exactly the field name from BiometricUtils.java
         if (!$this->upload->do_upload('face_image_path')) {
             // If the upload fails, return an error response
             $error = $this->upload->display_errors();
@@ -600,7 +614,11 @@ class Api extends RestController
             $this->response([
                 'status' => 'SUCCESS',
                 'message' => 'Face data uploaded successfully',
-                'file_info' => $upload_data
+                'file_info' => [
+                    'file_path' => $filePath,
+                    'file_name' => $upload_data['file_name'],
+                    'staff_id' => $staffId
+                ]
             ], 200);
         }
     }
@@ -935,5 +953,25 @@ class Api extends RestController
                 'message' => 'An error occurred: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // Helper method to create a directory and sanitize filename
+    private function sanitize_and_prepare_path($staffId, $type) {
+        // Remove any special characters from the staff ID
+        $sanitizedStaffId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $staffId);
+        
+        // Create user's folder in the appropriate directory
+        $basePath = './uploads/' . $type . '/';
+        $userDir = $basePath . $sanitizedStaffId;
+        
+        // Create directory if it doesn't exist
+        if (!is_dir($userDir)) {
+            mkdir($userDir, 0755, true);
+        }
+        
+        return [
+            'dir' => $userDir,
+            'sanitized_id' => $sanitizedStaffId
+        ];
     }
 }
