@@ -513,47 +513,101 @@ class Api extends RestController
     // Upload Device Resources
     public function upload_fingerprint_post()
     {
-        $decoded = $this->validateRequest();
-        
-        // Get the staff ID from the request
-        $staffId = $this->post('staff_id');
-        
-        if (empty($staffId)) {
-            $this->response([
-                'status' => 'FAILED',
-                'message' => 'Staff ID is required'
-            ], 400);
-            return;
-        }
-        
-        // Prepare user-specific directory and sanitize staff ID
-        $pathInfo = $this->sanitize_and_prepare_path($staffId, 'fingerprints');
-        $sanitizedStaffId = $pathInfo['sanitized_id'];
-        $userDir = $pathInfo['dir'];
+        try {
+            $decoded = $this->validateRequest();
+            
+            // Get the staff ID from the request
+            $staffId = $this->post('staff_id');
+            
+            if (empty($staffId)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Staff ID is required'
+                ], 400);
+                return;
+            }
+            
+            // Create debug logs
+            log_message('debug', 'Fingerprint upload - Staff ID: ' . $staffId);
+            log_message('debug', 'Fingerprint upload - POST data: ' . print_r($_POST, true));
+            log_message('debug', 'Fingerprint upload - FILES data: ' . print_r($_FILES, true));
 
-        // Load the necessary libraries
-        $this->load->library('upload');
+            // Prepare user-specific directory and sanitize staff ID
+            $sanitizedStaffId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $staffId);
+            $userDir = './uploads/fingerprints/' . $sanitizedStaffId;
+            
+            // Create directory if it doesn't exist
+            if (!is_dir($userDir)) {
+                if (!mkdir($userDir, 0777, true)) {
+                    log_message('error', 'Failed to create directory: ' . $userDir);
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'Failed to create upload directory',
+                    ], 500);
+                    return;
+                }
+                chmod($userDir, 0777);
+            }
+            
+            // Load the necessary libraries
+            $this->load->library('upload');
 
-        // Set upload configuration
-        $config['upload_path'] = $userDir; // User-specific directory
-        $config['allowed_types'] = 'fpt|dat|*'; // Allowing all file types for fingerprint data
-        $config['max_size'] = 10240; // 10MB
-        $config['file_name'] = $sanitizedStaffId; // Use sanitized staff ID as filename
-        $config['overwrite'] = TRUE; // Overwrite existing file
+            // Set upload configuration
+            $config['upload_path'] = $userDir;
+            $config['allowed_types'] = '*'; // Allow all file types temporarily
+            $config['max_size'] = 10240; // 10MB
+            $config['file_name'] = $sanitizedStaffId;
+            $config['overwrite'] = TRUE;
 
-        // Initialize the upload library with the configuration
-        $this->upload->initialize($config);
+            // Initialize the upload library with the configuration
+            $this->upload->initialize($config);
 
-        // Use exactly the field name from BiometricUtils.java
-        if (!$this->upload->do_upload('fingerprint')) {
-            // If the upload fails, return an error response
-            $error = $this->upload->display_errors();
-            $this->response([
-                'status' => 'FAILED',
-                'message' => 'Unable to upload fingerprint data',
-                'error' => $error
-            ], 500);
-        } else {
+            // Check if the file upload field exists in the request
+            if (!isset($_FILES['fingerprint']) || $_FILES['fingerprint']['error'] != 0) {
+                log_message('error', 'Fingerprint file upload error: ' . print_r($_FILES, true));
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Unable to upload fingerprint data - no file provided',
+                    'error' => isset($_FILES['fingerprint']) ? $_FILES['fingerprint']['error'] : 'No file field in request'
+                ], 500);
+                return;
+            }
+            
+            // Try to manually move the uploaded file if the CI uploader fails
+            if (!$this->upload->do_upload('fingerprint')) {
+                $error = $this->upload->display_errors();
+                log_message('error', 'Fingerprint upload library error: ' . $error);
+                
+                // Manual file upload as fallback
+                $uploadedFile = $_FILES['fingerprint']['tmp_name'];
+                $destination = $userDir . '/' . $sanitizedStaffId . '.dat';
+                
+                if (move_uploaded_file($uploadedFile, $destination)) {
+                    // Update the database with the fingerprint data
+                    $result = $this->mEmployee->upload_fingerprint_data($staffId, $destination);
+                    
+                    $this->response([
+                        'status' => 'SUCCESS',
+                        'message' => 'Fingerprint data uploaded successfully (manual method)',
+                        'file_info' => [
+                            'file_path' => $destination,
+                            'file_name' => basename($destination),
+                            'staff_id' => $staffId
+                        ]
+                    ], 200);
+                    return;
+                } else {
+                    log_message('error', 'Manual fingerprint upload failed. Error: ' . error_get_last()['message']);
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'Unable to upload fingerprint data using any method',
+                        'error' => $error . ' | Manual error: ' . error_get_last()['message']
+                    ], 500);
+                    return;
+                }
+            }
+            
+            // If we got here, the CI upload was successful
             $upload_data = $this->upload->data();
             $filePath = $upload_data['full_path'];
             
@@ -566,55 +620,117 @@ class Api extends RestController
                 'file_info' => [
                     'file_path' => $filePath,
                     'file_name' => $upload_data['file_name'],
-                    'staff_id' => $staffId
+                    'staff_id' => $staffId,
+                    'full_data' => $upload_data
                 ]
             ], 200);
+            
+        } catch (Exception $e) {
+            log_message('error', 'Exception in upload_fingerprint_post: ' . $e->getMessage());
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Server error during fingerprint upload: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     public function upload_face_post()
     {
-        $decoded = $this->validateRequest();
-        
-        // Get the staff ID from the request
-        $staffId = $this->post('staff_id');
-        
-        if (empty($staffId)) {
-            $this->response([
-                'status' => 'FAILED',
-                'message' => 'Staff ID is required'
-            ], 400);
-            return;
-        }
+        try {
+            $decoded = $this->validateRequest();
+            
+            // Get the staff ID from the request
+            $staffId = $this->post('staff_id');
+            
+            if (empty($staffId)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Staff ID is required'
+                ], 400);
+                return;
+            }
+            
+            // Create debug logs
+            log_message('debug', 'Staff ID: ' . $staffId);
+            log_message('debug', 'POST data: ' . print_r($_POST, true));
+            log_message('debug', 'FILES data: ' . print_r($_FILES, true));
 
-        // Prepare user-specific directory and sanitize staff ID
-        $pathInfo = $this->sanitize_and_prepare_path($staffId, 'faces');
-        $sanitizedStaffId = $pathInfo['sanitized_id'];
-        $userDir = $pathInfo['dir'];
-        
-        // Load the necessary libraries
-        $this->load->library('upload');
+            // Prepare user-specific directory and sanitize staff ID
+            $sanitizedStaffId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $staffId);
+            $userDir = './uploads/faces/' . $sanitizedStaffId;
+            
+            // Create directory if it doesn't exist
+            if (!is_dir($userDir)) {
+                if (!mkdir($userDir, 0777, true)) {
+                    log_message('error', 'Failed to create directory: ' . $userDir);
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'Failed to create upload directory',
+                    ], 500);
+                    return;
+                }
+                chmod($userDir, 0777);
+            }
+            
+            // Load the necessary libraries
+            $this->load->library('upload');
 
-        // Set upload configuration
-        $config['upload_path'] = $userDir; // User-specific directory
-        $config['allowed_types'] = 'jpg|jpeg|png|gif|image/*'; // Allowed image types
-        $config['max_size'] = 10240; // 10MB
-        $config['file_name'] = $sanitizedStaffId; // Use sanitized staff ID as filename
-        $config['overwrite'] = TRUE; // Overwrite existing file
+            // Set upload configuration
+            $config['upload_path'] = $userDir;
+            $config['allowed_types'] = '*'; // Allow all file types temporarily
+            $config['max_size'] = 10240; // 10MB
+            $config['file_name'] = $sanitizedStaffId;
+            $config['overwrite'] = TRUE;
 
-        // Initialize the upload library with the configuration
-        $this->upload->initialize($config);
+            // Initialize the upload library with the configuration
+            $this->upload->initialize($config);
 
-        // Use exactly the field name from BiometricUtils.java
-        if (!$this->upload->do_upload('face_image_path')) {
-            // If the upload fails, return an error response
-            $error = $this->upload->display_errors();
-            $this->response([
-                'status' => 'FAILED',
-                'message' => 'Unable to upload face image',
-                'error' => $error
-            ], 500);
-        } else {
+            // Check if the file upload field exists in the request
+            if (!isset($_FILES['face_image_path']) || $_FILES['face_image_path']['error'] != 0) {
+                log_message('error', 'File upload error: ' . print_r($_FILES, true));
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Unable to upload face image - no file provided',
+                    'error' => isset($_FILES['face_image_path']) ? $_FILES['face_image_path']['error'] : 'No file field in request'
+                ], 500);
+                return;
+            }
+            
+            // Try to manually move the uploaded file if the CI uploader fails
+            if (!$this->upload->do_upload('face_image_path')) {
+                $error = $this->upload->display_errors();
+                log_message('error', 'Upload library error: ' . $error);
+                
+                // Manual file upload as fallback
+                $uploadedFile = $_FILES['face_image_path']['tmp_name'];
+                $destination = $userDir . '/' . $sanitizedStaffId . '.jpg';
+                
+                if (move_uploaded_file($uploadedFile, $destination)) {
+                    // Update the database with the face data
+                    $result = $this->mEmployee->upload_face_data($staffId, $destination);
+                    
+                    $this->response([
+                        'status' => 'SUCCESS',
+                        'message' => 'Face data uploaded successfully (manual method)',
+                        'file_info' => [
+                            'file_path' => $destination,
+                            'file_name' => basename($destination),
+                            'staff_id' => $staffId
+                        ]
+                    ], 200);
+                    return;
+                } else {
+                    log_message('error', 'Manual upload failed. Error: ' . error_get_last()['message']);
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'Unable to upload face image using any method',
+                        'error' => $error . ' | Manual error: ' . error_get_last()['message']
+                    ], 500);
+                    return;
+                }
+            }
+            
+            // If we got here, the CI upload was successful
             $upload_data = $this->upload->data();
             $filePath = $upload_data['full_path'];
             
@@ -627,9 +743,17 @@ class Api extends RestController
                 'file_info' => [
                     'file_path' => $filePath,
                     'file_name' => $upload_data['file_name'],
-                    'staff_id' => $staffId
+                    'staff_id' => $staffId,
+                    'full_data' => $upload_data
                 ]
             ], 200);
+            
+        } catch (Exception $e) {
+            log_message('error', 'Exception in upload_face_post: ' . $e->getMessage());
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Server error during upload: ' . $e->getMessage()
+            ], 500);
         }
     }
 
