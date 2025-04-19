@@ -646,23 +646,35 @@ class Api extends RestController
             return;
         }
         
-        $faceData = $this->mEmployee->download_face_data($id);
+        // Sanitize staff ID and construct path to user's face data
+        $pathInfo = $this->sanitize_and_prepare_path($id, 'faces');
+        $sanitizedStaffId = $pathInfo['sanitized_id'];
+        $userDir = $pathInfo['dir'];
         
-        if ($faceData) {
-            // Check if the file exists
-            if (file_exists($faceData)) {
-                // Return the file content
-                $this->response(file_get_contents($faceData), 200);
-            } else {
-                $this->response([
-                    'status' => 'FAILED',
-                    'message' => 'Face data file not found'
-                ], 404);
+        // Look for face image with different possible extensions
+        $extensions = array('.jpg', '.jpeg', '.png', '.gif');
+        $faceDataPath = null;
+        
+        foreach ($extensions as $ext) {
+            $potentialPath = $userDir . '/' . $sanitizedStaffId . $ext;
+            if (file_exists($potentialPath)) {
+                $faceDataPath = $potentialPath;
+                break;
             }
+        }
+        
+        // If path not found, try querying the database
+        if (!$faceDataPath) {
+            $faceDataPath = $this->mEmployee->download_face_data($id);
+        }
+        
+        if ($faceDataPath && file_exists($faceDataPath)) {
+            // Return the file content
+            $this->response(file_get_contents($faceDataPath), 200);
         } else {
             $this->response([
                 'status' => 'FAILED',
-                'message' => 'No face data found for this staff member'
+                'message' => 'Face data file not found'
             ], 404);
         }
     }
@@ -680,15 +692,39 @@ class Api extends RestController
             return;
         }
         
-        $fingerprintData = $this->mEmployee->download_fingerprint_data($id);
+        // Sanitize staff ID and construct path to user's fingerprint data
+        $pathInfo = $this->sanitize_and_prepare_path($id, 'fingerprints');
+        $sanitizedStaffId = $pathInfo['sanitized_id'];
+        $userDir = $pathInfo['dir'];
         
-        if ($fingerprintData) {
-            // Return the fingerprint data
-            $this->response($fingerprintData, 200);
+        // Look for fingerprint data with different possible extensions
+        $extensions = array('.fpt', '.dat', '');
+        $fingerprintDataPath = null;
+        
+        foreach ($extensions as $ext) {
+            $potentialPath = $userDir . '/' . $sanitizedStaffId . $ext;
+            if (file_exists($potentialPath)) {
+                $fingerprintDataPath = $potentialPath;
+                break;
+            }
+        }
+        
+        // If path not found, try querying the database
+        if (!$fingerprintDataPath) {
+            $fingerprintDataPath = $this->mEmployee->download_fingerprint_data($id);
+        }
+        
+        if ($fingerprintDataPath && file_exists($fingerprintDataPath)) {
+            // Set appropriate content type for fingerprint data
+            $this->output->set_content_type('application/octet-stream');
+            $this->output->set_header('Content-Disposition: attachment; filename="' . basename($fingerprintDataPath) . '"');
+            
+            // Return the file content
+            $this->response(file_get_contents($fingerprintDataPath), 200);
         } else {
             $this->response([
                 'status' => 'FAILED',
-                'message' => 'No fingerprint data found for this staff member'
+                'message' => 'Fingerprint data file not found'
             ], 404);
         }
     }
