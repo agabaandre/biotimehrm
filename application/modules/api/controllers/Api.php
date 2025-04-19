@@ -554,7 +554,7 @@ class Api extends RestController
 
             // Set upload configuration
             $config['upload_path'] = $userDir;
-            $config['allowed_types'] = '*'; // Allow all file types temporarily
+            $config['allowed_types'] = 'jpg|jpeg|png|gif'; // Allow all file types temporarily
             $config['max_size'] = 10240; // 10MB
             $config['file_name'] = $sanitizedStaffId;
             $config['overwrite'] = TRUE;
@@ -677,7 +677,7 @@ class Api extends RestController
 
             // Set upload configuration
             $config['upload_path'] = $userDir;
-            $config['allowed_types'] = '*'; // Allow all file types temporarily
+            $config['allowed_types'] = 'jpg|jpeg|png|gif'; // Allow all file types temporarily
             $config['max_size'] = 10240; // 10MB
             $config['file_name'] = $sanitizedStaffId;
             $config['overwrite'] = TRUE;

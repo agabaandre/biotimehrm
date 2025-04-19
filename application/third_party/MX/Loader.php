@@ -457,7 +457,7 @@ class MX_Loader extends CI_Loader
 				if ( ! $db = CI::$APP->config->item('database'))
 				{
 					$this->database();
-					$autoload['libraries'] = array_diff($autoload['libraries'], array('database'));
+					$autoload['libraries'] = array_diff($autoload['libraries'], array('database', 'upload', 'session'));
 				}
 			}
 
