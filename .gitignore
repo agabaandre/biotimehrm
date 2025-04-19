@@ -11,3 +11,4 @@ composer-setup.php
 composer.phar
 /cache/
 .aider*
+.env

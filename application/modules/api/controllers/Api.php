@@ -9,6 +9,7 @@ use Firebase\JWT\Key;
 
 
 /**
+ * 
  * @property Apiauth_model $mAuth
  * @property Apiemployee_model $mEmployee
  */
@@ -506,33 +507,49 @@ class Api extends RestController
     // Upload Device Resources
     public function upload_fingerprint_post()
     {
+        $decoded = $this->validateRequest();
+        
         // Load the necessary libraries
         $this->load->library('upload');
 
         // Set upload configuration
-        $config['upload_path'] = './uploads/fingerprints/'; // Change this to your desired upload directory
-        $config['allowed_types'] = 'fpt'; // Allowed image types
+        $config['upload_path'] = './uploads/fingerprints/'; // Upload directory
+        $config['allowed_types'] = 'fpt|dat'; // Allowed fingerprint data types
         $config['max_size'] = 2048; // Maximum file size in kilobytes
-        $config['max_width'] = 2000; // Maximum image width
-        $config['max_height'] = 2000; // Maximum image height
+        $config['encrypt_name'] = TRUE; // Encrypt file name for security
 
         // Initialize the upload library with the configuration
         $this->upload->initialize($config);
 
-        if (!$this->upload->do_upload('fingerprint')) {
-            // If the upload fails, return an error response in JSON format
-            $error = array('error' => $this->upload->display_errors());
+        // Get the staff ID from the request
+        $staffId = $this->post('staff_id');
+        
+        if (empty($staffId)) {
             $this->response([
                 'status' => 'FAILED',
-                'message' => 'Unable to upload fingerprint at the moment',
+                'message' => 'Staff ID is required'
+            ], 400);
+            return;
+        }
+
+        if (!$this->upload->do_upload('fingerprintData')) {
+            // If the upload fails, return an error response
+            $error = $this->upload->display_errors();
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Unable to upload fingerprint data',
                 'error' => $error
             ], 500);
         } else {
             $upload_data = $this->upload->data();
-            $data['file_info'] = $upload_data;
+            $filePath = $upload_data['full_path'];
+            
+            // Update the database with the fingerprint data
+            $result = $this->mEmployee->upload_fingerprint_data($staffId, $filePath);
+            
             $this->response([
                 'status' => 'SUCCESS',
-                'message' => 'Fingerprint Uploaded',
+                'message' => 'Fingerprint data uploaded successfully',
                 'file_info' => $upload_data
             ], 200);
         }
@@ -540,35 +557,111 @@ class Api extends RestController
 
     public function upload_face_post()
     {
+        $decoded = $this->validateRequest();
+        
         // Load the necessary libraries
         $this->load->library('upload');
 
         // Set upload configuration
-        $config['upload_path'] = './uploads/faces/'; // Change this to your desired upload directory
-        $config['allowed_types'] = 'jpg'; // Allowed image types
+        $config['upload_path'] = './uploads/faces/'; // Upload directory
+        $config['allowed_types'] = 'jpg|jpeg|png'; // Allowed image types
         $config['max_size'] = 2048; // Maximum file size in kilobytes
-        $config['max_width'] = 2000; // Maximum image width
-        $config['max_height'] = 2000; // Maximum image height
+        $config['encrypt_name'] = TRUE; // Encrypt file name for security
 
         // Initialize the upload library with the configuration
         $this->upload->initialize($config);
 
-        if (!$this->upload->do_upload('image')) {
-            // If the upload fails, return an error response in JSON format
-            $error = array('error' => $this->upload->display_errors());
+        // Get the staff ID from the request
+        $staffId = $this->post('staff_id');
+        
+        if (empty($staffId)) {
             $this->response([
                 'status' => 'FAILED',
-                'message' => 'Unable to upload picture at the moment',
+                'message' => 'Staff ID is required'
+            ], 400);
+            return;
+        }
+
+        if (!$this->upload->do_upload('face_image_path')) {
+            // If the upload fails, return an error response
+            $error = $this->upload->display_errors();
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Unable to upload face image',
                 'error' => $error
             ], 500);
         } else {
             $upload_data = $this->upload->data();
-            $data['file_info'] = $upload_data;
+            $filePath = $upload_data['full_path'];
+            
+            // Update the database with the face data
+            $result = $this->mEmployee->upload_face_data($staffId, $filePath);
+            
             $this->response([
                 'status' => 'SUCCESS',
-                'message' => 'Picture Uploaded',
+                'message' => 'Face data uploaded successfully',
                 'file_info' => $upload_data
             ], 200);
+        }
+    }
+
+    // Download face data
+    public function download_face_get($id)
+    {
+        $decoded = $this->validateRequest();
+        
+        if (empty($id)) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Staff ID is required'
+            ], 400);
+            return;
+        }
+        
+        $faceData = $this->mEmployee->download_face_data($id);
+        
+        if ($faceData) {
+            // Check if the file exists
+            if (file_exists($faceData)) {
+                // Return the file content
+                $this->response(file_get_contents($faceData), 200);
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Face data file not found'
+                ], 404);
+            }
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'No face data found for this staff member'
+            ], 404);
+        }
+    }
+
+    // Download fingerprint data
+    public function download_fingerprint_get($id)
+    {
+        $decoded = $this->validateRequest();
+        
+        if (empty($id)) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'Staff ID is required'
+            ], 400);
+            return;
+        }
+        
+        $fingerprintData = $this->mEmployee->download_fingerprint_data($id);
+        
+        if ($fingerprintData) {
+            // Return the fingerprint data
+            $this->response($fingerprintData, 200);
+        } else {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'No fingerprint data found for this staff member'
+            ], 404);
         }
     }
 

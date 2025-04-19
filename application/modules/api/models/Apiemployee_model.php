@@ -12,6 +12,18 @@ class Apiemployee_model extends CI_Model
         $query = $this->db->get();
         return $query->result();
     }
+    
+    // Get Clock History List
+    public function get_clock_history_list($facilityId)
+    {
+        $this->db->select('*');
+        $this->db->from('clk_log');
+        $this->db->where('facility_id', $facilityId);
+        $this->db->order_by('date', 'DESC');
+        $this->db->limit(100); // Limit to prevent large data loads
+        $query = $this->db->get();
+        return $query->result_array();
+    }
 
     // Get Staff List 
     public function get_staff_list($facilityId)	 {
@@ -314,5 +326,97 @@ class Apiemployee_model extends CI_Model
             // If the record does not exist, insert it
             $this->db->insert('mobile_enroll', $data);
         }
+    }
+
+    // Handle uploading face data
+    public function upload_face_data($staffId, $face_data_path)
+    {
+        // Process the uploaded face data
+        $data = [
+            'ihris_pid' => $staffId,
+            'face_data' => $face_data_path,
+            'face_enrolled' => 1
+        ];
+
+        // Get existing record to check if we need to update
+        $existing_record = $this->db->get_where('mobile_enroll', ['ihris_pid' => $staffId])->row_array();
+
+        if ($existing_record) {
+            // Update existing record
+            $this->db->where('ihris_pid', $staffId);
+            $result = $this->db->update('mobile_enroll', $data);
+        } else {
+            // Insert new record
+            $data['enrolled'] = 1; // Ensure enrolled is set if this is a new record
+            $result = $this->db->insert('mobile_enroll', $data);
+        }
+
+        return [
+            'status' => $result ? true : false,
+            'message' => $result ? 'Face data uploaded successfully' : 'Failed to upload face data',
+            'file_path' => $face_data_path
+        ];
+    }
+
+    // Handle uploading fingerprint data
+    public function upload_fingerprint_data($staffId, $fingerprint_data_path)
+    {
+        // Read and process the uploaded fingerprint data
+        $data = [
+            'ihris_pid' => $staffId,
+            'fingerprint_data' => $fingerprint_data_path,
+            'fingerprint_enrolled' => 1
+        ];
+
+        // Get existing record to check if we need to update
+        $existing_record = $this->db->get_where('mobile_enroll', ['ihris_pid' => $staffId])->row_array();
+
+        if ($existing_record) {
+            // Update existing record
+            $this->db->where('ihris_pid', $staffId);
+            $result = $this->db->update('mobile_enroll', $data);
+        } else {
+            // Insert new record
+            $data['enrolled'] = 1; // Ensure enrolled is set if this is a new record
+            $result = $this->db->insert('mobile_enroll', $data);
+        }
+
+        return [
+            'status' => $result ? true : false,
+            'message' => $result ? 'Fingerprint data uploaded successfully' : 'Failed to upload fingerprint data',
+            'file_path' => $fingerprint_data_path
+        ];
+    }
+
+    // Download face data for a staff member
+    public function download_face_data($staffId)
+    {
+        $this->db->select('face_data');
+        $this->db->from('mobile_enroll');
+        $this->db->where('ihris_pid', $staffId);
+        $query = $this->db->get();
+        
+        if ($query->num_rows() > 0) {
+            $result = $query->row();
+            return $result->face_data;
+        }
+        
+        return null;
+    }
+
+    // Download fingerprint data for a staff member
+    public function download_fingerprint_data($staffId)
+    {
+        $this->db->select('fingerprint_data');
+        $this->db->from('mobile_enroll');
+        $this->db->where('ihris_pid', $staffId);
+        $query = $this->db->get();
+        
+        if ($query->num_rows() > 0) {
+            $result = $query->row();
+            return $result->fingerprint_data;
+        }
+        
+        return null;
     }
 }
