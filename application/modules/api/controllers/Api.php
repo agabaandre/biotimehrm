@@ -515,18 +515,6 @@ class Api extends RestController
     {
         $decoded = $this->validateRequest();
         
-        // Load the necessary libraries
-        $this->load->library('upload');
-
-        // Set upload configuration
-        $config['upload_path'] = './uploads/fingerprints/'; // Upload directory
-        $config['allowed_types'] = 'fpt|dat|*'; // Allowing all file types for fingerprint data
-        $config['max_size'] = 10240; // 10MB
-        $config['encrypt_name'] = TRUE; // Encrypt file name for security
-
-        // Initialize the upload library with the configuration
-        $this->upload->initialize($config);
-
         // Get the staff ID from the request
         $staffId = $this->post('staff_id');
         
@@ -537,6 +525,24 @@ class Api extends RestController
             ], 400);
             return;
         }
+        
+        // Prepare user-specific directory and sanitize staff ID
+        $pathInfo = $this->sanitize_and_prepare_path($staffId, 'fingerprints');
+        $sanitizedStaffId = $pathInfo['sanitized_id'];
+        $userDir = $pathInfo['dir'];
+
+        // Load the necessary libraries
+        $this->load->library('upload');
+
+        // Set upload configuration
+        $config['upload_path'] = $userDir; // User-specific directory
+        $config['allowed_types'] = 'fpt|dat|*'; // Allowing all file types for fingerprint data
+        $config['max_size'] = 10240; // 10MB
+        $config['file_name'] = $sanitizedStaffId; // Use sanitized staff ID as filename
+        $config['overwrite'] = TRUE; // Overwrite existing file
+
+        // Initialize the upload library with the configuration
+        $this->upload->initialize($config);
 
         // Use exactly the field name from BiometricUtils.java
         if (!$this->upload->do_upload('fingerprint')) {
@@ -557,7 +563,11 @@ class Api extends RestController
             $this->response([
                 'status' => 'SUCCESS',
                 'message' => 'Fingerprint data uploaded successfully',
-                'file_info' => $upload_data
+                'file_info' => [
+                    'file_path' => $filePath,
+                    'file_name' => $upload_data['file_name'],
+                    'staff_id' => $staffId
+                ]
             ], 200);
         }
     }
