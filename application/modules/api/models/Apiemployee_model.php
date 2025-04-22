@@ -220,17 +220,74 @@ class Apiemployee_model extends CI_Model
                         'is_update' => true
                     ];
                 } else {
-                    // No matching record found to update
-                    // Insert a new record as a fallback (note: this might indicate a missed clock-in)
-                    log_message('warning', 'No matching CLOCK IN record found for user ' . $ihris_pid . ' on ' . $date);
+                    // Check if there's a completed record for this user on this date
+                    // (has both time_in and time_out)
+                    $this->db->where('ihris_pid', $ihris_pid);
+                    $this->db->where('facility_id', $facility_id);
+                    $this->db->where('date', $date);
+                    $this->db->where('time_in IS NOT NULL');
+                    $this->db->where('time_out IS NOT NULL');
+                    $this->db->order_by('time_out', 'DESC'); // Get the most recent completed record
+                    $this->db->limit(1);
+                    $completedRecord = $this->db->get('mobileclk_log')->row();
                     
+                    if ($completedRecord) {
+                        // Create a new record for this clock-out
+                        if ($this->db->insert('mobileclk_log', $data)) {
+                            return [
+                                'status' => true,
+                                'message' => 'Found complete record, created new clock-out record',
+                                'insert_id' => $this->db->insert_id(),
+                                'is_update' => false,
+                                'is_new_after_complete' => true
+                            ];
+                        } else {
+                            return [
+                                'status' => false,
+                                'error' => $this->db->error()
+                            ];
+                        }
+                    } else {
+                        // No matching record found to update and no completed record
+                        // Insert a new record as a fallback (note: this might indicate a missed clock-in)
+                        log_message('warning', 'No matching CLOCK IN record found for user ' . $ihris_pid . ' on ' . $date);
+                        
+                        if ($this->db->insert('mobileclk_log', $data)) {
+                            return [
+                                'status' => true,
+                                'message' => 'No matching clock-in found. Created new clock-out record.',
+                                'insert_id' => $this->db->insert_id(),
+                                'is_update' => false,
+                                'warning' => 'No matching clock-in record was found'
+                            ];
+                        } else {
+                            return [
+                                'status' => false,
+                                'error' => $this->db->error()
+                            ];
+                        }
+                    }
+                }
+            } 
+            // If this is a CLOCK IN request
+            else if ($data['status'] === "CLOCKED_IN") {
+                // Check if user has a complete record (both time_in and time_out) for the day
+                $this->db->where('ihris_pid', $ihris_pid);
+                $this->db->where('facility_id', $facility_id);
+                $this->db->where('date', $date);
+                $this->db->where('time_in IS NOT NULL');
+                $this->db->where('time_out IS NOT NULL');
+                $completedRecord = $this->db->get('mobileclk_log')->row();
+                
+                if ($completedRecord) {
+                    // User has completed a clock cycle today, create a new clock-in
                     if ($this->db->insert('mobileclk_log', $data)) {
                         return [
                             'status' => true,
-                            'message' => 'No matching clock-in found. Created new clock-out record.',
+                            'message' => 'Created new clock-in after previous complete cycle',
                             'insert_id' => $this->db->insert_id(),
-                            'is_update' => false,
-                            'warning' => 'No matching clock-in record was found'
+                            'is_duplicate' => false,
+                            'is_new_after_complete' => true
                         ];
                     } else {
                         return [
@@ -239,10 +296,8 @@ class Apiemployee_model extends CI_Model
                         ];
                     }
                 }
-            } 
-            // If this is a CLOCK IN request
-            else if ($data['status'] === "CLOCKED_IN") {
-                // Check if user is already clocked in for the day
+                
+                // Check if user is already clocked in for the day but not out
                 $this->db->where('ihris_pid', $ihris_pid);
                 $this->db->where('facility_id', $facility_id);
                 $this->db->where('date', $date);

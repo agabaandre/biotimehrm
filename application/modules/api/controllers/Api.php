@@ -439,11 +439,9 @@ class Api extends RestController
             $currentDate = date('Y-m-d');
             $currentTime = date('Y-m-d H:i:s');
 
-            // Construct the entry_id: {timestamp}_{ihris_pid}
-            $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
+            // Construct the entry_id: {timestamp}|{ihris_pid}
+            // For Clock OUT, we'll find the matching clock-in record instead of creating a new entry_id
             $userRecord['ihris_pid'] = $input['ihris_pid'];
-            // $userRecord['name'] = $input['name'];
-            // $userRecord['synced'] = $input['synced'];
             $userRecord['facility_id'] = $input['facility_id'];
             $userRecord['source'] = 'mobile';
             $userRecord['latitude'] = $input['latitude'];
@@ -460,12 +458,16 @@ class Api extends RestController
             
             // More flexible validation that accepts variations
             if ($clockStatus == "IN" || $clockStatus == "CLOCK_IN" || $clockStatus == "CLOCKED_IN" || $clockStatus == "CLOCKIN") {
+                // For clock-in, generate a new entry_id
+                $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
                 $userRecord['time_in'] = $currentTime;
                 $userRecord['time_out'] = null;
                 $userRecord['status'] = "CLOCKED_IN";
             } elseif ($clockStatus == "OUT" || $clockStatus == "CLOCK_OUT" || $clockStatus == "CLOCKED_OUT" || $clockStatus == "CLOCKOUT") {
+                // For clock-out, we'll update the existing record, but still need entry_id for API compatibility
+                $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
                 $userRecord['time_out'] = $currentTime;
-                $userRecord['time_in'] = null;
+                $userRecord['time_in'] = null; // This won't be used when updating
                 $userRecord['status'] = "CLOCKED_OUT";
             } else {
                 $this->response([
@@ -494,24 +496,60 @@ class Api extends RestController
             $result = $this->mEmployee->clock($userRecord);
 
             if ($result['status']) {
-                // Successful operation (either new insert or existing record found)
-                $responseMessage = isset($result['is_duplicate']) && $result['is_duplicate'] 
-                    ? 'User already clocked in with this entry ID' 
-                    : 'User clock record received successfully';
-                
-                $this->response([
-                    'status' => true,
-                    'message' => $responseMessage,
-                    'data' => $userRecord
-                ], 200);
+                // Successful operation
+                if (isset($result['is_update']) && $result['is_update']) {
+                    // This was a clock-out that updated an existing record
+                    $this->response([
+                        'status' => true,
+                        'message' => 'Clock-out successful - updated existing record',
+                        'data' => $userRecord
+                    ], 200);
+                } elseif (isset($result['is_new_after_complete']) && $result['is_new_after_complete']) {
+                    // This was a new record created after a complete cycle
+                    if ($userRecord['status'] === "CLOCKED_IN") {
+                        $this->response([
+                            'status' => true,
+                            'message' => 'New clock-in created after previous complete cycle',
+                            'data' => $userRecord
+                        ], 200);
+                    } else {
+                        $this->response([
+                            'status' => true,
+                            'message' => 'New clock-out created after finding a complete record',
+                            'data' => $userRecord
+                        ], 200);
+                    }
+                } elseif (isset($result['is_duplicate']) && $result['is_duplicate']) {
+                    // This was a duplicate clock-in
+                    $this->response([
+                        'status' => true,
+                        'message' => 'User is already clocked in',
+                        'data' => $userRecord
+                    ], 200);
+                } elseif (isset($result['warning'])) {
+                    // Clock-out with no matching clock-in
+                    $this->response([
+                        'status' => true,
+                        'message' => 'Clock-out recorded, but no matching clock-in was found',
+                        'warning' => $result['warning'],
+                        'data' => $userRecord
+                    ], 200);
+                } else {
+                    // Normal successful clock-in
+                    $this->response([
+                        'status' => true,
+                        'message' => 'Clock-in successful',
+                        'data' => $userRecord
+                    ], 200);
+                }
             } else {
-                // Failed insert, include the specific error message
+                // Failed operation
                 $this->response([
                     'status' => false,
-                    'message' => 'Failed to clock in due to database error',
+                    'message' => 'Failed to process attendance record',
                     'error' => $result['error'] ?? 'Unknown error',
                     'data' => $userRecord,
-                ], 500); // Internal Server Error
+                ], 500);
             }
         } catch (Exception $e) {
             // Catch any unexpected exceptions and return a proper JSON response
