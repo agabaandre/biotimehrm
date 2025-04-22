@@ -186,15 +186,112 @@ class Apiemployee_model extends CI_Model
 
     public function clock($data)
     {
-        if ($this->db->insert('mobileclk_log', $data)) {
-            return [
-                'status' => true,
-                'insert_id' => $this->db->insert_id()
-            ];
-        } else {
+        try {
+            $ihris_pid = $data['ihris_pid'];
+            $facility_id = $data['facility_id'];
+            $date = $data['date'];
+            
+            // If this is a CLOCK OUT request
+            if ($data['status'] === "CLOCKED_OUT") {
+                // Look for the most recent CLOCK IN record for this user on this date
+                $this->db->where('ihris_pid', $ihris_pid);
+                $this->db->where('facility_id', $facility_id);
+                $this->db->where('date', $date);
+                $this->db->where('status', 'CLOCKED_IN');
+                $this->db->where('time_out IS NULL'); // Only records that haven't been clocked out
+                $this->db->order_by('time_in', 'DESC'); // Get the most recent clock in
+                $this->db->limit(1);
+                $existingRecord = $this->db->get('mobileclk_log')->row();
+                
+                if ($existingRecord) {
+                    // Update the existing record with the clock out time
+                    $this->db->where('id', $existingRecord->id);
+                    $updateData = [
+                        'time_out' => $data['time_out'],
+                        'status' => 'CLOCKED_OUT'
+                    ];
+                    
+                    $this->db->update('mobileclk_log', $updateData);
+                    
+                    return [
+                        'status' => true,
+                        'message' => 'Clock-out successful',
+                        'record_id' => $existingRecord->id,
+                        'is_update' => true
+                    ];
+                } else {
+                    // No matching record found to update
+                    // Insert a new record as a fallback (note: this might indicate a missed clock-in)
+                    log_message('warning', 'No matching CLOCK IN record found for user ' . $ihris_pid . ' on ' . $date);
+                    
+                    if ($this->db->insert('mobileclk_log', $data)) {
+                        return [
+                            'status' => true,
+                            'message' => 'No matching clock-in found. Created new clock-out record.',
+                            'insert_id' => $this->db->insert_id(),
+                            'is_update' => false,
+                            'warning' => 'No matching clock-in record was found'
+                        ];
+                    } else {
+                        return [
+                            'status' => false,
+                            'error' => $this->db->error()
+                        ];
+                    }
+                }
+            } 
+            // If this is a CLOCK IN request
+            else if ($data['status'] === "CLOCKED_IN") {
+                // Check if user is already clocked in for the day
+                $this->db->where('ihris_pid', $ihris_pid);
+                $this->db->where('facility_id', $facility_id);
+                $this->db->where('date', $date);
+                $this->db->where('status', 'CLOCKED_IN');
+                $this->db->where('time_out IS NULL'); // Only records that haven't been clocked out
+                $existingClockIn = $this->db->get('mobileclk_log')->row();
+                
+                if ($existingClockIn) {
+                    // User is already clocked in and hasn't clocked out
+                    return [
+                        'status' => true,
+                        'message' => 'User is already clocked in and has not clocked out',
+                        'record_id' => $existingClockIn->id,
+                        'is_duplicate' => true
+                    ];
+                }
+                
+                // Insert new clock in record
+                if ($this->db->insert('mobileclk_log', $data)) {
+                    return [
+                        'status' => true,
+                        'message' => 'Clock-in successful',
+                        'insert_id' => $this->db->insert_id(),
+                        'is_duplicate' => false
+                    ];
+                } else {
+                    return [
+                        'status' => false,
+                        'error' => $this->db->error()
+                    ];
+                }
+            }
+            // Invalid status
+            else {
+                return [
+                    'status' => false,
+                    'error' => [
+                        'message' => 'Invalid clock status: ' . $data['status']
+                    ]
+                ];
+            }
+        } catch (Exception $e) {
+            // Catch any exceptions and return a friendly error
             return [
                 'status' => false,
-                'error' => $this->db->error() // Capture the database error
+                'error' => [
+                    'code' => $e->getCode(),
+                    'message' => $e->getMessage()
+                ]
             ];
         }
     }

@@ -428,85 +428,101 @@ class Api extends RestController
 	}
     public function clock_user_post()
     {
-        // Get the JSON input
-        $input = $this->post();
+        try {
+            // Get the JSON input
+            $input = $this->post();
 
-        $userRecord = array();
+            $userRecord = array();
 
-        // Set the current date and time from the server
-        date_default_timezone_set('Africa/Kampala');
-        $currentDate = date('Y-m-d');
-        $currentTime = date('Y-m-d H:i:s');
+            // Set the current date and time from the server
+            date_default_timezone_set('Africa/Kampala');
+            $currentDate = date('Y-m-d');
+            $currentTime = date('Y-m-d H:i:s');
 
-        // Construct the entry_id: {timestamp}_{ihris_pid}
-        $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
-        $userRecord['ihris_pid'] = $input['ihris_pid'];
-        // $userRecord['name'] = $input['name'];
-        // $userRecord['synced'] = $input['synced'];
-        $userRecord['facility_id'] = $input['facility_id'];
-        $userRecord['source'] = 'mobile';
-        $userRecord['latitude'] = $input['latitude'];
-        $userRecord['longitude'] = $input['longitude'];
+            // Construct the entry_id: {timestamp}_{ihris_pid}
+            $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
+            $userRecord['ihris_pid'] = $input['ihris_pid'];
+            // $userRecord['name'] = $input['name'];
+            // $userRecord['synced'] = $input['synced'];
+            $userRecord['facility_id'] = $input['facility_id'];
+            $userRecord['source'] = 'mobile';
+            $userRecord['latitude'] = $input['latitude'];
+            $userRecord['longitude'] = $input['longitude'];
 
-        // Set the current date
-        $userRecord['date'] = $currentDate;
+            // Set the current date
+            $userRecord['date'] = $currentDate;
 
-        // Normalize clock status to handle various formats
-        $clockStatus = strtoupper(trim($input['clock_status']));
-        
-        // Log the value for debugging
-        log_message('debug', 'Clock status received: ' . $clockStatus);
-        
-        // More flexible validation that accepts variations
-        if ($clockStatus == "IN" || $clockStatus == "CLOCK_IN" || $clockStatus == "CLOCKED_IN" || $clockStatus == "CLOCKIN") {
-            $userRecord['time_in'] = $currentTime;
-            $userRecord['time_out'] = null;
-            $userRecord['status'] = "CLOCKED_IN";
-        } elseif ($clockStatus == "OUT" || $clockStatus == "CLOCK_OUT" || $clockStatus == "CLOCKED_OUT" || $clockStatus == "CLOCKOUT") {
-            $userRecord['time_out'] = $currentTime;
-            $userRecord['time_in'] = null;
-            $userRecord['status'] = "CLOCKED_OUT";
-        } else {
+            // Normalize clock status to handle various formats
+            $clockStatus = strtoupper(trim($input['clock_status']));
+            
+            // Log the value for debugging
+            log_message('debug', 'Clock status received: ' . $clockStatus);
+            
+            // More flexible validation that accepts variations
+            if ($clockStatus == "IN" || $clockStatus == "CLOCK_IN" || $clockStatus == "CLOCKED_IN" || $clockStatus == "CLOCKIN") {
+                $userRecord['time_in'] = $currentTime;
+                $userRecord['time_out'] = null;
+                $userRecord['status'] = "CLOCKED_IN";
+            } elseif ($clockStatus == "OUT" || $clockStatus == "CLOCK_OUT" || $clockStatus == "CLOCKED_OUT" || $clockStatus == "CLOCKOUT") {
+                $userRecord['time_out'] = $currentTime;
+                $userRecord['time_in'] = null;
+                $userRecord['status'] = "CLOCKED_OUT";
+            } else {
+                $this->response([
+                    'status' => false,
+                    'message' => 'Invalid clock status: "' . $input['clock_status'] . '". Expected "IN" or "OUT"',
+                ], 400);
+                return;
+            }
+
+            // Determine the shift based on the current hour
+            $currentHour = date('H');
+            if ($currentHour >= 6 && $currentHour < 14) {
+                $userRecord["shift"] = "Morning";
+            } elseif ($currentHour >= 14 && $currentHour < 22) {
+                $userRecord["shift"] = "Afternoon";
+            } else {
+                $userRecord["shift"] = "Night";
+            }
+
+            // Get Facility Name
+            $facilityName = $this->mEmployee->get_facility_name($userRecord["facility_id"]);
+            $userRecord["location"] = $facilityName;
+            $userRecord["facility"] = $facilityName;
+
+            // Save the user record
+            $result = $this->mEmployee->clock($userRecord);
+
+            if ($result['status']) {
+                // Successful operation (either new insert or existing record found)
+                $responseMessage = isset($result['is_duplicate']) && $result['is_duplicate'] 
+                    ? 'User already clocked in with this entry ID' 
+                    : 'User clock record received successfully';
+                
+                $this->response([
+                    'status' => true,
+                    'message' => $responseMessage,
+                    'data' => $userRecord
+                ], 200);
+            } else {
+                // Failed insert, include the specific error message
+                $this->response([
+                    'status' => false,
+                    'message' => 'Failed to clock in due to database error',
+                    'error' => $result['error'] ?? 'Unknown error',
+                    'data' => $userRecord,
+                ], 500); // Internal Server Error
+            }
+        } catch (Exception $e) {
+            // Catch any unexpected exceptions and return a proper JSON response
             $this->response([
                 'status' => false,
-                'message' => 'Invalid clock status: "' . $input['clock_status'] . '". Expected "IN" or "OUT"',
-            ], 400);
-            return;
-        }
-
-        // Determine the shift based on the current hour
-        $currentHour = date('H');
-        if ($currentHour >= 6 && $currentHour < 14) {
-            $userRecord["shift"] = "Morning";
-        } elseif ($currentHour >= 14 && $currentHour < 22) {
-            $userRecord["shift"] = "Afternoon";
-        } else {
-            $userRecord["shift"] = "Night";
-        }
-
-        // Get Facility Name
-        $facilityName = $this->mEmployee->get_facility_name($userRecord["facility_id"]);
-        $userRecord["location"] = $facilityName;
-        $userRecord["facility"] = $facilityName;
-
-        // Save the user record
-        $result = $this->mEmployee->clock($userRecord);
-
-        if ($result['status']) {
-            // Successful insert
-            $this->response([
-                'status' => true,
-                'message' => 'User clock record received successfully',
-                'data' => $userRecord
-            ], 200);
-        } else {
-            // Failed insert, include the specific error message
-            $this->response([
-                'status' => false,
-                'message' => 'Failed to clock in due to database error',
-                'error' => $result['error'],
-                'data' => $userRecord,
-            ], 500); // Internal Server Error
+                'message' => 'An unexpected error occurred',
+                'error' => [
+                    'code' => $e->getCode(),
+                    'message' => $e->getMessage()
+                ]
+            ], 500);
         }
     }
 
