@@ -217,12 +217,12 @@
     }
 
     #status {
-      width: 50px;
-      height: 50px;
+      width: 80px;
+      height: 80px;
       position: absolute;
       left: 60%;
       top: 50%;
-      background-image: url("<?php echo base_url() ?>assets/images/loader2.gif");
+      background-image: url("<?php echo base_url() ?>assets/images/loader1.gif");
       z-index: 9999;
       background-repeat: no-repeat;
       background-position: center;

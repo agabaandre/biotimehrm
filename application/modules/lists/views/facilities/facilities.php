@@ -298,6 +298,9 @@
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">
                         <i class="fas fa-times mr-1"></i>Cancel
                     </button>
+                    <button type="button" class="btn btn-warning mr-2" onclick="testCsrf()">
+                        <i class="fas fa-key mr-1"></i>Test CSRF
+                    </button>
                     <button type="submit" class="btn btn-info">
                         <i class="fas fa-save mr-1"></i>Save Facility
                     </button>
@@ -506,14 +509,31 @@
     $('#addFacilityForm').on('submit', function(e) {
         e.preventDefault();
         
+        // Debug: Log form submission
+        console.log('Form submission prevented');
+        
         var formData = new FormData(this);
         
         // Get current CSRF token
         var csrfTokenName = '<?php echo $this->security->get_csrf_token_name(); ?>';
         var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
         
+        // Debug: Log CSRF token information
+        console.log('CSRF Token Name:', csrfTokenName);
+        console.log('CSRF Token Hash:', csrfTokenHash);
+        console.log('Form action:', $(this).attr('action'));
+        
         // Add CSRF token to form data
         formData.append(csrfTokenName, csrfTokenHash);
+        
+        // Debug: Log form data
+        console.log('Form data entries:');
+        for (var pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+        
+        // Test CSRF token first
+        console.log('Testing CSRF token validation...');
         
         $.ajax({
             url: $(this).attr('action'),
@@ -522,6 +542,7 @@
             processData: false,
             contentType: false,
             success: function(response) {
+                console.log('Success response:', response);
                 try {
                     var result = JSON.parse(response);
                     if (result.status === 'success') {
@@ -543,10 +564,13 @@
                         }
                     }
                 } catch (e) {
+                    console.error('Error parsing response:', e);
                     toastr.error('An error occurred while processing the response');
                 }
             },
-            error: function(xhr) {
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', xhr.status, error);
+                console.error('Response:', xhr.responseText);
                 if (xhr.status === 403) {
                     toastr.error('Security token expired. Please refresh the page and try again.');
                 } else {
@@ -554,8 +578,32 @@
                 }
             }
         });
+        
+        return false; // Ensure form doesn't submit normally
     });
 });
+
+// Test CSRF token
+function testCsrf() {
+    $.ajax({
+        url: '<?php echo base_url("lists/testCsrf"); ?>',
+        type: 'GET',
+        success: function(response) {
+            try {
+                var result = JSON.parse(response);
+                console.log('CSRF Test Result:', result);
+                toastr.info('CSRF Token: ' + result.csrf_token_name + ' = ' + result.csrf_token_hash);
+            } catch (e) {
+                console.error('Error parsing CSRF test response:', e);
+                toastr.error('Failed to test CSRF token');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('CSRF Test Error:', xhr.status, error);
+            toastr.error('Failed to test CSRF token');
+        }
+    });
+}
 
 // Facility management functions
 function editFacility(id) {

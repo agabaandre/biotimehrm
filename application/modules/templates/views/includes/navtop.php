@@ -110,15 +110,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.8rem;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
-  width: 250px;
-  min-height: 60px;
+  width: 180px;
+  min-height: 40px;
   justify-content: center;
+  text-overflow: ellipsis;
 }
 
 .facility-display:hover {
@@ -152,14 +153,14 @@
 }
 
 .btn-modern {
-  border-radius: 12px;
-  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  padding: 0.4rem 0.8rem;
   font-weight: 500;
   border: 2px solid rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
-  width: 200px;
-  height: 60px;
+  width: 180px;
+  height: 55px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,11 +180,11 @@
 }
 
 .user-profile {
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
+  padding: 0.4rem 0.8rem;
+  border-radius: 10px;
   transition: all 0.3s ease;
-  width: 200px;
-  height: 60px;
+  width: 180px;
+  height: 55px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -278,19 +279,19 @@
   }
   
   .facility-display {
-    padding: 0.25rem 0.5rem !important;
-    width: 180px !important;
-    min-height: 50px !important;
+    padding: 0.2rem 0.4rem !important;
+    width: 160px !important;
+    min-height: 45px !important;
   }
   
   .btn-modern {
-    width: 180px !important;
-    height: 50px !important;
+    width: 160px !important;
+    height: 45px !important;
   }
   
   .user-profile {
-    width: 180px !important;
-    height: 50px !important;
+    width: 160px !important;
+    height: 45px !important;
   }
   
   .district-name, .facility-name {

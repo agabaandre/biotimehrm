@@ -160,8 +160,22 @@ class Lists extends MX_Controller
 		log_message('debug', 'Posted CSRF Token: ' . $this->input->post($csrf_token_name));
 		log_message('debug', 'All POST data: ' . json_encode($this->input->post()));
 		
+		// Check if CSRF token is present
+		if (!$this->input->post($csrf_token_name)) {
+			log_message('error', 'CSRF token not found in POST data');
+			if ($this->input->is_ajax_request()) {
+				echo json_encode(['status' => 'error', 'message' => 'CSRF token not found']);
+				return;
+			}
+			$this->session->set_flashdata('error', 'CSRF token not found');
+			redirect('lists/getFacilities');
+		}
+		
+		// Check if CSRF token matches
 		if ($this->input->post($csrf_token_name) !== $csrf_token_hash) {
 			log_message('error', 'CSRF validation failed for saveFacility');
+			log_message('error', 'Expected: ' . $csrf_token_hash);
+			log_message('error', 'Received: ' . $this->input->post($csrf_token_name));
 			if ($this->input->is_ajax_request()) {
 				echo json_encode(['status' => 'error', 'message' => 'Invalid security token']);
 				return;
@@ -183,6 +197,24 @@ class Lists extends MX_Controller
 		}
 		
 		redirect('lists/getFacilities');
+	}
+
+	/**
+	 * Test CSRF token generation
+	 */
+	public function testCsrf()
+	{
+		$csrf_token_name = $this->security->get_csrf_token_name();
+		$csrf_token_hash = $this->security->get_csrf_hash();
+		
+		$response = [
+			'csrf_token_name' => $csrf_token_name,
+			'csrf_token_hash' => $csrf_token_hash,
+			'session_id' => session_id(),
+			'timestamp' => time()
+		];
+		
+		echo json_encode($response);
 	}
 
 	//end FACILITIES

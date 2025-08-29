@@ -10,10 +10,10 @@
     <div class="row mb-3">
       <div class="col-12">
         <div class="page-header">
-          <h1 class="page-title">
-            <i class="fas fa-list-alt text-primary mr-2"></i>
+          <h4 class="page-title">
+            <i class="fas fa-list-alt text-info mr-2"></i>
             My Submitted Requests
-          </h1>
+          </h4>
           <p class="page-subtitle">Track and manage all your submitted requests</p>
         </div>
       </div>
@@ -22,7 +22,7 @@
     <!-- Statistics Cards -->
     <div class="row mb-4">
       <div class="col-lg-3 col-md-6">
-        <div class="card bg-primary text-white">
+        <div class="card bg-info text-white">
           <div class="card-body">
             <div class="d-flex justify-content-between">
               <div>
@@ -89,7 +89,7 @@
          <div class="card">
           <div class="card-header">
             <h5 class="card-title mb-0">
-              <i class="fas fa-filter text-primary mr-2"></i>Filters & Search
+              <i class="fas fa-filter text-info mr-2"></i>Filters & Search
             </h5>
           </div>
           <div class="card-body">
@@ -135,11 +135,11 @@
           <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
               <h5 class="card-title mb-0">
-                <i class="fas fa-table text-primary mr-2"></i>My Requests
+                <i class="fas fa-table text-info mr-2"></i>My Requests
               </h5>
               <div class="d-flex align-items-center">
                 <span class="badge badge-info mr-2" id="showingInfo">Showing 0 of 0 entries</span>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="refreshTable">
+                <button type="button" class="btn btn-sm btn-outline-info" id="refreshTable">
                   <i class="fas fa-sync-alt"></i>
                 </button>
               </div>
@@ -168,7 +168,7 @@
                         <td class="text-center"><?php echo $loop->iteration ?? $loop->index + 1; ?></td>
                         <td>
                           <div class="d-flex align-items-center">
-                            <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mr-2" style="width: 32px; height: 32px;">
+                            <div class="avatar-sm bg-info text-white rounded-circle d-flex align-items-center justify-content-center mr-2" style="width: 32px; height: 32px;">
                               <i class="fas fa-user"></i>
                             </div>
                             <div>
@@ -184,7 +184,7 @@
                         <td class="text-center"><?php echo date('M j, Y', strtotime($request->date)); ?></td>
                         <td>
                           <div class="text-muted">
-                            <div><i class="fas fa-calendar-day text-primary mr-1"></i>From: <?php echo date('M j, Y', strtotime($request->dateFrom)); ?></div>
+                            <div><i class="fas fa-calendar-day text-info mr-1"></i>From: <?php echo date('M j, Y', strtotime($request->dateFrom)); ?></div>
                             <div><i class="fas fa-calendar-day text-success mr-1"></i>To: <?php echo date('M j, Y', strtotime($request->dateTo)); ?></div>
                           </div>
                         </td>
@@ -313,7 +313,7 @@ $(document).ready(function() {
             }
         ],
         language: {
-            processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>',
+            processing: '<div class="spinner-border text-info" role="status"><span class="visually-hidden">Loading...</span></div>',
             search: "Search:",
             lengthMenu: "Show _MENU_ entries per page",
             info: "Showing _START_ to _END_ of _TOTAL_ entries",

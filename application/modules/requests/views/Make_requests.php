@@ -6,7 +6,7 @@
       <div class="col-12">
         <div class="page-header">
           <h1 class="page-title">
-            <i class="fas fa-plus-circle text-primary mr-2"></i>
+            <i class="fas fa-plus-circle text-info mr-2"></i>
             Submit New Request
           </h1>
           <p class="page-subtitle">Submit a new out-of-station request for approval</p>
@@ -39,7 +39,7 @@
                 <div class="col-md-6">
                   <div class="mb-3">
                     <label for="dateFrom" class="form-label">
-                      <i class="fas fa-calendar text-primary mr-1"></i>From Date
+                      <i class="fas fa-calendar text-info mr-1"></i>From Date
                     </label>
                     <div class="input-group">
                       <span class="input-group-text">
@@ -101,7 +101,7 @@
               </div>
 
               <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                <button type="submit" class="btn btn-info btn-lg" id="submitBtn">
                   <i class="fas fa-paper-plane mr-2"></i>Submit Request
                 </button>
                 <button type="reset" class="btn btn-outline-secondary btn-lg">
@@ -157,7 +157,7 @@
       <div class="modal-body">
         <div class="row">
           <div class="col-md-6">
-            <h6 class="text-primary">Request Summary</h6>
+            <h6 class="text-info">Request Summary</h6>
             <table class="table table-borderless">
               <tr>
                 <td><strong>Request ID:</strong></td>
@@ -182,7 +182,7 @@
             </table>
           </div>
           <div class="col-md-6">
-            <h6 class="text-primary">Next Steps</h6>
+            <h6 class="text-info">Next Steps</h6>
             <div class="alert alert-info">
               <ul class="mb-0">
                 <li>Your request has been submitted</li>
@@ -198,7 +198,7 @@
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
           <i class="fas fa-times mr-2"></i>Close
         </button>
-        <a href="<?php echo base_url('requests/viewMySubmittedRequests'); ?>" class="btn btn-primary">
+        <a href="<?php echo base_url('requests/viewMySubmittedRequests'); ?>" class="btn btn-info">
           <i class="fas fa-list mr-2"></i>View My Requests
         </a>
       </div>
@@ -211,7 +211,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <div class="modal-body text-center">
-        <div class="spinner-border text-primary" role="status">
+        <div class="spinner-border text-info" role="status">
           <span class="visually-hidden">Loading...</span>
         </div>
         <p class="mt-2 mb-0">Submitting your request...</p>

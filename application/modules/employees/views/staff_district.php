@@ -196,10 +196,10 @@
     <div class="row mb-3">
       <div class="col-12">
         <div class="page-header">
-          <h1 class="page-title">
+          <h4 class="page-title">
             <i class="fas fa-users text-info"></i>
             <?php echo $_SESSION['district']; ?> District Staff
-          </h1>
+          </h4>
           <p class="page-subtitle">Manage and view all employees in the district</p>
         </div>
       </div>

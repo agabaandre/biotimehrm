@@ -13,14 +13,14 @@
    <div class="sidebar" style="width:100% !important; border-top: none !important;">
      <!-- Sidebar user (optional) -->
      <div class="user-panel mt-2 pb-0 mb-0" style="text-align:center; ">
-       <p class="brand-image img-circle elevation" style="color:#FEFFFF; font-size: 11px; height:20px; font-weight:bold; margin-top:2px; opacity: .8;">
+       <p class="brand-image img-circle text-muted elevation" style="font-size: 11px; height:20px; font-weight:bold; margin-top:2px; opacity: .8; text-overflow: ellipsis;">
          <?php
-          //echo strtoupper($userdata['names']); 
+          echo strtoupper($userdata['names']); 
           ?>
          <a href="#" class="on_off"><i class="fa fa-circle text-success"></i>Online</a>
        </p>
        <hr>
-       <p style="color:#FEFFFF; font-size: 10px; height:20px; font-weight:bold; margin-top:1px;">
+       <p class="text-muted" style="color:#FEFFFF; font-size: 10px; height:20px; font-weight:bold; margin-top:1px;">
          <?php
           echo $period = "PERIOD:" . $userdata['month'] . '-' . $userdata['year'] . '<br>';
           // echo date('Y-m-d H:i:s');
@@ -426,7 +426,7 @@
 }
 
 .sidebar-logout-link {
-  background: #005662;
+  background: #389b8c !important;
   color: #ffffff !important;
   border-radius: 5px !important;
   margin: 0 10px !important;
@@ -439,7 +439,7 @@
 }
 
 .sidebar-logout-link:hover {
-  background:rgb(20, 112, 124);
+  background:#389b8c !important;
   color: #ffffff !important;
   transform: translateY(-2px) !important;
   box-shadow: 0 6px 20px rgba(57, 152, 149, 0.4) !important;
@@ -491,7 +491,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #005662 !important;
+  background:#389b8c !important;
   color: #ffffff !important;
   text-decoration: none !important;
   padding: 10px 16px !important;
@@ -503,10 +503,10 @@
 }
 
 .sidebar-logout-float-link:hover {
-  background: linear-gradient(135deg, #17a2b8 0%,rgb(3, 93, 105) 100%) !important;
+  background: linear-gradient(135deg,rgb(23, 184, 165) 0%,#389b8c 100%) !important;
   color: #ffffff !important;
   transform: translateY(-3px) !important;
-  box-shadow: 0 8px 30px rgba(0, 86, 98, 0.5) !important;
+  box-shadow: 0 8px 30pxrgb(60, 171, 154) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
   text-decoration: none !important;
 }
@@ -525,7 +525,7 @@
 
 /* Add a subtle accent using your secondary color */
 .sidebar-logout-float-link:hover i {
-  color: #17a2b8 !important;
+  color: #389b8c !important;
   transform: scale(1.1);
   transition: all 0.3s ease;
 }

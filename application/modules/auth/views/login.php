@@ -17,7 +17,7 @@
     
   <style>
         :root {
-            --primary-color: #005662;
+            --info-color: #005662;
             --secondary-color: #20c198;
             --accent-color: #ff6b35;
             --text-dark: #2c3e50;
@@ -56,7 +56,7 @@
         }
 
         .login-header {
-            background: var(--primary-color);
+            background: var(--info-color);
             color: white;
             padding: 40px 30px;
       text-align: center;
@@ -135,7 +135,7 @@
 
         .form-control:focus {
             outline: none;
-            border-color: var(--primary-color);
+            border-color: var(--info-color);
             background: white;
             box-shadow: 0 0 0 3px rgba(0, 86, 98, 0.1);
         }
@@ -160,13 +160,13 @@
         }
 
         .form-control:focus + .input-icon {
-            color: var(--primary-color);
+            color: var(--info-color);
         }
 
         .btn-login {
             width: 100%;
             padding: 15px;
-            background: var(--primary-color);
+            background: var(--info-color);
             color: white;
             border: none;
             border-radius: 12px;
@@ -214,7 +214,7 @@
             margin-right: 10px;
             width: 18px;
             height: 18px;
-            accent-color: var(--primary-color);
+            accent-color: var(--info-color);
         }
 
         .remember-me label {
@@ -230,7 +230,7 @@
         }
 
         .forgot-password a {
-            color: var(--primary-color);
+            color: var(--info-color);
             text-decoration: none;
             font-size: 14px;
             font-weight: 500;
@@ -338,7 +338,7 @@
         }
 
         .footer a {
-            color: var(--primary-color);
+            color: var(--info-color);
             text-decoration: none;
         }
 
@@ -433,7 +433,7 @@
                 <!-- Username/Email Field -->
                 <div class="form-group" id="usernameGroup">
                     <label for="username" class="form-label">
-                        <i class="fas fa-user text-primary"></i> Username or Email
+                        <i class="fas fa-user text-info"></i> Username or Email
                     </label>
                     <input type="text" 
                            id="username" 
@@ -447,7 +447,7 @@
                 <!-- Password Field -->
                 <div class="form-group" id="passwordGroup">
                     <label for="password" class="form-label">
-                        <i class="fas fa-lock text-primary"></i> Password
+                        <i class="fas fa-lock text-info"></i> Password
           </label>
                     <input type="password" 
                            id="password" 
@@ -495,7 +495,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="forgotPasswordModalLabel">
-                        <i class="fas fa-key text-primary"></i> Reset Password
+                        <i class="fas fa-key text-info"></i> Reset Password
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -506,7 +506,7 @@
                         <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
                         <div class="form-group">
                             <label for="resetEmail" class="form-label">
-                                <i class="fas fa-envelope text-primary"></i> Email Address
+                                <i class="fas fa-envelope text-info"></i> Email Address
                             </label>
                             <input type="email" 
                                    id="resetEmail" 
@@ -518,7 +518,7 @@
                         
                         <div class="form-group">
                             <label for="resetUsername" class="form-label">
-                                <i class="fas fa-user text-primary"></i> Username
+                                <i class="fas fa-user text-info"></i> Username
                             </label>
                             <input type="text" 
                                    id="resetUsername" 
@@ -529,7 +529,7 @@
                         </div>
                         
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg" id="resetPasswordBtn">
+                            <button type="submit" class="btn btn-info btn-lg" id="resetPasswordBtn">
                                 <span class="btn-text">Send Reset Link</span>
                                 <span class="btn-loading" style="display: none;">
                                     <i class="fas fa-spinner fa-spin"></i> Sending...
