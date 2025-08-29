@@ -3,7 +3,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Tags extends MX_Controller
 {
-
+	protected $module;
+	protected $title;
 
 	public  function __construct()
 	{

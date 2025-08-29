@@ -3,7 +3,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Calendar extends MX_Controller {
 
+	protected $filters;
+	protected $ufilters;
+	protected $distfilters;
 	
+
 	public function __Construct(){
 
 		parent::__Construct();

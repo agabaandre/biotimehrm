@@ -1,7 +1,17 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 Class Department_model extends CI_Model
-{
+{   
+    protected $table;
+    protected $department;
+    protected $division;
+    protected $unit;
+    protected $facility;
+    protected $user;
+    protected $filters;
+    protected $ufilters;
+    protected $distfilters;
+
    public function __construct(){
 
                 parent::__construct();
@@ -13,7 +23,7 @@ Class Department_model extends CI_Model
     //gets all departments from the department table
     public function getAll_departments(){
       
-      $qry=$this->db->query("SELECT distinct department from ihrisdata  where department='' order by department ASC");
+      $qry=$this->db->query("SELECT distinct department from ihrisdata WHERE department IS NOT NULL AND department != '' ORDER BY department ASC");
 
       return $qry->result();
 

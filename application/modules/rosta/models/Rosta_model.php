@@ -1,7 +1,16 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 class Rosta_model extends CI_Model
-{
+{	
+	protected $user;
+	protected $department;
+	protected $division;
+	protected $unit;
+	protected $facility;
+	protected $filters;
+	protected $ufilters;
+	protected $distfilters;
+
 	public function __Construct()
 	{
 		parent::__Construct();

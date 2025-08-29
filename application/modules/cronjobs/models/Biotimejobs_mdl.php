@@ -2,6 +2,8 @@
 
 Class Biotimejobs_mdl extends CI_Model
 {
+
+    protected $facility;
    public  function __construct(){
         parent:: __construct();
         $this->facility=$_SESSION['facility'];

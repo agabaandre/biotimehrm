@@ -3,7 +3,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Requests_mdl extends CI_Model {
 
-	
+	protected $table;
+	protected $facility;
+	protected $department;
+	protected $division;
+	protected $unit;
+	protected $user;
+
 	public function __Construct(){
 
 		parent::__Construct();
@@ -92,6 +98,15 @@ public function validateRequest($entry_id){
 	public function get_reasons(){
 	return $this->db->get('reasons')->result();
 }
+
+	public function getRequestById($request_id) {
+		$this->db->select('r.*, re.reason');
+		$this->db->from('requests r');
+		$this->db->join('reasons re', 'r.reason_id = re.r_id', 'left');
+		$this->db->where('r.id', $request_id);
+		$query = $this->db->get();
+		return $query->row();
+	}
 
 	
 	public function getTable()

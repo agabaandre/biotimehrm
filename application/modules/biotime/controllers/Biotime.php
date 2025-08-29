@@ -3,17 +3,19 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 use \utils\HttpUtil;
 class Biotime extends MX_Controller{
-	
-	public  function __construct(){
-		parent:: __construct();
-        $this->user=$this->session->get_userdata();
+    private $user;
+    private $watermark;
+    private $filters;
+
+    public function __construct(){
+        parent::__construct();
+        $this->user = $this->session->get_userdata();
         $this->load->library('pagination');
-        $this->watermark=FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
-        $this->filters=Modules::run('filters/sessionfilters');
-        
-		$this->load->model('biotime_model','biotime_mdl');
-     
-	}
+        $this->watermark = FCPATH . "assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
+        $this->filters = Modules::run('filters/sessionfilters');
+
+        $this->load->model('biotime_model', 'biotime_mdl');
+    }
     public function updateTerminals(){
      
          $data['view']='biotime_devices';
@@ -128,6 +130,57 @@ class Biotime extends MX_Controller{
     }
     public function getMachines($search=FALSE){
         return $this->biotime_mdl->getMachines($search);
+    }
+
+    public function getMachinesAjax(){
+        $draw = $this->input->post('draw');
+        $start = $this->input->post('start');
+        $length = $this->input->post('length');
+        $search = $this->input->post('search')['value'];
+        $order = $this->input->post('order')[0];
+        
+        $total = $this->biotime_mdl->getMachinesCount($search);
+        $machines = $this->biotime_mdl->getMachinesPaginated($start, $length, $search, $order);
+        
+        $data = array();
+        foreach($machines as $machine) {
+            $status = $this->getMachineStatus($machine->last_activity);
+            $data[] = array(
+                $machine->sn,
+                $machine->area_name,
+                $machine->last_activity,
+                $machine->user_count,
+                $machine->ip_address,
+                $status,
+                $this->getSyncButton($machine->sn)
+            );
+        }
+        
+        $response = array(
+            'draw' => intval($draw),
+            'recordsTotal' => $total,
+            'recordsFiltered' => $total,
+            'data' => $data
+        );
+        
+        echo json_encode($response);
+    }
+
+    private function getMachineStatus($lastActivity) {
+        $today = date('Y-m-d');
+        $lastDate = date('Y-m-d', strtotime($lastActivity));
+        
+        if ($lastDate == $today) {
+            return '<span class="badge badge-success">Active</span>';
+        } else {
+            return '<span class="badge badge-danger">Inactive</span>';
+        }
+    }
+
+    private function getSyncButton($sn) {
+        return '<button type="button" class="btn btn-primary btn-sm sync-machine" data-sn="'.$sn.'" data-toggle="modal" data-target="#syncModal">
+                    <i class="fas fa-sync"></i> Sync
+                </button>';
     }
 
     public function get_new_users(){

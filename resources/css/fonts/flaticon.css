@@ -1,0 +1,51 @@
+	/*
+  	Flaticon icon font: Flaticon
+  	Creation date: 22/06/2016 15:07
+  	*/
+
+@font-face {
+  font-family: "Flaticon";
+  src: url("./Flaticon.eot");
+  src: url("./Flaticon.eot?#iefix") format("embedded-opentype"),
+       url("./Flaticon.woff") format("woff"),
+       url("./Flaticon.ttf") format("truetype"),
+       url("./Flaticon.svg#Flaticon") format("svg");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  @font-face {
+    font-family: "Flaticon";
+    src: url("./Flaticon.svg#Flaticon") format("svg");
+  }
+}
+
+[class^="flaticon-"]:before, [class*=" flaticon-"]:before,
+[class^="flaticon-"]:after, [class*=" flaticon-"]:after {   
+  font-family: Flaticon;
+        font-size: 20px;
+font-style: normal;
+margin-left: 20px;
+}
+
+.flaticon-ecological-house-real-estate-business-symbol:before { content: "\f100"; }
+.flaticon-favorite-home-symbol-of-real-estate:before { content: "\f101"; }
+.flaticon-for-rent-signal:before { content: "\f102"; }
+.flaticon-for-sale-real-estate-hanging-signal:before { content: "\f103"; }
+.flaticon-home-shape:before { content: "\f104"; }
+.flaticon-home-with-a-heart:before { content: "\f105"; }
+.flaticon-house:before { content: "\f106"; }
+.flaticon-house-1:before { content: "\f107"; }
+.flaticon-house-at-night:before { content: "\f108"; }
+.flaticon-house-with-down-arrow:before { content: "\f109"; }
+.flaticon-percentage-symbol-on-a-house-for-real-estate-business:before { content: "\f10a"; }
+.flaticon-real-estate-business-symbol-of-a-house-with-owner-on-a-badge:before { content: "\f10b"; }
+.flaticon-real-estate-commercial-symbol-of-a-house-with-dollar-sign:before { content: "\f10c"; }
+.flaticon-real-estate-deal-symbol:before { content: "\f10d"; }
+.flaticon-real-estate-house-property-for-business:before { content: "\f10e"; }
+.flaticon-real-estate-house-proposal-for-a-bigger-size:before { content: "\f10f"; }
+.flaticon-real-estate-symbol-of-bigger-house-proposal:before { content: "\f110"; }
+.flaticon-realty-home-symbol:before { content: "\f111"; }
+.flaticon-sold-real-estate-hanging-signal:before { content: "\f112"; }
+.flaticon-thumb-up-real-estate-symbol-on-a-house:before { content: "\f113"; }

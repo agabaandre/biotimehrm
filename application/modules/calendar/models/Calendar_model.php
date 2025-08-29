@@ -2,6 +2,16 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 class Calendar_model extends CI_Model
 {
+	protected $district_id;
+	protected $facility_id;
+	protected $department_id;
+	protected $division;
+	protected $section;
+	protected $unit;
+	protected $department;
+	protected $filters;
+	protected $ufilters;
+	protected $distfilters;
 
 	public  function __construct()
 	{

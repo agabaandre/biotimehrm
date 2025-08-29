@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,446 +7,817 @@
   <meta name="description" content="HRM Attend is an iHRIS Employee Attendance Tracking System used by Ministry of Health Uganda to monitor the presence of the health work force in their duty stations and other official assignments using biometrics and location based data">
   <meta name="keywords" content="Ministry of Health, Health Attendance Uganda, Ministry of Health Uganda Attendance Tracking, Uganda Attenance, Agaba Andrew Attendance, Biometric Attendance, HRM Attend, iHRIS Attendance, Ismail Wadembere iHRIS, Agaba Andrew iHRIS, Patrick Lubwama iHRIS, iHRIS Uganda, iHRIS, IntraHealth iHRIS, Health Attendance, Attendance Tracking System Uganda">
   <meta name="author" content="Agaba Andrew +256702787688">
-  <!-- <link href="<?php echo base_url(); ?>assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="<?php echo base_url(); ?>assets/font-awesome/css/font-awesome.css" rel="stylesheet">
-    <link href="<?php echo base_url(); ?>assets/css/animate.css" rel="stylesheet">
-    <link href="<?php echo base_url(); ?>assets/css/style.css" rel="stylesheet"> -->
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
   <style>
-    @import 'https://fonts.googleapis.com/css?family=Open+Sans|Quicksand:400,700';
+        :root {
+            --primary-color: #005662;
+            --secondary-color: #20c198;
+            --accent-color: #ff6b35;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #f8f9fa;
+            --border-color: #e9ecef;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
 
-    /*--------------------
-General Style
----------------------*/
-    *,
-    *::before,
-    *::after {
+        * {
+            margin: 0;
+            padding: 0;
       box-sizing: border-box;
     }
 
-    body,
-    html {
-      height: 100%;
-      font-family: 'Quicksand', sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
     body {
-      background: linear-gradient(90deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
-      background-image: url('<?php echo base_url() ?>assets/img/background.jpg');
-      background-repeat: no-repeat;
+            font-family: 'Inter', sans-serif;
+            background: url('<?php echo base_url("assets/img/bg.jpg"); ?>') no-repeat center center fixed;
       background-size: cover;
-      background-position: 100%;
-      height: 100vh;
-      overflow-x: hidden;
-      text-rendering: optimizeLegibility;
-    }
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
 
-    /*--------------------
-Text
----------------------*/
-    h2,
-    h3 {
-      font-size: 16px;
-      letter-spacing: -1px;
-      line-height: 20px;
-    }
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+        }
 
-    h2 {
-      color: #feffff;
+        .login-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 40px 30px;
       text-align: center;
-    }
+            position: relative;
+            overflow: hidden;
+        }
 
-    h3 {
-      color: #032942;
-      text-align: right;
-    }
+        .login-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
 
-    /*--------------------
-Icons
----------------------*/
-    .i {
-      width: 20px;
-      height: 20px;
-    }
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
 
-    .i-login {
-      margin: 13px 0px 0px 15px;
-      position: relative;
-      float: left;
-      background-image: url(data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMTYuMC4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogNi4wMCBCdWlsZCAwKSAgLS0+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4PSIwcHgiIHk9IjBweCIgd2lkdGg9IjY0cHgiIGhlaWdodD0iNjRweCIgdmlld0JveD0iMCAwIDQxNi4yMjkgNDE2LjIyOSIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNDE2LjIyOSA0MTYuMjI5OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxnPgoJPGc+CgkJPHBhdGggZD0iTTQwMy43MjksMjkuNjVINzEuODAyYy02LjkwMywwLTEyLjUsNS41OTctMTIuNSwxMi41djg2LjM2M2MwLDYuOTAzLDUuNTk3LDEyLjUsMTIuNSwxMi41czEyLjUtNS41OTcsMTIuNS0xMi41VjU0LjY1ICAgIGgzMDYuOTI3djMwNi45MjhIODQuMzAydi03My44NjFjMC02LjkwMy01LjU5Ny0xMi41LTEyLjUtMTIuNXMtMTIuNSw1LjU5Ny0xMi41LDEyLjV2ODYuMzYxYzAsNi45MDMsNS41OTcsMTIuNSwxMi41LDEyLjUgICAgaDMzMS45MjdjNi45MDIsMCwxMi41LTUuNTk3LDEyLjUtMTIuNVY0Mi4xNUM0MTYuMjI5LDM1LjI0Nyw0MTAuNjMxLDI5LjY1LDQwMy43MjksMjkuNjV6IiBmaWxsPSIjODczMTRlIi8+CgkJPHBhdGggZD0iTTE4NS40MTcsMjg3LjgxMWMwLDUuMDU3LDMuMDQ1LDkuNjEzLDcuNzE2LDExLjU1YzEuNTQ3LDAuNjQyLDMuMTcsMC45NSw0Ljc4MSwwLjk1YzMuMjUzLDAsNi40NTEtMS4yNyw4Ljg0Mi0zLjY2ICAgIGw3OS42OTctNzkuNjk3YzIuMzQ0LTIuMzQ0LDMuNjYtNS41MjMsMy42Ni04LjgzOWMwLTMuMzE2LTEuMzE2LTYuNDk1LTMuNjYtOC44MzlsLTc5LjY5Ny03OS42OTcgICAgYy0zLjU3NS0zLjU3NS04Ljk1MS00LjY0Ni0xMy42MjMtMi43MWMtNC42NzEsMS45MzYtNy43MTYsNi40OTMtNy43MTYsMTEuNTQ5djY3LjE5N0gxMi41Yy02LjkwMywwLTEyLjUsNS41OTctMTIuNSwxMi41ICAgIGMwLDYuOTAzLDUuNTk3LDEyLjUsMTIuNSwxMi41aDE3Mi45MTdWMjg3LjgxMUwxODUuNDE3LDI4Ny44MTF6IE0yMTAuNDE3LDE1OC41OTRsNDkuNTIxLDQ5LjUybC00OS41MjEsNDkuNTIxVjE1OC41OTR6IiBmaWxsPSIjODczMTRlIi8+Cgk8L2c+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPC9zdmc+Cg==);
-      background-size: 18px 18px;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
+        .logo-container {
+            margin-bottom: 20px;
+        }
 
-    .i-more {
-      background-image: url(data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMTYuMC4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogNi4wMCBCdWlsZCAwKSAgLS0+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4PSIwcHgiIHk9IjBweCIgd2lkdGg9IjY0cHgiIGhlaWdodD0iNjRweCIgdmlld0JveD0iMCAwIDYxMiA2MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDYxMiA2MTI7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4KPGc+Cgk8ZyBpZD0ibW9yZSI+CgkJPGc+CgkJCTxwYXRoIGQ9Ik03Ni41LDIyOS41QzM0LjMsMjI5LjUsMCwyNjMuOCwwLDMwNnMzNC4zLDc2LjUsNzYuNSw3Ni41UzE1MywzNDguMiwxNTMsMzA2UzExOC43LDIyOS41LDc2LjUsMjI5LjV6IE03Ni41LDM0NC4yICAgICBjLTIxLjEsMC0zOC4yLTE3LjEwMS0zOC4yLTM4LjJjMC0yMS4xLDE3LjEtMzguMiwzOC4yLTM4LjJzMzguMiwxNy4xLDM4LjIsMzguMkMxMTQuNywzMjcuMSw5Ny42LDM0NC4yLDc2LjUsMzQ0LjJ6ICAgICAgTTUzNS41LDIyOS41Yy00Mi4yLDAtNzYuNSwzNC4zLTc2LjUsNzYuNXMzNC4zLDc2LjUsNzYuNSw3Ni41UzYxMiwzNDguMiw2MTIsMzA2UzU3Ny43LDIyOS41LDUzNS41LDIyOS41eiBNNTM1LjUsMzQ0LjIgICAgIGMtMjEuMSwwLTM4LjItMTcuMTAxLTM4LjItMzguMmMwLTIxLjEsMTcuMTAxLTM4LjIsMzguMi0zOC4yczM4LjIsMTcuMSwzOC4yLDM4LjJDNTczLjcsMzI3LjEsNTU2LjYsMzQ0LjIsNTM1LjUsMzQ0LjJ6ICAgICAgTTMwNiwyMjkuNWMtNDIuMiwwLTc2LjUsMzQuMy03Ni41LDc2LjVzMzQuMyw3Ni41LDc2LjUsNzYuNXM3Ni41LTM0LjMsNzYuNS03Ni41UzM0OC4yLDIyOS41LDMwNiwyMjkuNXogTTMwNiwzNDQuMiAgICAgYy0yMS4xLDAtMzguMi0xNy4xMDEtMzguMi0zOC4yYzAtMjEuMSwxNy4xLTM4LjIsMzguMi0zOC4yYzIxLjEsMCwzOC4yLDE3LjEsMzguMiwzOC4yQzM0NC4yLDMyNy4xLDMyNy4xLDM0NC4yLDMwNiwzNDQuMnoiIGZpbGw9IiNkZjQwNWEiLz4KCQk8L2c+Cgk8L2c+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPC9zdmc+Cg==);
-      background-size: 20px 20px;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
+        .logo-container img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: white;
+            padding: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
 
-    .i-save {
-      background-image: url(data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMTYuMC4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogNi4wMCBCdWlsZCAwKSAgLS0+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4PSIwcHgiIHk9IjBweCIgd2lkdGg9IjY0cHgiIGhlaWdodD0iNjRweCIgdmlld0JveD0iMCAwIDYxMiA2MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDYxMiA2MTI7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4KPGc+Cgk8ZyBpZD0idGljayI+CgkJPGc+CgkJCTxwYXRoIGQ9Ik00MzYuNywxOTYuNzAxTDI1OC4xODgsMzc1LjIxM2wtODIuODY5LTgyLjg4N2MtNy4yODctNy4yODctMTkuMTI1LTcuMjg3LTI2LjQxMiwwcy03LjI4NywxOS4xMjUsMCwyNi40MTIgICAgIGw5My44MDgsOTMuODA4YzAuNjMxLDAuODk5LDEuMDE0LDEuOTMyLDEuODE3LDIuNzM1YzMuNzY4LDMuNzY4LDguNzIxLDUuNTA4LDEzLjY1NSw1LjM3NGM0LjkzNCwwLjExNSw5LjkwNy0xLjYwNiwxMy42NzQtNS4zNzQgICAgIGMwLjgwMy0wLjgwNCwxLjE4Ni0xLjgzNiwxLjgxNy0yLjczNWwxODkuNDM0LTE4OS40MzNjNy4yODYtNy4yODcsNy4yODYtMTkuMTI1LDAtMjYuNDEyICAgICBDNDU1LjgwNiwxODkuNDE0LDQ0My45ODcsMTg5LjQxNCw0MzYuNywxOTYuNzAxeiBNMzA2LDBDMTM2Ljk5MiwwLDAsMTM2Ljk5MiwwLDMwNnMxMzYuOTkyLDMwNiwzMDYsMzA2ICAgICBjMTY4Ljk4OCwwLDMwNi0xMzYuOTkyLDMwNi0zMDZTNDc1LjAwOCwwLDMwNiwweiBNMzA2LDU3My43NUMxNTguMTI1LDU3My43NSwzOC4yNSw0NTMuODc1LDM4LjI1LDMwNiAgICAgQzM4LjI1LDE1OC4xMjUsMTU4LjEyNSwzOC4yNSwzMDYsMzguMjVjMTQ3Ljg3NSwwLDI2Ny43NSwxMTkuODc1LDI2Ny43NSwyNjcuNzVDNTczLjc1LDQ1My44NzUsNDUzLjg3NSw1NzMuNzUsMzA2LDU3My43NXoiIGZpbGw9IiMyMGMxOTgiLz4KCQk8L2c+Cgk8L2c+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPGc+CjwvZz4KPC9zdmc+Cg==);
-      background-size: 20px 20px;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
+        .login-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
 
-    .i-warning {
-      background-image: url(data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMTguMS4xLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogNi4wMCBCdWlsZCAwKSAgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4PSIwcHgiIHk9IjBweCIgdmlld0JveD0iMCAwIDYxMi44MTYgNjEyLjgxNiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNjEyLjgxNiA2MTIuODE2OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgd2lkdGg9IjY0cHgiIGhlaWdodD0iNjRweCI+CjxnPgoJPHBhdGggZD0iTTMwNi40MDgsMEMxMzcuMzY4LDAsMC4zNzEsMTM2Ljk5NywwLjM3MSwzMDYuMDM3czEzNi45OTcsMzA2Ljc3OSwzMDYuMDM3LDMwNi43NzlzMzA2LjAzNy0xMzcuODEzLDMwNi4wMzctMzA2LjAzNyAgIEM2MTIuNDQ1LDEzNy43MzksNDc1LjQ0OCwwLDMwNi40MDgsMHogTTMwNi40MDgsNTgzLjE0N2MtMTUyLjIwMywwLTI3Ni4zNjgtMTI0LjE2NS0yNzYuMzY4LTI3Ni4zNjggICBTMTU0LjIwNSwyOS41OTUsMzA2LjQwOCwyOS41OTVTNTgyLjc3NiwxNTMuNzYsNTgyLjc3NiwzMDYuNzc5UzQ1OC42MTEsNTgzLjE0NywzMDYuNDA4LDU4My4xNDd6IE0zMjEuNjEzLDQzMS43NiAgIGMwLDguODI3LTcuMTk1LDE2LjAyMS0xNi4wMjEsMTYuMDIxYy04LjgyNywwLTE2LjAyMS03LjE5NS0xNi4wMjEtMTYuMDIxYzAtOC44MjcsNy4xOTUtMTYuMDIxLDE2LjAyMS0xNi4wMjEgICBTMzIxLjYxMyw0MjIuOTM0LDMyMS42MTMsNDMxLjc2eiBNMjkwLjM4NywzNTMuMjExdi0xODAuMjRjMC04LjAxMSw2LjM3OS0xNC4zOSwxNC4zOS0xNC4zOWM4LjAxMSwwLDE0LjM5LDYuMzc5LDE0LjM5LDE0LjM5ICAgdjE4MC4yNGMwLDguMDExLTYuMzc5LDE0LjM5LTE0LjM5LDE0LjM5QzI5Ni43NjYsMzY4LjQ5MSwyOTAuMzg3LDM2MS4yMjIsMjkwLjM4NywzNTMuMjExeiIgZmlsbD0iI2Y1ZDg3OCIvPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+Cjwvc3ZnPgo=);
-      background-size: 20px 20px;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
+        .login-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
 
-    .i-close {
-      background-image: url(data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMTguMS4xLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogNi4wMCBCdWlsZCAwKSAgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4PSIwcHgiIHk9IjBweCIgdmlld0JveD0iMCAwIDYxMi40NDUgNjEyLjQ0NSIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNjEyLjQ0NSA2MTIuNDQ1OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgd2lkdGg9IjY0cHgiIGhlaWdodD0iNjRweCI+CjxnPgoJPHBhdGggZD0iTTUyMi42NDIsODkuODA0QzQ2NC45LDMyLjA2MiwzODguMDExLDAsMzA2LjIyMywwUzE0Ny41NDUsMzIuMDYyLDg5LjgwNCw4OS44MDQgICBjLTExOS40MTYsMTE5LjQxNi0xMTkuNDE2LDMxMy40MjIsMCw0MzIuODM4YzU3Ljc0MSw1Ny43NDEsMTM0LjYzMSw4OS44MDQsMjE2LjQxOSw4OS44MDRzMTU4LjY3OC0zMi4wNjIsMjE2LjQxOS04OS44MDQgICBDNjQyLjA1OCw0MDMuMjI1LDY0Mi4wNTgsMjA5LjIyLDUyMi42NDIsODkuODA0eiBNNTAxLjc4Nyw1MDEuNzg3Yy01Mi4xMDEsNTIuMTAxLTEyMS43OTEsODAuOTcyLTE5NS41NjQsODAuOTcyICAgcy0xNDMuNDYzLTI4Ljg3MS0xOTUuNTY0LTgwLjk3MlMyOS42ODcsMzc5Ljk5NSwyOS42ODcsMzA2LjIyM3MyOC44NzEtMTQzLjQ2Myw4MC45NzItMTk1LjU2NHMxMjEuODY2LTgwLjk3MiwxOTUuNTY0LTgwLjk3MiAgIHMxNDMuNDYzLDI4Ljg3MSwxOTUuNTY0LDgwLjk3MnM4MC45NzIsMTIxLjg2Niw4MC45NzIsMTk1LjU2NFM1NTMuODg3LDQ0OS42ODYsNTAxLjc4Nyw1MDEuNzg3eiBNMzk5LjIxOCwyMzQuODk5bC03NC41MTUsNzQuNTE1ICAgbDc0LjUxNSw3NC41MTVjNS42NDEsNS42NDEsNS42NDEsMTUuMjE1LDAsMjAuODU1Yy0zLjE5MSwzLjE5MS02LjM4Myw0LjAwOC0xMC4zOTEsNC4wMDhjLTQuMDA4LDAtNy4xOTktMS42MzMtMTAuMzktNC4wMDggICBsLTc0LjU4OS03NC41MTVsLTc0LjU4OSw3NC41MTVjLTMuMTkxLDMuMTkxLTYuMzgzLDQuMDA4LTEwLjM5LDQuMDA4cy03LjE5OS0xLjYzMy0xMC4zOS00LjAwOCAgIGMtNS42NDEtNS42NDEtNS42NDEtMTUuMjE1LDAtMjAuODU1bDc0LjUxNS03NC41MTVsLTc0LjUxNS03NC41MTVjLTUuNjQxLTUuNjQxLTUuNjQxLTE1LjIxNSwwLTIwLjg1NSAgIGM1LjY0MS01LjY0MSwxNS4yMTUtNS42NDEsMjAuODU1LDBsNzQuNTE1LDc0LjUxNWw3NC41MTUtNzQuNTE1YzUuNjQxLTUuNjQxLDE1LjIxNS01LjY0MSwyMC44NTUsMCAgIEM0MDQuODU4LDIxOS42ODUsNDA0Ljg1OCwyMjguNDQyLDM5OS4yMTgsMjM0Ljg5OXoiIGZpbGw9IiNmNTVhNGUiLz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8L3N2Zz4K);
-      background-size: 20px 20px;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
+        .login-body {
+            padding: 40px 30px;
+        }
 
-    .i-left {
-      background-image: url(data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMTYuMC4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogNi4wMCBCdWlsZCAwKSAgLS0+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4PSIwcHgiIHk9IjBweCIgd2lkdGg9IjY0cHgiIGhlaWdodD0iNjRweCIgdmlld0JveD0iMCAwIDQxNC4yOTggNDE0LjI5OSIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNDE0LjI5OCA0MTQuMjk5OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxnPgoJPHBhdGggZD0iTTMuNjYzLDQxMC42MzdjMi40NDEsMi40NCw1LjY0LDMuNjYxLDguODM5LDMuNjYxYzMuMTk5LDAsNi4zOTgtMS4yMjEsOC44MzktMy42NjFsMTg1LjgwOS0xODUuODFsMTg1LjgxLDE4NS44MTEgICBjMi40NCwyLjQ0LDUuNjQxLDMuNjYxLDguODQsMy42NjFjMy4xOTgsMCw2LjM5Ny0xLjIyMSw4LjgzOS0zLjY2MWM0Ljg4MS00Ljg4MSw0Ljg4MS0xMi43OTYsMC0xNy42NzlsLTE4NS44MTEtMTg1LjgxICAgbDE4NS44MTEtMTg1LjgxYzQuODgxLTQuODgyLDQuODgxLTEyLjc5NiwwLTE3LjY3OGMtNC44ODItNC44ODItMTIuNzk2LTQuODgyLTE3LjY3OSwwbC0xODUuODEsMTg1LjgxTDIxLjM0LDMuNjYzICAgYy00Ljg4Mi00Ljg4Mi0xMi43OTYtNC44ODItMTcuNjc4LDBjLTQuODgyLDQuODgxLTQuODgyLDEyLjc5NiwwLDE3LjY3OGwxODUuODEsMTg1LjgwOUwzLjY2MywzOTIuOTU5ICAgQy0xLjIxOSwzOTcuODQxLTEuMjE5LDQwNS43NTYsMy42NjMsNDEwLjYzN3oiIGZpbGw9IiM4NzMxNGUiLz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8L3N2Zz4K);
-      background-size: 16px 16px;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
 
-    /*--------------------
-Login Box
----------------------*/
-    .box {
-      width: 330px;
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: var(--bg-light);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(0, 86, 98, 0.1);
+        }
+
+        .form-control.error {
+            border-color: #e74c3c;
+            background: #fdf2f2;
+        }
+
+        .form-control.success {
+            border-color: var(--secondary-color);
+            background: #f0fdf4;
+        }
+
+        .input-icon {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      -webkit-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
-    }
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            transition: color 0.3s ease;
+        }
 
-    .box-form {
-      width: 320px;
+        .form-control:focus + .input-icon {
+            color: var(--primary-color);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
       position: relative;
-      z-index: 1;
-    }
-
-    .box-login-tab {
-      width: 100%;
-      height: 50px;
-      background: linear-gradient(90deg, rgb(56 54 54) 0%, rgb(27 131 173) 100%);
-      color: inherit;
-      text-align: center;
-      color: #FFFFFF !important;
-      position: relative;
-      float: left;
-      z-index: 1;
-      -webkit-border-radius: 6px 6px 0 0;
-      -moz-border-radius: 6px 6px 0 0;
-      border-radius: 6px 6px 0 0;
-      -webkit-transform: perspective(0px) rotateX(0.93deg) translateZ(-1px);
-      transform: perspective(0px) rotateX(0.93deg) translateZ(-1px);
-      /* -webkit-transform-origin: 0 0;
-	        transform-origin: 0 0;
-	-webkit-backface-visibility: hidden;
-	        backface-visibility: hidden;
-	-webkit-box-shadow: 15px -15px 30px rgba(0,0,0,0.32);
-     -moz-box-shadow: 15px -15px 30px rgba(0,0,0,0.32);
-          box-shadow: 15px -15px 30px rgba(0,0,0,0.32); */
-    }
-
-    .box-login-title {
-      width: 80%;
-      height: 150px;
-      font-weight: bold;
-      position: absolute;
-      float: left;
-      z-index: 2;
-    }
-
-    .box-login {
-      position: relative;
-      top: 10px;
-      width: 320px;
-      background: #fdfdfd;
-      text-align: center;
       overflow: hidden;
-      z-index: 2;
-      -webkit-border-top-right-radius: 6px;
-      -webkit-border-bottom-left-radius: 6px;
-      -webkit-border-bottom-right-radius: 6px;
-      -moz-border-radius-topright: 6px;
-      -moz-border-radius-bottomleft: 6px;
-      -moz-border-radius-bottomright: 6px;
-      border-top-right-radius: 6px;
-      border-bottom-left-radius: 6px;
-      border-bottom-right-radius: 6px;
-      -webkit-box-shadow: 15px 30px 30px rgba(0, 0, 0, 0.32);
-      -moz-box-shadow: 15px 30px 30px rgba(0, 0, 0, 0.32);
-      box-shadow: 15px 30px 30px rgba(0, 0, 0, 0.32);
-    }
+        }
 
-    .box-info {
-      width: 260px;
-      top: 60px;
-      position: absolute;
-      right: -5px;
-      padding: 15px 15px 15px 30px;
-      background-color: rgba(255, 255, 255, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      z-index: 0;
-      -webkit-border-radius: 6px;
-      -moz-border-radius: 6px;
-      border-radius: 6px;
-      -webkit-box-shadow: 15px 30px 30px rgba(0, 0, 0, 0.32);
-      -moz-box-shadow: 15px 30px 30px rgba(0, 0, 0, 0.32);
-      box-shadow: 15px 30px 30px rgba(0, 0, 0, 0.32);
-    }
+        .btn-login:hover {
+            background: #004a54;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
 
-    .line-wh {
-      width: 100%;
-      height: 1px;
-      top: 0px;
-      margin: 12px auto;
-      position: relative;
-      border-top: 1px solid rgba(255, 255, 255, 0.3);
-    }
+        .btn-login:active {
+            transform: translateY(0);
+        }
 
-    /*--------------------
-Form
----------------------*/
-    a {
-      text-decoration: none;
-    }
+        .btn-login:disabled {
+            background: var(--text-light);
+            cursor: not-allowed;
+            transform: none;
+        }
 
-    button:focus {
-      outline: 0;
-    }
+        .btn-login .spinner {
+            display: none;
+            margin-right: 10px;
+        }
 
-    .b {
-      height: 24px;
-      line-height: 24px;
-      background-color: transparent;
-      border: none;
+        .btn-login.loading .spinner {
+            display: inline-block;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
       cursor: pointer;
     }
 
-    .b-form {
-      opacity: 0.5;
-      margin: 10px 20px;
-      float: right;
-    }
+        .remember-me input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+        }
 
-    .b-info {
-      opacity: 0.5;
-      float: left;
-    }
+        .remember-me label {
+            font-size: 14px;
+            color: var(--text-dark);
+            cursor: pointer;
+            user-select: none;
+        }
 
-    .b-form:hover,
-    .b-info:hover {
-      opacity: 1;
-    }
+        .forgot-password {
+            text-align: center;
+            margin-top: 20px;
+        }
 
-    .b-support,
-    .b-cta {
-      width: 100%;
-      padding: 0px 15px;
-      font-family: 'Quicksand', sans-serif;
-      font-weight: 700;
-      letter-spacing: -1px;
-      font-size: 16px;
-      line-height: 32px;
-      cursor: pointer;
-      -webkit-border-radius: 16px;
-      -moz-border-radius: 16px;
-      border-radius: 16px;
-    }
+        .forgot-password a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
 
-    .b-support {
-      border: #87314e 1px solid;
-      background-color: transparent;
-      color: #87314e;
-      margin: 6px 0;
-    }
+        .forgot-password a:hover {
+            color: #004a54;
+            text-decoration: underline;
+        }
 
-    .b-cta {
-      border: #df405a 1px solid;
-      background-color: #df405a;
-      color: #fff;
-    }
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
 
-    .b-support:hover,
-    .b-cta:hover {
-      color: #fff;
-      background-color: #87314e;
-      border: #87314e 1px solid;
-    }
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
 
-    .fieldset-body {
-      display: table;
-    }
+        .alert-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
 
-    .fieldset-body p {
-      width: 100%;
-      display: inline-table;
-      padding: 5px 20px;
-      margin-bottom: 2px;
-    }
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
 
-    label {
-      float: left;
-      width: 100%;
-      top: 0px;
-      color: #032942;
-      font-size: 13px;
-      font-weight: 700;
-      text-align: left;
-      line-height: 1.5;
-    }
+        .welcome-back {
+            background: var(--bg-light);
+            border: 2px solid var(--secondary-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            text-align: center;
+            display: none;
+        }
 
-    label.checkbox {
-      float: left;
-      padding: 5px 20px;
-      line-height: 1.7;
-    }
+        .welcome-back.show {
+            display: block;
+            animation: slideDown 0.5s ease;
+        }
 
-    input[type=text],
-    input[type=password] {
-      width: 100%;
-      height: 32px;
-      padding: 0px 10px;
-      background-color: rgba(0, 0, 0, 0.03);
-      border: none;
-      display: inline;
-      color: #303030;
-      font-size: 16px;
-      font-weight: 400;
-      float: left;
-      -webkit-box-shadow: inset 1px 1px 0px rgba(0, 0, 0, 0.05), 1px 1px 0px rgba(255, 255, 255, 1);
-      -moz-box-shadow: inset 1px 1px 0px rgba(0, 0, 0, 0.05), 1px 1px 0px rgba(255, 255, 255, 1);
-      box-shadow: inset 1px 1px 0px rgba(0, 0, 0, 0.05), 1px 1px 0px rgba(255, 255, 255, 1);
-    }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-    input[type=text]:focus,
-    input[type=password]:focus {
-      background-color: #f8f8c6;
-      outline: none;
-    }
+        .welcome-back .user-info {
+            margin-bottom: 15px;
+        }
 
-    input[type=submit] {
-      width: 100%;
-      height: 48px;
-      margin-top: 24px;
-      padding: 0px 20px;
-      font-family: 'Quicksand', sans-serif;
-      font-weight: 700;
-      font-size: 18px;
-      color: #fff;
-      line-height: 40px;
+        .welcome-back .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--secondary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0 auto 10px;
+        }
+
+        .welcome-back .user-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 5px;
+        }
+
+        .welcome-back .user-email {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .welcome-back .message {
+            font-size: 14px;
+            color: var(--text-dark);
+            margin-top: 10px;
+        }
+
+        .footer {
       text-align: center;
-      background-color: #303030;
-      border: 1px #f8f8c6 solid;
-      opacity: 1;
-      cursor: pointer;
-    }
+            padding: 20px;
+            color: var(--text-light);
+            font-size: 12px;
+            border-top: 1px solid var(--border-color);
+        }
 
-    input[type=submit]:hover {
-      background-color: #767070;
-      border: 1px #f8f8c6 solid;
-      color: #303030;
-    }
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
 
-    input[type=submit]:focus {
-      outline: none;
-    }
+        .footer a:hover {
+            text-decoration: underline;
+        }
 
-    p.field span.i {
-      width: 24px;
-      height: 24px;
-      float: right;
-      position: relative;
-      margin-top: -26px;
-      right: 2px;
-      z-index: 2;
-      display: none;
-      -webkit-animation: bounceIn 0.6s linear;
-      -moz-animation: bounceIn 0.6s linear;
-      -o-animation: bounceIn 0.6s linear;
-      animation: bounceIn 0.6s linear;
-    }
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .login-header,
+            .login-body {
+                padding: 30px 20px;
+            }
+            
+            .login-title {
+                font-size: 20px;
+            }
+        }
 
-    /*--------------------
-Transitions
----------------------*/
-    .box-form,
-    .box-info,
-    .b,
-    .b-support,
-    .b-cta,
-    input[type=submit],
-    p.field span.i {
-      -webkit-transition: all 0.3s;
-      -moz-transition: all 0.3s;
-      -ms-transition: all 0.3s;
-      -o-transition: all 0.3s;
-      transition: all 0.3s;
-    }
+        /* Loading Animation */
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
 
-    /*--------------------
-Credits
----------------------*/
-    .icon-credits {
-      width: 100%;
-      position: absolute;
-      bottom: 4px;
-      font-family: 'Open Sans', 'Helvetica Neue', Helvetica, sans-serif;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.1);
-      text-align: center;
-      z-index: -1;
-    }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-    .icon-credits a {
-      text-decoration: none;
-      color: rgba(255, 255, 255, 0.2);
+        /* Form Transitions */
+        .form-group {
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
     }
   </style>
-
 </head>
 
-<body class="">
-  <div class='box'>
-    <div class='box-form'>
-
-      <div class='box-login'>
-
-        <div style="margin:0 auto; text-align:center; color:#000 !important;">
-
-          <p style="color:#000 !important; font-size:28px; font-weight:bold;">HRM iHRIS Attend LOGIN</p>
-
+<body>
+    <div class="login-container">
+        <!-- Header -->
+        <div class="login-header">
+            <div class="logo-container">
+                <img src="<?php echo base_url(); ?>assets/img/MOH.png" alt="MOH Logo">
+            </div>
+            <h1 class="login-title">HRM iHRIS Attend</h1>
+            <p class="login-subtitle">Attendance Tracking System</p>
         </div>
-        <img src="<?php echo base_url(); ?>assets/img/MOH.png" width="120" height="120">
-        <p style="color:blue;"><?php echo $this->session->flashdata('msg'); ?></p>
-        <form class='fieldset-body' id='login_form' role="form" method="post" action="<?php echo base_url(); ?>auth/login">
-          <p class='field'>
-            <label for='username'>LOGIN ID/ USERNAME</label>
-            <input type='text' name='username' title='Username' required>
-          </p>
-          <p class='field'>
-            <label for='passsord'>PASSWORD</label>
-            <input type='password' name='password' title='Password' required>
-          </p>
-          <label class='checkbox'>
-            <input type='checkbox' value='TRUE' title='Keep me Signed in' /> Remember Me
+
+        <!-- Body -->
+        <div class="login-body">
+            <!-- Welcome Back Message (Hidden by default) -->
+            <div class="welcome-back" id="welcomeBack">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-name" id="userName">User</div>
+                    <div class="user-email" id="userEmail">user@example.com</div>
+                </div>
+                <div class="message">
+                    <i class="fas fa-clock text-warning"></i>
+                    Welcome back! You've been idle for a while. Please enter your password to continue.
+                </div>
+            </div>
+
+            <!-- Alert Messages -->
+            <div class="alert alert-danger" id="errorAlert"></div>
+            <div class="alert alert-success" id="successAlert"></div>
+            <div class="alert alert-warning" id="warningAlert"></div>
+
+            <!-- Login Form -->
+          
+                <?php echo form_open('auth/login', array('class' => 'form-horizontal', 'style' => 'padding-bottom: 2em;')); ?>
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                <!-- Username/Email Field -->
+                <div class="form-group" id="usernameGroup">
+                    <label for="username" class="form-label">
+                        <i class="fas fa-user text-primary"></i> Username or Email
+                    </label>
+                    <input type="text" 
+                           id="username" 
+                           name="username" 
+                           class="form-control" 
+                           placeholder="Enter your username or email"
+                           required>
+                    <i class="fas fa-user input-icon"></i>
+                </div>
+
+                <!-- Password Field -->
+                <div class="form-group" id="passwordGroup">
+                    <label for="password" class="form-label">
+                        <i class="fas fa-lock text-primary"></i> Password
           </label>
-          <input type='submit' value='Login' title='Login' />
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="Enter your password"
+                           required>
+                    <i class="fas fa-lock input-icon"></i>
+                </div>
+
+                <!-- Remember Me -->
+                <div class="remember-me">
+                    <input type="checkbox" id="rememberMe" name="rememberMe" value="true">
+                    <label for="rememberMe">Remember my username/email</label>
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit" class="btn-login" id="loginBtn">
+                    <i class="fas fa-spinner spinner"></i>
+                    <span class="btn-text">Sign In</span>
+                </button>
         </form>
+
+            <!-- Forgot Password -->
+            <div class="forgot-password">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">
+                    <i class="fas fa-key"></i> Forgot your password?
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&copy; <?php echo date('Y'); ?> Ministry of Health Uganda. All Rights Reserved.</p>
+            <p><a href="http://health.go.ug" target="_blank">health.go.ug</a></p>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Forgot Password Modal -->
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="forgotPasswordModalLabel">
+                        <i class="fas fa-key text-primary"></i> Reset Password
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="forgotPasswordAlert" class="alert" style="display: none;"></div>
+                    
+                    <form id="forgotPasswordForm">
+                        <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                        <div class="form-group">
+                            <label for="resetEmail" class="form-label">
+                                <i class="fas fa-envelope text-primary"></i> Email Address
+                            </label>
+                            <input type="email" 
+                                   id="resetEmail" 
+                                   name="email" 
+                                   class="form-control" 
+                                   placeholder="Enter your registered email address"
+                                   required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="resetUsername" class="form-label">
+                                <i class="fas fa-user text-primary"></i> Username
+                            </label>
+                            <input type="text" 
+                                   id="resetUsername" 
+                                   name="username" 
+                                   class="form-control" 
+                                   placeholder="Enter your username"
+                                   required>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="resetPasswordBtn">
+                                <span class="btn-text">Send Reset Link</span>
+                                <span class="btn-loading" style="display: none;">
+                                    <i class="fas fa-spinner fa-spin"></i> Sending...
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            We'll send a password reset link to your email address.
+                        </small>
+                    </div>
+                </div>
       </div>
     </div>
   </div>
-  <div class='icon-credits'> <a href="http://health.go.ug" title="MOH" target="_blank">Ministry of Health <?php echo date('Y'); ?></a></div>
-</body>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const rememberMeCheckbox = document.getElementById('rememberMe');
+            const loginBtn = document.getElementById('loginBtn');
+            const welcomeBack = document.getElementById('welcomeBack');
+            const errorAlert = document.getElementById('errorAlert');
+            const successAlert = document.getElementById('successAlert');
+            const warningAlert = document.getElementById('warningAlert');
 
+            // Check for remembered username/email
+            const rememberedUsername = localStorage.getItem('rememberedUsername');
+            if (rememberedUsername) {
+                usernameInput.value = rememberedUsername;
+                rememberMeCheckbox.checked = true;
+            }
+
+            // Check for recent login (within 2 hours)
+            const lastLoginTime = localStorage.getItem('lastLoginTime');
+            const lastUsername = localStorage.getItem('lastUsername');
+            const lastUserEmail = localStorage.getItem('lastUserEmail');
+            const lastUserName = localStorage.getItem('lastUserName');
+            
+            if (lastLoginTime && lastUsername) {
+                const timeDiff = Date.now() - parseInt(lastLoginTime);
+                const twoHours = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+                
+                if (timeDiff < twoHours) {
+                    // Show welcome back message
+                    showWelcomeBack(lastUsername, lastUserEmail, lastUserName);
+                    
+                    // Hide username field and show only password
+                    document.getElementById('usernameGroup').style.display = 'none';
+                    usernameInput.value = lastUsername;
+                    
+                    // Focus on password field
+                    passwordInput.focus();
+                }
+            }
+
+            // Handle form submission
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+                
+                if (!username || !password) {
+                    showAlert('Please fill in all fields.', 'error');
+                    return;
+                }
+
+                // Show loading state
+                setLoadingState(true);
+                
+                // Submit form via AJAX
+                submitLogin(username, password);
+            });
+
+            // Handle remember me checkbox
+            rememberMeCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    localStorage.setItem('rememberedUsername', usernameInput.value);
+                } else {
+                    localStorage.removeItem('rememberedUsername');
+                }
+            });
+
+            // Update remembered username when input changes
+            usernameInput.addEventListener('input', function() {
+                if (rememberMeCheckbox.checked) {
+                    localStorage.setItem('rememberedUsername', this.value);
+                }
+            });
+
+            // Forgot Password Form Handler
+            const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+            const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+            const forgotPasswordAlert = document.getElementById('forgotPasswordAlert');
+
+            forgotPasswordForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('resetEmail').value.trim();
+                const username = document.getElementById('resetUsername').value.trim();
+                
+                if (!email || !username) {
+                    showForgotPasswordAlert('Please fill in all fields.', 'danger');
+                    return;
+                }
+
+                // Show loading state
+                setForgotPasswordLoadingState(true);
+                
+                // Submit forgot password request
+                submitForgotPasswordRequest(email, username);
+            });
+
+            function showWelcomeBack(username, email, name) {
+                document.getElementById('userAvatar').textContent = name ? name.charAt(0).toUpperCase() : username.charAt(0).toUpperCase();
+                document.getElementById('userName').textContent = name || username;
+                document.getElementById('userEmail').textContent = email || username;
+                welcomeBack.classList.add('show');
+            }
+
+            function submitLogin(username, password) {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+
+                fetch('<?php echo base_url(); ?>auth/login', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(data => {
+                    // Check if response contains redirect or error
+                    if (data.includes('dashboard') || data.includes('redirect')) {
+                        // Success - store login info
+                        storeLoginInfo(username);
+                        
+                        // Redirect to dashboard
+                        window.location.href = '<?php echo base_url(); ?>dashboard';
+                    } else if (data.includes('Login Failed') || data.includes('Wrong credentials')) {
+                        showAlert('Invalid username or password. Please try again.', 'error');
+                        setLoadingState(false);
+                    } else if (data.includes('First time access')) {
+                        showAlert('First time access detected. Please contact the administrator for activation.', 'warning');
+                        setLoadingState(false);
+                    } else {
+                        showAlert('An error occurred. Please try again.', 'error');
+                        setLoadingState(false);
+                    }
+                })
+                .catch(error => {
+                    console.error('Login error:', error);
+                    showAlert('Network error. Please check your connection and try again.', 'error');
+                    setLoadingState(false);
+                });
+            }
+
+            function storeLoginInfo(username) {
+                const now = Date.now();
+                localStorage.setItem('lastLoginTime', now);
+                localStorage.setItem('lastUsername', username);
+                
+                // Store additional user info if available
+                if (username.includes('@')) {
+                    localStorage.setItem('lastUserEmail', username);
+                }
+                
+                // Try to extract name from username (remove numbers, special chars)
+                const name = username.replace(/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/g, '');
+                if (name.length > 2) {
+                    localStorage.setItem('lastUserName', name);
+                }
+            }
+
+            function setLoadingState(loading) {
+                if (loading) {
+                    loginBtn.disabled = true;
+                    loginBtn.classList.add('loading');
+                    loginBtn.querySelector('.btn-text').textContent = 'Signing In...';
+                } else {
+                    loginBtn.disabled = false;
+                    loginBtn.classList.remove('loading');
+                    loginBtn.querySelector('.btn-text').textContent = 'Sign In';
+                }
+            }
+
+            function setForgotPasswordLoadingState(loading) {
+                if (loading) {
+                    resetPasswordBtn.disabled = true;
+                    resetPasswordBtn.querySelector('.btn-text').style.display = 'none';
+                    resetPasswordBtn.querySelector('.btn-loading').style.display = 'inline-block';
+                } else {
+                    resetPasswordBtn.disabled = false;
+                    resetPasswordBtn.querySelector('.btn-text').style.display = 'inline-block';
+                    resetPasswordBtn.querySelector('.btn-loading').style.display = 'none';
+                }
+            }
+
+            function showForgotPasswordAlert(message, type) {
+                forgotPasswordAlert.className = `alert alert-${type}`;
+                forgotPasswordAlert.textContent = message;
+                forgotPasswordAlert.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    forgotPasswordAlert.style.display = 'none';
+                }, 5000);
+            }
+
+            function submitForgotPasswordRequest(email, username) {
+                fetch('<?php echo base_url("auth/forgotPassword"); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        username: username
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    setForgotPasswordLoadingState(false);
+                    
+                    if (data.status === 'success') {
+                        showForgotPasswordAlert(data.message, 'success');
+                        // Clear form
+                        forgotPasswordForm.reset();
+                        // Close modal after 2 seconds
+                        setTimeout(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                            modal.hide();
+                        }, 2000);
+                    } else {
+                        showForgotPasswordAlert(data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    setForgotPasswordLoadingState(false);
+                    showForgotPasswordAlert('An error occurred. Please try again.', 'danger');
+                    console.error('Forgot password error:', error);
+                });
+            }
+
+            function showAlert(message, type) {
+                // Hide all alerts first
+                errorAlert.style.display = 'none';
+                successAlert.style.display = 'none';
+                warningAlert.style.display = 'none';
+
+                // Show appropriate alert
+                const alertElement = document.getElementById(type + 'Alert');
+                alertElement.textContent = message;
+                alertElement.style.display = 'block';
+
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    alertElement.style.display = 'none';
+                }, 5000);
+            }
+
+            // Show flash message if exists
+            <?php if ($this->session->flashdata('msg')): ?>
+            showAlert('<?php echo addslashes($this->session->flashdata('msg')); ?>', 'error');
+            <?php endif; ?>
+
+            // Add input validation and styling
+            [usernameInput, passwordInput].forEach(input => {
+                input.addEventListener('blur', function() {
+                    if (this.value.trim()) {
+                        this.classList.add('success');
+                        this.classList.remove('error');
+                    } else {
+                        this.classList.remove('success');
+                        this.classList.add('error');
+                    }
+                });
+
+                input.addEventListener('input', function() {
+                    this.classList.remove('error', 'success');
+                });
+            });
+        });
+    </script>
+</body>
 </html>

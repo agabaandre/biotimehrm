@@ -3,7 +3,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Facilities_mdl extends CI_Model {
 
-	
+	protected $table;
+	protected $facility;
+	protected $district;
+	protected $filters;
+	protected $ufilters;
+	protected $distfilters;
+
 	public function __Construct(){
 
 		parent::__Construct();

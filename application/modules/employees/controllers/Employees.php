@@ -1,7 +1,13 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 class Employees extends MX_Controller
-{
+{     
+  protected $user;
+  protected $watermark;
+  protected $filters;
+  protected $ufilters;
+  protected $distfilters;
+  
   public  function __construct()
   {
     parent::__construct();
@@ -28,17 +34,26 @@ class Employees extends MX_Controller
 
   public function district_employees($csv = FALSE)
   {
+    // Handle AJAX requests for pagination
+    if ($this->input->is_ajax_request()) {
+      $this->_handleAjaxRequest();
+      return;
+    }
+    
     $job = $this->input->post('job');
     $facility = $this->input->post('facility');
     $route = "employees/district_employees";
 
-
+    // Get total count for pagination
     $totals = $this->empModel->district_employees($_SESSION['district'], $job, $facility, $count = 'count', $perPage = 0, $page = 0, $csv);
+    
     if ($csv != 1) {
       $data['links'] = paginate($route, $totals, $perPage = 50, $segment = 3);
     }
+    
     $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0;
     $data['staffs'] = $this->empModel->district_employees($_SESSION['district'], $job, $facility, $count = FALSE, $perPage = 50, $page, $csv);
+    
     if ($csv == 1) {
       $filename = $_SESSION['district'] . "_employees.csv";
       render_csv_data($data['staffs'], $filename);
@@ -47,7 +62,94 @@ class Employees extends MX_Controller
     $data['view'] = 'staff_district';
     $data['uptitle'] = "District Employees";
     $data['module'] = "employees";
+    $data['total_count'] = $totals;
+    $data['current_page'] = $page;
+    $data['per_page'] = 50;
+    
     echo Modules::run("templates/main", $data);
+  }
+  
+  /**
+   * Handle AJAX requests for main employees page server-side pagination
+   */
+  private function _handleMainEmployeesAjaxRequest() {
+    $draw = $this->input->post('draw');
+    $start = $this->input->post('start');
+    $length = $this->input->post('length');
+    $search = $this->input->post('search')['value'];
+    $order_column = $this->input->post('order')[0]['column'];
+    $order_dir = $this->input->post('order')[0]['dir'];
+    
+    // Get global search
+    $globalSearch = $this->input->post('globalSearch');
+    
+    // Get total count
+    $total_records = $this->empModel->get_employees_count($this->filters);
+    
+    // Get filtered data
+    $data = $this->empModel->get_employees_ajax(
+      $this->filters,
+      $start, 
+      $length, 
+      $search, 
+      $order_column, 
+      $order_dir,
+      $globalSearch
+    );
+    
+    // Get filtered count for search
+    $filtered_records = $this->empModel->get_employees_count($this->filters, $globalSearch);
+    
+    // Prepare response
+    $response = [
+      'draw' => intval($draw),
+      'recordsTotal' => $total_records,
+      'recordsFiltered' => $filtered_records,
+      'data' => $data
+    ];
+    
+    $this->output->set_content_type('application/json')->set_output(json_encode($response));
+  }
+
+  /**
+   * Handle AJAX requests for server-side pagination
+   */
+  private function _handleAjaxRequest() {
+    $draw = $this->input->post('draw');
+    $start = $this->input->post('start');
+    $length = $this->input->post('length');
+    $search = $this->input->post('search')['value'];
+    $order_column = $this->input->post('order')[0]['column'];
+    $order_dir = $this->input->post('order')[0]['dir'];
+    
+    // Get filters
+    $job = $this->input->post('job');
+    $facility = $this->input->post('facility');
+    
+    // Get total count
+    $total_records = $this->empModel->district_employees($_SESSION['district'], $job, $facility, 'count', 0, 0, FALSE);
+    
+    // Get filtered data
+    $data = $this->empModel->district_employees_ajax(
+      $_SESSION['district'], 
+      $job, 
+      $facility, 
+      $start, 
+      $length, 
+      $search, 
+      $order_column, 
+      $order_dir
+    );
+    
+    // Prepare response
+    $response = [
+      'draw' => intval($draw),
+      'recordsTotal' => $total_records,
+      'recordsFiltered' => $total_records,
+      'data' => $data
+    ];
+    
+    $this->output->set_content_type('application/json')->set_output(json_encode($response));
   }
   public function getEmployee($id)
   {
@@ -56,8 +158,15 @@ class Employees extends MX_Controller
   }
   public function index()
   {
+    // Handle AJAX requests for server-side pagination
+    if ($this->input->is_ajax_request()) {
+      $this->_handleMainEmployeesAjaxRequest();
+      return;
+    }
+    
     $data['title'] = "Staff";
     $data['facilities'] = Modules::run("facilities/getFacilities");
+    $data['jobs'] = Modules::run("jobs/getJobs");
     $data['view'] = 'staff';
     $data['uptitle'] = "Staff List";
     $data['module'] = "employees";

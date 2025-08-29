@@ -4,6 +4,9 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Requests extends MX_Controller
 {
 
+	protected $user;
+	protected $department;
+	protected $watermark;
 
 	public function __Construct()
 	{
@@ -29,9 +32,17 @@ class Requests extends MX_Controller
 
 	public function saveRequest()
 	{
-
 		$postdata = $this->input->post();
-
+		
+		// Validate CSRF token
+		if (!$this->security->get_csrf_hash() || $this->input->post($this->security->get_csrf_token_name()) !== $this->security->get_csrf_hash()) {
+			if ($this->input->is_ajax_request()) {
+				echo json_encode(['status' => 'error', 'message' => 'Invalid security token']);
+				return;
+			}
+			$this->session->set_flashdata('error', 'Invalid security token');
+			redirect('requests/newRequest');
+		}
 
 		$file_n = $this->input->post('files');
 		$userfile = $this->user['user_id'] . "_" . time();
@@ -45,18 +56,30 @@ class Requests extends MX_Controller
 		// File data
 		if ($this->upload->do_upload('files')) {
 			$image_data = $this->upload->data();
-			//print_r($this->upload->data());
 			$postdata['attachment'] = $image_data['file_name'];
 			$res = $this->requests_mdl->saveRequest($postdata);
 		} else {
-			//	$res=$this->upload->display_errors();
 			$res = $this->requests_mdl->saveRequest($postdata);
 		}
 
-
+		if ($this->input->is_ajax_request()) {
+			if ($res == 'Success') {
+				// Get the saved request details for the modal
+				$request_id = $this->db->insert_id();
+				$request_details = $this->requests_mdl->getRequestById($request_id);
+				
+				echo json_encode([
+					'status' => 'success', 
+					'message' => 'Request submitted successfully!',
+					'request' => $request_details
+				]);
+			} else {
+				echo json_encode(['status' => 'error', 'message' => $res]);
+			}
+			return;
+		}
 
 		Modules::run('utility/setFlash', $res);
-
 		redirect('requests/newRequest');
 	}
 
@@ -326,7 +349,7 @@ class Requests extends MX_Controller
 
 		$data['title'] = 'My Submitted Requests';
 		$data['uptitle'] = 'My Submitted Requests';
-		$data['view'] = 'view_pending_requests';
+		$data['view'] = 'my_requests';
 		$data['module'] = "requests";
 		echo Modules::run('templates/main', $data);
 	}

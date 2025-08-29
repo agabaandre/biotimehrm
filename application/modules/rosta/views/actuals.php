@@ -54,7 +54,8 @@ $current_timestamp = strtotime(date('Y-m'));
 				<div class="panel panel-default">
 					<div class="panel-body" style="overflow-x: scroll;">
 						<div class="callout callout-success">
-							<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/actuals" method="post">
+							<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url('rosta/actuals'); ?>" method="post">
+								<input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 								<div class="row">
 									<div class="col-md-3">
 										<div class="control-group">
@@ -237,6 +238,11 @@ $current_timestamp = strtotime(date('Y-m'));
 	</div>
 </div>
 </div>
+<?php
+// Get CSRF token for JavaScript
+$csrf_token_name = $this->security->get_csrf_token_name();
+$csrf_token_hash = $this->security->get_csrf_hash();
+?>
 <script type="text/javascript">
 	var url = window.location.href;
 	if (url == '<?php echo base_url(); ?>rosta/actuals' || url == '<?php echo base_url(); ?>rosta/actuals#') {
@@ -272,7 +278,8 @@ $current_timestamp = strtotime(date('Y-m'));
 							hpid: hpid,
 							date: date,
 							duty: letter,
-							color: pickColor(letter)
+							color: pickColor(letter),
+							'<?php echo $csrf_token_name; ?>': '<?php echo $csrf_token_hash; ?>'
 						},
 						function(result) {
 							console.log(result);

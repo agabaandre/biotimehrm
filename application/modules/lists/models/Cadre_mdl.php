@@ -3,10 +3,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Cadre_mdl extends CI_Model {
 
+	protected $table;
 	
-	public function __Construct(){
+	public function __construct(){
 
-		parent::__Construct();
+		parent::__construct();
 		$this->table="employee_cadre";
 
 	}

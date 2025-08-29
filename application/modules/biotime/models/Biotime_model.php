@@ -2,10 +2,17 @@
 
 Class Biotime_model extends CI_Model
 {
+    protected $facility;
+    protected $user;
+    protected $watermark;
+    protected $filters;
+
    public  function __construct(){
         parent:: __construct();
         $this->facility=$this->session->userdata['facility'];
-      
+        $this->user=$this->session->get_userdata();
+        $this->watermark=FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
+        $this->filters=Modules::run('filters/sessionfilters');
 
     }
 
@@ -29,6 +36,37 @@ public function getMachines($filter){
     
 return $this->db->get('biotime_devices')->result();
 
+}
+
+public function getMachinesCount($search = '') {
+    if (!empty($search)) {
+        $this->db->group_start();
+        $this->db->like('sn', $search);
+        $this->db->or_like('area_name', $search);
+        $this->db->or_like('ip_address', $search);
+        $this->db->group_end();
+    }
+    return $this->db->count_all_results('biotime_devices');
+}
+
+public function getMachinesPaginated($start, $length, $search = '', $order = null) {
+    if (!empty($search)) {
+        $this->db->group_start();
+        $this->db->like('sn', $search);
+        $this->db->or_like('area_name', $search);
+        $this->db->or_like('ip_address', $search);
+        $this->db->group_end();
+    }
+    
+    if ($order && isset($order['column']) && isset($order['dir'])) {
+        $columns = ['sn', 'area_name', 'last_activity', 'user_count', 'ip_address', 'status'];
+        if (isset($columns[$order['column']])) {
+            $this->db->order_by($columns[$order['column']], $order['dir']);
+        }
+    }
+    
+    $this->db->limit($length, $start);
+    return $this->db->get('biotime_devices')->result();
 }
 public function get_enrolled(){
   $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device!=''");

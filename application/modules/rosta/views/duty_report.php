@@ -35,6 +35,7 @@ if (count($duties) > 0) {
 					<div class="panel-body" style="overflow-x: scroll;">
 						<div class="callout callout-success">
 							<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/fetch_report" method="post">
+								<input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 								<div class="row">
 									<div class="col-md-3">
 										<div class="control-group">

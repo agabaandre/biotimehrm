@@ -6,7 +6,7 @@ require_once APPPATH . '../vendor/autoload.php';
 
 use Mpdf\Mpdf;
 
-class M_pdf {
+class ML_pdf {
     public $pdf;
 
     public function __construct($params = []) {
@@ -36,4 +36,3 @@ class M_pdf {
         return $this->pdf;
     }
 }
-?>

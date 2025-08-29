@@ -3,7 +3,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Utility_mdl extends CI_Model {
 
-	
+	protected $sliders_tb;
 	public function __construct()
         {
                 parent::__construct();

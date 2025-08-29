@@ -1,6 +1,14 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 class Employee_model extends CI_Model
-{
+{   
+    protected $facility;
+    protected $department;
+    protected $division;
+    protected $unit;
+    protected $filters;
+    protected $ufilters;
+    protected $distfilters;
+
     public  function __construct()
     {
         parent::__construct();
@@ -8,53 +16,239 @@ class Employee_model extends CI_Model
     }
     public function get_employees($filters)
     {
-        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,facility,district,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id,ipps from  ihrisdata where $filters");
+        // Use Query Builder for better performance and security
+        $this->db->select('ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, facility, district, nin, card_number, birth_date, cadre, gender, facility_id, ipps, email');
+        $this->db->from('ihrisdata');
+        $this->db->where($filters);
+        $this->db->distinct();
+        
+        $query = $this->db->get();
+        return $query->result();
+    }
+    
+    /**
+     * Get total count of employees for pagination
+     */
+    public function get_employees_count($filters, $globalSearch = '')
+    {
+        $this->db->select('COUNT(DISTINCT ihris_pid) as total');
+        $this->db->from('ihrisdata');
+        $this->db->where($filters);
+        
+        // Apply global search filter if provided
+        if (!empty($globalSearch)) {
+            $this->db->group_start();
+            $this->db->like('ihris_pid', $globalSearch);
+            $this->db->or_like('surname', $globalSearch);
+            $this->db->or_like('firstname', $globalSearch);
+            $this->db->or_like('othername', $globalSearch);
+            $this->db->or_like('job', $globalSearch);
+            $this->db->or_like('facility', $globalSearch);
+            $this->db->or_like('department', $globalSearch);
+            $this->db->or_like('nin', $globalSearch);
+            $this->db->or_like('card_number', $globalSearch);
+            $this->db->or_like('mobile', $globalSearch);
+            $this->db->or_like('telephone', $globalSearch);
+            $this->db->or_like('email', $globalSearch);
+            $this->db->or_like('ipps', $globalSearch);
+            $this->db->group_end();
+        }
+        
+        $query = $this->db->get();
+        $result = $query->row();
+        return $result->total;
+    }
+    
+    /**
+     * Get employees with AJAX support for DataTables (main employees page)
+     */
+    public function get_employees_ajax($filters, $start = 0, $length = 10, $search = '', $order_column = 0, $order_dir = 'asc', $globalSearch = '')
+    {
+        // Build base query with proper indexing
+        $this->db->select('ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, facility, district, nin, card_number, birth_date, cadre, gender, facility_id, ipps, email');
+        $this->db->from('ihrisdata');
+        $this->db->where($filters);
+        
+        // Apply global search filter
+        if (!empty($globalSearch)) {
+            $this->db->group_start();
+            $this->db->like('ihris_pid', $globalSearch);
+            $this->db->or_like('surname', $globalSearch);
+            $this->db->or_like('firstname', $globalSearch);
+            $this->db->or_like('othername', $globalSearch);
+            $this->db->or_like('job', $globalSearch);
+            $this->db->or_like('facility', $globalSearch);
+            $this->db->or_like('department', $globalSearch);
+            $this->db->or_like('nin', $globalSearch);
+            $this->db->or_like('card_number', $globalSearch);
+            $this->db->or_like('mobile', $globalSearch);
+            $this->db->or_like('telephone', $globalSearch);
+            $this->db->or_like('email', $globalSearch);
+            $this->db->or_like('ipps', $globalSearch);
+            $this->db->group_end();
+        }
+        
+        // Apply DataTables search filter
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('ihris_pid', $search);
+            $this->db->or_like('surname', $search);
+            $this->db->or_like('firstname', $search);
+            $this->db->or_like('othername', $search);
+            $this->db->or_like('job', $search);
+            $this->db->or_like('facility', $search);
+            $this->db->or_like('department', $search);
+            $this->db->or_like('nin', $search);
+            $this->db->or_like('card_number', $search);
+            $this->db->group_end();
+        }
+        
+        // Apply ordering
+        $columns = ['ihris_pid', 'nin', 'surname', 'gender', 'birth_date', 'ipps', 'card_number', 'telephone', 'email', 'department', 'job', 'employment_terms'];
+        if (isset($columns[$order_column])) {
+            $this->db->order_by($columns[$order_column], $order_dir);
+        }
+        
+        // Apply pagination
+        $this->db->limit($length, $start);
+        
+        $query = $this->db->get();
         $result = $query->result();
-        return $result;
+        
+        // Format data for DataTables
+        $formatted_data = [];
+        foreach ($result as $row) {
+            $formatted_data[] = [
+                'ihris_pid' => str_replace('person|', '', $row->ihris_pid),
+                'nin' => $row->nin,
+                'fullname' => trim($row->surname . ' ' . $row->firstname . ' ' . ($row->othername ?? '')),
+                'gender' => $row->gender,
+                'birth_date' => $row->birth_date,
+                'ipps' => (!is_null($row->ipps) && is_numeric($row->ipps)) ? ((int)$row->ipps * 1) : 'N/A',
+                'card_number' => $row->card_number,
+                'phone' => !empty($row->mobile) ? $row->mobile : ($row->telephone ?? 'N/A'),
+                'email' => $row->email ?? 'N/A',
+                'department' => $row->department,
+                'job' => $row->job,
+                'employment_terms' => str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $row->employment_terms ?? '')))
+            ];
+        }
+        
+        return $formatted_data;
     }
     public function district_employees($district, $job, $facility, $count = FALSE, $start=FALSE, $limit=FALSE, $csv=FALSE)
     {
-
-
-        //$kyc =  implode(',', array_map('add_quotes', $kycs));
-        if (!empty($start) && ($csv != 1)) {
-            $limits = " LIMIT $limit,$start";
-        } else {
-            $limits = " ";
-        }
+        // Use Query Builder for better performance and security
+        $this->db->select('ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, department_id, is_incharge, facility, facility_id, district, district_id, nin, card_number, birth_date, cadre, gender, email');
+        $this->db->from('ihrisdata');
+        $this->db->where('district', $district);
+        
+        // Apply job filter
         if (!empty($job)) {
-            $j  = implode("','", $job);
-
-            $quot = "'";
-            $jfilter = $_SESSION['jfilter'] = " and job_id in  ($quot$j$quot)";
-        } else {
-            $jfilter = $_SESSION['jfilter'] = "";
+            $this->db->where_in('job_id', $job);
         }
-        //print_r($jfilter);
-
-        //$kyc =  implode(',', array_map('add_quotes', $kycs));
+        
+        // Apply facility filter
         if (!empty($facility)) {
-            $f = implode("','", $facility);
-
-            $quot = "'";
-            $ffilter = $_SESSION['ffilter'] = " and facility_id in  ($quot$f$quot)";
-        } else {
-            $ffilter = $_SESSION['ffilter'] = "";
+            $this->db->where_in('facility_id', $facility);
         }
-
-        $affilter = $_SESSION['ffilter'];
-        $ajfilter = $_SESSION['jfilter'];
-
-        $query = $this->db->query("select distinct ihris_pid,surname,employment_terms,firstname,othername,job,telephone,mobile,department,department_id,is_incharge,facility,facility_id,district,district_id,nin,card_number,birth_date,cadre,gender, ihris_pid,facility_id from  ihrisdata where district ='$district' $affilter $ajfilter $limits");
+        
+        // Apply pagination
+        if (!empty($start) && ($csv != 1)) {
+            $this->db->limit($limit, $start);
+        }
+        
+        $query = $this->db->get();
+        
         if ($count == 'count') {
             return $query->num_rows();
         } else if ($csv == 1) {
-            $result = $query->result_array();
-            return $result;
+            return $query->result_array();
         } else {
-            $result = $query->result();
-            return $result;
+            return $query->result();
         }
+    }
+    
+    /**
+     * Get district employees with AJAX support for DataTables
+     */
+    public function district_employees_ajax($district, $job = NULL, $facility = NULL, $start = 0, $length = 10, $search = '', $order_column = 0, $order_dir = 'asc')
+    {
+        // Build base query
+        $this->db->select('ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, department_id, is_incharge, facility, facility_id, district, district_id, nin, card_number, birth_date, cadre, gender, email');
+        $this->db->from('ihrisdata');
+        $this->db->where('district', $district);
+        
+        // Apply job filter
+        if (!empty($job)) {
+            $this->db->where_in('job_id', $job);
+        }
+        
+        // Apply facility filter
+        if (!empty($facility)) {
+            $this->db->where_in('facility_id', $facility);
+        }
+        
+        // Apply search filter
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('ihris_pid', $search);
+            $this->db->or_like('surname', $search);
+            $this->db->or_like('firstname', $search);
+            $this->db->or_like('othername', $search);
+            $this->db->or_like('job', $search);
+            $this->db->or_like('facility', $search);
+            $this->db->or_like('department', $search);
+            $this->db->or_like('nin', $search);
+            $this->db->or_like('card_number', $search);
+            $this->db->group_end();
+        }
+        
+        // Apply ordering
+        $columns = ['ihris_pid', 'nin', 'surname', 'gender', 'birth_date', 'telephone', 'email', 'facility', 'department', 'job', 'employment_terms', 'card_number'];
+        if (isset($columns[$order_column])) {
+            $this->db->order_by($columns[$order_column], $order_dir);
+        } else {
+            $this->db->order_by('surname', 'asc');
+        }
+        
+        // Apply pagination
+        $this->db->limit($length, $start);
+        
+        $query = $this->db->get();
+        $result = $query->result();
+        
+        // Format data for DataTables
+        $formatted_data = [];
+        foreach ($result as $index => $staff) {
+            $fullname = trim($staff->surname . ' ' . $staff->firstname . ' ' . $staff->othername);
+            $phone = !empty($staff->mobile) ? $staff->mobile : $staff->telephone;
+            $employment_terms = str_replace("CContract", "Central Contract", 
+                           str_replace("LContract", "Local Contract", 
+                           str_replace("employment_terms|", "", $staff->employment_terms)));
+            
+            $formatted_data[] = [
+                'DT_RowId' => 'row_' . str_replace('person|', '', $staff->ihris_pid),
+                'serial' => $start + $index + 1,
+                'ihris_pid' => str_replace('person|', '', $staff->ihris_pid),
+                'nin' => $staff->nin,
+                'fullname' => $fullname,
+                'gender' => $staff->gender,
+                'birth_date' => $staff->birth_date,
+                'phone' => $phone,
+                'email' => $staff->email,
+                'facility' => $staff->facility,
+                'department' => $staff->department,
+                'job' => $staff->job,
+                'employment_terms' => $employment_terms,
+                'card_number' => $staff->card_number,
+                'is_incharge' => $staff->is_incharge,
+                'facility_id' => $staff->facility_id,
+                'district_id' => $staff->district_id
+            ];
+        }
+        
+        return $formatted_data;
     }
     public function get_employee($id = FALSE)
     {
@@ -751,7 +945,7 @@ class Employee_model extends CI_Model
             'cadre' => $postdata['cadre'],
             'facility_id' => $postdata['facility_id'],
             'facility' => $postdata['facility'],
-            'institution_cateegory' => $postdata['institution_cateegory'],
+            'institution_category' => $postdata['institution_category'],
             'institutiontype_name' => $postdata['institutiontype_name'],
             'institution_level' => $postdata['institution_level'],
             'district_id' => $postdata['district_id']

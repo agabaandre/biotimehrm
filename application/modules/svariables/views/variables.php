@@ -11,7 +11,8 @@
 
   <hr style="border:1px solid rgb(140, 141, 137);" />
   <div class="col-md-12">
-    <form method="post" action="<?php echo base_url(); ?>svariables/index" autocomplte="off">
+    <?php echo form_open('svariables/index', array('class' => 'form-horizontal', 'style' => 'padding-bottom: 2em;')); ?>
+     
 
       <?php foreach ($setting as $key => $value) { ?>
         <div id="">

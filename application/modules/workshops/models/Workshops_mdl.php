@@ -3,7 +3,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Workshops_mdl extends CI_Model {
 
-	
+	protected $table;
+	protected $facility;
+	protected $department;
+	protected $division;
+	protected $unit;
+	protected $user;
+
 	public function __Construct(){
 
 		parent::__Construct();

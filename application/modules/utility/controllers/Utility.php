@@ -3,7 +3,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Utility extends MX_Controller {
 
-
+	protected $module;
 		public function __construct()
         {
                 parent::__construct();

@@ -5,11 +5,10 @@ class 	Attendance_model extends CI_Model
 	public  function __construct()
 	{
 		parent::__construct();
-		$this->facility = $this->session->facility;
-		$this->user = $this->session->get_userdata();
-		$this->department = $this->session->userdata['department_id'];
-		$this->division = $this->session->userdata['division'];
-		$this->unit = $this->session->userdata['unit'];
+		// Avoid creating dynamic properties, use local variables or define class properties if needed
+		// Example: If you need these as properties, define them in the class definition
+		// protected $facility, $user, $department, $division, $unit;
+		// Otherwise, access session data directly where needed
 	}
 	public function getFacilities($district_id)
 	{

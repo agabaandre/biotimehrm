@@ -5,10 +5,13 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Departments extends MX_Controller
 {
 
+  protected $module;
+  protected $departModel;
+
   public  function __construct()
   {
     parent::__construct();
-    $this->load->model('department_model', 'departModel');
+    $this->load->model('Department_model', 'departModel');
     $this->module = "departments";
   }
   public function get_facilities()
@@ -87,6 +90,38 @@ class Departments extends MX_Controller
 
 
   public function get_departments()
+  {
+
+    if (!empty($_GET['fac_data'])) {
+
+      $fac = $_GET["fac_data"];
+
+
+      $facdata = array();
+      $facdata = explode("_", $fac);
+
+      $fac_id = $facdata[0];
+      $facname = $facdata[1];
+
+      //print_r($fac_id);
+
+      $sql = "SELECT DISTINCT department_id,department FROM ihrisdata WHERE facility_id LIKE '$fac_id' AND department IS NOT NULL ORDER BY department ASC        ";
+
+      $departments = $this->db->query($sql)->result();
+
+      $opt = "<option value=''>Select Department</option>";
+
+      if (!empty($departments)) {
+
+        foreach ($departments as $department) {
+          $opt .= "<option value='" . $department->department_id . "'>" . ucwords($department->department) . "</option>";
+        }
+      }
+
+      echo $opt;
+    }
+  }
+  public function getDepartments()
   {
 
     if (!empty($_GET['fac_data'])) {

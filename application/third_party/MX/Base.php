@@ -37,6 +37,7 @@ require_once dirname(__FILE__).'/Config.php';
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  **/
+if (!class_exists('CI')) {
 class CI extends CI_Controller
 {
 	public static $APP;
@@ -58,3 +59,4 @@ class CI extends CI_Controller
 
 /* create the application object */
 new CI;
+}

@@ -2,6 +2,13 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 class Rosta extends MX_Controller
 {
+	protected $rostamodule;
+	protected $departments;
+	protected $watermark;
+	protected $filters;
+	protected $ufilters;
+	protected $distfilters;
+
 	function __construct()
 	{
 		// Call the Model constructor

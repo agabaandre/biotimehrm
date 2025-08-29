@@ -34,20 +34,20 @@
                             </div>
                             <div class="form-group">
                                 <label>Instution Cateegories</label>
-                                <select type="text" class="form-control select2" name="institution_cateegory" required>
+                                <select type="text" class="form-control select2" name="institution_category" required>
                                 <option value="">Select ...</option>
                                     
-                                <?php if($district->institution_cateegory){ echo "Central Government";} ?>
+                                <?php if($district->institution_category){ echo "Central Government";} ?>
 
-                                    <option <?php if($district->institution_cateegory=="Central Government"){ echo "selected";} ?> 
+                                    <option <?php if($district->institution_category=="Central Government"){ echo "selected";} ?> 
                                             value="Central Government">Central Government</option>
-                                    <option <?php if($district->institution_cateegory=="Local Government (LG)"){ echo "selected";} ?>
+                                    <option <?php if($district->institution_category=="Local Government (LG)"){ echo "selected";} ?>
                                             value="Local Government (LG)">Local Government (LG)</option>
-                                    <option <?php if($district->institution_cateegory=="Private for Profit (PFPs)"){ echo "selected";} ?>
+                                    <option <?php if($district->institution_category=="Private for Profit (PFPs)"){ echo "selected";} ?>
                                             value="Private for Profit (PFPs)">Private for Profit (PFPs)</option>
-                                    <option <?php if($district->institution_cateegory=="Private not for Profit (PNFPs)"){ echo "selected";} ?>
+                                    <option <?php if($district->institution_category=="Private not for Profit (PNFPs)"){ echo "selected";} ?>
                                             value="Private not for Profit (PNFPs)">Private not for Profit (PNFPs)</option>
-                                    <option <?php if($district->institution_cateegory=="Security Forces"){ echo "selected";} ?>
+                                    <option <?php if($district->institution_category=="Security Forces"){ echo "selected";} ?>
                                            value="Security Forces">Security Forces</option>
                                 </select>
                             </div>

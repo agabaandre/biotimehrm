@@ -4,7 +4,12 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Filters extends MX_Controller
 {
-
+    protected $district_id;
+    protected $facility_id;
+    protected $department_id;
+    protected $division;
+    protected $section;
+    protected $unit;
     public  function __construct()
     {
         parent::__construct();

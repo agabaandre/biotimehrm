@@ -1,260 +1,596 @@
+<style>
+/* Custom color overrides for district employees page */
+:root {
+  --info-color: #212529;
+  --secondary-color: #FEFFFF;
+}
+
+/* Override button colors to use specified theme colors */
+.btn-info {
+  background-color: var(--info-color) !important;
+  border-color: var(--info-color) !important;
+  color: var(--secondary-color) !important;
+}
+
+.btn-info:hover, .btn-info:focus {
+  background-color: #1a1e21 !important;
+  border-color: #1a1e21 !important;
+  color: var(--secondary-color) !important;
+}
+
+.btn-success {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+  color: var(--secondary-color) !important;
+}
+
+.btn-success:hover, .btn-success:focus {
+  background-color: #218838 !important;
+  border-color: #1e7e34 !important;
+  color: var(--secondary-color) !important;
+}
+
+.btn-info {
+  background-color: #17a2b8 !important;
+  border-color: #17a2b8 !important;
+  color: var(--secondary-color) !important;
+}
+
+.btn-info:hover, .btn-info:focus {
+  background-color: #138496 !important;
+  border-color: #117a8b !important;
+  color: var(--secondary-color) !important;
+}
+
+.btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: var(--secondary-color) !important;
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+  background-color: #5a6268 !important;
+  border-color: #545b62 !important;
+  color: var(--secondary-color) !important;
+}
+
+/* Card styling improvements */
+.card {
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 1.25rem 1.5rem;
+}
+
+/* Table improvements */
+.table thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  color: var(--info-color);
+  font-weight: 600;
+  padding: 1rem 0.75rem;
+}
+
+.table tbody td {
+  padding: 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(33, 37, 41, 0.05);
+}
+
+/* Form improvements */
+.form-control, .select2-container--default .select2-selection--multiple {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus, .select2-container--default.select2-container--focus .select2-selection--multiple {
+  border-color: var(--info-color);
+  box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.25);
+}
+
+/* Modal improvements */
+.modal-header {
+  background-color: var(--info-color);
+  color: var(--secondary-color);
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-title {
+  color: var(--secondary-color);
+  font-weight: 600;
+}
+
+/* DataTables Customization */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+  padding: 1rem 1.5rem;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 0.375rem 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+  border-color: var(--info-color);
+  box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.25);
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border-radius: 4px;
+  margin: 0 2px;
+  border: 1px solid #dee2e6;
+  color: var(--info-color) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: #f8f9fa;
+  border-color: var(--info-color);
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: var(--info-color);
+  border-color: var(--info-color);
+  color: var(--secondary-color) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  color: #6c757d !important;
+  border-color: #dee2e6;
+}
+
+/* DataTables Buttons */
+.dt-buttons .btn {
+  margin-right: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.dt-buttons .btn i {
+  margin-right: 0.25rem;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .btn-lg {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter {
+    text-align: left;
+    margin-bottom: 1rem;
+  }
+}
+</style>
+
 <!-- Main content -->
 <section class="content">
   <div class="container-fluid">
-
-    <!-- Main row -->
-    <div class="row">
-      <div class="card card-default col-md-12">
-        <div class="card-header">
-        </div>
-        <div class="card-body">
-
-          <form class="form-inline" method="post" action="<?php echo base_url(); ?>employees/district_employees">
-
-
-            <div class=" col-md-4">
-              <div class="input-group">
-                <label>Facility</label>
-                <select class="form-control select2" name="facility[]" style="width:100%;" multiple>
-                  <?php $facs = Modules::run("facilities/get_Facilities");
-                  foreach ($facs as $fac): ?>
-                    <option value="<?php echo $fac->facility_id; ?>"><?php echo $fac->facility; ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="input-group">
-                <label>Job</label>
-                <select class="form-control select2" name="job[]" style="width:100%;" multiple>
-                  <?php $jobs = Modules::run("jobs/getJobs");
-                  foreach ($jobs as $job): ?>
-                    <option value="<?php echo $job->job_id; ?>"><?php echo $job->job; ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-            </div>
-            <div class="col-md-2">
-              <label style="margin-top:10px;"></label>
-              <button class="btn bg-gray btn-dark" type="submit">Search</button>
-            </div>
-            <div class="col-md-2">
-              <label style="margin-top:10px;"></label>
-              <a href="<?php echo base_url() ?>employees/district_employees/1" class="btn bt-sm bg-gray-dark color-pale"
-                style="width:100px;"><i class="fa fa-file-excel" aria-hidden="true"></i>CSV</a>
-            </div>
-          </form>
-
+    <!-- Page Header -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="page-header">
+          <h1 class="page-title">
+            <i class="fas fa-users text-info"></i>
+            <?php echo $_SESSION['district']; ?> District Staff
+          </h1>
+          <p class="page-subtitle">Manage and view all employees in the district</p>
         </div>
       </div>
-      <div class="row">
+    </div>
+
+    <!-- Global Search Card -->
+    <div class="row mb-4">
+      <div class="col-12">
         <div class="card">
-          <div class="">
+          <div class="card-header">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-search text-info mr-2"></i>Global Search
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+              <div class="col-12">
+                <label class="form-label">
+                  <i class="fas fa-search text-info mr-1"></i> Search All Fields
+                </label>
+              <div class="input-group">
+                  <input type="text" class="form-control form-control-lg" id="globalSearch" 
+                         placeholder="Search by name, ID, NIN, phone, email, department, job, facility, or any other field...">
+                  <div class="input-group-append">
+                    <button type="submit" class="btn btn-info btn-lg">
+                      <i class="fas fa-search mr-2"></i>Search
+                    </button>
+                    <button type="button" id="resetFilters" class="btn btn-outline-secondary btn-lg">
+                      <i class="fas fa-undo mr-2"></i>Reset
+                    </button>
+              </div>
+            </div>
+                <small class="form-text text-muted">
+                  <i class="fas fa-info-circle mr-1"></i> Searches across all employee fields including name, ID, NIN, phone, email, department, job, facility, etc.
+                </small>
+              </div>
+            </form>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table Card -->
+      <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-table text-info mr-2"></i>Staff Directory
+              </h5>
+              <div class="d-flex align-items-center">
+                <span class="badge badge-info mr-2" id="showingInfo">Showing 0 of 0 entries</span>
+                <button type="button" class="btn btn-sm btn-outline-info" id="refreshTable">
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="card-body">
-            <section class="col-lg-12 " style="overflow:auto;">
-
-              <h5> <?php echo $_SESSION['district']; ?> District Staff </h5>
-
-              <div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-
-              <table id="mytab2" class="table table-bordered table-repsonsive table-striped" style="width:100;">
+          <div class="card-body p-7">
+            <div class="table-responsive">
+              <table id="staffTable" class="table table-hover mb-0" style="width:100%">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Staff iHRIS ID</th>
-                    <th>NIN</th>
-                    <th>Name</th>
-                    <th>Gender</th>
-                    <th>Birth Date</th>
-                    <th>Phone</th>
-                    <th>Email</th>
-                    <th>Facility</th>
-                    <th>Department</th>
-                    <th>Job</th>
-                    <th>Employment Terms</th>
-                    <th>Card Number</th>
-                    <th>#</th>
+                    <th class="text-center" style="width: 50px;">#</th>
+                    <th style="width: 120px;">Staff ID</th>
+                    <th style="width: 100px;">NIN</th>
+                    <th style="min-width: 200px;">Full Name</th>
+                    <th style="width: 80px;">Gender</th>
+                    <th style="width: 120px;">Birth Date</th>
+                    <th style="width: 120px;">Phone</th>
+                    <th style="min-width: 150px;">Email</th>
+                    <th style="min-width: 150px;">Facility</th>
+                    <th style="min-width: 120px;">Department</th>
+                    <th style="min-width: 120px;">Job</th>
+                    <th style="width: 120px;">Terms</th>
+                    <th style="width: 100px;">Card #</th>
+                    <th style="width: 120px;">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <?php if (empty($this->uri->segment(3))) {
-                    $i = 1;
-                  } else {
-                    $i = $this->uri->segment(3);
-                  }
-                  ;
-                  foreach ($staffs as $staff) {
-                    ?>
-                    <tr>
-                      <td><?php echo $i++; ?></td>
-                      <td data-label="Staff iHRIS ID"
-                        style="background-image:url('<?php echo base_url() ?>/assets/images/user.png'); width:30px !imporntant; opacity: 0.6; background-size: contain;background-position: center center;background-repeat: no-repeat;  font-size:14px; margin:0 auto; ">
-                        <p style="clear:both; text-align:center; color:#000; opacity:1;">
-                          <?php echo str_replace('person|', '', $staff->ihris_pid); ?></p>
-                      </td>
-                      <td data-label=" NATIONAL ID NUMBER"><?php echo $staff->nin; ?></td>
-                      <td data-label="NAME">
-                        <?php echo $fullname = $staff->surname . " " . $staff->firstname . " " . $staff->othername; ?>
-                      </td>
-                      <td data-label="GENDER"><?php echo $staff->gender; ?></td>
-                      <td data-label="DATE OF BIRTH"><?php echo $staff->birth_date; ?></td>
-                      <td data-label="TELEPHONE"><?php if (empty($staff->mobile)) {
-                        echo $staff->mobile;
-                      } else {
-                        echo $staff->telephone;
-                      } ?></td>
+                  <!-- Data will be loaded via AJAX -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-                      <td data-label="EMAIL"><?php echo $staff->email; ?></td>
-                      <td data-label="FACILITY"><?php echo $staff->facility; ?></td>
-                      <td data-label="DEPARTMENT"><?php echo $staff->department; ?></td>
-                      <td data-label="JOB"><?php echo $staff->job; ?></td>
-                      <td data-label="TERMS">
-                        <?php echo str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $staff->employment_terms))); ?>
-                      </td>
-                      <td data-label="CARD NUMBER"><?php echo $staff->card_number; ?></td>
-           <td data-label="Login_request">
-  <!-- Button to Open the Modal -->
-  <?php if ($staff->is_incharge == 1) { ?>
-              <!-- Button for users who are already in charge -->
-              <button type="button" class="btn btn-info" data-toggle="modal"
-                data-target="#inchargeModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
-                Assign Incharge
-              </button>
-            <?php } else { ?>
-              <!-- Button for users who are not in charge -->
-              <button type="button" class="btn btn-info" data-toggle="modal"
-                data-target="#confirmAssignModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
-                Assign Incharge
-              </button>
-            <?php } ?>
-          
-            <!-- Modal for users who are already in charge -->
-            <div class="modal fade" id="inchargeModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>" tabindex="-1"
-              role="dialog" aria-labelledby="inchargeModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>"
-              aria-hidden="true">
-              <div class="modal-dialog" role="document">
+<!-- Incharge Assignment Modal -->
+<div class="modal fade" id="inchargeModal" tabindex="-1" role="dialog" aria-labelledby="inchargeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <h5 class="modal-title" id="inchargeModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
-                      Incharge Status</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
+        <h5 class="modal-title" id="inchargeModalLabel">
+          <i class="fas fa-user-plus mr-2"></i>Assign Incharge Role
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                   </div>
                   <div class="modal-body">
-                    <b><?php echo $fullname; ?></b><br>
-                    User is already an Incharge.
+        <div class="row">
+          <div class="col-md-4 text-center">
+            <div class="avatar-placeholder">
+              <i class="fas fa-user fa-3x text-muted"></i>
+            </div>
+            <h6 class="staff-name mt-2">Staff Name</h6>
+            <p class="text-muted staff-job">Job Title</p>
+            <p class="text-muted staff-facility">Facility</p>
+          </div>
+          <div class="col-md-8">
+            <form id="inchargeForm">
+              <input type="hidden" name="ihris_pid">
+              <input type="hidden" name="district_id">
+              <input type="hidden" name="facility_id[]">
+              
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control" name="name" readonly>
                   </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Username (iHRIS ID)</label>
+                    <input type="text" class="form-control" name="username" readonly>
                 </div>
               </div>
             </div>
           
-            <!-- Confirmation Modal for assigning incharge -->
-            <div class="modal fade" id="confirmAssignModal<?php echo str_replace('person|', '', $staff->ihris_pid); ?>"
-              tabindex="-1" role="dialog"
-              aria-labelledby="confirmAssignModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>"
-              aria-hidden="true">
-              <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title"
-                      id="confirmAssignModalLabel<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">Confirm Assign
-                      Incharge</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email" readonly>
                   </div>
-                  <div class="modal-body">
-                    <b><?php echo $fullname; ?></b><br>
-                    Are you sure you want to assign this user as an incharge?
                   </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <!-- Form submission button within the modal -->
-                    <form class="user_form" method="post" action="<?php echo base_url(); ?>auth/addUser"
-                      enctype="multipart/form-data">
-                      <input type="hidden" name="name" value="<?= $fullname; ?>">
-                      <input type="hidden" name="role" value="21">
-                      <input type="hidden" name="username" value="<?php echo str_replace('person|', '', $staff->ihris_pid); ?>">
-                      <input type="hidden" name="ihris_pid" value="<?= $staff->ihris_pid; ?>">
-                      <input type="hidden" name="password"
-                        value="<?php echo Modules::run("svariables/getSettings")->default_password; ?>">
-                      <input type="hidden" name="email" value="<?php echo $staff->email; ?>">
-                      <input type="hidden" name="district_id" value="<?php echo $staff->district_id; ?>">
-                      <input type="hidden" name="facility_id[]" value="<?php echo $staff->facility_id; ?>">
-                      <input type="hidden" name="department_id" value="">
-                      <input type="hidden" name="is_incharge" value="1">
-                      <button type="submit" class="btn btn-info">Confirm Assign</button>
-                    </form>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="text" class="form-control" name="password" readonly>
                   </div>
                 </div>
               </div>
+              
+              <div class="row">
+                <div class="col-12">
+                  <input type="hidden" name="is_incharge" value="1">
+                  <button type="submit" class="btn btn-info">
+                    <i class="fas fa-user-plus mr-2"></i>Assign Incharge
+                  </button>
+                </div>
+              </div>
+            </form>
+              </div>
             </div>
-          </td>
+</div>
+</div>
+</div>
+</div>
 
+<!-- Toastr Notifications -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
-          </tr>
-        <?php } ?>
-        </tbody>
-        <tfoot>
-
-        </tfoot>
-        </table>
-        <div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-</section>
-</div>
-</div>
-</div>
-</div>
-<!-- /.row (main row) -->
-</div><!-- /.container-fluid -->
-</section>
 <script>
-
- $(document).ready(function() {
-
-  // Submit new user data
-  $(".user_form").submit(function(e) {
-    e.preventDefault();
-
-    // Display loading indicator
-    var baseUrl ="<?php echo base_url()?>";
-    $('.status').html('<img style="max-height:50px" src="' + baseUrl + 'assets/img/loading.gif">');
+$(document).ready(function() {
+    // Declare table variable in wider scope
+    var table;
     
-    var formData = $(this).serialize();
-    var url = baseUrl + "auth/addUser";
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+    
+    // Initialize DataTable with professional configuration
+    table = $('#staffTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: '<?php echo base_url("employees/district_employees"); ?>',
+            type: 'POST',
+            data: function(d) {
+                d.globalSearch = $('#globalSearch').val();
+                d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+            }
+        },
+        columns: [
+            { data: 'serial', className: 'text-center' },
+            { data: 'ihris_pid', className: 'text-center' },
+            { data: 'nin', className: 'text-center' },
+            { data: 'fullname' },
+            { data: 'gender', className: 'text-center' },
+            { data: 'birth_date', className: 'text-center' },
+            { data: 'phone', className: 'text-center' },
+            { data: 'email' },
+            { data: 'facility' },
+            { data: 'department' },
+            { data: 'job' },
+            { data: 'employment_terms', className: 'text-center' },
+            { data: 'card_number', className: 'text-center' },
+            { 
+                data: null,
+                className: 'text-center',
+                render: function(data, type, row) {
+                    if (row.is_incharge == 1) {
+                        return '<span class="badge badge-success">Already Incharge</span>';
+                    } else {
+                        return '<button type="button" class="btn btn-sm btn-info assign-incharge" data-staff=\'' + JSON.stringify(row) + '\'><i class="fas fa-user-plus mr-1"></i>Assign</button>';
+                    }
+                }
+            }
+        ],
+        order: [[3, 'asc']], // Sort by name by default
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        responsive: true,
+        dom: '<"row"<"col-sm-12 col-md-6"B><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        buttons: [
+            {
+                extend: 'copy',
+                text: '<i class="fas fa-copy"></i> Copy',
+                className: 'btn btn-secondary btn-sm',
+                exportOptions: {
+                    columns: ':visible'
+                    }
+            },
+            {
+                extend: 'csv',
+                text: '<i class="fas fa-file-csv"></i> CSV',
+                className: 'btn btn-success btn-sm',
+                exportOptions: {
+                    columns: ':visible'
+                }
+            },
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel"></i> Excel',
+                className: 'btn btn-info btn-sm',
+                exportOptions: {
+                    columns: ':visible'
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf"></i> PDF',
+                className: 'btn btn-danger btn-sm',
+                exportOptions: {
+                    columns: ':visible'
+                }
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print"></i> Print',
+                className: 'btn btn-warning btn-sm',
+                exportOptions: {
+                    columns: ':visible'
+                }
+            },
+            {
+                extend: 'colvis',
+                text: '<i class="fas fa-columns"></i> Columns',
+                className: 'btn btn-dark btn-sm'
+            }
+        ],
+        language: {
+            processing: '<div class="spinner-border text-info" role="status"><span class="visually-hidden">Loading...</span></div>',
+            search: "Search:",
+            lengthMenu: "Show _MENU_ entries per page",
+            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+            infoEmpty: "Showing 0 to 0 of 0 entries",
+            infoFiltered: "(filtered from _MAX_ total entries)",
+            emptyTable: "No staff data available",
+            zeroRecords: "No matching staff found"
+        },
+        drawCallback: function(settings) {
+            updateStatistics();
+            updateShowingInfo();
+        }
+    });
+    
+    // Handle filter form submission
+    $('#filterForm').on('submit', function(e) {
+        e.preventDefault();
+        table.ajax.reload();
+        showLoading();
+    });
+    
+    // Reset filters
+    $('#resetFilters').on('click', function() {
+        $('#globalSearch').val('');
+        table.ajax.reload();
+    });
+    
+    // Refresh table
+    $('#refreshTable').on('click', function() {
+        table.ajax.reload();
+    });
+    
+    // Handle incharge assignment
+    $(document).on('click', '.assign-incharge', function() {
+        var staffData = $(this).data('staff');
+        populateInchargeModal(staffData);
+        $('#inchargeModal').modal('show');
+    });
+    
+    // Handle incharge form submission
+    $('#inchargeForm').on('submit', function(e) {
+    e.preventDefault();
+        submitInchargeForm();
+    });
+    
+    // Initialize statistics
+    updateStatistics();
+    
+    function updateStatistics() {
+        var info = table.page.info();
+        $('#totalStaff').text(info.recordsTotal);
+        $('#activeStaff').text(info.recordsDisplayed);
+    }
+    
+    function updateShowingInfo() {
+        var info = table.page.info();
+        $('#showingInfo').text('Showing ' + (info.start + 1) + ' to ' + info.end + ' of ' + info.recordsTotal + ' entries');
+    }
+    
+    function populateInchargeModal(staffData) {
+        $('.staff-name').text(staffData.fullname);
+        $('.staff-job').text(staffData.job);
+        $('.staff-facility').text(staffData.facility);
+        
+        $('input[name="name"]').val(staffData.fullname);
+        $('input[name="username"]').val(staffData.ihris_pid);
+        $('input[name="email"]').val(staffData.email);
+        $('input[name="ihris_pid"]').val(staffData.ihris_pid);
+        $('input[name="district_id"]').val(staffData.district_id);
+        $('input[name="facility_id[]"]').val(staffData.facility_id);
+        $('input[name="password"]').val('<?php echo Modules::run("svariables/getSettings")->default_password; ?>');
+    }
+    
+    function submitInchargeForm() {
+        var formData = $('#inchargeForm').serialize();
+        var submitBtn = $('#inchargeForm button[type="submit"]');
+        var originalText = submitBtn.html();
+        
+        // Debug: Log the form data being sent
+        console.log('Form data being sent:', formData);
+        
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
 
     $.ajax({
-      url: url,
+            url: '<?php echo base_url("auth/addUser"); ?>',
       method: 'POST',
-      data: formData,
-      success: function(result) {
-        console.log(result);
+            data: formData + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo $this->security->get_csrf_hash(); ?>',
+            success: function(response) {
+                console.log('Success response:', response);
+                showNotification('Incharge role assigned successfully!', 'success');
+                $('#inchargeModal').modal('hide');
+                table.ajax.reload();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error response:', xhr.responseText);
+                showNotification('Error assigning incharge role. Please try again.', 'error');
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    }
+    
+    function showLoading() {
+        // Show loading indicator
+        $('body').append('<div id="loadingOverlay" class="loading-overlay"><div class="loading-content"><div class="spinner-border text-info" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Processing...</p></div></div>');
         setTimeout(function() {
-          // Display the result in .status
-          $('.status').html(result);
-
-          // Display notification
-          if (typeof $.notify === 'function') {
-            $.notify(result, 'info');
-          } else {
-            alert(result); // Fallback alert if $.notify is unavailable
-          }
-
-          // Clear status and trigger clear button click
-          $('.status').html('');
-          $('.clear').click();
+            $('#loadingOverlay').remove();
         }, 1000);
-      },
-      error: function(xhr, status, error) {
-        console.error('Error:', error);
-        $('.status').html('An error occurred. Please try again.');
-      }
-    }); // End of ajax call
-  }); // End of form submit
+    }
+    
+    function showNotification(message, type) {
+        // You can implement your preferred notification system here
+        if (type === 'success') {
+            toastr.success(message);
+        } else {
+            toastr.error(message);
+        }
+    }
 });
 </script>

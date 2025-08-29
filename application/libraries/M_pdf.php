@@ -36,4 +36,3 @@ class M_pdf {
         return $this->pdf;
     }
 }
-?>

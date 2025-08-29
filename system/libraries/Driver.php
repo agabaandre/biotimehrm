@@ -55,7 +55,9 @@ class CI_Driver_Library {
 	 * Array of drivers that are available to use with the driver class
 	 *
 	 * @var array
+	 * 
 	 */
+
 	protected $valid_drivers = array();
 
 	/**

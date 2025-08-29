@@ -2,6 +2,9 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 class Auth_mdl extends CI_Model
 {
+	protected $table;
+	protected $password;
+
 	public function __construct()
 	{
 		parent::__construct();
@@ -96,6 +99,89 @@ class Auth_mdl extends CI_Model
 			return "ok";
 		}
 	}
+
+	/**
+	 * Check if user has logged in recently (within 2 hours)
+	 */
+	public function checkRecentLogin($username) {
+		$this->db->select('username, name, email, last_login');
+		$this->db->from($this->table);
+		$this->db->where('username', $username);
+		$this->db->where('last_login >', date('Y-m-d H:i:s', strtotime('-2 hours')));
+		$query = $this->db->get();
+		return $query->row();
+	}
+
+	/**
+	 * Get user by email and username combination
+	 */
+	public function getUserByEmailAndUsername($email, $username) {
+		$this->db->select('user_id, username, name, email');
+		$this->db->from($this->table);
+		$this->db->where('email', $email);
+		$this->db->where('username', $username);
+		$this->db->where('status', 1);
+		$query = $this->db->get();
+		return $query->row();
+	}
+
+	/**
+	 * Save password reset token
+	 */
+	public function savePasswordResetToken($user_id, $token, $expires) {
+		// First, clear any existing tokens for this user
+		$this->db->where('user_id', $user_id);
+		$this->db->delete('password_reset_tokens');
+		
+		// Insert new token
+		$data = [
+			'user_id' => $user_id,
+			'token' => $token,
+			'expires_at' => $expires,
+			'created_at' => date('Y-m-d H:i:s')
+		];
+		
+		return $this->db->insert('password_reset_tokens', $data);
+	}
+
+	/**
+	 * Get password reset token
+	 */
+	public function getPasswordResetToken($token) {
+		$this->db->select('*');
+		$this->db->from('password_reset_tokens');
+		$this->db->where('token', $token);
+		$this->db->where('used_at IS NULL');
+		$this->db->where('expires_at >', date('Y-m-d H:i:s'));
+		$query = $this->db->get();
+		return $query->row();
+	}
+
+	/**
+	 * Update user password
+	 */
+	public function updateUserPassword($user_id, $password) {
+		$hashed_password = $this->argonhash->hash($password);
+		$this->db->where('user_id', $user_id);
+		return $this->db->update($this->table, ['password' => $hashed_password]);
+	}
+
+	/**
+	 * Mark token as used
+	 */
+	public function markTokenAsUsed($token) {
+		$this->db->where('token', $token);
+		return $this->db->update('password_reset_tokens', ['used_at' => date('Y-m-d H:i:s')]);
+	}
+
+	/**
+	 * Update last login timestamp
+	 */
+	public function updateLastLogin($user_id) {
+		$this->db->where('user_id', $user_id);
+		return $this->db->update($this->table, ['last_login' => date('Y-m-d H:i:s')]);
+	}
+
 	public function getUser($id)
 	{
 		$this->db->where("user_id", $id);
@@ -104,17 +190,24 @@ class Auth_mdl extends CI_Model
 	}
 	public function getAll($start, $limit, $key,$status)
 	{
+		$this->db->select('user.*, user_groups.group_name');
+		$this->db->from($this->table);
+		
 		if (!empty($status)) {
 			$this->db->where("status", "$status");
 		}
 		if (!empty($key)) {
+			$this->db->group_start();
 			$this->db->like("username", "$key", "both");
 			$this->db->or_like("name", "$key", "both");
+			$this->db->group_end();
 		}
 		
-		$this->db->limit($start, $limit);
 		$this->db->join('user_groups', 'user_groups.group_id=user.role', 'left');
-		$qry = $this->db->get($this->table);
+		$this->db->limit($limit, $start);
+		$this->db->order_by('user.username', 'ASC');
+		
+		$qry = $this->db->get();
 		return $qry->result();
 	}
 	public function count_Users($key,$status)
@@ -154,17 +247,16 @@ class Auth_mdl extends CI_Model
 			'password' => $this->password,
 			'facility_id' => "$facid",
 			'facility' => "$facility",
-			"role" => $postdata['role'],
+			"role" => 21, // Role 21 for facility incharges
 			'department' => $postdata['department_id'],
-			'district_id' => "$distn",
+			'district_id' => "$distid", // Use district ID, not name
 			'district' => "$distn",
 			'status' => 1
 		);
 
-		if ($postdata['is_incharge==1']) {
+		if (isset($postdata['is_incharge']) && $postdata['is_incharge'] == 1) {
 			$ihris_pid = $postdata['ihris_pid'];
 			$this->db->query("UPDATE `ihrisdata` SET `is_incharge` = '1' WHERE `ihrisdata`.`ihris_pid` = '$ihris_pid'");
-
 		}
  
 		$qry = $this->db->insert($this->table, $insert);

@@ -4,12 +4,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 class Svariables_mdl extends CI_Model {
 
 	
-	public function __Construct(){
+	protected $table;
+	protected $user;
 
-		parent::__Construct();
-		$this->table="variables";
-		$this->user=$this->session->get_userdata();
-
+	public function __construct() {
+		parent::__construct();
+		$this->table = "variables";
+		$this->user = $this->session->get_userdata();
 	}
 
 	public function update_variables($data){

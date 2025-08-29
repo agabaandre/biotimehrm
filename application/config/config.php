@@ -116,7 +116,7 @@ $config['charset'] = 'UTF-8';
 | setting this variable to TRUE (boolean).  See the user guide for details.
 |
 */
-$config['enable_hooks'] = FALSE;
+$config['enable_hooks'] = TRUE;
 
 /*
 |--------------------------------------------------------------------------
@@ -404,11 +404,14 @@ $config['encryption_key'] = '';
 
 $config['sess_driver'] = 'database';
 $config['sess_cookie_name'] = 'attendances';
-$config['sess_expiration'] = 7200;
+$config['sess_expiration'] = 21600; // 6 hours (6 * 60 * 60 seconds)
 $config['sess_save_path'] = 'access_sessions';
 $config['sess_match_ip'] = FALSE;
-$config['sess_time_to_update'] = 300;
+$config['sess_time_to_update'] = 1800; // 30 minutes (30 * 60 seconds)
 $config['sess_regenerate_destroy'] = FALSE;
+$config['sess_encrypt_cookie'] = FALSE;
+$config['sess_use_database'] = TRUE;
+$config['sess_table_name'] = 'access_sessions';
 
 /*
 |--------------------------------------------------------------------------
@@ -430,6 +433,7 @@ $config['cookie_domain'] = '';
 $config['cookie_path'] = '/';
 $config['cookie_secure'] = FALSE;
 $config['cookie_httponly'] = FALSE;
+$config['cookie_expire'] = 21600; // Match session expiration (6 hours)
 
 /*
 |--------------------------------------------------------------------------
@@ -473,7 +477,7 @@ $config['global_xss_filtering'] = FALSE;
 | 'csrf_regenerate' = Regenerate token on every submission
 | 'csrf_exclude_uris' = Array of URIs which ignore CSRF checks
 */
-$config['csrf_protection'] = FALSE;
+$config['csrf_protection'] = TRUE;
 $config['csrf_token_name'] = 'csrf_test_name';
 $config['csrf_cookie_name'] = 'csrf_cookie_name';
 $config['csrf_expire'] = 7200;

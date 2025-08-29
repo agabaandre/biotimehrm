@@ -3,7 +3,10 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Workshops extends MX_Controller {
 
-	
+	protected $user;
+	protected $department;
+	protected $ihris_pid;
+
 	public function __Construct(){
 
 		parent::__Construct();

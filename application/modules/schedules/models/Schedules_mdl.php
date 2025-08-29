@@ -4,6 +4,15 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Schedules_mdl extends CI_Model
 {
 
+	protected $table;
+	protected $user;
+	protected $department;
+	protected $division;
+	protected $unit;
+	protected $facility;
+	protected $filters;
+	protected $ufilters;
+	protected $distfilters;
 
 	public function __Construct()
 	{
@@ -201,7 +210,48 @@ class Schedules_mdl extends CI_Model
 
 	public function get_publicHoliday()
 	{
-
+		$query = $this->db->get('public_holiday');
+		return $query->result();
+	}
+	
+	public function get_publicHoliday_count($search = '')
+	{
+		if (!empty($search)) {
+			$this->db->group_start();
+			$this->db->like('holiday_name', $search);
+			$this->db->or_like('type', $search);
+			$this->db->or_like('year', $search);
+			$this->db->or_like('holidaydate', $search);
+			$this->db->group_end();
+		}
+		
+		return $this->db->count_all_results('public_holiday');
+	}
+	
+	public function get_publicHoliday_ajax($start = 0, $length = 10, $search = '', $order_column = 0, $order_dir = 'asc')
+	{
+		$columns = array('holidaydate', 'holiday_name', 'type', 'year', 'id');
+		
+		// Apply search
+		if (!empty($search)) {
+			$this->db->group_start();
+			$this->db->like('holiday_name', $search);
+			$this->db->or_like('type', $search);
+			$this->db->or_like('year', $search);
+			$this->db->or_like('holidaydate', $search);
+			$this->db->group_end();
+		}
+		
+		// Apply ordering
+		if (isset($columns[$order_column])) {
+			$this->db->order_by($columns[$order_column], $order_dir);
+		} else {
+			$this->db->order_by('holidaydate', 'asc');
+		}
+		
+		// Apply pagination
+		$this->db->limit($length, $start);
+		
 		$query = $this->db->get('public_holiday');
 		return $query->result();
 	}

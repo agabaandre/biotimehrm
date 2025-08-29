@@ -58,7 +58,34 @@ class Schedules extends MX_Controller
 
 	public function get_publicHoliday()
 	{
-
+		// Check if this is an AJAX request for DataTables
+		if ($this->input->is_ajax_request()) {
+			$draw = $this->input->post('draw');
+			$start = $this->input->post('start');
+			$length = $this->input->post('length');
+			$search = $this->input->post('search')['value'];
+			$order_column = $this->input->post('order')[0]['column'];
+			$order_dir = $this->input->post('order')[0]['dir'];
+			
+			// Get total count
+			$total_records = $this->scheduleMdl->get_publicHoliday_count();
+			
+			// Get filtered data
+			$holidays = $this->scheduleMdl->get_publicHoliday_ajax($start, $length, $search, $order_column, $order_dir);
+			$filtered_records = $this->scheduleMdl->get_publicHoliday_count($search);
+			
+			$response = array(
+				'draw' => intval($draw),
+				'recordsTotal' => $total_records,
+				'recordsFiltered' => $filtered_records,
+				'data' => $holidays
+			);
+			
+			echo json_encode($response);
+			return;
+		}
+		
+		// Return all holidays for non-AJAX requests (backward compatibility)
 		$holiday = $this->scheduleMdl->get_publicHoliday();
 		return $holiday;
 	}

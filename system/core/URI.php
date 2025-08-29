@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CodeIgniter
  *
@@ -48,8 +49,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * @author		EllisLab Dev Team
  * @link		https://codeigniter.com/user_guide/libraries/uri.html
  */
-#[\AllowDynamicProperties]
-
+#[AllowDynamicProperties]
 class CI_URI
 {
 
@@ -101,7 +101,7 @@ class CI_URI
 	 */
 	public function __construct()
 	{
-		$this->config =& load_class('Config', 'core');
+		$this->config = &load_class('Config', 'core');
 
 		// If query strings are enabled, we don't need to parse any segments.
 		// However, they don't make sense under CLI.
@@ -524,9 +524,9 @@ class CI_URI
 		$leading = $trailing = '/';
 
 		if ($where === 'trailing') {
-			$leading = '';
+			$leading	= '';
 		} elseif ($where === 'leading') {
-			$trailing = '';
+			$trailing	= '';
 		}
 
 		return $leading . $this->$which($n) . $trailing;
@@ -603,5 +603,4 @@ class CI_URI
 	{
 		return ltrim(load_class('Router', 'core')->directory, '/') . implode('/', $this->rsegments);
 	}
-
 }

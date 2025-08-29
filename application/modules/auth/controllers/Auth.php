@@ -13,6 +13,112 @@ class Auth extends MX_Controller
   {
     $this->load->view("login");
   }
+  
+  /**
+   * Check current session status
+   */
+  public function checkSession() {
+    // Allow both AJAX and regular requests for session checking
+    if (!$this->input->is_ajax_request() && !$this->input->get('ajax')) {
+      show_404();
+      return;
+    }
+    
+    // Debug logging
+    log_message('debug', 'checkSession called - isLoggedIn: ' . ($this->session->userdata('isLoggedIn') ? 'true' : 'false'));
+    log_message('debug', 'checkSession called - session_id: ' . $this->session->session_id);
+    log_message('debug', 'checkSession called - user_id: ' . $this->session->userdata('user_id'));
+    
+    if (!$this->session->userdata('isLoggedIn')) {
+      log_message('debug', 'checkSession: Session not logged in, returning expired status');
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'expired',
+        'message' => 'Session expired'
+      ]));
+      return;
+    }
+    
+    $session_expiration = $this->config->item('sess_expiration');
+    $session_start = $this->session->userdata('__ci_last_regenerate');
+    $current_time = time();
+    $expires_in = $session_expiration - ($current_time - $session_start);
+    
+    log_message('debug', 'checkSession: Session active, expires_in: ' . $expires_in . ' seconds');
+    
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'status' => 'active',
+      'expires_in' => $expires_in,
+      'user_id' => $this->session->userdata('user_id'),
+      'facility' => $this->session->userdata('facility')
+    ]));
+  }
+
+  /**
+   * Check if user should only enter password (for recent logins within 2 hours)
+   */
+  public function checkRecentLogin() {
+    if (!$this->input->is_ajax_request()) {
+      show_404();
+      return;
+    }
+    
+    $username = $this->input->post('username');
+    if (!$username) {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'error',
+        'message' => 'Username is required'
+      ]));
+      return;
+    }
+    
+    // Check if this username has logged in recently (within 2 hours)
+    $recent_login = $this->auth_mdl->checkRecentLogin($username);
+    
+    if ($recent_login) {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'success',
+        'recent_login' => true,
+        'user_info' => [
+          'username' => $recent_login->username,
+          'name' => $recent_login->name,
+          'email' => $recent_login->email,
+          'last_login' => $recent_login->last_login
+        ]
+      ]));
+    } else {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'success',
+        'recent_login' => false
+      ]));
+    }
+  }
+  
+  /**
+   * Refresh CSRF token
+   */
+  public function refreshCsrf() {
+    if (!$this->input->is_ajax_request()) {
+      show_404();
+      return;
+    }
+    
+    // Check if user is logged in
+    if (!$this->session->userdata('isLoggedIn')) {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'error',
+        'message' => 'User not logged in'
+      ]));
+      return;
+    }
+    
+    // Generate new CSRF token
+    $csrf_token = $this->security->get_csrf_hash();
+    
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'status' => 'success',
+      'csrf_token' => $csrf_token
+    ]));
+  }
   public function recovery()
   {
     $this->load->view("recover_password");
@@ -41,6 +147,9 @@ public function login($user_id = FALSE)
     // If a valid user is found
     if (!empty($person->user_id)) {
         $user_group = $person->role;
+        // Update last login timestamp
+        $this->auth_mdl->updateLastLogin($person->user_id);
+        
         $userdata = array(
             "names" => $person->name,
             "user_id" => $person->user_id,
@@ -136,50 +245,117 @@ public function login($user_id = FALSE)
   //  }
   public function users()
   {
-    $searchkey = $this->input->post('search_key');
-    if (empty($searchkey)) {
-      $searchkey = "";
+    try {
+      // Add basic debugging
+      log_message('debug', 'Auth/users method called');
+      
+      $searchkey = $this->input->post('search_key');
+      if (empty($searchkey)) {
+        $searchkey = "";
+      }
+      $status = $this->input->post('status');
+      if (empty($status)) {
+        $status = "";
+      }
+      
+      // Load required libraries and models
+      $this->load->library('pagination');
+      
+      // Get data with error handling
+      try {
+        log_message('debug', 'Getting user count...');
+        $config = array();
+        $config['base_url'] = base_url() . "auth/users";
+        $config['total_rows'] = $this->auth_mdl->count_Users($searchkey,$status);
+        $config['per_page'] = 20; //records per page
+        $config['uri_segment'] = 3; //segment in url  
+        
+        //pagination links styling
+        $config['full_tag_open'] = '<ul class="pagination">';
+        $config['full_tag_close'] = '</ul>';
+        $config['attributes'] = ['class' => 'page-link'];
+        $config['first_link'] = false;
+        $config['last_link'] = false;
+        $config['first_tag_open'] = '<li class="page-item">';
+        $config['first_tag_close'] = '</li>';
+        $config['prev_link'] = '&laquo';
+        $config['prev_tag_open'] = '<li class="page-item">';
+        $config['prev_tag_close'] = '</li>';
+        $config['next_link'] = '&raquo';
+        $config['next_tag_open'] = '<li class="page-item">';
+        $config['next_tag_close'] = '</li>';
+        $config['last_tag_open'] = '<li class="page-item">';
+        $config['last_tag_close'] = '</li>';
+        $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
+        $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
+        $config['num_tag_open'] = '<li class="page-item">';
+        $config['num_tag_close'] = '</li>';
+        $config['use_page_numbers'] = false;
+        
+        $this->pagination->initialize($config);
+        $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
+        $data['links'] = $this->pagination->create_links();
+        
+        log_message('debug', 'Getting users data...');
+        $data['users'] = $this->auth_mdl->getAll($config['per_page'], $page, $searchkey,$status);
+        
+      } catch (Exception $e) {
+        log_message('error', 'Error in auth/users: ' . $e->getMessage());
+        $data['links'] = '';
+        $data['users'] = [];
+      }
+      
+      $data['module'] = "auth";
+      $data['view'] = "add_users";
+      $data['title'] = "User management";
+      $data['uptitle'] = "User management";
+      
+      log_message('debug', 'About to load template with data: ' . print_r($data, true));
+      
+      // Test if template loading is the issue
+      try {
+          echo Modules::run("templates/main", $data);
+      } catch (Exception $e) {
+          log_message('error', 'Template loading failed: ' . $e->getMessage());
+          // Fallback: render the view directly
+          $this->load->view('add_users', $data);
+      }
+      
+    } catch (Exception $e) {
+      log_message('error', 'Critical error in auth/users: ' . $e->getMessage());
+      echo "An error occurred while loading the page. Please check the logs for details.";
     }
-    $status = $this->input->post('status');
-    if (empty($status)) {
-      $status = "";
+  }
+  
+  /**
+   * Test method to debug the users page
+   */
+  public function users_test()
+  {
+    echo "<h1>Auth Users Test</h1>";
+    echo "<p>Testing basic functionality...</p>";
+    
+    try {
+      // Test model loading
+      echo "<p>Testing model loading...</p>";
+      $this->load->model('auth_mdl');
+      echo "<p>✓ Model loaded successfully</p>";
+      
+      // Test basic query
+      echo "<p>Testing basic query...</p>";
+      $count = $this->auth_mdl->count_Users('', '');
+      echo "<p>✓ User count: " . $count . "</p>";
+      
+      // Test departments
+      echo "<p>Testing departments...</p>";
+      $departments = Modules::run("departments/getAll_departments");
+      echo "<p>✓ Departments count: " . count($departments) . "</p>";
+      
+      echo "<p>All tests passed!</p>";
+      
+    } catch (Exception $e) {
+      echo "<p style='color: red;'>✗ Error: " . $e->getMessage() . "</p>";
     }
-    $this->load->library('pagination');
-    $config = array();
-    $config['base_url'] = base_url() . "auth/users";
-    $config['total_rows'] = $this->auth_mdl->count_Users($searchkey,$status);
-    $config['per_page'] = 20; //records per page
-    $config['uri_segment'] = 3; //segment in url  
-    //pagination links styling
-    $config['full_tag_open'] = '<ul class="pagination">';
-    $config['full_tag_close'] = '</ul>';
-    $config['attributes'] = ['class' => 'page-link'];
-    $config['first_link'] = false;
-    $config['last_link'] = false;
-    $config['first_tag_open'] = '<li class="page-item">';
-    $config['first_tag_close'] = '</li>';
-    $config['prev_link'] = '&laquo';
-    $config['prev_tag_open'] = '<li class="page-item">';
-    $config['prev_tag_close'] = '</li>';
-    $config['next_link'] = '&raquo';
-    $config['next_tag_open'] = '<li class="page-item">';
-    $config['next_tag_close'] = '</li>';
-    $config['last_tag_open'] = '<li class="page-item">';
-    $config['last_tag_close'] = '</li>';
-    $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-    $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-    $config['num_tag_open'] = '<li class="page-item">';
-    $config['num_tag_close'] = '</li>';
-    $config['use_page_numbers'] = false;
-    $this->pagination->initialize($config);
-    $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
-    $data['links'] = $this->pagination->create_links();
-    $data['users'] = $this->auth_mdl->getAll($config['per_page'], $page, $searchkey,$status);
-    $data['module'] = "auth";
-    $data['view'] = "add_users";
-    $data['title'] = "User management";
-    $data['uptitle'] = "User management";
-    echo Modules::run("templates/main", $data);
   }
   public function addUser()
   {
@@ -389,5 +565,238 @@ public function login($user_id = FALSE)
     if ($done) {
       echo "<h1>Sudo Done Processing</h1>";
     }
+  }
+  /**
+   * Display session test page for debugging
+   */
+  public function sessionTestPage() {
+    $this->load->view('session_test');
+  }
+
+  /**
+   * Extend current session by regenerating session ID
+   */
+  public function extendSession() {
+    // Allow both AJAX and regular requests for session extension
+    if (!$this->input->is_ajax_request() && !$this->input->get('ajax')) {
+      show_404();
+      return;
+    }
+    
+    // Debug logging
+    log_message('debug', 'extendSession called - isLoggedIn: ' . ($this->session->userdata('isLoggedIn') ? 'true' : 'false'));
+    log_message('debug', 'extendSession called - session_id: ' . $this->session->session_id);
+    
+    if (!$this->session->userdata('isLoggedIn')) {
+      log_message('debug', 'extendSession: No active session to extend');
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'error',
+        'message' => 'No active session to extend'
+      ]));
+      return;
+    }
+    
+    log_message('debug', 'extendSession: Extending session for user_id: ' . $this->session->userdata('user_id'));
+    
+    $this->session->sess_regenerate(TRUE);
+    $this->session->set_userdata('last_activity', time());
+    
+    log_message('debug', 'extendSession: Session extended successfully');
+    
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'status' => 'success',
+      'message' => 'Session extended successfully',
+      'new_expiration' => time() + $this->config->item('sess_expiration')
+    ]));
+  }
+
+  /**
+   * Test method to verify session functionality
+   */
+  public function testSession() {
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'status' => 'success',
+      'message' => 'Session test endpoint working',
+      'session_data' => [
+        'isLoggedIn' => $this->session->userdata('isLoggedIn'),
+        'user_id' => $this->session->userdata('user_id'),
+        'facility' => $this->session->userdata('facility'),
+        'session_id' => $this->session->session_id,
+        'current_time' => date('Y-m-d H:i:s'),
+        'session_expiration' => $this->config->item('sess_expiration')
+      ]
+    ]));
+  }
+
+  /**
+   * Handle forgot password requests
+   */
+  public function forgotPassword() {
+    if (!$this->input->is_ajax_request()) {
+      show_404();
+      return;
+    }
+
+    // Get JSON input
+    $input = json_decode(file_get_contents('php://input'), true);
+    $email = $input['email'] ?? '';
+    $username = $input['username'] ?? '';
+
+    if (empty($email) || empty($username)) {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'error',
+        'message' => 'Email and username are required'
+      ]));
+      return;
+    }
+
+    // Validate email format
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'error',
+        'message' => 'Please enter a valid email address'
+      ]));
+      return;
+    }
+
+    try {
+      // Check if user exists with provided email and username
+      $user = $this->auth_mdl->getUserByEmailAndUsername($email, $username);
+      
+      if (!$user) {
+        $this->output->set_content_type('application/json')->set_output(json_encode([
+          'status' => 'error',
+          'message' => 'No user found with the provided email and username combination'
+        ]));
+        return;
+      }
+
+      // Generate reset token
+      $reset_token = bin2hex(random_bytes(32));
+      $reset_expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
+      
+      // Store reset token in database
+      $token_saved = $this->auth_mdl->savePasswordResetToken($user->user_id, $reset_token, $reset_expires);
+      
+      if (!$token_saved) {
+        $this->output->set_content_type('application/json')->set_output(json_encode([
+          'status' => 'error',
+          'message' => 'Failed to generate reset token. Please try again.'
+        ]));
+        return;
+      }
+
+      // Send reset email
+      $email_sent = $this->_sendPasswordResetEmail($user->email, $user->name, $reset_token);
+      
+      if ($email_sent) {
+        $this->output->set_content_type('application/json')->set_output(json_encode([
+          'status' => 'success',
+          'message' => 'Password reset link has been sent to your email address. Please check your inbox.'
+        ]));
+      } else {
+        $this->output->set_content_type('application/json')->set_output(json_encode([
+          'status' => 'error',
+          'message' => 'Failed to send reset email. Please contact support.'
+        ]));
+      }
+
+    } catch (Exception $e) {
+      log_message('error', 'Forgot password error: ' . $e->getMessage());
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'error',
+        'message' => 'An error occurred. Please try again later.'
+      ]));
+    }
+  }
+
+  /**
+   * Send password reset email
+   */
+  private function _sendPasswordResetEmail($email, $name, $reset_token) {
+    $reset_link = base_url('auth/resetPassword/' . $reset_token);
+    
+    $subject = 'Password Reset Request - HRM Attend';
+    $message = "
+    <html>
+    <head>
+        <title>Password Reset Request</title>
+    </head>
+    <body>
+        <h2>Hello {$name},</h2>
+        <p>You have requested to reset your password for your HRM Attend account.</p>
+        <p>Click the link below to reset your password:</p>
+        <p><a href='{$reset_link}' style='background-color: #005662; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;'>Reset Password</a></p>
+        <p>Or copy and paste this link in your browser: <br>{$reset_link}</p>
+        <p><strong>This link will expire in 1 hour.</strong></p>
+        <p>If you didn't request this password reset, please ignore this email.</p>
+        <p>Best regards,<br>HRM Attend Team</p>
+    </body>
+    </html>
+    ";
+
+    $headers = [
+      'MIME-Version: 1.0',
+      'Content-type: text/html; charset=UTF-8',
+      'From: HRM Attend <noreply@hrmattend.com>',
+      'Reply-To: support@hrmattend.com',
+      'X-Mailer: PHP/' . phpversion()
+    ];
+
+    return mail($email, $subject, $message, implode("\r\n", $headers));
+  }
+
+  /**
+   * Reset password using token from email
+   */
+  public function resetPassword($token = NULL) {
+    if (!$token) {
+      show_404();
+      return;
+    }
+
+    // Check if token is valid and not expired
+    $token_data = $this->auth_mdl->getPasswordResetToken($token);
+    
+    if (!$token_data || strtotime($token_data->expires_at) < time()) {
+      $this->session->set_flashdata('error', 'Password reset link is invalid or has expired.');
+      redirect('auth');
+      return;
+    }
+
+    if ($this->input->post()) {
+      $password = $this->input->post('password');
+      $confirm_password = $this->input->post('confirm_password');
+      
+      if ($password !== $confirm_password) {
+        $this->session->set_flashdata('error', 'Passwords do not match.');
+        redirect('auth/resetPassword/' . $token);
+        return;
+      }
+
+      if (strlen($password) < 6) {
+        $this->session->set_flashdata('error', 'Password must be at least 6 characters long.');
+        redirect('auth/resetPassword/' . $token);
+        return;
+      }
+
+      // Update password
+      $password_updated = $this->auth_mdl->updateUserPassword($token_data->user_id, $password);
+      
+      if ($password_updated) {
+        // Mark token as used
+        $this->auth_mdl->markTokenAsUsed($token);
+        
+        $this->session->set_flashdata('success', 'Password has been reset successfully. You can now login with your new password.');
+        redirect('auth');
+      } else {
+        $this->session->set_flashdata('error', 'Failed to reset password. Please try again.');
+        redirect('auth/resetPassword/' . $token);
+      }
+    }
+
+    // Load reset password view
+    $data['token'] = $token;
+    $this->load->view('reset_password', $data);
   }
 }

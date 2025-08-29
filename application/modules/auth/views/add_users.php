@@ -1,15 +1,53 @@
 <?php
 
-$usergroups = Modules::run("auth/getUserGroups");
+// Get data with error handling
+try {
+    $usergroups = Modules::run("auth/getUserGroups") ?: [];
+} catch (Exception $e) {
+    $usergroups = [];
+    log_message('error', 'Failed to get user groups: ' . $e->getMessage());
+}
 
-$departments = Modules::run("departments/getAll_departments");
+try {
+    $departments = Modules::run("departments/getAll_departments") ?: [];
+} catch (Exception $e) {
+    $departments = [];
+    log_message('error', 'Failed to get departments: ' . $e->getMessage());
+}
 
-$districts = Modules::run("auth/getDistricts");
+try {
+    $districts = Modules::run("auth/getDistricts") ?: [];
+} catch (Exception $e) {
+    $districts = [];
+    log_message('error', 'Failed to get districts: ' . $e->getMessage());
+}
 
-$facilities = Modules::run("auth/getFacilities");
-$variables = Modules::run("svariables/getSettings");
+try {
+    $facilities = Modules::run("auth/getFacilities") ?: [];
+} catch (Exception $e) {
+    $facilities = [];
+    log_message('error', 'Failed to get facilities: ' . $e->getMessage());
+}
+
+try {
+    $variables = Modules::run("svariables/getSettings") ?: (object)['default_password' => 'rKET2XW5Xvnp2ds'];
+} catch (Exception $e) {
+    $variables = (object)['default_password' => 'rKET2XW5Xvnp2ds'];
+    log_message('error', 'Failed to get settings: ' . $e->getMessage());
+}
 
 //print_r($variables);
+
+// Debug output (remove in production)
+if (ENVIRONMENT === 'development') {
+    echo '<div class="alert alert-info">';
+    echo '<strong>Debug Info:</strong><br>';
+    echo 'User Groups: ' . count($usergroups) . '<br>';
+    echo 'Departments: ' . count($departments) . '<br>';
+    echo 'Districts: ' . count($districts) . '<br>';
+    echo 'Facilities: ' . count($facilities) . '<br>';
+    echo '</div>';
+}
 ?>
 
 <div class="row">
@@ -23,6 +61,7 @@ $variables = Modules::run("svariables/getSettings");
       <!-- /.card-header -->
       <div class="card-body">
         <form class="user_form" method="post" action="<?php echo base_url()?>auth/addUser" enctype="multipart/form-data">
+          <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
           <div class="row">
             <div class="col-md-12">
               <button type="submit" class="btn btn-info btn-outline">Save</button>
@@ -43,12 +82,13 @@ $variables = Modules::run("svariables/getSettings");
                 <label>User Group</label>
                 <select name="role" style="width:100%;" class="role form-control select2" required>
                   <option value="" disabled selected>USER GROUP</option>
-                  <?php foreach ($usergroups as $usergroup) :
-                  ?>
-                    <option value="<?php echo $usergroup->group_id; ?>"><?php echo $usergroup->group_name; ?>
-
-                    </option>
-                  <?php endforeach; ?>
+                  <?php if (!empty($usergroups)): ?>
+                    <?php foreach ($usergroups as $usergroup): ?>
+                      <option value="<?php echo $usergroup->group_id; ?>"><?php echo $usergroup->group_name; ?></option>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <option value="" disabled>No user groups available</option>
+                  <?php endif; ?>
                 </select>
               </div>
             </div>
@@ -79,10 +119,13 @@ $variables = Modules::run("svariables/getSettings");
                 <label>District</label>
                 <select onChange="getuserFacs($(this).val());" name="district_id" class="form-control select2 userdistrict" style="width:100%;">
                   <option value="" disabled selected>DISTRICT</option>
-                  <?php foreach ($districts as $district) :
-                  ?>
-                    <option value="<?php echo $district->district_id; ?>"><?php echo $district->district; ?></option>
-                  <?php endforeach; ?>
+                  <?php if (!empty($districts)): ?>
+                    <?php foreach ($districts as $district): ?>
+                      <option value="<?php echo $district->district_id; ?>"><?php echo $district->district; ?></option>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <option value="" disabled>No districts available</option>
+                  <?php endif; ?>
                 </select>
 
               </div>
@@ -127,6 +170,7 @@ $variables = Modules::run("svariables/getSettings");
       <div class="card-header">
         <h3 class="card-title">User List</h3><br>
         <form class="form-horizontal" action="<?php echo base_url() ?>auth/users" method="post" style="margin-top: 4px !important;">
+          <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 
           <div class="form-group col-md-12">
             <label>Advanced User Search</label>

@@ -6,6 +6,7 @@
           <h4 class="modal-title">Confirm Action <span style="cursor: pointer;" class="pull-right" data-dismiss="modal">&times;</span></h4>
         </div>
     <form method="post" action="<?php echo base_url();?>schedules/delete_rosterschedule">
+  <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
       <div class="modal-body">
 
         <span id="dela<?php echo $schedule->schedule_id; ?>"></span>

@@ -30,6 +30,7 @@
              
 
 			 <form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>reports/average_hours" method="post">
+			 <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 			 <div class="row">
 					 
 

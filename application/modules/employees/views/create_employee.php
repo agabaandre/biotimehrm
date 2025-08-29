@@ -131,7 +131,7 @@
                             </div>
 
                             <input type="hidden" class="form-control" id="facility_id" name="facility_id">
-                            <input type="hidden" class="form-control" id="institution_cateegory" name="institution_cateegory">
+                            <input type="hidden" class="form-control" id="institution_category" name="institution_category">
                             <input type="hidden" class="form-control" id="institutiontype_name" name="institutiontype_name">
                             <input type="hidden" class="form-control" id="institution_level" name="institution_level">
                             <input type="hidden" class="form-control" id="district_id" name="district_id">
@@ -210,7 +210,7 @@
 
         for (var i = 0; i < as.length; i++) {
             document.getElementById('facility_id').value = as[i].facility_id;
-            document.getElementById('institution_cateegory').value = as[i].institution_cateegory;
+            document.getElementById('institution_category').value = as[i].institution_category;
             document.getElementById('institution_level').value = as[i].institution_level;
             document.getElementById('institutiontype_name').value = as[i].institution_type;
 

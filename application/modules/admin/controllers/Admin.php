@@ -6,12 +6,18 @@ if (!defined('BASEPATH')) {
 
 class Admin extends MX_Controller {
 
-    public function __Construct() {
-        
-       parent::__Construct();
-        $this->user=$this->session->get_userdata();
+    protected $user;
+    protected $deapartment;
+    protected $username;
+    protected $user_id;
+    protected $module;
 
-        $this->deapartment=$this->user;
+    public function __construct() {
+        parent::__construct();
+
+        $this->user = $this->session->get_userdata();
+        $this->deapartment = $this->user;
+        $this->module = 'admin';
 
         //if(!$this->session->userdata('logged_in')) {
         //     redirect(base_url());
@@ -47,17 +53,14 @@ class Admin extends MX_Controller {
             'users' => $this->admin_model->get_user_list(),
             'facilities'=> Modules::run('lists/getFacilities'),
             'districts' => Modules::run('districts/getDistricts')
-            
-            //'username'=>$this->username
-
-            //'switches'=>$this->switches()
-             //'facilities' => $this->attendance_model->get_facility(),
-            //'districts' => $this->attendance_model->get_districts(),
+   
         );
 
         $data['view']='users';
-        $data['module']="admin";
-        echo Modules::run("templates/main",$data);
+        $data['module']="admin";  
+        echo Modules::run("templates/main", $data);
+
+        
 
     }
 
@@ -96,19 +99,66 @@ public function configure(){
 
 
     public function showLogs(){
+      //  Handle AJAX requests for server-side pagination
+        if ($this->input->is_ajax_request()) {
+            $this->_handleLogsAjaxRequest();
+            return;
+        }
 
         $data = array(
             'title' => 'User Activity Logs',
-            'logs' => $this->admin_model->get_logs(),
-            'facilities'=> Modules::run('lists/getFacilities'),
-            'districts' => Modules::run('districts/getDistricts')
-            //'username'=>$this->username
         );
+       // dd($data);
 
         $data['view']='user_logs';
-        $data['module']="admin";
-        echo Modules::run("templates/main",$data);
-
+        $data['module']=$this->module;
+        echo Modules::run("templates/main", $data);
+    }
+    
+    /**
+     * Handle AJAX requests for logs server-side pagination
+     */
+    private function _handleLogsAjaxRequest() {
+        try {
+            $draw = $this->input->post('draw');
+            $start = $this->input->post('start');
+            $length = $this->input->post('length');
+            $search = $this->input->post('search')['value'];
+            $order_column = $this->input->post('order')[0]['column'];
+            $order_dir = $this->input->post('order')[0]['dir'];
+            $user_filter = $this->input->post('user_filter');
+            $module_filter = $this->input->post('module_filter');
+            $date_from = $this->input->post('date_from');
+            $date_to = $this->input->post('date_to');
+            
+            // Get total count
+            $total_records = $this->admin_model->get_logs_count();
+            
+            // Get filtered data
+            $data = $this->admin_model->get_logs_ajax($start, $length, $search, $order_column, $order_dir, $user_filter, $module_filter, $date_from, $date_to);
+            
+            // Get filtered count
+            $filtered_records = $this->admin_model->get_logs_count($search, $user_filter, $module_filter, $date_from, $date_to);
+            
+            $response = array(
+                "draw" => intval($draw),
+                "recordsTotal" => $total_records,
+                "recordsFiltered" => $filtered_records,
+                "data" => $data
+            );
+            
+            $this->output->set_content_type('application/json')->set_output(json_encode($response));
+        } catch (Exception $e) {
+            log_message('error', 'Logs AJAX Error: ' . $e->getMessage());
+            $response = array(
+                "draw" => intval($draw),
+                "recordsTotal" => 0,
+                "recordsFiltered" => 0,
+                "data" => [],
+                "error" => "An error occurred while processing your request"
+            );
+            $this->output->set_content_type('application/json')->set_output(json_encode($response));
+        }
     }
     
     
@@ -118,6 +168,44 @@ public function configure(){
         
         $this->showLogs();
 
+    }
+    
+    /**
+     * Prune old logs (older than 30 days)
+     */
+    public function pruneLogs() {
+        // Check if user has permission (you can add your permission logic here)
+        if (!$this->session->userdata('isLoggedIn')) {
+            redirect('auth/login');
+        }
+        
+        $result = $this->admin_model->pruneOldLogs(30); // 30 days
+        
+        if ($this->input->is_ajax_request()) {
+            echo json_encode($result);
+            return;
+        }
+        
+        if ($result['status'] === 'success') {
+            $this->session->set_flashdata('success', "Successfully pruned {$result['deleted_count']} logs older than 30 days.");
+        } else {
+            $this->session->set_flashdata('error', $result['message']);
+        }
+        
+        redirect('admin/showLogs');
+    }
+    
+    /**
+     * Get log cleanup statistics
+     */
+    public function getLogCleanupStats() {
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+            return;
+        }
+        
+        $stats = $this->admin_model->getLogCleanupStats();
+        echo json_encode($stats);
     }
 
 

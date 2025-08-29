@@ -1,11 +1,10 @@
 </div>
 <!-- /.content-wrapper -->
-<footer class="main-footer" style="background: #005662;
-    color: #FFFFFF; text-align:center;">
+<footer class="main-footer text-muted" style=" text-align:center;">
     <div class="col-lg-12">
         <div class="footer-copy-right">
-            <!-- <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/USAID-Identity.svg" style="width:180px; height:50px;">
-                          <a href="http://health.go.ug" target="_blank"> <img src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Coat_of_arms_of_Uganda.svg" style="width:80px; height:50px;"> </a> -->
+            <!-- <!-- <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/USAID-Identity.svg" style="width:180px; height:50px;"> -->
+                          <a href="http://health.go.ug" target="_blank"> <img src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Coat_of_arms_of_Uganda.svg" style="width:80px; height:50px;"> </a>
             <p>&copy; <?php echo date('Y'); ?>, Ministry of Health -Uganda. <strong>All Rights Reserved</strong></p>
         </div>
     </div>
@@ -31,14 +30,14 @@
 <!-- AdminLTE for demo purposes -->
 <!-- <script src="<?php echo base_url(); ?>assets/dist/js/demo.js"></script> -->
 
-<script src="<?php echo base_url(); ?>/assets/plugins/jquery/jquery.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/jquery/jquery.min.js"></script>
 <!-- jQuery UI 1.11.4 -->
-<script src="<?php echo base_url(); ?>/assets/plugins/jquery-ui/jquery-ui.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/jquery-ui/jquery-ui.min.js"></script>
 <!-- date-range-picker -->
 <script src="<?php echo base_url() ?>assets/plugins/daterangepicker/daterangepicker.js"></script>
 <script src="<?php echo base_url() ?>assets/plugins/summernote/summernote-bs4.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/bootstrap-datepicker/js/bootstrap-datepicker.min.js"></script>
-<script src="<?php echo base_url(); ?>/assets/plugins/select2/js/select2.full.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/plugins/select2/js/select2.full.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/js/notify.min.js"></script>
 <!-- fullCalendar 2.2.5 -->
 <script src="<?php echo base_url() ?>assets/plugins/moment/moment.min.js"></script>
@@ -71,6 +70,235 @@
         });
     });
 </script>
+
+<!-- Session Keep Alive Script -->
+<?php if ($this->session->userdata('isLoggedIn')): ?>
+<script>
+(function() {
+    'use strict';
+    
+    // Session keep-alive configuration
+    const SESSION_CHECK_INTERVAL = 10 * 60 * 1000; // Check every 10 minutes
+    const SESSION_EXTEND_INTERVAL = 45 * 60 * 1000; // Extend every 45 minutes
+    const SESSION_DURATION = 6 * 60 * 60 * 1000; // 6 hours total
+    const WARNING_TIME = 10 * 60 * 1000; // Show warning 10 minutes before expiry
+    
+    let lastActivity = Date.now();
+    let sessionCheckTimer = null;
+    let sessionExtendTimer = null;
+    let warningTimer = null;
+    let logoutTimer = null;
+    let warningShown = false;
+    
+    // Track user activity
+    function updateActivity() {
+        lastActivity = Date.now();
+        resetTimers();
+        warningShown = false; // Reset warning flag on activity
+    }
+    
+    // Reset all timers
+    function resetTimers() {
+        if (warningTimer) clearTimeout(warningTimer);
+        if (logoutTimer) clearTimeout(logoutTimer);
+        
+        // Set warning 10 minutes before session expires
+        warningTimer = setTimeout(showSessionWarning, SESSION_DURATION - WARNING_TIME);
+        
+        // Set logout when session expires
+        logoutTimer = setTimeout(logoutUser, SESSION_DURATION);
+    }
+    
+    // Check session status
+    function checkSession() {
+        fetch('<?php echo base_url("auth/checkSession"); ?>', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'expired') {
+                // Session expired, redirect to login
+                console.log('Session expired, redirecting to login');
+                window.location.href = '<?php echo base_url("auth"); ?>';
+            } else if (data.status === 'active') {
+                console.log('Session is active, expires in', data.expires_in, 'seconds');
+            }
+        })
+        .catch(error => {
+            console.error('Session check failed:', error);
+            // Don't redirect on network errors, just log them
+        });
+    }
+    
+    // Extend session
+    function extendSession() {
+        fetch('<?php echo base_url("auth/extendSession"); ?>', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Session extended successfully');
+                resetTimers();
+                warningShown = false; // Reset warning flag
+            }
+        })
+        .catch(error => {
+            console.error('Session extension failed:', error);
+            // Don't redirect on network errors, just log them
+        });
+    }
+    
+    // Show session warning modal
+    function showSessionWarning() {
+        if (warningShown) return; // Prevent multiple warnings
+        
+        warningShown = true;
+        
+        // Create a modal-style warning
+        const warningModal = document.createElement('div');
+        warningModal.innerHTML = `
+            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                    <div style="color: #f39c12; font-size: 48px; margin-bottom: 20px;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h3 style="color: #333; margin-bottom: 15px;">Session Timeout Warning</h3>
+                    <p style="color: #666; margin-bottom: 25px; line-height: 1.5;">
+                        Your session will expire in <strong>10 minutes</strong> due to inactivity.<br>
+                        Do you want to continue working?
+                    </p>
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button id="extendSessionBtn" style="background: #28a745; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                            <i class="fas fa-check"></i> Continue Working
+                        </button>
+                        <button id="logoutNowBtn" style="background: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                            <i class="fas fa-sign-out-alt"></i> Logout Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(warningModal);
+        
+        // Add event listeners
+        document.getElementById('extendSessionBtn').addEventListener('click', () => {
+            warningModal.remove();
+            extendSession();
+        });
+        
+        document.getElementById('logoutNowBtn').addEventListener('click', () => {
+            warningModal.remove();
+            logoutUser();
+        });
+        
+        // Auto-logout after 2 minutes if user doesn't respond
+        setTimeout(() => {
+            if (warningModal.parentNode) {
+                warningModal.remove();
+                logoutUser();
+            }
+        }, 2 * 60 * 1000);
+    }
+    
+    // Logout user
+    function logoutUser() {
+        window.location.href = '<?php echo base_url("auth/logout"); ?>';
+    }
+    
+    // Initialize session keep-alive
+    function initSessionKeepAlive() {
+        // Set up activity tracking
+        const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+        activityEvents.forEach(event => {
+            document.addEventListener(event, updateActivity, true);
+        });
+        
+        // Set up timers
+        sessionCheckTimer = setInterval(checkSession, SESSION_CHECK_INTERVAL);
+        sessionExtendTimer = setInterval(extendSession, SESSION_EXTEND_INTERVAL);
+        
+        // Start session timers
+        resetTimers();
+        
+        // Check session immediately
+        checkSession();
+        
+        console.log('Session keep-alive initialized with 6-hour duration');
+        console.log('Session check interval:', SESSION_CHECK_INTERVAL / 1000, 'seconds');
+        console.log('Session extend interval:', SESSION_EXTEND_INTERVAL / 1000, 'seconds');
+        console.log('Session duration:', SESSION_DURATION / 1000 / 60, 'minutes');
+        console.log('Warning time:', WARNING_TIME / 1000 / 60, 'minutes before expiry');
+    }
+    
+    // Clean up timers
+    function cleanup() {
+        if (sessionCheckTimer) {
+            clearInterval(sessionCheckTimer);
+        }
+        if (sessionExtendTimer) {
+            clearInterval(sessionExtendTimer);
+        }
+        if (warningTimer) {
+            clearTimeout(warningTimer);
+        }
+        if (logoutTimer) {
+            clearTimeout(logoutTimer);
+        }
+    }
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSessionKeepAlive);
+    } else {
+        initSessionKeepAlive();
+    }
+    
+    // Clean up on page unload
+    window.addEventListener('beforeunload', cleanup);
+    
+    // Handle visibility change (tab switching)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            // Page is hidden, pause timers
+            cleanup();
+        } else {
+            // Page is visible, resume timers
+            updateActivity();
+            initSessionKeepAlive();
+        }
+    });
+    
+    // Expose functions for manual control
+    window.SessionKeepAlive = {
+        checkSession: checkSession,
+        extendSession: extendSession,
+        updateActivity: updateActivity,
+        cleanup: cleanup
+    };
+    
+})();
+</script>
+<?php endif; ?>
 <script>
     // Radialize the colors
     $(document).ready(function() {

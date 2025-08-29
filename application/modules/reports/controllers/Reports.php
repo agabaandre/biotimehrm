@@ -4,6 +4,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Reports extends MX_Controller
 {
 
+	protected $title;
+	protected $filters;
+	protected $ufilters;
+	protected $distfilters;
+	protected $watermark;
 
 	public function __Construct()
 	{

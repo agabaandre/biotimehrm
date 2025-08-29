@@ -283,6 +283,114 @@ class Admin_model extends CI_Model {
         
     }
     
+    /**
+     * Get total count of logs
+     */
+    public function get_logs_count($search = '', $user_filter = '', $module_filter = '', $date_from = '', $date_to = '')
+    {
+        $this->db->select('COUNT(*) as total');
+        $this->db->from('activity_log');
+        $this->db->join('user', 'user.user_id = activity_log.fk_user_id', 'LEFT');
+        
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('activity_log.activity', $search);
+            $this->db->or_like('activity_log.module', $search);
+            $this->db->or_like('activity_log.route', $search);
+            $this->db->or_like('user.username', $search);
+            $this->db->or_like('user.email', $search);
+            $this->db->group_end();
+        }
+        
+        if (!empty($user_filter)) {
+            $this->db->where('user.username', $user_filter);
+        }
+        
+        if (!empty($module_filter)) {
+            $this->db->where('activity_log.module', $module_filter);
+        }
+        
+        if (!empty($date_from)) {
+            $this->db->where('DATE(activity_log.created_at) >=', $date_from);
+        }
+        
+        if (!empty($date_to)) {
+            $this->db->where('DATE(activity_log.created_at) <=', $date_to);
+        }
+        
+        $query = $this->db->get();
+        $result = $query->row();
+        
+        return $result ? $result->total : 0;
+    }
+    
+    /**
+     * Get logs for AJAX DataTables with pagination
+     */
+    public function get_logs_ajax($start = 0, $length = 10, $search = '', $order_column = 0, $order_dir = 'asc', $user_filter = '', $module_filter = '', $date_from = '', $date_to = '')
+    {
+        $this->db->select('activity_log.*, user.username, user.email');
+        $this->db->from('activity_log');
+        $this->db->join('user', 'user.user_id = activity_log.fk_user_id', 'LEFT');
+        
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('activity_log.activity', $search);
+            $this->db->or_like('activity_log.module', $search);
+            $this->db->or_like('activity_log.route', $search);
+            $this->db->or_like('user.username', $search);
+            $this->db->or_like('user.email', $search);
+            $this->db->group_end();
+        }
+        
+        if (!empty($user_filter)) {
+            $this->db->where('user.username', $user_filter);
+        }
+        
+        if (!empty($module_filter)) {
+            $this->db->where('activity_log.module', $module_filter);
+        }
+        
+        if (!empty($date_from)) {
+            $this->db->where('DATE(activity_log.created_at) >=', $date_from);
+        }
+        
+        if (!empty($date_to)) {
+            $this->db->where('DATE(activity_log.created_at) <=', $date_to);
+        }
+        
+        // Apply ordering
+        $columns = ['activity_log.log_id', 'activity_log.activity', 'activity_log.created_at', 'user.username', 'activity_log.module'];
+        if (isset($columns[$order_column])) {
+            $this->db->order_by($columns[$order_column], $order_dir);
+        } else {
+            $this->db->order_by('activity_log.created_at', 'desc');
+        }
+        
+        // Apply pagination
+        $this->db->limit($length, $start);
+        
+        $query = $this->db->get();
+        $result = $query->result();
+        
+        // Format data for DataTables
+        $formatted_data = [];
+        foreach ($result as $row) {
+            $formatted_data[] = [
+                'log_id' => $row->log_id,
+                'activity' => $row->activity,
+                'module' => $row->module ?: 'N/A',
+                'route' => $row->route ?: 'N/A',
+                'ip_address' => $row->ip_address ?: 'N/A',
+                'created_at' => $row->created_at,
+                'username' => $row->username ?: 'Unknown User',
+                'email' => $row->email ?: 'N/A'
+            ];
+        }
+        
+        return $formatted_data;
+    }
+    
     public function clearLogs(){
         $this->db->empty_table('activity_log');
         
@@ -290,6 +398,83 @@ class Admin_model extends CI_Model {
            $activity = "Cleared all activity Logs";
         $this->insert_log($activity, $module);
             
+    }
+    
+    /**
+     * Prune logs older than specified days
+     */
+    public function pruneOldLogs($days_old = 30) {
+        try {
+            $cutoff_date = date('Y-m-d H:i:s', strtotime('-' . $days_old . ' days'));
+            
+            // Count logs to be deleted
+            $this->db->where('created_at <', $cutoff_date);
+            $count = $this->db->count_all_results('activity_log');
+            
+            // Delete old logs
+            $this->db->where('created_at <', $cutoff_date);
+            $this->db->delete('activity_log');
+            
+            $deleted_rows = $this->db->affected_rows();
+            
+            // Log the pruning activity
+            if ($deleted_rows > 0) {
+                $this->insert_log("Pruned $deleted_rows logs older than $days_old days", "Activity Logs");
+            }
+            
+            return [
+                'status' => 'success',
+                'deleted_count' => $deleted_rows,
+                'total_old_logs' => $count,
+                'cutoff_date' => $cutoff_date
+            ];
+            
+        } catch (Exception $e) {
+            log_message('error', 'Log pruning error: ' . $e->getMessage());
+            return [
+                'status' => 'error',
+                'message' => 'Failed to prune logs: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Get log statistics for cleanup
+     */
+    public function getLogCleanupStats() {
+        try {
+            // Get total logs count
+            $total_logs = $this->db->count_all('activity_log');
+            
+            // Get logs older than 30 days
+            $cutoff_date = date('Y-m-d H:i:s', strtotime('-30 days'));
+            $this->db->where('created_at <', $cutoff_date);
+            $old_logs = $this->db->count_all_results('activity_log');
+            
+            // Get logs older than 60 days
+            $cutoff_date_60 = date('Y-m-d H:i:s', strtotime('-60 days'));
+            $this->db->where('created_at <', $cutoff_date_60);
+            $very_old_logs = $this->db->count_all_results('activity_log');
+            
+            // Get oldest log date
+            $this->db->select('MIN(created_at) as oldest_log');
+            $oldest = $this->db->get('activity_log')->row();
+            $oldest_date = $oldest ? $oldest->oldest_log : 'N/A';
+            
+            return [
+                'total_logs' => $total_logs,
+                'logs_older_than_30_days' => $old_logs,
+                'logs_older_than_60_days' => $very_old_logs,
+                'oldest_log_date' => $oldest_date
+            ];
+            
+        } catch (Exception $e) {
+            log_message('error', 'Log cleanup stats error: ' . $e->getMessage());
+            return [
+                'status' => 'error',
+                'message' => 'Failed to get cleanup stats: ' . $e->getMessage()
+            ];
+        }
     }
 
     public function addGroup($postdata){

@@ -1,0 +1,79 @@
+
+
+.quizH1 {
+    text-align: center;
+}
+
+#title {
+    text-decoration: none;
+}
+
+#quiz {
+    text-indent: 10px;
+    display:none;
+}
+
+.button {
+    border:none;
+    border-radius:5px;
+    width: 60px;
+    padding-left:5px;
+    padding-right: 5px;
+    position: relative;
+    float:right;
+    text-align:center;
+    background-color: white;
+    color: black;
+    margin: 0 2px 0 2px;
+}
+
+.button.active {
+    background-color: #0ab05d;
+    color: #525252;
+}
+
+#quiz button {
+    position: relative;
+    float:right;
+}
+
+.button a {
+    text-decoration: none;
+    color: black;
+    padding:20px auto;
+}
+
+.answer-check{
+   
+    /* For iOS < 15 to remove gradient background */
+    background-color: rgb(17, 107, 163)!important;
+    border: 1px solid rgb(17, 107, 163)!important;
+    /* Not removed via appearance */
+    margin: 0!important;
+  }
+  
+#container {
+    width:100%;
+    margin:auto;
+    padding: 0 15px 30px 10px;
+    background-color: rgb(250, 247, 247);
+    border-radius:5px;
+    color: grey;
+    font-weight: bold;
+    box-shadow: 1px 1px 7px 1px #888;
+}
+
+.ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#prev {
+    display:none;
+}
+
+#start {
+    display:none;
+    width: 90px;
+}

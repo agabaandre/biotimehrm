@@ -78,6 +78,8 @@
                     <!-- form start -->
                     <form class="job_form" method="post" action="<?php echo base_url(); ?>lists/saveJob">
                         <div class="card-body">
+                            <!-- CSRF Token -->
+                            <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 
                             <div class="form-group">
                                 <label>Job Title</label>
@@ -85,12 +87,13 @@
                             </div>
                             <div class="form-group">
                                 <label>Job ID</label>
-                                <input type="text" class="form-control" name="job_id" required>
+                                <input type="text" class="form-control" name="job_id" placeholder="Auto-generated" readonly>
+                                <small class="form-text text-muted">Job ID will be automatically generated</small>
                             </div>
 
                             <div class="form-group">
                                 <label>Details</label>
-                                <textarea type="text" name="description" class="form-control"></textarea>
+                                <textarea type="text" name="description" class="form-control" rows="3"></textarea>
                             </div>
 
                             <div class="card-footer">

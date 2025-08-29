@@ -19,6 +19,9 @@ RUN pecl install opcache && docker-php-ext-enable opcache
 # Copy custom opcache configuration file
 COPY opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
+# Copy custom PHP configuration to suppress deprecation warnings
+COPY docker-php-deprecation.ini /usr/local/etc/php/conf.d/docker-php-deprecation.ini
+
 # Set working directory to the CodeIgniter project folder
 WORKDIR /var/www/html
 

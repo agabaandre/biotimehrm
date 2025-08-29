@@ -233,45 +233,42 @@ class CI_Exceptions {
 	 * @param	int	$line		Line number
 	 * @return	void
 	 */
-public function show_php_error($severity, $message, $filepath, $line)
-{
-    $templates_path = config_item('error_views_path');
-    if (empty($templates_path)) {
-        $templates_path = VIEWPATH . 'errors' . DIRECTORY_SEPARATOR;
-    }
+	public function show_php_error($severity, $message, $filepath, $line)
+	{
+		$templates_path = config_item('error_views_path');
+		if (empty($templates_path))
+		{
+			$templates_path = VIEWPATH.'errors'.DIRECTORY_SEPARATOR;
+		}
 
-    $severity = isset($this->levels[$severity]) ? $this->levels[$severity] : $severity;
+		$severity = isset($this->levels[$severity]) ? $this->levels[$severity] : $severity;
 
-    if (!is_cli()) {
-        $filepath = str_replace('\\', '/', $filepath);
-        if (FALSE !== strpos($filepath, '/')) {
-            $x = explode('/', $filepath);
-            $filepath = $x[count($x) - 2] . '/' . end($x);
-        }
+		// For safety reasons we don't show the full file path in non-CLI requests
+		if ( ! is_cli())
+		{
+			$filepath = str_replace('\\', '/', $filepath);
+			if (FALSE !== strpos($filepath, '/'))
+			{
+				$x = explode('/', $filepath);
+				$filepath = $x[count($x)-2].'/'.end($x);
+			}
 
-        $template = 'html' . DIRECTORY_SEPARATOR . 'error_php';
-    } else {
-        $template = 'cli' . DIRECTORY_SEPARATOR . 'error_php';
-    }
+			$template = 'html'.DIRECTORY_SEPARATOR.'error_php';
+		}
+		else
+		{
+			$template = 'cli'.DIRECTORY_SEPARATOR.'error_php';
+		}
 
-    // Clean all output buffers to prevent conflicts
-    while (ob_get_level() > $this->ob_level) {
-        @ob_end_clean();
-    }
-
-    // Start output buffering for the error message
-    ob_start();
-    include($templates_path . $template . '.php');
-    $buffer = ob_get_clean();
-
-    // Output the error message or log if headers are sent
-    if (!headers_sent()) {
-        echo $buffer;
-    } else {
-        error_log("Headers already sent in $filepath on line $line. Error output suppressed.");
-    }
-}
-
-
+		if (ob_get_level() > $this->ob_level + 1)
+		{
+			ob_end_flush();
+		}
+		ob_start();
+		include($templates_path.$template.'.php');
+		$buffer = ob_get_contents();
+		ob_end_clean();
+		echo $buffer;
+	}
 
 }

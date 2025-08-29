@@ -3,7 +3,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Reports_mdl extends CI_Model
 {
-
+	protected $department;
 
 	public function __Construct()
 	{
@@ -178,7 +178,8 @@ class Reports_mdl extends CI_Model
 
 		$data = $this->db->get()->result();
 
-		//$sql = $this->db->last_query();
+		$sql = $this->db->last_query();
+		dd($sql);
 
 		// Print or log the SQL query
 		//dd($sql);

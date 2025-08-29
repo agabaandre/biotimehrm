@@ -2,7 +2,14 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 class Attendance extends MX_Controller
 {
-	public  function __construct()
+	protected $departments;
+	protected $attendModule;
+	protected $watermark;
+	protected $filters;
+	protected $ufilters;
+	protected $distfilters;
+
+	public function __construct()
 	{
 		parent::__construct();
 		$this->load->model('attendance_model');
