@@ -93,7 +93,8 @@
     // Track user activity
     function updateActivity() {
         lastActivity = Date.now();
-        resetTimers();
+        // Don't reset timers here - let the server check determine timing
+        // resetTimers(); // Commented out - will be handled by server response
         warningShown = false; // Reset warning flag on activity
     }
     
@@ -107,6 +108,27 @@
         
         // Set logout when session expires
         logoutTimer = setTimeout(logoutUser, SESSION_DURATION);
+    }
+    
+    // Reset timers based on server session expiration
+    function resetTimersBasedOnServer(expiresInSeconds) {
+        if (warningTimer) clearTimeout(warningTimer);
+        if (logoutTimer) clearTimeout(logoutTimer);
+        
+        const expiresInMs = expiresInSeconds * 1000;
+        const warningTimeMs = Math.min(10 * 60 * 1000, expiresInMs - 60000); // 10 minutes or 1 minute before expiry
+        
+        // Set warning before session expires
+        if (expiresInMs > 60000) { // Only set warning if more than 1 minute left
+            warningTimer = setTimeout(showSessionWarning, warningTimeMs);
+        }
+        
+        // Set logout when session expires
+        logoutTimer = setTimeout(logoutUser, expiresInMs);
+        
+        console.log('Timers reset based on server: expires in', expiresInSeconds, 'seconds');
+        console.log('Warning in', warningTimeMs / 1000, 'seconds');
+        console.log('Logout in', expiresInMs / 1000, 'seconds');
     }
     
     // Check session status
@@ -131,6 +153,21 @@
                 window.location.href = '<?php echo base_url("auth"); ?>';
             } else if (data.status === 'active') {
                 console.log('Session is active, expires in', data.expires_in, 'seconds');
+                
+                // Update timers based on server response
+                if (data.expires_in <= 0) {
+                    // Session already expired, logout immediately
+                    console.log('Session already expired, logging out immediately');
+                    logoutUser();
+                } else if (data.expires_in <= 600) { // 10 minutes or less
+                    // Session expires soon, show warning
+                    if (!warningShown) {
+                        showSessionWarning();
+                    }
+                } else {
+                    // Reset timers based on actual server expiration
+                    resetTimersBasedOnServer(data.expires_in);
+                }
             }
         })
         .catch(error => {
@@ -157,7 +194,8 @@
         .then(data => {
             if (data.status === 'success') {
                 console.log('Session extended successfully');
-                resetTimers();
+                // Check session again to get updated timing
+                checkSession();
                 warningShown = false; // Reset warning flag
             }
         })
@@ -237,17 +275,15 @@
         sessionCheckTimer = setInterval(checkSession, SESSION_CHECK_INTERVAL);
         sessionExtendTimer = setInterval(extendSession, SESSION_EXTEND_INTERVAL);
         
-        // Start session timers
-        resetTimers();
+        // Don't set hardcoded timers initially - wait for server response
+        // resetTimers(); // Commented out - will be set by server response
         
-        // Check session immediately
+        // Check session immediately to get server timing
         checkSession();
         
-        console.log('Session keep-alive initialized with 6-hour duration');
+        console.log('Session keep-alive initialized - waiting for server response');
         console.log('Session check interval:', SESSION_CHECK_INTERVAL / 1000, 'seconds');
         console.log('Session extend interval:', SESSION_EXTEND_INTERVAL / 1000, 'seconds');
-        console.log('Session duration:', SESSION_DURATION / 1000 / 60, 'minutes');
-        console.log('Warning time:', WARNING_TIME / 1000 / 60, 'minutes before expiry');
     }
     
     // Clean up timers
@@ -394,6 +430,7 @@ $linkquery = $url; // Outputs: Full URL
             </div>
             <div class="modal-body">
                 <form class="form form-horizontal" action="<?php echo base_url(); ?>departments/switchDepartment" method="post">
+                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
                     <div class="row">
                         <div class="col-md-12">
                             <label>District</label>

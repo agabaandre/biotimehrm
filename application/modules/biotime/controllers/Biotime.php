@@ -133,40 +133,73 @@ class Biotime extends MX_Controller{
     }
 
     public function getMachinesAjax(){
-        $draw = $this->input->post('draw');
-        $start = $this->input->post('start');
-        $length = $this->input->post('length');
-        $search = $this->input->post('search')['value'];
-        $order = $this->input->post('order')[0];
+        // Set JSON header
+        header('Content-Type: application/json');
         
-        $total = $this->biotime_mdl->getMachinesCount($search);
-        $machines = $this->biotime_mdl->getMachinesPaginated($start, $length, $search, $order);
-        
-        $data = array();
-        foreach($machines as $machine) {
-            $status = $this->getMachineStatus($machine->last_activity);
-            $data[] = array(
-                $machine->sn,
-                $machine->area_name,
-                $machine->last_activity,
-                $machine->user_count,
-                $machine->ip_address,
-                $status,
-                $this->getSyncButton($machine->sn)
+        try {
+            $draw = $this->input->post('draw') ? intval($this->input->post('draw')) : 1;
+            $start = $this->input->post('start') ? intval($this->input->post('start')) : 0;
+            $length = $this->input->post('length') ? intval($this->input->post('length')) : 25;
+            
+            // Safely get search value
+            $search_post = $this->input->post('search');
+            $search = '';
+            if (!empty($search_post) && isset($search_post['value'])) {
+                $search = $search_post['value'];
+            }
+            
+            // Safely get order
+            $order_post = $this->input->post('order');
+            $order = null;
+            if (!empty($order_post) && isset($order_post[0])) {
+                $order = $order_post[0];
+            }
+            
+            $total = $this->biotime_mdl->getMachinesCount($search);
+            $machines = $this->biotime_mdl->getMachinesPaginated($start, $length, $search, $order);
+            
+            $data = array();
+            foreach($machines as $machine) {
+                $lastActivity = isset($machine->last_activity) ? $machine->last_activity : null;
+                $status = $this->getMachineStatus($lastActivity);
+                $data[] = array(
+                    isset($machine->sn) ? $machine->sn : '',
+                    isset($machine->area_name) ? $machine->area_name : '',
+                    isset($machine->last_activity) ? $machine->last_activity : '',
+                    isset($machine->user_count) ? $machine->user_count : 0,
+                    isset($machine->ip_address) ? $machine->ip_address : '',
+                    $status,
+                    $this->getSyncButton(isset($machine->sn) ? $machine->sn : '')
+                );
+            }
+            
+            $response = array(
+                'draw' => $draw,
+                'recordsTotal' => $total,
+                'recordsFiltered' => $total,
+                'data' => $data
             );
+            
+            echo json_encode($response);
+            exit;
+        } catch (Exception $e) {
+            $response = array(
+                'draw' => isset($draw) ? $draw : 1,
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => array(),
+                'error' => 'An error occurred: ' . $e->getMessage()
+            );
+            echo json_encode($response);
+            exit;
         }
-        
-        $response = array(
-            'draw' => intval($draw),
-            'recordsTotal' => $total,
-            'recordsFiltered' => $total,
-            'data' => $data
-        );
-        
-        echo json_encode($response);
     }
 
     private function getMachineStatus($lastActivity) {
+        if (empty($lastActivity)) {
+            return '<span class="badge badge-secondary">Unknown</span>';
+        }
+        
         $today = date('Y-m-d');
         $lastDate = date('Y-m-d', strtotime($lastActivity));
         

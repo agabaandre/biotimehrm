@@ -7,7 +7,7 @@ class AttendanceSummaryCron extends MX_Controller {
         parent::__construct();
         
         // Load required models
-        $this->load->model('dashboard_mdl', 'dash_mdl');
+       // $this->load->model('dashboard_mdl', 'dash_mdl');
         
         // Set timezone
         date_default_timezone_set('Africa/Nairobi');
@@ -21,23 +21,16 @@ class AttendanceSummaryCron extends MX_Controller {
         log_message('info', 'Starting Attendance Summary Cron Job');
         
         try {
-            // Check if we should run this job (only after May 1st)
-            $current_date = date('Y-m-d');
-            $start_date = '2025-05-01';
+          
             
-            if (strtotime($current_date) < strtotime($start_date)) {
-                log_message('info', 'Attendance Summary Cron: Not yet May 1st, skipping execution');
-                return;
-            }
+            // Get the date range for processing: first day of previous month to today
+            $date_from = date('Y-m-01', strtotime('first day of -2 month'));
+            $date_to = date('Y-m-d'); // Today
             
-            // Get the date range for processing
-            $date_from = $start_date;
-            $date_to = date('Y-12-31'); // End of current year
+            // No need to clear existing data, as ON DUPLICATE KEY will update
+            // $this->_clearExistingData($date_from, $date_to);
             
-            // Clear existing data for the current year to avoid duplicates
-            $this->_clearExistingData($date_from, $date_to);
-            
-            // Generate and insert new attendance summary data
+            // Generate and insert new attendance summary data (with upsert)
             $inserted_count = $this->_generateAttendanceSummary($date_from, $date_to);
             
             // Update the last_gen timestamp
@@ -65,22 +58,7 @@ class AttendanceSummaryCron extends MX_Controller {
     }
 
     /**
-     * Clear existing data for the specified date range
-     */
-    private function _clearExistingData($date_from, $date_to) {
-        $start_year_month = date('Y-m', strtotime($date_from));
-        $end_year_month = date('Y-m', strtotime($date_to));
-        
-        $this->db->where("DATE_FORMAT(duty_date, '%Y-%m') >=", $start_year_month);
-        $this->db->where("DATE_FORMAT(duty_date, '%Y-%m') <=", $end_year_month);
-        $this->db->delete('person_att_final');
-        
-        $deleted_rows = $this->db->affected_rows();
-        log_message('info', "Cleared {$deleted_rows} existing records for date range {$date_from} to {$date_to}");
-    }
-
-    /**
-     * Generate attendance summary data using the optimized query
+     * Generate attendance summary data using the optimized query with upsert
      */
     private function _generateAttendanceSummary($date_from, $date_to) {
         $query = "
@@ -97,12 +75,15 @@ class AttendanceSummaryCron extends MX_Controller {
                 COALESCE(d.othername, '') AS othername,
                 d.gender,
                 t.facility_id,
-                COALESCE(t.department_id, d.department_id, '') AS department_id,
                 d.facility AS facility_name,
                 COALESCE(d.district, '') AS district,
+
+                COALESCE(d.institutiontype_name, '') AS institution_type,   
+                
                 COALESCE(d.facility_type_id, '') AS facility_type_name,
+                
                 COALESCE(d.cadre, '') AS cadre,
-                COALESCE(d.institutiontype_name, '') AS institution_type,
+                COALESCE(d.department_id, '') AS department_id,
                 COALESCE(d.region, '') AS region,
                 CASE
                     WHEN t.P_ct = GREATEST(t.P_ct, t.O_ct, t.L_ct, t.R_ct, t.X_ct, t.H_ct) THEN 22
@@ -137,6 +118,30 @@ class AttendanceSummaryCron extends MX_Controller {
                     a.ihris_pid, a.facility_id, a.department_id, DATE_FORMAT(a.`date`, '%Y-%m')
             ) t
             LEFT JOIN ihrisdata d ON d.ihris_pid = t.ihris_pid
+            ON DUPLICATE KEY UPDATE
+                ihris_pid = VALUES(ihris_pid),
+                fullname = VALUES(fullname),
+                othername = VALUES(othername),
+                gender = VALUES(gender),
+                facility_id = VALUES(facility_id),
+                facility_name = VALUES(facility_name),
+                district = VALUES(district),
+                institution_type = VALUES(institution_type),
+                facility_type_name = VALUES(facility_type_name),
+                cadre = VALUES(cadre),
+                department_id = VALUES(department_id),
+                region = VALUES(region),
+                schedule_id = VALUES(schedule_id),
+                duty_date = VALUES(duty_date),
+                job = VALUES(job),
+                P = VALUES(P),
+                O = VALUES(O),
+                L = VALUES(L),
+                R = VALUES(R),
+                X = VALUES(X),
+                H = VALUES(H),
+                base_line = VALUES(base_line),
+                last_gen = VALUES(last_gen)
         ";
         
         $result = $this->db->query($query, [$date_from, $date_to]);
@@ -153,6 +158,7 @@ class AttendanceSummaryCron extends MX_Controller {
      * Update the last_gen timestamp for tracking
      */
     private function _updateLastGenTimestamp() {
+        $this->_createTimestampTable();
         $this->db->set('last_gen', date('Y-m-d H:i:s'));
         $this->db->where('table_name', 'person_att_final');
         $this->db->update('system_tables_timestamp');
@@ -180,7 +186,7 @@ class AttendanceSummaryCron extends MX_Controller {
         $this->db->query($create_table_sql);
         
         // Insert initial record
-        $this->db->insert('system_tables_timestamp', [
+        $this->db->replace('system_tables_timestamp', [
             'table_name' => 'person_att_final',
             'last_gen' => date('Y-m-d H:i:s')
         ]);

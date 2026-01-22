@@ -1,33 +1,86 @@
 version: "3.8"
-services:
-  mariadb:
-    image: mariadb:latest
-    volumes:
-      - db_data:/var/lib/mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: test 
-      MYSQL_DATABASE: staff
-      MYSQL_USER: root
-      MYSQL_PASSWORD: test
 
+services:
+  # PHP-FPM Service
   php:
     build:
       context: .
       dockerfile: Dockerfile-php
+    container_name: attend_php
+    restart: unless-stopped
     volumes:
-      - codeigniter_data:/var/www/html
-    depends_on:
-      - mariadb
+      - ./:/var/www/html
+      - ./uploads:/var/www/html/uploads
+      - ./logs:/var/www/html/logs
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_PORT=${DB_PORT}
+      - PHP_TIMEZONE=Africa/Nairobi
+    networks:
+      - attend_network
 
-  apache:
+  # Web Server (Nginx)
+  nginx:
     build:
       context: .
-      dockerfile: Dockerfile-apache
+      dockerfile: Dockerfile-nginx
+    container_name: attend_nginx
+    restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./:/var/www/html
+      - ./uploads:/var/www/html/uploads
+      - ./logs:/var/www/html/logs
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - php
+    networks:
+      - attend_network
+
+  # Redis for Caching (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: attend_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - attend_network
+
+  # Cron Service for Background Jobs
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile-cron
+    container_name: attend_cron
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www/html
+      - ./logs:/var/www/html/logs
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_PORT=${DB_PORT}
+      - PHP_TIMEZONE=Africa/Nairobi
+    depends_on:
+      - php
+    networks:
+      - attend_network
+    command: cron -f
 
 volumes:
-  db_data:
-  codeigniter_data:
+  redis_data:
+    driver: local
+
+networks:
+  attend_network:
+    driver: bridge

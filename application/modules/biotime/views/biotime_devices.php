@@ -1,8 +1,8 @@
 <!-- Main content -->
-<section class="content">
-  <div class="container-fluid">
-    <!-- Main row -->
-    <div class="row">
+  <section class="content">
+    <div class="container-fluid">
+      <!-- Main row -->
+      <div class="row">
       <!-- Left col -->
       <section class="col-lg-12 connectedSortable">
         <!-- Custom tabs (Charts with tabs)-->
@@ -23,15 +23,15 @@
                 <thead class="thead-dark">
                   <tr>
                     <th>Serial Number</th>
-                    <th>Facility</th>
-                    <th>Last Sync</th>
-                    <th>Fingerprint Enrolled Users</th>
-                    <th>IP Address</th>
+                <th>Facility</th>
+                <th>Last Sync</th>
+                <th>Fingerprint Enrolled Users</th>
+                <th>IP Address</th>
                     <th>Status</th>
                     <th>Actions</th>
-                  </tr>
-                </thead>
-              </table>
+              </tr>
+            </thead>
+          </table>
             </div>
           </div><!-- /.card-body -->
         </div><!-- /.card -->
@@ -201,6 +201,25 @@ $(document).ready(function() {
             type: 'POST',
             data: function(d) {
                 d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+            },
+            error: function(xhr, error, thrown) {
+                console.error('DataTables Ajax Error:', {
+                    xhr: xhr,
+                    error: error,
+                    thrown: thrown,
+                    responseText: xhr.responseText
+                });
+                
+                // Show user-friendly error message
+                if (xhr.status === 0) {
+                    alert('Network error: Please check your internet connection.');
+                } else if (xhr.status === 404) {
+                    alert('Page not found: The requested endpoint does not exist.');
+                } else if (xhr.status === 500) {
+                    alert('Server error: Please contact the administrator.');
+                } else {
+                    alert('An error occurred while loading data. Please try again.');
+                }
             }
         },
         columns: [

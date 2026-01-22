@@ -41,15 +41,40 @@ class Auth extends MX_Controller
     $session_expiration = $this->config->item('sess_expiration');
     $session_start = $this->session->userdata('__ci_last_regenerate');
     $current_time = time();
-    $expires_in = $session_expiration - ($current_time - $session_start);
+    
+    // Calculate time since session started
+    $time_since_start = $current_time - $session_start;
+    $expires_in = $session_expiration - $time_since_start;
+    
+    // Ensure expires_in is not negative
+    if ($expires_in < 0) {
+      $expires_in = 0;
+    }
     
     log_message('debug', 'checkSession: Session active, expires_in: ' . $expires_in . ' seconds');
+    log_message('debug', 'checkSession: Session started: ' . $session_start . ', Current time: ' . $current_time);
+    log_message('debug', 'checkSession: Time since start: ' . $time_since_start . ' seconds');
+    log_message('debug', 'checkSession: Session expiration config: ' . $session_expiration . ' seconds');
+    
+    // If session has expired, return expired status
+    if ($expires_in <= 0) {
+      log_message('debug', 'checkSession: Session has expired, returning expired status');
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'expired',
+        'message' => 'Session expired',
+        'expires_in' => 0
+      ]));
+      return;
+    }
     
     $this->output->set_content_type('application/json')->set_output(json_encode([
       'status' => 'active',
       'expires_in' => $expires_in,
       'user_id' => $this->session->userdata('user_id'),
-      'facility' => $this->session->userdata('facility')
+      'facility' => $this->session->userdata('facility'),
+      'session_start' => $session_start,
+      'current_time' => $current_time,
+      'time_since_start' => $time_since_start
     ]));
   }
 

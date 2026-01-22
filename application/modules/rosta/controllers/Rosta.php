@@ -118,7 +118,23 @@ class Rosta extends MX_Controller
 	}
 	public function tabular()
 	{
+		// Get employee filter from POST, GET, or session (in that order)
 		$employee = $this->input->post('empid');
+		if (empty($employee)) {
+			$employee = $this->input->get('empid');
+		}
+		if (empty($employee) && !empty($_SESSION['tabular_empid'])) {
+			$employee = $_SESSION['tabular_empid'];
+		}
+		
+		// Store employee in session if provided
+		if (!empty($employee)) {
+			$_SESSION['tabular_empid'] = $employee;
+		} else {
+			// Clear session if empty
+			unset($_SESSION['tabular_empid']);
+		}
+		
 		$month = $this->input->post('month');
 		$year = $this->input->post('year');
 		if (!empty($month)) {
@@ -137,13 +153,25 @@ class Rosta extends MX_Controller
 			$data['month'] = $_SESSION['month'];
 			$data['year'] = $_SESSION['year'];
 		}
+		
+		// Get current page from URI segment
+		// When use_page_numbers is FALSE, segment contains the offset directly
+		$page = ($this->uri->segment(3)) ? (int)$this->uri->segment(3) : 0;
+		$per_page = 50; // records per page
+		$start = $page; // Offset is already in $page when use_page_numbers is FALSE
+		
+		// Use optimized count method
+		$total_rows = $this->rosta_model->count_tabs_optimized($this->filters, $employee);
+		
 		$this->load->library('pagination');
 		$config = array();
 		$config['base_url'] = base_url() . "rosta/tabular";
-		$config['total_rows'] = $this->rosta_model->count_tabs();
-		$config['per_page'] = 50; //records per page
-		$config['uri_segment'] = 3; //segment in url  
-		//pagination links styling
+		$config['total_rows'] = $total_rows;
+		$config['per_page'] = $per_page;
+		$config['uri_segment'] = 3;
+		$config['use_page_numbers'] = FALSE;
+		
+		// Pagination links styling
 		$config['full_tag_open'] = '<ul class="pagination">';
 		$config['full_tag_close'] = '</ul>';
 		$config['attributes'] = ['class' => 'page-link'];
@@ -163,19 +191,35 @@ class Rosta extends MX_Controller
 		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
 		$config['num_tag_open'] = '<li class="page-item">';
 		$config['num_tag_close'] = '</li>';
-		$config['use_page_numbers'] = FALSE;
+		
 		$this->pagination->initialize($config);
-		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits
 		$data['links'] = $this->pagination->create_links();
+		
+		// Set execution time for large datasets
 		ini_set('max_execution_time', 0);
+		
+		// Get schedules and tab schedules (these are small datasets)
 		$data['schedules'] = Modules::run("schedules/getSchedules", "r");
-		$data['duties'] = $this->rosta_model->fetch_tabs($date, $config['per_page'], $page, $employee, $this->filters);
-		$data['matches'] = $this->rosta_model->matches($date);
 		$data['tab_schedules'] = $this->rosta_model->tab_matches();
+		
+		// Use optimized fetch method for current page only
+		$data['duties'] = $this->rosta_model->fetch_tabs_optimized($start, $per_page, $employee, $this->filters);
+		
+		// Extract employee IDs for current page to optimize duty matches
+		$employee_ids = array();
+		if (!empty($data['duties'])) {
+			$employee_ids = array_column($data['duties'], 'ihris_pid');
+		}
+		
+		// Use optimized matches method that only fetches data for current page employees
+		$data['matches'] = $this->rosta_model->matches_optimized($date, $employee_ids);
+		
 		$data['view'] = 'duty_roster';
 		$data['module'] = $this->rostamodule;
 		$data['uptitle'] = "Duty Roster";
 		$data['title'] = "Duty Roster";
+		$data['selected_employee'] = $employee; // Pass selected employee to view
+		
 		echo Modules::run("templates/main", $data);
 	}
 	public function getrosterschedules($date = "2022-09-01", $person = "person|1320128")
@@ -867,5 +911,33 @@ file_put_contents('log.txt',$data,FILE_APPEND);*/
 				} //
 			}
 		} //3000
+	}
+	
+	/**
+	 * Create performance indexes for better query performance
+	 * This should be called once during setup
+	 */
+	public function createIndexes()
+	{
+		if (!$this->session->userdata('isLoggedIn')) {
+			redirect('auth');
+		}
+		
+		$result = $this->rosta_model->create_performance_indexes();
+		echo $result;
+	}
+	
+	/**
+	 * Get performance statistics
+	 */
+	public function getPerformanceStats()
+	{
+		if (!$this->session->userdata('isLoggedIn')) {
+			redirect('auth');
+		}
+		
+		$stats = $this->rosta_model->get_performance_stats();
+		header('Content-Type: application/json');
+		echo json_encode($stats);
 	}
 }

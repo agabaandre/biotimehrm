@@ -23,12 +23,14 @@ function dayState($day, $scheduled)
 	// echo $state;
 } //color
 
-
-
-echo $state;
-if (count($duties) > 0) {
+// Show performance monitor for large datasets
+if (isset($duties) && count($duties) > 0) {
+	$total_employees = $this->rosta_model->count_tabs_optimized($this->filters, '');
+	if ($total_employees > 100) {
+		include('performance_monitor.php');
+	}
+}
 ?>
-<?php } ?>
 <?php
 $pv = $this->input->post('year').'-'.$this->input->post('month');
 
@@ -99,9 +101,13 @@ if ($posted_timestamp > $current_timestamp) {
 											//print_r($facility);
 											$employees = Modules::run("employees/get_employees"); ?>
 											<select class="form-control select2" name="empid" select2>
-												<option value="" selected disabled>Select Employee</option>
-												<?php foreach ($employees as $employee) {  ?>
-													<option value="<?php echo $employee->ihris_pid ?>"><?php echo $employee->surname . ' ' . $employee->firstname . ' ' . $employee->othername; ?></option>
+												<option value="">Select Employee</option>
+												<?php 
+												$selected_employee = isset($selected_employee) ? $selected_employee : '';
+												foreach ($employees as $emp) {  
+													$selected = ($selected_employee == $emp->ihris_pid) ? 'selected' : '';
+												?>
+													<option value="<?php echo $emp->ihris_pid ?>" <?php echo $selected; ?>><?php echo $emp->surname . ' ' . $emp->firstname . ' ' . $emp->othername; ?></option>
 												<?php }  ?>
 											</select>
 										</div>

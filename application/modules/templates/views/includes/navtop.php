@@ -31,8 +31,8 @@
     
     <?php if (in_array('13', $permissions)) { ?>
       <li class="nav-item">
-        <a class="btn btn-modern btn-outline-light" data-toggle="modal" data-target="#switch">
-          <i class="fas fa-toggle-on"></i>
+        <a class="btn-modern nav-link" data-toggle="modal" data-target="#switch" style="cursor: pointer;">
+          <i class="fas fa-toggle-on" style="font-size: 0.75rem; margin-right: 0.3rem;"></i>
           <span class="hidden-mobile">Change Facility</span>
         </a>
       </li>
@@ -103,36 +103,36 @@
 }
 
 .facility-info {
-  margin-right: 1.5rem;
+  margin-right: 0.75rem;
 }
 
 .facility-display {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.4rem 0.8rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
+  padding: 0.2rem 0.5rem;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  backdrop-filter: none;
   transition: all 0.3s ease;
-  width: 180px;
-  min-height: 40px;
+  width: auto;
+  min-height: auto;
   justify-content: center;
   text-overflow: ellipsis;
 }
 
 .facility-display:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: transparent;
+  transform: none;
+  box-shadow: none;
 }
 
 .district-name {
   color: #ffffff;
-  font-size: 0.85rem;
-  font-weight: 500;
-  opacity: 0.9;
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.85;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -142,9 +142,9 @@
 
 .facility-name {
   color: #ffffff;
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 0.15rem;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -153,26 +153,29 @@
 }
 
 .btn-modern {
-  border-radius: 10px;
-  padding: 0.4rem 0.8rem;
-  font-weight: 500;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-weight: 400;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  width: 180px;
-  height: 55px;
+  backdrop-filter: none;
+  width: auto;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   color: #ffffff !important;
+  font-size: 0.8rem;
+  text-decoration: none;
 }
 
 .btn-modern:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  opacity: 1;
+  text-decoration: none;
 }
 
 .user-dropdown {
@@ -279,14 +282,15 @@
   }
   
   .facility-display {
-    padding: 0.2rem 0.4rem !important;
-    width: 160px !important;
-    min-height: 45px !important;
+    padding: 0.15rem 0.3rem !important;
+    width: auto !important;
+    min-height: auto !important;
   }
   
   .btn-modern {
-    width: 160px !important;
-    height: 45px !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0.15rem 0.3rem !important;
   }
   
   .user-profile {

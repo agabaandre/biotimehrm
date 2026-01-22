@@ -121,6 +121,39 @@ class Rosta_model extends CI_Model
 		}
 		return $matches;
 	}
+	
+	/**
+	 * Optimized matches method that only fetches data for current page employees
+	 */
+	public function matches_optimized($date, $employee_ids = array())
+	{
+		if (empty($employee_ids)) {
+			return array();
+		}
+		
+		$facility = $this->session->userdata['facility'];
+		
+		// Create placeholders for the IN clause
+		$placeholders = str_repeat('?,', count($employee_ids) - 1) . '?';
+		
+		$sql = "SELECT duty_rosta.ihris_pid, duty_rosta.schedule_id, duty_rosta.duty_date, schedules.letter 
+				FROM duty_rosta 
+				JOIN schedules ON schedules.schedule_id = duty_rosta.schedule_id 
+				WHERE duty_rosta.facility_id = ? 
+				AND DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') = ? 
+				AND duty_rosta.ihris_pid IN ($placeholders)";
+		
+		$params = array_merge(array($facility, $date), $employee_ids);
+		$query = $this->db->query($sql, $params);
+		$results = $query->result_array();
+		
+		$matches = array();
+		foreach ($results as $result) {
+			$matches[$result['duty_date'] . $result['ihris_pid']] = $result['letter'];
+		}
+		
+		return $matches;
+	}
 	public function tab_matches()
 	{
 		$query = $this->db->query("Select schedule_id,letter from schedules where purpose='r'");
@@ -163,6 +196,30 @@ class Rosta_model extends CI_Model
 		$rows = $all->num_rows();
 		return $rows;
 	}
+	
+	/**
+	 * Optimized count method with filters
+	 */
+	public function count_tabs_optimized($filters = '', $employee = '')
+	{
+		$facility = $this->session->userdata['facility'];
+		
+		$sql = "SELECT COUNT(DISTINCT ihrisdata.ihris_pid) as total FROM ihrisdata WHERE ihrisdata.facility_id = ?";
+		$params = array($facility);
+		
+		if (!empty($filters)) {
+			$sql .= " AND " . $filters;
+		}
+		
+		if (!empty($employee)) {
+			$sql .= " AND ihrisdata.ihris_pid = ?";
+			$params[] = $employee;
+		}
+		
+		$query = $this->db->query($sql, $params);
+		$result = $query->row();
+		return $result->total;
+	}
 	public function fetch_tabs($valid_range, $start, $limit, $employee = FALSE, $filters=FALSE)
 	{
 		$facility = $this->session->userdata['facility'];
@@ -191,6 +248,48 @@ class Rosta_model extends CI_Model
 			) AS fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
 		$data = $all->result_array();
 		return $data;
+	}
+	
+	/**
+	 * Optimized fetch method with proper server-side pagination
+	 */
+	public function fetch_tabs_optimized($start, $limit, $employee = '', $filters = '')
+	{
+		$facility = $this->session->userdata['facility'];
+		
+		// Build the base query
+		$sql = "SELECT DISTINCT ihrisdata.ihris_pid, 
+				CONCAT(
+					COALESCE(ihrisdata.surname, ''),
+					' ',
+					COALESCE(ihrisdata.firstname, ''),
+					' ',
+					COALESCE(ihrisdata.othername, '')
+				) AS fullname,
+				ihrisdata.job 
+				FROM ihrisdata 
+				WHERE ihrisdata.facility_id = ?";
+		
+		$params = array($facility);
+		
+		// Add filters if provided
+		if (!empty($filters)) {
+			$sql .= " AND " . $filters;
+		}
+		
+		// Add employee filter if provided
+		if (!empty($employee)) {
+			$sql .= " AND ihrisdata.ihris_pid = ?";
+			$params[] = $employee;
+		}
+		
+		// Add ordering and pagination
+		$sql .= " ORDER BY ihrisdata.surname ASC LIMIT ?, ?";
+		$params[] = (int)$start;
+		$params[] = (int)$limit;
+		
+		$query = $this->db->query($sql, $params);
+		return $query->result_array();
 	}
 	public function fetchleave_tabs($date_range, $start, $limit, $employee = NULL)
 	{
@@ -544,5 +643,56 @@ class Rosta_model extends CI_Model
 		$query  = $this->db->query($sql);
 		$row 	= $query->row();
 		return ($row) ? $this->find_schedule($row->schedule_id)->letter : "";
+	}
+
+	/**
+	 * Create database indexes for better performance
+	 * This method should be called once during setup
+	 */
+	public function create_performance_indexes()
+	{
+		// Index for facility_id in ihrisdata table
+		$this->db->query("CREATE INDEX IF NOT EXISTS idx_ihrisdata_facility_id ON ihrisdata(facility_id)");
+		
+		// Index for surname in ihrisdata table for ORDER BY
+		$this->db->query("CREATE INDEX IF NOT EXISTS idx_ihrisdata_surname ON ihrisdata(surname)");
+		
+		// Composite index for duty_rosta table
+		$this->db->query("CREATE INDEX IF NOT EXISTS idx_duty_rosta_facility_date ON duty_rosta(facility_id, duty_date)");
+		
+		// Index for ihris_pid in duty_rosta table
+		$this->db->query("CREATE INDEX IF NOT EXISTS idx_duty_rosta_ihris_pid ON duty_rosta(ihris_pid)");
+		
+		// Index for schedule_id in schedules table
+		$this->db->query("CREATE INDEX IF NOT EXISTS idx_schedules_schedule_id ON schedules(schedule_id)");
+		
+		return "Performance indexes created successfully";
+	}
+	
+	/**
+	 * Get performance statistics for monitoring
+	 */
+	public function get_performance_stats()
+	{
+		$facility = $this->session->userdata['facility'];
+		
+		// Count total employees
+		$total_employees = $this->db->query("SELECT COUNT(*) as total FROM ihrisdata WHERE facility_id = ?", array($facility))->row()->total;
+		
+		// Count total duty records for current month
+		$current_month = date('Y-m');
+		$total_duties = $this->db->query("SELECT COUNT(*) as total FROM duty_rosta WHERE facility_id = ? AND DATE_FORMAT(duty_date, '%Y-%m') = ?", array($facility, $current_month))->row()->total;
+		
+		// Get query execution time
+		$start_time = microtime(true);
+		$this->db->query("SELECT COUNT(*) FROM ihrisdata WHERE facility_id = ?", array($facility));
+		$execution_time = microtime(true) - $start_time;
+		
+		return array(
+			'total_employees' => $total_employees,
+			'total_duties' => $total_duties,
+			'query_execution_time' => round($execution_time * 1000, 2), // in milliseconds
+			'current_month' => $current_month
+		);
 	}
 }

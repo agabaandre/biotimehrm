@@ -1,5 +1,5 @@
-# Use the official PHP 8.1 image with FPM
-FROM php:8.1-fpm
+# Use the official PHP 8.1 CLI image for cron jobs
+FROM php:8.1-cli
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -19,15 +19,11 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libwebp-dev \
     libxpm-dev \
-    libmcrypt-dev \
     libgd-dev \
     libmemcached-dev \
     libssl-dev \
     libcurl4-openssl-dev \
     libicu-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
     unzip \
     zip \
     cron \
@@ -105,7 +101,6 @@ WORKDIR /var/www/html
 
 # Copy PHP configuration files
 COPY docker/php/php.ini /usr/local/etc/php/php.ini
-COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
 COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
 # Create necessary directories
@@ -144,8 +139,16 @@ RUN chown -R www-data:www-data /var/www/html \
 # Create cron job for duty roster summary
 RUN echo "0 2 * * * cd /var/www/html && php index.php cronjobs/DutyRosterSummaryCron/updateDutyRosterSummary >> /var/www/html/logs/cron.log 2>&1" | crontab -
 
-# Expose port 9000 for PHP-FPM
+# Create supervisor configuration for cron
+RUN mkdir -p /etc/supervisor/conf.d
+COPY docker/supervisor/cron.conf /etc/supervisor/conf.d/cron.conf
+
+# Create startup script
+COPY docker/scripts/start-cron.sh /start-cron.sh
+RUN chmod +x /start-cron.sh
+
+# Expose port 9000 for PHP CLI
 EXPOSE 9000
 
-# Start PHP-FPM
-CMD ["php-fpm"]
+# Start cron service
+CMD ["/start-cron.sh"]

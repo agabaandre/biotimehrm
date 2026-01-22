@@ -276,16 +276,28 @@
 				$supposed_days = $row->days_supposed;
 				$days_worked = ($row->days_supposed - $row->days_absent);
 
-				$attendance_rate = ($days_worked / $supposed_days) * 100;
-				$absentism_rate = ($row->days_absent / $supposed_days) * 100;
+				// Prevent division by zero
+				if ($supposed_days > 0) {
+					$attendance_rate = ($days_worked / $supposed_days) * 100;
+					$absentism_rate = ($row->days_absent / $supposed_days) * 100;
 
-
-				$present = ($row->present / $supposed_days) * 100;
-				$on_leave = ($row->own_leave / $supposed_days) * 100;
-				$official = ($row->official / $supposed_days) * 100;
-				$off = ($row->off / $supposed_days) * 100;
-				$holiday = ($row->holiday / $supposed_days) * 100;
-				$absent = ($row->absent / $supposed_days) * 100;
+					$present = ($row->present / $supposed_days) * 100;
+					$on_leave = ($row->own_leave / $supposed_days) * 100;
+					$official = ($row->official / $supposed_days) * 100;
+					$off = ($row->off / $supposed_days) * 100;
+					$holiday = ($row->holiday / $supposed_days) * 100;
+					$absent = ($row->absent / $supposed_days) * 100;
+				} else {
+					// Set default values when supposed_days is zero
+					$attendance_rate = 0;
+					$absentism_rate = 0;
+					$present = 0;
+					$on_leave = 0;
+					$official = 0;
+					$off = 0;
+					$holiday = 0;
+					$absent = 0;
+				}
 
 				$total_present += $present;
 				$total_leave += $on_leave;
@@ -357,34 +369,34 @@
 				</span>
 				<span class="cell stcell ">Period </span>
 				<span class="cell stcell ">
-					<?php echo number_format(($total_present / $count), 1); ?>%
+					<?php echo ($count > 0) ? number_format(($total_present / $count), 1) . '%' : '0.0%'; ?>
 				</span>
 				<span class="cell stcell ">
-					<?php echo number_format(($total_off / $count), 1); ?>%
+					<?php echo ($count > 0) ? number_format(($total_off / $count), 1) . '%' : '0.0%'; ?>
 				</span>
 				<span class="cell stcell ">
-					<?php echo number_format(($total_official / $count), 1); ?>%
+					<?php echo ($count > 0) ? number_format(($total_official / $count), 1) . '%' : '0.0%'; ?>
 				</span>
 				<span class="cell stcell ">
-					<?php echo number_format(($total_leave / $count), 1); ?>%
+					<?php echo ($count > 0) ? number_format(($total_leave / $count), 1) . '%' : '0.0%'; ?>
 				</span>
 				<span class="cell stcell ">
-					<?php echo number_format(($total_holiday / $count), 1); ?>%
+					<?php echo ($count > 0) ? number_format(($total_holiday / $count), 1) . '%' : '0.0%'; ?>
 				</span>
 				<span class="cell stcell ">
-					<?php echo number_format(($total_absent / $count), 1); ?>%
+					<?php echo ($count > 0) ? number_format(($total_absent / $count), 1) . '%' : '0.0%'; ?>
 				</span>
 				<span class="cell stcell ">
-					<?php echo number_format($total_days_worked / $count, 1); ?>
+					<?php echo ($count > 0) ? number_format($total_days_worked / $count, 1) : '0.0'; ?>
 				</span>
 				<span class="cell stcell ">
-					<?php echo number_format($total_supposed / $count, 1); ?>
+					<?php echo ($count > 0) ? number_format($total_supposed / $count, 1) : '0.0'; ?>
 				</span>
 				<span class="cell stcell ">
-					<?php echo number_format($total_attendance_rate / $count, 1); ?>%
+					<?php echo ($count > 0) ? number_format($total_attendance_rate / $count, 1) . '%' : '0.0%'; ?>
 				</span>
 				<span class="cell stcell ">
-					<?php echo number_format($total_absentism_rate / $count, 1); ?>%
+					<?php echo ($count > 0) ? number_format($total_absentism_rate / $count, 1) . '%' : '0.0%'; ?>
 				</span>
 			</div>
 

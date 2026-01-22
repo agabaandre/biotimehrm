@@ -212,14 +212,7 @@ foreach ($records as $row) {
     $dates = explode("-", $row->duty_date);
     $month_days  = cal_days_in_month(CAL_GREGORIAN, $dates[1], $dates[0]);
 
-    // Check if $supposed_days is set and not zero
-    if (!empty($supposed_days) && $supposed_days > 0) {
-        $absentism_rate  = ($row->days_absent / $supposed_days) * 100;
-    } else {
-        $absentism_rate  = 0; // Default value when division is not possible
-    }
 
-    // Continue with the rest of your code
 ?>
 
                 <div class="table-row tbrow strow">
@@ -255,38 +248,42 @@ foreach ($records as $row) {
                         <?php echo $row->H; ?>
                     </span>
 
-                    <span class="cell stcell " data-label="% Present"><?php echo $absent = $month_days - ($row->P + $row->O + $row->R + $row->L);
-																			?></span>
+                    <span class="cell stcell " data-label="Absent"><?php echo $absent = $month_days - ($row->P + $row->O + $row->R + $row->L); ?></span>
                     <span class="cell stcell "
-                        data-label="% Absent"><?php echo number_format(($absent / $month_days), 1) * 100 ?>%</span>
+                        data-label="% Absent"><?php echo ($month_days > 0) ? number_format(($absent / $month_days), 1) * 100 : 0 ?>%</span>
 
                 </div>
                 <?php
-					$no++;
-				}
+                // Add to totals
+                $total_present += $row->P;
+                $total_off += $row->O;
+                $total_official += $row->R;
+                $total_leave += $row->L;
+                $total_holiday += $row->H;
+                $total_absent += $absent;
+                $total_supposed += $month_days;
+                
+                $no++;
+            }
 
 
-				$total_supposed_days = $total_supposed;
-				$toal_days_worked         = $total_supposed - $total_absent;
 
-				$total_attendance_rate = ($toal_days_worked / $total_supposed_days) * 100;
-				$total_absentism_rate  = ($total_absent / $total_supposed_days) * 100;
 
 				?>
 
                 <div class="header-row tbrow">
                     <span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
-                    <span class="cell stcell"></span>
-                    <span class="cell stcell "><?php ?> </span>
-                    <span class="cell stcell "><?php ?></span>
-                    <span class="cell stcell "><?php  ?></span>
-                    <span class="cell stcell "><?php  ?></span>
-                    <span class="cell stcell "><?php  ?> </span>
-                    <span class="cell stcell "><?php ?> </span>
-                    <span class="cell stcell "><?php ?></span>
-                    <span class="cell stcell "><?php  ?></span>
-                    <span class="cell stcell "><?php ?></span>
-                    <span class="cell stcell "><?php ?></span>
+                    <span class="cell stcell">TOTALS</span>
+                    <span class="cell stcell "></span>
+                    <span class="cell stcell "></span>
+                    <span class="cell stcell "></span>
+                    <span class="cell stcell "><?php echo $total_present; ?></span>
+                    <span class="cell stcell "><?php echo $total_off; ?></span>
+                    <span class="cell stcell "><?php echo $total_official; ?></span>
+                    <span class="cell stcell "><?php echo $total_leave; ?></span>
+                    <span class="cell stcell "><?php echo $total_holiday; ?></span>
+                    <span class="cell stcell "><?php echo $total_absent; ?></span>
+                    <span class="cell stcell "><?php echo ($total_supposed > 0) ? number_format(($total_absent / $total_supposed) * 100, 1) : 0; ?>%</span>
                 </div>
 
             </div>

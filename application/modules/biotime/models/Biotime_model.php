@@ -39,6 +39,8 @@ return $this->db->get('biotime_devices')->result();
 }
 
 public function getMachinesCount($search = '') {
+    $this->db->from('biotime_devices');
+    
     if (!empty($search)) {
         $this->db->group_start();
         $this->db->like('sn', $search);
@@ -46,10 +48,14 @@ public function getMachinesCount($search = '') {
         $this->db->or_like('ip_address', $search);
         $this->db->group_end();
     }
-    return $this->db->count_all_results('biotime_devices');
+    
+    return $this->db->count_all_results();
 }
 
 public function getMachinesPaginated($start, $length, $search = '', $order = null) {
+    $this->db->select('*');
+    $this->db->from('biotime_devices');
+    
     if (!empty($search)) {
         $this->db->group_start();
         $this->db->like('sn', $search);
@@ -59,14 +65,21 @@ public function getMachinesPaginated($start, $length, $search = '', $order = nul
     }
     
     if ($order && isset($order['column']) && isset($order['dir'])) {
-        $columns = ['sn', 'area_name', 'last_activity', 'user_count', 'ip_address', 'status'];
+        $columns = ['sn', 'area_name', 'last_activity', 'user_count', 'ip_address'];
         if (isset($columns[$order['column']])) {
             $this->db->order_by($columns[$order['column']], $order['dir']);
+        } else {
+            // Default ordering by last_activity desc
+            $this->db->order_by('last_activity', 'desc');
         }
+    } else {
+        // Default ordering by last_activity desc
+        $this->db->order_by('last_activity', 'desc');
     }
     
     $this->db->limit($length, $start);
-    return $this->db->get('biotime_devices')->result();
+    $query = $this->db->get();
+    return $query->result();
 }
 public function get_enrolled(){
   $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device!=''");
