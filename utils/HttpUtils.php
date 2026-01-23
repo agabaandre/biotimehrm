@@ -19,10 +19,16 @@ class HttpUtils
     {
 
         $this->CI = &get_instance();
-        $this->client = new Client(['base_uri' => BIO_URL]);
-        $this->ihrisclient = new Client(['base_uri' => iHRIS_URL]);
-        $this->ihris5client = new Client(['base_uri' => iHRIS5_URL]);
-        $this->ucmbihrisclient = new Client(['base_uri' => UCMBiHRIS_URL]);
+        // Set longer timeout for sync operations (5 minutes)
+        $timeoutConfig = [
+            'base_uri' => BIO_URL,
+            'timeout' => 300.0,
+            'connect_timeout' => 30.0
+        ];
+        $this->client = new Client($timeoutConfig);
+        $this->ihrisclient = new Client(['base_uri' => iHRIS_URL, 'timeout' => 300.0, 'connect_timeout' => 30.0]);
+        $this->ihris5client = new Client(['base_uri' => iHRIS5_URL, 'timeout' => 300.0, 'connect_timeout' => 30.0]);
+        $this->ucmbihrisclient = new Client(['base_uri' => UCMBiHRIS_URL, 'timeout' => 300.0, 'connect_timeout' => 30.0]);
     }
 
     public function sendRequest($endpoint = "", $method = "", $headers = [], $body = [])
@@ -76,7 +82,9 @@ class HttpUtils
                     "start_time" => $options->start_time,
                     "end_time" => $options->end_time,
                     "terminal_sn" => $options->terminal_sn,
-                ]
+                ],
+                'timeout' => 300.0,
+                'connect_timeout' => 30.0
             ]
         );
 
@@ -93,8 +101,9 @@ class HttpUtils
             $method,
             $url,
             [
-                'headers' => $headers
-
+                'headers' => $headers,
+                'timeout' => 300.0,
+                'connect_timeout' => 30.0
             ]
         );
 
@@ -112,8 +121,9 @@ class HttpUtils
             $method,
             $url,
             [
-                'headers' => $headers
-
+                'headers' => $headers,
+                'timeout' => 300.0,
+                'connect_timeout' => 30.0
             ]
         );
 
@@ -133,9 +143,10 @@ class HttpUtils
             [
                 'headers' => $headers,
                 'query' => [
-
                     "page" => $options->page
-                ]
+                ],
+                'timeout' => 3600.0, // 1 hour timeout for background processes (employee sync can be very long)
+                'connect_timeout' => 60.0 // Increased connection timeout
             ]
         );
 

@@ -9,11 +9,20 @@ Class Biotime_model extends CI_Model
 
    public  function __construct(){
         parent:: __construct();
-        $this->facility=$this->session->userdata['facility'];
-        $this->user=$this->session->get_userdata();
-        $this->watermark=FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
-        $this->filters=Modules::run('filters/sessionfilters');
-
+        
+        // Safely get facility from session
+        $userdata = $this->session->userdata;
+        $this->facility = isset($userdata['facility']) ? $userdata['facility'] : null;
+        $this->user = $this->session->get_userdata();
+        $this->watermark = FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
+        
+        // Safely get filters
+        try {
+            $this->filters = Modules::run('filters/sessionfilters');
+        } catch (Exception $e) {
+            $this->filters = array();
+            log_message('error', 'Failed to get session filters: ' . $e->getMessage());
+        }
     }
 
    
@@ -39,8 +48,9 @@ return $this->db->get('biotime_devices')->result();
 }
 
 public function getMachinesCount($search = '') {
-    $this->db->from('biotime_devices');
-    
+    try {
+        $this->db->from('biotime_devices');
+        
     if (!empty($search)) {
         $this->db->group_start();
         $this->db->like('sn', $search);
@@ -48,14 +58,19 @@ public function getMachinesCount($search = '') {
         $this->db->or_like('ip_address', $search);
         $this->db->group_end();
     }
-    
-    return $this->db->count_all_results();
+        
+        return $this->db->count_all_results();
+    } catch (Exception $e) {
+        log_message('error', 'getMachinesCount error: ' . $e->getMessage());
+        return 0;
+    }
 }
 
 public function getMachinesPaginated($start, $length, $search = '', $order = null) {
-    $this->db->select('*');
-    $this->db->from('biotime_devices');
-    
+    try {
+        $this->db->select('*');
+        $this->db->from('biotime_devices');
+        
     if (!empty($search)) {
         $this->db->group_start();
         $this->db->like('sn', $search);
@@ -65,21 +80,31 @@ public function getMachinesPaginated($start, $length, $search = '', $order = nul
     }
     
     if ($order && isset($order['column']) && isset($order['dir'])) {
-        $columns = ['sn', 'area_name', 'last_activity', 'user_count', 'ip_address'];
+            $columns = ['sn', 'area_name', 'last_activity', 'user_count', 'ip_address'];
         if (isset($columns[$order['column']])) {
             $this->db->order_by($columns[$order['column']], $order['dir']);
+            } else {
+                // Default ordering by last_activity desc
+                $this->db->order_by('last_activity', 'desc');
+            }
         } else {
             // Default ordering by last_activity desc
             $this->db->order_by('last_activity', 'desc');
-        }
-    } else {
-        // Default ordering by last_activity desc
-        $this->db->order_by('last_activity', 'desc');
     }
     
     $this->db->limit($length, $start);
-    $query = $this->db->get();
-    return $query->result();
+        $query = $this->db->get();
+        
+        if ($query) {
+            return $query->result();
+        } else {
+            log_message('error', 'getMachinesPaginated query failed');
+            return array();
+        }
+    } catch (Exception $e) {
+        log_message('error', 'getMachinesPaginated error: ' . $e->getMessage());
+        return array();
+    }
 }
 public function get_enrolled(){
   $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device!=''");

@@ -120,17 +120,40 @@ class Biotimejobs_mdl extends CI_Model
     public function save_department($data)
     {
         if (count($data) > 1) {
-            $this->db->query("TRUNCATE biotime_departments");
+            // Use TRUNCATE to clear table and reset auto-increment counter
+            $this->db->query("TRUNCATE TABLE biotime_departments");
+            // Ensure auto-increment starts from 1
+            $this->db->query("ALTER TABLE biotime_departments AUTO_INCREMENT = 1");
         }
-        $query = $this->db->insert_batch("biotime_departments", $data);
+        
+        // Build batch REPLACE with explicit column specification (excluding id)
+        // REPLACE will delete existing row if dept_code matches and insert new one
+        if (empty($data)) {
+            $message = print_r($this->exect()) . " save_department() No data to insert";
+            return $message;
+        }
+        
+        $values = array();
+        foreach ($data as $row) {
+            $dept_code = isset($row['dept_code']) ? $this->db->escape($row['dept_code']) : 'NULL';
+            $dept_name = isset($row['dept_name']) ? $this->db->escape($row['dept_name']) : 'NULL';
+            $values[] = "($dept_code, $dept_name)";
+        }
+        
+        // Use REPLACE INTO - this will delete existing row if dept_code matches and insert new one
+        // id is auto-increment, so we don't include it - MySQL will generate new id
+        $sql = "REPLACE INTO biotime_departments (dept_code, dept_name) VALUES " . implode(', ', $values);
+        
+        $query = $this->db->query($sql);
         if ($query) {
-            $n = $this->db->query("select id biotime_departments");
-
+            $n = $this->db->get("biotime_departments");
             $message = print_r($this->exect()) . " save_department() Created Departments from Biotime " . $n->num_rows();
-            // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows());
-            // ");
         } else {
-            $message = print_r($this->exect()) . " Fetch Departments Failed ";
+            $error = $this->db->error();
+            $error_msg = isset($error['message']) ? $error['message'] : 'Unknown error';
+            $error_code = isset($error['code']) ? $error['code'] : '';
+            $message = print_r($this->exect()) . " Fetch Departments Failed: " . $error_msg . " (Code: " . $error_code . ")";
+            log_message('error', 'save_department failed: ' . $error_msg . ' | SQL: ' . substr($sql, 0, 200));
         }
 
         return $message;

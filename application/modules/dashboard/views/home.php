@@ -608,31 +608,6 @@
  						</div>
  				</div>
 
-      <!-- Duty Roster Calendar -->
-      <div class="col-lg-12 mb-4">
-        <div class="calendar-card">
-          <div class="calendar-header">
-            <h3 class="calendar-title">
-              <i class="fas fa-calendar-alt mr-2"></i>Duty Roster Calendar
- 						</h3>
-          </div>
-          
-          <div class="calendar-legend">
- 								<?php $colors = Modules::run('schedules/getrosterKey'); ?>
- 									<?php foreach ($colors as $color) { ?>
-              <div class="legend-item">
-                <span class="legend-color" style="background-color:<?php echo $color->color; ?>;"></span>
-                <span class="legend-text"><?php echo $color->schedule; ?></span>
-              </div>
-            <?php } ?>
-          </div>
-          
-          <div class="card-body p-0">
-            <div id="dutycalendar"></div>
-          </div>
- 								</div>
- 						</div>
- 						</div>
 
  				</div>
  			</section>
@@ -761,47 +736,11 @@
  				},
  			});
  		}
-
- 		function loadRosterCalendar() {
- 			var base_url = $('.base_url').html();
- 			$('#dutycalendar').fullCalendar({
- 				defaultView: 'basicWeek',
- 				header: {
- 					left: 'prev, next, today',
- 					center: 'title',
- 					right: 'month, basicWeek, basicDay'
- 				},
-            eventLimit: true,
- 				events: base_url + 'calendar/getEvents',
- 				selectable: false,
- 				selectHelper: true,
- 				editable: false,
- 				eventMouseover: function(calEvent, jsEvent, view) {
- 					var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
- 					$("body").append(tooltip);
- 					$(this).mouseover(function(e) {
- 						$(this).css('z-index', 10000);
- 						$('.event-tooltip').fadeIn('500');
- 						$('.event-tooltip').fadeTo('10', 1.9);
- 					}).mousemove(function(e) {
- 						$('.event-tooltip').css('top', e.pageY + 10);
- 						$('.event-tooltip').css('left', e.pageX + 20);
- 					});
- 				},
- 				eventMouseout: function(calEvent, jsEvent) {
- 					$(this).css('z-index', 8);
- 					$('.event-tooltip').remove();
- 				},
- 			});
- 		}
  		
  		// Chain the functions in order
  		 loadDashboardData()
  			.then(function() {
  				return loadAttendanceCalendar();
- 			})
- 			.then(function() {
- 				return loadRosterCalendar();
  			})
  			.catch(function(error) {
  				console.error('An error occurred:', error);

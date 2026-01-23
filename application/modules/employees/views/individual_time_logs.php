@@ -13,6 +13,7 @@
           <h3 class="card-title">
             <div class="card-tools">
               <form class="form-horizontal" action="<?php echo base_url(); ?>employees/employeeTimeLogs/<?php echo $this->uri->segment(3); ?>" method="post">
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
                 <div class="row">
                   <div class="form-group col-md-4">
                     <label>Date From:</label>

@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Migration CLI Helper Script
+ * 
+ * Usage:
+ *   ./migrate status
+ *   ./migrate migrate
+ *   ./migrate rollback [version]
+ *   ./migrate create migration_name
+ */
+
+// Get the command
+$command = isset($argv[1]) ? $argv[1] : 'help';
+$arg = isset($argv[2]) ? $argv[2] : null;
+
+// Change to project directory
+chdir(__DIR__);
+
+// Run the migration command
+$cli_command = "php index.php migrations $command";
+if ($arg !== null) {
+    $cli_command .= " $arg";
+}
+
+passthru($cli_command);
+

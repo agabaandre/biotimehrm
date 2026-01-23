@@ -182,18 +182,18 @@ public function login($user_id = FALSE)
             "username" => $person->username,
             "role" => $person->group_name,
             "state" => $person->status,
-            "dateChanged" => $person->changed,
-            "changed" => $person->isChanged,
+            "dateChanged" => isset($person->changed) ? $person->changed : null,
+            "changed" => isset($person->isChanged) ? $person->isChanged : null,
             "isLoggedIn" => true,
-            "facility" => $person->facility_id,
-            "facility_name" => $person->facility,
-            "department" => $person->department,
+            "facility" => isset($person->facility_id) ? $person->facility_id : null,
+            "facility_name" => isset($person->facility) ? $person->facility : null,
+            "department" => isset($person->department) ? $person->department : null,
             "permissions" => $this->auth_mdl->getUserPerms($user_group),
-            "department_id" => $person->department_id,
-            "division" => $person->division,
-            "unit" => $person->unit,
-            "district_id" => $person->district_id,
-            "district" => $person->district,
+            "department_id" => isset($person->department_id) ? $person->department_id : null,
+            "division" => isset($person->division) ? $person->division : null,
+            "unit" => isset($person->unit) ? $person->unit : null,
+            "district_id" => isset($person->district_id) ? $person->district_id : null,
+            "district" => isset($person->district) ? $person->district : null,
             "year" => date('Y'),
             "month" => date('m'),
             "date_from" => date("Y-m-d", strtotime("-1 month")),
@@ -270,64 +270,74 @@ public function login($user_id = FALSE)
   //  }
   public function users()
   {
+    // Check if user is logged in
+    if (!$this->session->userdata('isLoggedIn')) {
+      redirect('auth');
+      return;
+    }
+    
     try {
-      // Add basic debugging
-      log_message('debug', 'Auth/users method called');
-      
-      $searchkey = $this->input->post('search_key');
-      if (empty($searchkey)) {
-        $searchkey = "";
-      }
-      $status = $this->input->post('status');
-      if (empty($status)) {
-        $status = "";
+      // Ensure model is loaded
+      if (!isset($this->auth_mdl)) {
+        $this->load->model('auth_mdl');
       }
       
-      // Load required libraries and models
+      $searchkey = $this->input->post('search_key') ?: "";
+      $status = $this->input->post('status') ?: "";
+      
+      // Load required libraries
       $this->load->library('pagination');
       
-      // Get data with error handling
+      // Initialize data array
+      $data = array();
+      
+      // Get user count with default fallback
+      $total_rows = 0;
       try {
-        log_message('debug', 'Getting user count...');
-        $config = array();
-        $config['base_url'] = base_url() . "auth/users";
-        $config['total_rows'] = $this->auth_mdl->count_Users($searchkey,$status);
-        $config['per_page'] = 20; //records per page
-        $config['uri_segment'] = 3; //segment in url  
-        
-        //pagination links styling
-        $config['full_tag_open'] = '<ul class="pagination">';
-        $config['full_tag_close'] = '</ul>';
-        $config['attributes'] = ['class' => 'page-link'];
-        $config['first_link'] = false;
-        $config['last_link'] = false;
-        $config['first_tag_open'] = '<li class="page-item">';
-        $config['first_tag_close'] = '</li>';
-        $config['prev_link'] = '&laquo';
-        $config['prev_tag_open'] = '<li class="page-item">';
-        $config['prev_tag_close'] = '</li>';
-        $config['next_link'] = '&raquo';
-        $config['next_tag_open'] = '<li class="page-item">';
-        $config['next_tag_close'] = '</li>';
-        $config['last_tag_open'] = '<li class="page-item">';
-        $config['last_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-        $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-        $config['num_tag_open'] = '<li class="page-item">';
-        $config['num_tag_close'] = '</li>';
-        $config['use_page_numbers'] = false;
-        
-        $this->pagination->initialize($config);
-        $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
-        $data['links'] = $this->pagination->create_links();
-        
-        log_message('debug', 'Getting users data...');
-        $data['users'] = $this->auth_mdl->getAll($config['per_page'], $page, $searchkey,$status);
-        
-      } catch (Exception $e) {
-        log_message('error', 'Error in auth/users: ' . $e->getMessage());
-        $data['links'] = '';
-        $data['users'] = [];
+        $total_rows = $this->auth_mdl->count_Users($searchkey, $status);
+      } catch (Throwable $e) {
+        log_message('error', 'Error counting users: ' . $e->getMessage());
+      }
+      
+      // Configure pagination
+      $config = array(
+        'base_url' => base_url() . "auth/users",
+        'total_rows' => $total_rows,
+        'per_page' => 20,
+        'uri_segment' => 3,
+        'full_tag_open' => '<ul class="pagination">',
+        'full_tag_close' => '</ul>',
+        'attributes' => ['class' => 'page-link'],
+        'first_link' => false,
+        'last_link' => false,
+        'first_tag_open' => '<li class="page-item">',
+        'first_tag_close' => '</li>',
+        'prev_link' => '&laquo',
+        'prev_tag_open' => '<li class="page-item">',
+        'prev_tag_close' => '</li>',
+        'next_link' => '&raquo',
+        'next_tag_open' => '<li class="page-item">',
+        'next_tag_close' => '</li>',
+        'last_tag_open' => '<li class="page-item">',
+        'last_tag_close' => '</li>',
+        'cur_tag_open' => '<li class="page-item active"><a href="#" class="page-link">',
+        'cur_tag_close' => '<span class="sr-only">(current)</span></a></li>',
+        'num_tag_open' => '<li class="page-item">',
+        'num_tag_close' => '</li>',
+        'use_page_numbers' => false
+      );
+      
+      $this->pagination->initialize($config);
+      $page = ($this->uri->segment(3)) ? (int)$this->uri->segment(3) : 0;
+      $data['links'] = $this->pagination->create_links();
+      
+      // Get users with default fallback
+      try {
+        $data['users'] = $this->auth_mdl->getAll($config['per_page'], $page, $searchkey, $status);
+       // dd($data['users']);
+      } catch (Throwable $e) {
+        log_message('error', 'Error getting users: ' . $e->getMessage());
+        $data['users'] = array();
       }
       
       $data['module'] = "auth";
@@ -335,20 +345,18 @@ public function login($user_id = FALSE)
       $data['title'] = "User management";
       $data['uptitle'] = "User management";
       
-      log_message('debug', 'About to load template with data: ' . print_r($data, true));
-      
-      // Test if template loading is the issue
+      // Render template with fallback
       try {
-          echo Modules::run("templates/main", $data);
-      } catch (Exception $e) {
-          log_message('error', 'Template loading failed: ' . $e->getMessage());
-          // Fallback: render the view directly
-          $this->load->view('add_users', $data);
+      // dd("users -auth try template");
+        echo Modules::run("templates/main", $data);
+      } catch (Throwable $e) {
+        log_message('error', 'Error rendering template: ' . $e->getMessage());
+        $this->load->view('add_users', $data);
       }
       
-    } catch (Exception $e) {
-      log_message('error', 'Critical error in auth/users: ' . $e->getMessage());
-      echo "An error occurred while loading the page. Please check the logs for details.";
+    } catch (Throwable $e) {
+      log_message('error', 'Error in auth/users: ' . $e->getMessage());
+      show_error('An error occurred while loading the users page. Please contact the administrator.', 500);
     }
   }
   

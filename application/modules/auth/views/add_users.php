@@ -38,16 +38,7 @@ try {
 
 //print_r($variables);
 
-// Debug output (remove in production)
-if (ENVIRONMENT === 'development') {
-    echo '<div class="alert alert-info">';
-    echo '<strong>Debug Info:</strong><br>';
-    echo 'User Groups: ' . count($usergroups) . '<br>';
-    echo 'Departments: ' . count($departments) . '<br>';
-    echo 'Districts: ' . count($districts) . '<br>';
-    echo 'Facilities: ' . count($facilities) . '<br>';
-    echo '</div>';
-}
+
 ?>
 
 <div class="row">

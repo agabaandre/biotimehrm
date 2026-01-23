@@ -9,7 +9,13 @@ class Auth_mdl extends CI_Model
 	{
 		parent::__construct();
 		$this->table = "user";
-		$this->password = Modules::run('svariables/getSettings')->default_password;
+		try {
+			$settings = Modules::run('svariables/getSettings');
+			$this->password = (!empty($settings) && isset($settings->default_password)) ? $settings->default_password : 'rKET2XW5Xvnp2ds';
+		} catch (Exception $e) {
+			$this->password = 'rKET2XW5Xvnp2ds';
+			log_message('error', 'Failed to get default password from settings: ' . $e->getMessage());
+		}
 	}
 	public function loginChecker($postdata)
 	{
@@ -190,36 +196,42 @@ class Auth_mdl extends CI_Model
 	}
 	public function getAll($start, $limit, $key,$status)
 	{
-		$this->db->select('user.*, user_groups.group_name');
-		$this->db->from($this->table);
-		
 		if (!empty($status)) {
 			$this->db->where("status", "$status");
 		}
 		if (!empty($key)) {
-			$this->db->group_start();
 			$this->db->like("username", "$key", "both");
 			$this->db->or_like("name", "$key", "both");
-			$this->db->group_end();
 		}
 		
+		$this->db->limit($start, $limit);
 		$this->db->join('user_groups', 'user_groups.group_id=user.role', 'left');
-		$this->db->limit($limit, $start);
-		$this->db->order_by('user.username', 'ASC');
-		
-		$qry = $this->db->get();
+		$qry = $this->db->get($this->table);
 		return $qry->result();
 	}
 	public function count_Users($key,$status)
 	{
+		// Reset query builder to avoid conflicts
+		$this->db->reset_query();
+		
+		$this->db->from($this->table);
+		
 		if (!empty($status)) {
-			$this->db->where("status", "$status");
+			$this->db->where("status", $status);
 		}
 		if (!empty($key)) {
-			$this->db->like("username", "$key", "both");
-			$this->db->or_like("name", "$key", "both");
+			$this->db->group_start();
+			$this->db->like("username", $key, "both");
+			$this->db->or_like("name", $key, "both");
+			$this->db->group_end();
 		}
-		$qry = $this->db->get($this->table);
+		
+		$qry = $this->db->get();
+		
+		// Log query for debugging
+		log_message('debug', 'count_Users Query: ' . $this->db->last_query());
+		log_message('debug', 'count_Users Results: ' . $qry->num_rows() . ' rows');
+		
 		return $qry->num_rows();
 	}
 	public function addUser($postdata)

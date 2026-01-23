@@ -249,38 +249,71 @@ class Biotimejobs extends MX_Controller
     //after nun  call fingerprint cache procedure
     public function saveEnrolled()
     {
+        try {
         $resp = $this->get_Enrolled();
+            
+            if (empty($resp) || !isset($resp->count)) {
+                log_message('error', 'saveEnrolled: Invalid response from get_Enrolled()');
+                return false;
+            }
+            
         $count = $resp->count;
         $pages = (int) ceil($count / 10);
         $rows = array();
 
         for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
             $response = $this->get_Enrolled($currentPage);
+                
+                if (empty($response) || !isset($response->data)) {
+                    log_message('error', "saveEnrolled: Invalid response for page $currentPage");
+                    continue;
+                }
+                
             foreach ($response->data as $mydata) {
+                    // Check if required properties exist
+                    if (empty($mydata->area) || !isset($mydata->area[0]) || !isset($mydata->emp_code)) {
+                        log_message('error', 'saveEnrolled: Missing required data in employee record');
+                        continue;
+                    }
 
                 $data = array(
                     'entry_id' => $mydata->area[0]->area_code . '-' . $mydata->emp_code,
                     "card_number" => $mydata->emp_code,
                     'facilityId' => $mydata->area[0]->area_code,
                     'source' => 'Biotime',
-                    'device' => $mydata->enroll_sn,
-                    'att_status' => $mydata->enable_att
+                        'device' => isset($mydata->enroll_sn) ? $mydata->enroll_sn : '',
+                        'att_status' => isset($mydata->enable_att) ? $mydata->enable_att : 0
                 );
 
                 array_push($rows, $data);
             }
         }
 
+            if (empty($rows)) {
+                log_message('error', 'saveEnrolled: No rows to insert');
+                return false;
+            }
+
         $message = $this->biotimejobs_mdl->add_enrolled($rows);
         $this->log($message);
         $process = 3;
         $method = "bioitimejobs/save_Enrolled";
-        if (count($response) > 0) {
+            if (count($rows) > 0) {
             $status = "successful";
         } else {
             $status = "failed";
         }
         $this->cronjob_register($process, $method, $status);
+            
+            return true;
+        } catch (Exception $e) {
+            log_message('error', 'saveEnrolled Exception: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            return false;
+        } catch (Error $e) {
+            log_message('error', 'saveEnrolled Fatal Error: ' . $e->getMessage());
+            return false;
+        }
     }
 
 
@@ -377,17 +410,36 @@ class Biotimejobs extends MX_Controller
 
     public function custom_logs()
     {
+        header('Content-Type: application/json');
+        
         $end_date = date('Y-m-d', strtotime($this->input->get('end_date')));
         $terminal_sn = $this->input->get('terminal_sn');
+        $sync_type = $this->input->get('sync_type') ?: 'attendance';
+        $batch_size = $this->input->get('batch_size') ?: 100;
 
-     //   dd($this->input->get());
-
+        // Prepare response data
+        $response = array(
+            'status' => 'initiated',
+            'message' => 'Sync process started',
+            'timestamp' => date('Y-m-d H:i:s'),
+            'parameters' => array(
+                'terminal_sn' => $terminal_sn,
+                'end_date' => $end_date,
+                'sync_type' => $sync_type,
+                'batch_size' => $batch_size
+            ),
+            'command' => "curl https://attend.health.go.ug/biotimejobs/fetchBiotTimeLogs/" . $end_date . "/" . $terminal_sn
+        );
+        
+        // Log the sync request
+        $log_message = "Sync initiated - Terminal: $terminal_sn, End Date: $end_date, Type: $sync_type, Batch: $batch_size";
+        $this->log($log_message);
+        
+        // Execute the sync command (async)
         $url = "curl https://attend.health.go.ug/biotimejobs/fetchBiotTimeLogs/" . $end_date . "/" . $terminal_sn;
-        shell_exec("$url");
+        shell_exec("$url > /dev/null 2>&1 &");
 
-        echo json_encode($url);
-
-
+        echo json_encode($response, JSON_PRETTY_PRINT);
     }
 
 
@@ -542,8 +594,11 @@ class Biotimejobs extends MX_Controller
     }
     public function getbiodeps($dep_id)
     {
-        $query = $this->db->query("SELECT id from biotime_departments where dept_code='$dep_id' LIMIT 1");
-        return $query->result()[0]->id;
+        $query = $this->db->query("SELECT dept_code from biotime_departments where dept_code='$dep_id' LIMIT 1");
+        if ($query->num_rows() > 0) {
+            return $query->result()[0]->dept_code;
+        }
+        return null;
     }
     public function getbioloc($facility)
     {
@@ -668,10 +723,10 @@ class Biotimejobs extends MX_Controller
         $j = array();
         foreach ($response->data as $deps) {
             $data = array(
-                'id' => $deps->id,
-                'dep_code' => $deps->dept_code,
+                'dept_code' => $deps->dept_code,
                 'dept_name' => $deps->dept_name
             );
+            // Note: id column is auto-increment, so we don't include it in the insert
             array_push($j, $data);
         }
 

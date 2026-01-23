@@ -22,11 +22,22 @@ Class Department_model extends CI_Model
 
     //gets all departments from the department table
     public function getAll_departments(){
-      
-      $qry=$this->db->query("SELECT distinct department from ihrisdata WHERE department IS NOT NULL AND department != '' ORDER BY department ASC");
+      try {
+        // Reset query builder
+        $this->db->reset_query();
+        
+        $qry = $this->db->query("SELECT distinct department from ihrisdata WHERE department IS NOT NULL AND department != '' ORDER BY department ASC");
 
-      return $qry->result();
-
+        if ($qry) {
+          return $qry->result();
+        } else {
+          log_message('error', 'getAll_departments query failed');
+          return array();
+        }
+      } catch (Throwable $e) {
+        log_message('error', 'Error in getAll_departments: ' . $e->getMessage());
+        return array();
+      }
     } 
 
 

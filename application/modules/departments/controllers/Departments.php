@@ -326,14 +326,20 @@ class Departments extends MX_Controller
   // gets departments from the department modal
   public function getAll_departments()
   {
-
-    $depart = $this->departModel->getAll_departments();
-
-    return $depart;
-
-    //print_r($depart);
-
-
+    try {
+      // Ensure model is loaded
+      if (!isset($this->departModel)) {
+        $this->load->model('Department_model', 'departModel');
+      }
+      
+      $depart = $this->departModel->getAll_departments();
+      
+      // Return empty array if null to prevent errors
+      return $depart ? $depart : array();
+    } catch (Throwable $e) {
+      log_message('error', 'Error in getAll_departments: ' . $e->getMessage());
+      return array();
+    }
   }
 
   public function addDepartments()

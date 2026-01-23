@@ -630,36 +630,53 @@ class Employees extends MX_Controller
   }
   public function employeeTimeLogs($ihris_pid = FALSE, $print = false, $from = false, $to = false)
   {
-
+    // Check if ihris_pid is provided
+    if (!$ihris_pid) {
+      // Try to get it from URI segment if not provided as parameter
+      $ihris_pid = $this->uri->segment(3);
+    }
+    
+    // Decode the URL-encoded parameter
+    if ($ihris_pid) {
+      $ihris_pid = urldecode($ihris_pid);
+    } else {
+      show_error('Employee ID is required', 400);
+      return;
+    }
 
     $post = $this->input->post();
     if ($post) {
-
-
       $search_data = $this->input->post();
-
-      $data['from'] = $search_data['date_from'];
-      $data['to'] = $search_data['date_to'];
+      $data['from'] = isset($search_data['date_from']) ? $search_data['date_from'] : date('Y-m-') . '01';
+      $data['to'] = isset($search_data['date_to']) ? $search_data['date_to'] : date('Y-m-d');
     } else {
-
       $data['from'] = date('Y-m-') . '01';
       $data['to'] = date('Y-m-d');
+      $search_data = array();
       $search_data['date_from'] = $data['from'];
       $search_data['date_to'] = $data['to'];
     }
 
-    $dbresult = $this->empModel->getEmployeeTimeLogs(urldecode($ihris_pid), 10000, 0, $search_data);
-    $data['timelogs'] = $dbresult['timelogs'];
-    $data['employee'] = $dbresult['employee'];
-    $data['leaves'] = $dbresult['leaves'];
-    $data['offs'] = $dbresult['offs'];
-    $data['requests'] = $dbresult['requests'];
-    $data['workdays'] = $dbresult['dutydays'];
+    try {
+      $dbresult = $this->empModel->getEmployeeTimeLogs($ihris_pid, 10000, 0, $search_data);
+      $data['timelogs'] = isset($dbresult['timelogs']) ? $dbresult['timelogs'] : array();
+      $data['employee'] = isset($dbresult['employee']) ? $dbresult['employee'] : null;
+      $data['leaves'] = isset($dbresult['leaves']) ? $dbresult['leaves'] : array();
+      $data['offs'] = isset($dbresult['offs']) ? $dbresult['offs'] : array();
+      $data['requests'] = isset($dbresult['requests']) ? $dbresult['requests'] : array();
+      $data['workdays'] = isset($dbresult['dutydays']) ? $dbresult['dutydays'] : array();
+    } catch (Exception $e) {
+      log_message('error', 'Error in employeeTimeLogs: ' . $e->getMessage());
+      $data['timelogs'] = array();
+      $data['employee'] = null;
+      $data['leaves'] = array();
+      $data['offs'] = array();
+      $data['requests'] = array();
+      $data['workdays'] = array();
+    }
 
     $data['title'] = "Health  Staff Individual Time Logs";
-    //$data['facilities']=Modules::run("facilities/getFacilities");
     $data['view'] = 'individual_time_logs';
-
     $data['module'] = "employees";
     echo Modules::run("templates/main", $data);
   }

@@ -288,7 +288,9 @@ class CI_Migration {
 				$this->_error_string = sprintf($this->lang->line('migration_class_doesnt_exist'), $class);
 				return FALSE;
 			}
-			elseif ( ! is_callable(array($class, $method)))
+			// Fix: Use method_exists() instead of is_callable() for instance methods
+			// is_callable() returns false for instance methods when called with class name string
+			elseif ( ! method_exists($class, $method))
 			{
 				$this->_error_string = sprintf($this->lang->line('migration_missing_'.$method.'_method'), $class);
 				return FALSE;
