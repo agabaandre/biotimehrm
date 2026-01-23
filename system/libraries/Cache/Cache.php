@@ -263,7 +263,27 @@ class CI_Cache extends CI_Driver_Library {
 
 		if ( ! isset($support, $support[$driver]))
 		{
-			$support[$driver] = $this->{$driver}->is_supported();
+			// Load the driver if it hasn't been loaded yet
+			// Since properties are declared, we need to manually load if null
+			if ( ! isset($this->{$driver}) || $this->{$driver} === null)
+			{
+				// Manually load the driver
+				$driver_obj = $this->load_driver($driver);
+			}
+			else
+			{
+				$driver_obj = $this->{$driver};
+			}
+			
+			// Check if driver was successfully loaded
+			if ($driver_obj === null || ! is_object($driver_obj))
+			{
+				$support[$driver] = FALSE;
+			}
+			else
+			{
+				$support[$driver] = $driver_obj->is_supported();
+			}
 		}
 
 		return $support[$driver];
