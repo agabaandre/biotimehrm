@@ -49,6 +49,22 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 class CI_Cache extends CI_Driver_Library {
 
 	/**
+	 * Driver instances.
+	 *
+	 * CodeIgniter's driver loader assigns instantiated drivers to properties on the
+	 * parent library (e.g. $this->dummy, $this->file). In PHP 8.2+ creating dynamic
+	 * properties is deprecated, so we predeclare them here.
+	 *
+	 * @var object|null
+	 */
+	public $apc;
+	public $dummy;
+	public $file;
+	public $memcached;
+	public $redis;
+	public $wincache;
+
+	/**
 	 * Valid cache drivers
 	 *
 	 * @var array
