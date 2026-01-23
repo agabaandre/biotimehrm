@@ -10,3 +10,7 @@ composer.phar
 /cache/
 .aider*
 .env
+
+# Environment-specific config files (should not be tracked)
+application/config/database.php
+index.php
