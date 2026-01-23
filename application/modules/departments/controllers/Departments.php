@@ -281,7 +281,14 @@ class Departments extends MX_Controller
     if (!empty($facility_id)) {
       $_SESSION['facility_name'] = urldecode($facility_name);
       $_SESSION['facility'] = urldecode($facility_id);
-      $this->cache->memcached->save('facility', $_SESSION['facility'], 43600);
+      // Safely save to cache if memcached is available
+      if (isset($this->cache) && isset($this->cache->memcached) && is_object($this->cache->memcached)) {
+        try {
+          $this->cache->memcached->save('facility', $_SESSION['facility'], 43600);
+        } catch (Exception $e) {
+          log_message('error', 'Failed to save facility to cache: ' . $e->getMessage());
+        }
+      }
     }
     $redirect = $this->input->post('direct');
     // $facility_id = $this->input->post('facility');

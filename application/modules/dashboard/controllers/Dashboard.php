@@ -42,10 +42,20 @@ class Dashboard extends MX_Controller {
 	public function cache_stats(){
 		//$data = $this->dash_mdl->getData();
 		$data =array();
-		$cached = $this->cache->memcached->save('dashboard', $data, 13600); // MemCache for 1 hour
+		// Safely save to cache if memcached is available
+		$cached = false;
+		if (isset($this->cache) && isset($this->cache->memcached) && is_object($this->cache->memcached)) {
+			try {
+				$cached = $this->cache->memcached->save('dashboard', $data, 13600); // MemCache for 1 hour
+			} catch (Exception $e) {
+				log_message('error', 'Failed to save dashboard to cache: ' . $e->getMessage());
+			}
+		}
 		if ($cached){
 			echo "Success";
-			$data = $this->cache->memcached->get('dashboard');
+			if (isset($this->cache) && isset($this->cache->memcached) && is_object($this->cache->memcached)) {
+				$data = $this->cache->memcached->get('dashboard');
+			}
 		}
 		else{
 			echo "failed";

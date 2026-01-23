@@ -202,7 +202,14 @@ public function login($user_id = FALSE)
   //dd($userdata);
         // Check user login state and redirect accordingly
         if (!$userdata['isLoggedIn']) {
-            $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
+            // Safely save to cache if memcached is available
+            if (isset($this->cache) && isset($this->cache->memcached) && is_object($this->cache->memcached)) {
+                try {
+                    $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
+                } catch (Exception $e) {
+                    log_message('error', 'Failed to save facility to cache: ' . $e->getMessage());
+                }
+            }
             $this->session->set_flashdata('msg', "Unauthorized access detected.");
             redirect("auth");
         } else {
@@ -225,7 +232,14 @@ public function login($user_id = FALSE)
   {
     // print_r("USer".$userdata);
     if (!$userdata['isLoggedIn']) {
-      $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
+      // Safely save to cache if memcached is available
+      if (isset($this->cache) && isset($this->cache->memcached) && is_object($this->cache->memcached)) {
+        try {
+          $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
+        } catch (Exception $e) {
+          log_message('error', 'Failed to save facility to cache: ' . $e->getMessage());
+        }
+      }
       redirect("auth");
     } else {
       $this->session->set_userdata($userdata);

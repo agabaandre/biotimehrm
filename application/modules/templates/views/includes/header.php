@@ -26,11 +26,50 @@
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/adminlte.min.css">
   <script src="<?php echo base_url() ?>node_modules/jquery/dist/jquery.min.js"></script>
   <script src="<?php echo base_url() ?>node_modules/highcharts/highcharts.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/highcharts-more.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/solid-gauge.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/exporting.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/export-data.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/accessibility.js"></script>
+  <script>
+    // Ensure Highcharts is loaded before loading modules
+    (function loadHighchartsModules() {
+      if (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function') {
+        // Highcharts is loaded, now load modules
+        var moduleScripts = [
+          '<?php echo base_url() ?>node_modules/highcharts/highcharts-more.js',
+          '<?php echo base_url() ?>node_modules/highcharts/modules/solid-gauge.js',
+          '<?php echo base_url() ?>node_modules/highcharts/modules/exporting.js',
+          '<?php echo base_url() ?>node_modules/highcharts/modules/export-data.js',
+          '<?php echo base_url() ?>node_modules/highcharts/modules/accessibility.js'
+        ];
+        
+        function loadScript(src, callback) {
+          var script = document.createElement('script');
+          script.src = src;
+          script.async = false; // Load synchronously
+          script.onerror = function() {
+            console.error('Failed to load Highcharts module: ' + src);
+            if (callback) callback();
+          };
+          script.onload = function() {
+            if (callback) callback();
+          };
+          document.head.appendChild(script);
+        }
+        
+        // Load modules sequentially
+        var index = 0;
+        function loadNext() {
+          if (index < moduleScripts.length) {
+            loadScript(moduleScripts[index], function() {
+              index++;
+              loadNext();
+            });
+          }
+        }
+        loadNext();
+      } else {
+        // Retry after a short delay
+        setTimeout(loadHighchartsModules, 50);
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
