@@ -205,7 +205,7 @@ public function login($user_id = FALSE)
             // Safely save to cache if memcached is available
             if (isset($this->cache) && isset($this->cache->memcached) && is_object($this->cache->memcached)) {
                 try {
-                    $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
+            $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
                 } catch (Exception $e) {
                     log_message('error', 'Failed to save facility to cache: ' . $e->getMessage());
                 }
@@ -235,7 +235,7 @@ public function login($user_id = FALSE)
       // Safely save to cache if memcached is available
       if (isset($this->cache) && isset($this->cache->memcached) && is_object($this->cache->memcached)) {
         try {
-          $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
+      $this->cache->memcached->save('facility', $userdata['facility_id'], 43600);
         } catch (Exception $e) {
           log_message('error', 'Failed to save facility to cache: ' . $e->getMessage());
         }
@@ -340,11 +340,11 @@ public function login($user_id = FALSE)
         'num_tag_close' => '</li>',
         'use_page_numbers' => false
       );
-      
-      $this->pagination->initialize($config);
+        
+        $this->pagination->initialize($config);
       $page = ($this->uri->segment(3)) ? (int)$this->uri->segment(3) : 0;
-      $data['links'] = $this->pagination->create_links();
-      
+        $data['links'] = $this->pagination->create_links();
+        
       // Get users with default fallback
       try {
         $data['users'] = $this->auth_mdl->getAll($config['per_page'], $page, $searchkey, $status);
@@ -362,10 +362,10 @@ public function login($user_id = FALSE)
       // Render template with fallback
       try {
       // dd("users -auth try template");
-        echo Modules::run("templates/main", $data);
+          echo Modules::run("templates/main", $data);
       } catch (Throwable $e) {
         log_message('error', 'Error rendering template: ' . $e->getMessage());
-        $this->load->view('add_users', $data);
+          $this->load->view('add_users', $data);
       }
       
     } catch (Throwable $e) {

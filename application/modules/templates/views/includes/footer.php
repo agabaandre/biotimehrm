@@ -340,21 +340,21 @@
     $(document).ready(function() {
         // Check if Highcharts is loaded before using it
         if (typeof Highcharts !== 'undefined' && Highcharts.setOptions) {
-            Highcharts.setOptions({
-                colors: Highcharts.getOptions().colors.map(function(color) {
-                    return {
-                        radialGradient: {
-                            cx: 0.5,
-                            cy: 0.3,
-                            r: 0.7
-                        },
-                        stops: [
-                            [0, color],
-                            [1, Highcharts.color(color).brighten(-0.3).get('rgb')] // darken
-                        ]
-                    };
-                })
-            });
+        Highcharts.setOptions({
+            colors: Highcharts.getOptions().colors.map(function(color) {
+                return {
+                    radialGradient: {
+                        cx: 0.5,
+                        cy: 0.3,
+                        r: 0.7
+                    },
+                    stops: [
+                        [0, color],
+                        [1, Highcharts.color(color).brighten(-0.3).get('rgb')] // darken
+                    ]
+                };
+            })
+        });
         } else {
             console.warn('Highcharts is not loaded. Skipping setOptions.');
         }

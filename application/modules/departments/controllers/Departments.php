@@ -284,7 +284,7 @@ class Departments extends MX_Controller
       // Safely save to cache if memcached is available
       if (isset($this->cache) && isset($this->cache->memcached) && is_object($this->cache->memcached)) {
         try {
-          $this->cache->memcached->save('facility', $_SESSION['facility'], 43600);
+      $this->cache->memcached->save('facility', $_SESSION['facility'], 43600);
         } catch (Exception $e) {
           log_message('error', 'Failed to save facility to cache: ' . $e->getMessage());
         }
@@ -338,9 +338,9 @@ class Departments extends MX_Controller
       if (!isset($this->departModel)) {
         $this->load->model('Department_model', 'departModel');
       }
-      
-      $depart = $this->departModel->getAll_departments();
-      
+
+    $depart = $this->departModel->getAll_departments();
+
       // Return empty array if null to prevent errors
       return $depart ? $depart : array();
     } catch (Throwable $e) {

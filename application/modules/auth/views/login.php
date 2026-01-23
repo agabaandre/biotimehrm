@@ -403,7 +403,7 @@
                 <img src="<?php echo base_url(); ?>assets/img/MOH.png" alt="MOH Logo">
             </div>
             <h1 class="login-title">HRM iHRIS Attend</h1>
-            <p class="login-subtitle">Attendance Tracking System</p>
+            <p class="login-subtitle">Attendance to Duty System</p>
         </div>
 
         <!-- Body -->
