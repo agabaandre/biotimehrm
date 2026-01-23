@@ -30,35 +30,15 @@ $db['default'] = array(
 );
 
 
-$db['bms'] = array(
-	'dsn' => '',
-	'hostname' => $_ENV['DB_HOST'],
-    'username' => $_ENV['DB_USER'],
-    'password' => $_ENV['DB_PASS'],
-    'database' => $_ENV['DB_NAME'],
-	'dbdriver' => 'mysqli',
-	'dbprefix' => '',
-	'pconnect' => FALSE,
-	'db_debug' => (ENVIRONMENT !== 'production'),
-	'cache_on' => FALSE,
-	'cachedir' => '',
-	'char_set' => 'utf8',
-	'dbcollat' => 'utf8_general_ci',
-	'swap_pre' => '',
-	'encrypt' => FALSE,
-	'compress' => FALSE,
-	'stricton' => FALSE,
-	'failover' => array(),
-	'save_queries' => TRUE
-);
+
 
 $db['pg'] = array(
     'dsn'      => '',
-    'hostname' => '',
-    'port'     => 7496,
-    'username' => 'postgres',
-    'password' => 'attendee@2020',
-    'database' => 'biotime',
+    'hostname' => $ENV['PG_DB_HOST'],
+    'port'     => $ENV['PG_PORT'],
+    'username' => $ENV['PG_USER'],
+    'password' => $ENV['PG_PASS'],
+    'database' => $ENV['PG_DB_NAME'],
     'dbdriver' => 'postgre',
     'dbprefix' => '',
     'pconnect' => FALSE,
