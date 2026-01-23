@@ -34,11 +34,11 @@ $db['default'] = array(
 
 $db['pg'] = array(
     'dsn'      => '',
-    'hostname' => $ENV['PG_DB_HOST'],
-    'port'     => $ENV['PG_PORT'],
-    'username' => $ENV['PG_USER'],
-    'password' => $ENV['PG_PASS'],
-    'database' => $ENV['PG_DB_NAME'],
+    'hostname' => $_ENV['PG_DB_HOST'],
+    'port'     => $_ENV['PG_PORT'],
+    'username' => $_ENV['PG_USER'],
+    'password' => $_ENV['PG_PASS'],
+    'database' => $_ENV['PG_DB_NAME'],
     'dbdriver' => 'postgre',
     'dbprefix' => '',
     'pconnect' => FALSE,
