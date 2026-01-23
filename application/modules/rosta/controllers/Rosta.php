@@ -219,6 +219,7 @@ class Rosta extends MX_Controller
 		$data['uptitle'] = "Duty Roster";
 		$data['title'] = "Duty Roster";
 		$data['selected_employee'] = $employee; // Pass selected employee to view
+		$data['filters'] = $this->filters; // Pass filters to view
 		
 		echo Modules::run("templates/main", $data);
 	}

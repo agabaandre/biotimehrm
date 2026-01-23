@@ -10,28 +10,36 @@ function isWeekend($date)
 function dayState($day, $scheduled)
 {
 	$user = $_SESSION['role'];
+	$state = ""; // Initialize state
+	
 	//its today or day in the past
 	if (strtotime($day) < strtotime(date('Y-m-d')) && !empty($scheduled) && $user !== 'sadmin') {
-	$state = "disabled";
-	 } else if (strtotime($day) < strtotime(date('Y-m-d')) && empty($scheduled) && $user !== 'sadmin') {
+		$state = "disabled";
+	} else if (strtotime($day) < strtotime(date('Y-m-d')) && empty($scheduled) && $user !== 'sadmin') {
 		$state = "";
 	}
 	//if they are scheduled to work
 	if (strtotime($day) > strtotime(date('Y-m-d'))) {
-		 $state = "disabled";
+		$state = "disabled";
 	}
-	// echo $state;
+	
+	return $state; // Return the state
 } //color
 
 // Show performance monitor for large datasets
 if (isset($duties) && count($duties) > 0) {
-	$total_employees = $this->rosta_model->count_tabs_optimized($this->filters, '');
+	// Safely get filters - use passed data or default to empty array
+	$view_filters = isset($filters) ? $filters : array();
+	$total_employees = $this->rosta_model->count_tabs_optimized($view_filters, '');
 	if ($total_employees > 100) {
 		include('performance_monitor.php');
 	}
 }
 ?>
 <?php
+// Initialize $state variable
+$state = "";
+
 $pv = $this->input->post('year').'-'.$this->input->post('month');
 
 $posted_date = date('Y-m', strtotime($pv));
@@ -225,10 +233,13 @@ if ($posted_timestamp > $current_timestamp) {
 							?>
 						</div>
 						<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-						<?php if ($state=='disabled' && $_SESSION['role'] !== "sadmin") {
+						<?php 
+						// Initialize $state if not set
+						if (!isset($state)) {
+							$state = "";
+						}
+						if ($state=='disabled' && isset($_SESSION['role']) && $_SESSION['role'] !== "sadmin") {
 							echo "<center><h4><font color='red'>  Editing is locked , please contact the Admin</font></h4></center>";
-
-
 						}
 						?>
 					</div>

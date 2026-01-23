@@ -3,6 +3,12 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Jobs_mdl extends CI_Model {
 
+	/**
+	 * Database table name
+	 *
+	 * @var string
+	 */
+	protected $table;
 	
 	public function __Construct(){
 
