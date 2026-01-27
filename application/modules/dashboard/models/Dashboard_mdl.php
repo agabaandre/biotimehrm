@@ -69,13 +69,70 @@ class Dashboard_mdl extends CI_Model
             $data['roster'] = 'No Data Available';
         }
         
-        // BioTime last sync - Get most recent punch_time from biotime_data (synced from PostgreSQL)
-        // This represents the most recent attendance data that was synced from PostgreSQL
-        $fac = $this->db->query("Select max(punch_time) as date from biotime_data");
-        $result = $fac->result();
-        if (!empty($result) && isset($result[0]->date) && !empty($result[0]->date)) {
-            $data['biotime_last'] = date('j F, Y H:i:s', strtotime($result[0]->date));
-        } else {
+        // BioTime last sync - Get from biotime_devices.last_activity (updated when sync completes)
+        // Note: biotime_data gets truncated after processing, so we use last_activity from devices
+        // which is updated to the end_date when sync completes successfully
+        try {
+            // Get the most recent last_activity from any device (represents last sync time)
+            $devices = $this->db->query("SELECT MAX(last_activity) as date FROM biotime_devices WHERE last_activity IS NOT NULL AND last_activity != '' AND last_activity != '0000-00-00 00:00:00'");
+            
+            if ($devices && $devices->num_rows() > 0) {
+                $device_row = $devices->row();
+                if (isset($device_row->date) && $device_row->date !== NULL && $device_row->date !== '' && $device_row->date !== '0000-00-00 00:00:00') {
+                    // Handle both date and datetime formats
+                    $sync_date = $device_row->date;
+                    $timestamp = strtotime($sync_date);
+                    
+                    if ($timestamp !== false && $timestamp > 0) {
+                        // If it's just a date (Y-m-d), add time component for display
+                        if (strlen($sync_date) == 10) {
+                            $data['biotime_last'] = date('j F, Y', $timestamp) . ' (Date synced)';
+                        } else {
+                            $data['biotime_last'] = date('j F, Y H:i:s', $timestamp);
+                        }
+                    } else {
+                        // Fallback: try biotime_data if it has data (before truncation)
+                        $fac = $this->db->query("SELECT MAX(punch_time) as date FROM biotime_data WHERE punch_time IS NOT NULL");
+                        if ($fac && $fac->num_rows() > 0) {
+                            $row = $fac->row();
+                            if (isset($row->date) && $row->date !== NULL && $row->date !== '' && $row->date !== '0000-00-00 00:00:00') {
+                                $timestamp = strtotime($row->date);
+                                if ($timestamp !== false && $timestamp > 0) {
+                                    $data['biotime_last'] = date('j F, Y H:i:s', $timestamp);
+                                } else {
+                                    $data['biotime_last'] = 'N/A';
+                                }
+                            } else {
+                                $data['biotime_last'] = 'N/A';
+                            }
+                        } else {
+                            $data['biotime_last'] = 'N/A';
+                        }
+                    }
+                } else {
+                    $data['biotime_last'] = 'N/A';
+                }
+            } else {
+                // Fallback: try biotime_data if it has data (before truncation)
+                $fac = $this->db->query("SELECT MAX(punch_time) as date FROM biotime_data WHERE punch_time IS NOT NULL");
+                if ($fac && $fac->num_rows() > 0) {
+                    $row = $fac->row();
+                    if (isset($row->date) && $row->date !== NULL && $row->date !== '' && $row->date !== '0000-00-00 00:00:00') {
+                        $timestamp = strtotime($row->date);
+                        if ($timestamp !== false && $timestamp > 0) {
+                            $data['biotime_last'] = date('j F, Y H:i:s', $timestamp);
+                        } else {
+                            $data['biotime_last'] = 'N/A';
+                        }
+                    } else {
+                        $data['biotime_last'] = 'N/A';
+                    }
+                } else {
+                    $data['biotime_last'] = 'N/A';
+                }
+            }
+        } catch (Exception $e) {
+            log_message('error', 'Dashboard biotime_last sync date error: ' . $e->getMessage());
             $data['biotime_last'] = 'N/A';
         }
 
@@ -141,17 +198,73 @@ class Dashboard_mdl extends CI_Model
                 (SELECT MAX(last_update) FROM ihrisdata WHERE facility_id = ?) as ihris_sync,
                 (SELECT MAX(last_gen) FROM person_att_final) as attendance,
                 (SELECT MAX(last_gen) FROM person_dut_final) as roster,
-                (SELECT MAX(punch_time) FROM biotime_data) as biotime_last
+                (SELECT MAX(last_activity) FROM biotime_devices WHERE last_activity IS NOT NULL AND last_activity != '' AND last_activity != '0000-00-00 00:00:00') as biotime_last
         ";
         
         $dates_result = $this->db->query($dates_query, [$facility]);
-        $dates = $dates_result->row();
         
-        $data['ihris_sync'] = $dates->ihris_sync ? date('j F, Y H:i:s', strtotime($dates->ihris_sync)) : 'N/A';
-        $data['attendance'] = $dates->attendance ? date('j F, Y H:i:s', strtotime($dates->attendance)) : 'No Data Available';
-        $data['roster'] = $dates->roster ? date('j F, Y H:i:s', strtotime($dates->roster)) : 'No Data Available';
-        // Use punch_time from biotime_data as last sync indicator (data synced from PostgreSQL)
-        $data['biotime_last'] = $dates->biotime_last ? date('j F, Y H:i:s', strtotime($dates->biotime_last)) : 'N/A';
+        if ($dates_result && $dates_result->num_rows() > 0) {
+            $dates = $dates_result->row();
+            
+            $data['ihris_sync'] = $dates->ihris_sync ? date('j F, Y H:i:s', strtotime($dates->ihris_sync)) : 'N/A';
+            $data['attendance'] = $dates->attendance ? date('j F, Y H:i:s', strtotime($dates->attendance)) : 'No Data Available';
+            $data['roster'] = $dates->roster ? date('j F, Y H:i:s', strtotime($dates->roster)) : 'No Data Available';
+            
+            // Use last_activity from biotime_devices as last sync indicator
+            // This is updated when sync completes and represents the date synced to
+            if (isset($dates->biotime_last) && $dates->biotime_last !== NULL && $dates->biotime_last !== '' && $dates->biotime_last !== '0000-00-00 00:00:00') {
+                $timestamp = strtotime($dates->biotime_last);
+                if ($timestamp !== false && $timestamp > 0) {
+                    // Handle both date and datetime formats
+                    if (strlen($dates->biotime_last) == 10) {
+                        $data['biotime_last'] = date('j F, Y', $timestamp) . ' (Date synced)';
+                    } else {
+                        $data['biotime_last'] = date('j F, Y H:i:s', $timestamp);
+                    }
+                } else {
+                    // Fallback: try biotime_data if it has data
+                    $fallback = $this->db->query("SELECT MAX(punch_time) as date FROM biotime_data WHERE punch_time IS NOT NULL");
+                    if ($fallback && $fallback->num_rows() > 0) {
+                        $fallback_row = $fallback->row();
+                        if (isset($fallback_row->date) && $fallback_row->date !== NULL && $fallback_row->date !== '') {
+                            $timestamp = strtotime($fallback_row->date);
+                            if ($timestamp !== false && $timestamp > 0) {
+                                $data['biotime_last'] = date('j F, Y H:i:s', $timestamp);
+                            } else {
+                                $data['biotime_last'] = 'N/A';
+                            }
+                        } else {
+                            $data['biotime_last'] = 'N/A';
+                        }
+                    } else {
+                        $data['biotime_last'] = 'N/A';
+                    }
+                }
+            } else {
+                // Fallback: try biotime_data if it has data
+                $fallback = $this->db->query("SELECT MAX(punch_time) as date FROM biotime_data WHERE punch_time IS NOT NULL");
+                if ($fallback && $fallback->num_rows() > 0) {
+                    $fallback_row = $fallback->row();
+                    if (isset($fallback_row->date) && $fallback_row->date !== NULL && $fallback_row->date !== '') {
+                        $timestamp = strtotime($fallback_row->date);
+                        if ($timestamp !== false && $timestamp > 0) {
+                            $data['biotime_last'] = date('j F, Y H:i:s', $timestamp);
+                        } else {
+                            $data['biotime_last'] = 'N/A';
+                        }
+                    } else {
+                        $data['biotime_last'] = 'N/A';
+                    }
+                } else {
+                    $data['biotime_last'] = 'N/A';
+                }
+            }
+        } else {
+            $data['ihris_sync'] = 'N/A';
+            $data['attendance'] = 'No Data Available';
+            $data['roster'] = 'No Data Available';
+            $data['biotime_last'] = 'N/A';
+        }
         
         // Optimize attendance status queries with a single query
         $attendance_query = "
