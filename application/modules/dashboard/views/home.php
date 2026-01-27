@@ -617,10 +617,25 @@
  <script src="<?php echo base_url() ?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
 
  <script type="text/javascript">
- 	$(document).ready(function() {
- 		Highcharts.setOptions({
- 			colors: ['#28a745', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4']
- 		});
+	// Wait for Highcharts to be fully loaded before using it
+	function waitForHighcharts(callback) {
+		if (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function') {
+			callback();
+		} else {
+			setTimeout(function() {
+				waitForHighcharts(callback);
+			}, 50);
+		}
+	}
+	
+	waitForHighcharts(function() {
+		$(document).ready(function() {
+			// Set Highcharts options only if Highcharts is available
+			if (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function') {
+				Highcharts.setOptions({
+					colors: ['#28a745', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4']
+				});
+			}
 
  		function knobgauge(gvalue) {
  			// Your knobgauge function code here
@@ -788,5 +803,6 @@
          console.error('extendSession error:', error);
        });
      };
- 	});
+		}); // End of $(document).ready
+	}); // End of waitForHighcharts
  </script>
