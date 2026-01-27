@@ -571,7 +571,7 @@ class CI_Input {
 
 		// PHP 8.2+: filter_var() doesn't accept null for $options parameter
 		if ($which !== NULL) {
-			return (bool) filter_var($ip, FILTER_VALIDATE_IP, $which);
+		return (bool) filter_var($ip, FILTER_VALIDATE_IP, $which);
 		} else {
 			return (bool) filter_var($ip, FILTER_VALIDATE_IP);
 		}

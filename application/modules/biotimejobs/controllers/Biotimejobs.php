@@ -320,126 +320,526 @@ class Biotimejobs extends MX_Controller
     //get cron jobs from the server
     
 
-    public function getTime($page, $end_date = FALSE, $terminal = FALSE)
+    /**
+     * Get time logs from BioTime API with support for date range and terminal filtering
+     * 
+     * @param int $page Page number (default: 1)
+     * @param string|bool $end_date End date in Y-m-d or Y-m-d H:i:s format (default: FALSE = current date/time)
+     * @param string|bool $terminal Terminal serial number (default: FALSE = all terminals)
+     * @param string|bool $start_date Start date in Y-m-d or Y-m-d H:i:s format (default: FALSE = 24 hours before end_date)
+     * @param int $max_retries Maximum number of retry attempts on failure (default: 3)
+     * @return object|bool API response object or FALSE on failure
+     */
+    public function getTime($page = 1, $end_date = FALSE, $terminal = FALSE, $start_date = FALSE, $max_retries = 3)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtils();
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-            'Authorization' => "JWT " . $this->get_token(),
-        ];
-        if (empty($end_date)) {
-            $edate = date('Y-m-d H:i:s');
-            $sdate = date("Y-m-d H:i:s", strtotime("-24 hours", strtotime($edate)));
-        } else {
-            $edate = $end_date;
-            // Use the $edate variable to calculate the start date, which is 24 hours before the end date
-            $sdate = date("Y-m-d H:i:s", strtotime("-24 hours", strtotime($edate)));
-        }
+        
+        $attempt = 0;
+        while ($attempt < $max_retries) {
+            try {
+                $headers = [
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'Authorization' => "JWT " . $this->get_token(),
+                ];
+                
+                // Handle date parameters
+                if (empty($end_date)) {
+                    $edate = date('Y-m-d H:i:s');
+                } else {
+                    // If only date is provided (Y-m-d), add time component
+                    if (strlen($end_date) == 10) {
+                        $edate = $end_date . ' 23:59:59';
+                    } else {
+                        $edate = $end_date;
+                    }
+                }
+                
+                // Handle start date
+                if (empty($start_date)) {
+                    $sdate = date("Y-m-d H:i:s", strtotime("-24 hours", strtotime($edate)));
+                } else {
+                    // If only date is provided (Y-m-d), add time component
+                    if (strlen($start_date) == 10) {
+                        $sdate = $start_date . ' 00:00:00';
+                    } else {
+                        $sdate = $start_date;
+                    }
+                }
+                
+                // Ensure start_date is before end_date
+                if (strtotime($sdate) > strtotime($edate)) {
+                    $temp = $sdate;
+                    $sdate = $edate;
+                    $edate = $temp;
+                }
 
-        if (!empty($terminal)) {
-            $query = array(
-                'page' => $page,
-                'start_time' => $sdate,
-                'end_time' => $edate,
-                'terminal_sn' => $terminal
-            );
-        } else {
-            $query = array(
-                'page' => $page,
-                'start_time' => $sdate,
-                'end_time' => $edate,
-            );
-
-        }
-
-        $params = '?' . http_build_query($query);
-        $endpoint = 'iclock/api/transactions/' . $params;
-
-        //leave options and undefined. guzzle will use the http:query;
-
-        $response = $http->getTimeLogs($endpoint, "GET", $headers);
-        //return $response;
-        //print_r($sdate);
-        //dd($response);
-        return $response;
-    }
-
-
-    public function fetchBiotTimeLogs($end_date = FALSE, $terminal = FALSE)
-    {
-        ignore_user_abort(true);
-        ini_set('max_execution_time', 0);
-        $resp = $this->getTime($page = 1, $end_date = FALSE, $terminal = FALSE);
-        $count = $resp->count;
-        $pages = (int) ceil($count / 10);
-        $rows = array();
-
-        for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
-            $response = $this->getTime($currentPage, $end_date = FALSE, $terminal = FALSE);
-            foreach ($response->data as $mydata) {
-                $datetime = date("Y-m-d H:i:s", strtotime($mydata->punch_time));
-             
-                $data = array(
-                    "emp_code" => $mydata->emp_code,
-                    "terminal_sn" => $mydata->terminal_sn,
-                    "area_alias" => $mydata->area_alias,
-                    "longitude" => $mydata->longitude,
-                    "latitude" => $mydata->latitude,
-                    "punch_state" => $mydata->punch_state,
-                    "punch_time" => $datetime
+                // Build query parameters
+                $query = array(
+                    'page' => $page,
+                    'start_time' => $sdate,
+                    'end_time' => $edate,
                 );
-                array_push($rows, $data);
+                
+                // Add terminal filter if provided
+                if (!empty($terminal)) {
+                    $query['terminal_sn'] = $terminal;
+                }
+
+                $params = '?' . http_build_query($query);
+                $endpoint = 'iclock/api/transactions/' . $params;
+
+                $response = $http->getTimeLogs($endpoint, "GET", $headers);
+                
+                // Validate response
+                if (!isset($response) || !is_object($response)) {
+                    throw new Exception("Invalid API response format");
+                }
+                
+                // Check for API errors in response
+                if (isset($response->error) || isset($response->detail)) {
+                    $error_msg = isset($response->error) ? $response->error : $response->detail;
+                    throw new Exception("API Error: " . $error_msg);
+                }
+                
+                return $response;
+                
+            } catch (Exception $e) {
+                $attempt++;
+                $this->log("getTime() attempt $attempt failed: " . $e->getMessage());
+                
+                if ($attempt >= $max_retries) {
+                    $this->log("getTime() failed after $max_retries attempts");
+                    return FALSE;
+                }
+                
+                // Wait before retry (exponential backoff)
+                sleep(pow(2, $attempt - 1));
+            } catch (Error $e) {
+                $attempt++;
+                $this->log("getTime() fatal error on attempt $attempt: " . $e->getMessage());
+                
+                if ($attempt >= $max_retries) {
+                    return FALSE;
+                }
+                
+                sleep(pow(2, $attempt - 1));
             }
         }
-
-        $message = $this->biotimejobs_mdl->add_time_logs($rows);
-
-        $this->logattendance($message);
-        $process = 4;
-        $method = "bioitimejobs/fetchBiotTimeLogs";
-        if (count($response) > 0) {
-            $status = "successful";
-        } else {
-            $status = "failed";
-        }
-        $this->biotimeClockin();
-        $this->cronjob_register($process, $method, $status);
+        
+        return FALSE;
     }
 
+
+    /**
+     * Fetch BioTime logs from API and save to database
+     * 
+     * @param string|bool $end_date End date in Y-m-d or Y-m-d H:i:s format (default: FALSE = current date)
+     * @param string|bool $terminal Terminal serial number (default: FALSE = all terminals)
+     * @param string|bool $start_date Start date in Y-m-d or Y-m-d H:i:s format (default: FALSE = 24 hours before end_date)
+     * @param int $batch_size Number of records per page (default: 10, API default)
+     * @param callable|null $progress_callback Optional callback function for progress updates
+     * @return array Result array with status, message, and statistics
+     */
+    public function fetchBiotTimeLogs($end_date = FALSE, $terminal = FALSE, $start_date = FALSE, $batch_size = 10, $progress_callback = NULL)
+    {
+        ignore_user_abort(true);
+        set_time_limit(0);
+        ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '512M');
+        
+        $result = array(
+            'status' => 'error',
+            'message' => '',
+            'records_fetched' => 0,
+            'records_saved' => 0,
+            'pages_processed' => 0,
+            'errors' => array()
+        );
+        
+        try {
+            // Get first page to determine total count
+            $resp = $this->getTime(1, $end_date, $terminal, $start_date);
+            
+            if ($resp === FALSE) {
+                throw new Exception("Failed to fetch initial data from API");
+            }
+            
+            if (!isset($resp->count) || !isset($resp->data)) {
+                throw new Exception("Invalid API response structure");
+            }
+            
+            $count = (int) $resp->count;
+            $pages = (int) ceil($count / $batch_size);
+            
+            if ($pages == 0) {
+                $result['status'] = 'success';
+                $result['message'] = 'No records found for the specified date range';
+                return $result;
+            }
+            
+            $rows = array();
+            $total_processed = 0;
+            
+            // Process all pages
+            for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
+                $response = $this->getTime($currentPage, $end_date, $terminal, $start_date);
+                
+                if ($response === FALSE) {
+                    $error_msg = "Failed to fetch page $currentPage";
+                    $result['errors'][] = $error_msg;
+                    $this->log("fetchBiotTimeLogs() error: $error_msg");
+                    continue;
+                }
+                
+                if (!isset($response->data) || !is_array($response->data)) {
+                    $error_msg = "Invalid data structure on page $currentPage";
+                    $result['errors'][] = $error_msg;
+                    $this->log("fetchBiotTimeLogs() error: $error_msg");
+                    continue;
+                }
+                
+                // Process records from this page
+                foreach ($response->data as $mydata) {
+                    if (!isset($mydata->punch_time) || !isset($mydata->emp_code)) {
+                        continue; // Skip invalid records
+                    }
+                    
+                    $datetime = date("Y-m-d H:i:s", strtotime($mydata->punch_time));
+                    
+                    $data = array(
+                        "emp_code" => isset($mydata->emp_code) ? $mydata->emp_code : '',
+                        "terminal_sn" => isset($mydata->terminal_sn) ? $mydata->terminal_sn : '',
+                        "area_alias" => isset($mydata->area_alias) ? $mydata->area_alias : '',
+                        "longitude" => isset($mydata->longitude) ? $mydata->longitude : NULL,
+                        "latitude" => isset($mydata->latitude) ? $mydata->latitude : NULL,
+                        "punch_state" => isset($mydata->punch_state) ? $mydata->punch_state : '',
+                        "punch_time" => $datetime
+                    );
+                    array_push($rows, $data);
+                    $total_processed++;
+                }
+                
+                $result['pages_processed'] = $currentPage;
+                
+                // Call progress callback if provided
+                if (is_callable($progress_callback)) {
+                    call_user_func($progress_callback, array(
+                        'page' => $currentPage,
+                        'total_pages' => $pages,
+                        'records_processed' => $total_processed,
+                        'total_records' => $count
+                    ));
+                }
+                
+                // Insert in batches to avoid memory issues
+                if (count($rows) >= 1000) {
+                    $message = $this->biotimejobs_mdl->add_time_logs($rows);
+                    $result['records_saved'] += count($rows);
+                    $rows = array(); // Clear array
+                }
+            }
+            
+            // Insert remaining records
+            if (count($rows) > 0) {
+                $message = $this->biotimejobs_mdl->add_time_logs($rows);
+                $result['records_saved'] += count($rows);
+            }
+            
+            $result['records_fetched'] = $total_processed;
+            $result['status'] = 'success';
+            $result['message'] = "Successfully fetched and saved $total_processed records";
+            
+            $this->logattendance($result['message']);
+            
+            // Register cronjob
+            $process = 4;
+            $method = "bioitimejobs/fetchBiotTimeLogs";
+            $status = ($result['records_saved'] > 0) ? "successful" : "failed";
+            $this->cronjob_register($process, $method, $status);
+            
+            // Process clock-in/out data
+            $this->biotimeClockin();
+            
+        } catch (Exception $e) {
+            $result['status'] = 'error';
+            $result['message'] = "Error: " . $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            $this->log("fetchBiotTimeLogs() exception: " . $e->getMessage());
+        } catch (Error $e) {
+            $result['status'] = 'error';
+            $result['message'] = "Fatal Error: " . $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            $this->log("fetchBiotTimeLogs() fatal error: " . $e->getMessage());
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Custom logs endpoint for frontend - syncs individual machines
+     * Supports async background processing with proper JSON responses
+     * 
+     * @return void Outputs JSON response
+     */
     public function custom_logs()
     {
         header('Content-Type: application/json');
         
-        $end_date = date('Y-m-d', strtotime($this->input->get('end_date')));
-        $terminal_sn = $this->input->get('terminal_sn');
-        $sync_type = $this->input->get('sync_type') ?: 'attendance';
-        $batch_size = $this->input->get('batch_size') ?: 100;
-
-        // Prepare response data
-        $response = array(
-            'status' => 'initiated',
-            'message' => 'Sync process started',
-            'timestamp' => date('Y-m-d H:i:s'),
-            'parameters' => array(
-                'terminal_sn' => $terminal_sn,
-                'end_date' => $end_date,
-                'sync_type' => $sync_type,
-                'batch_size' => $batch_size
-            ),
-            'command' => "curl https://attend.health.go.ug/biotimejobs/fetchBiotTimeLogs/" . $end_date . "/" . $terminal_sn
-        );
+        try {
+            // Get parameters
+            $end_date_input = $this->input->get('end_date');
+            $terminal_sn = $this->input->get('terminal_sn');
+            $start_date_input = $this->input->get('start_date');
+            $sync_type = $this->input->get('sync_type') ?: 'attendance';
+            $batch_size = (int) ($this->input->get('batch_size') ?: 10);
+            $async = $this->input->get('async') !== 'false'; // Default to async
+            
+            // Validate terminal_sn
+            if (empty($terminal_sn)) {
+                throw new Exception("Terminal serial number (terminal_sn) is required");
+            }
+            
+            // Validate and set dates
+            if (empty($end_date_input)) {
+                $end_date = date('Y-m-d');
+            } else {
+                $end_date = date('Y-m-d', strtotime($end_date_input));
+                if ($end_date === '1970-01-01' || $end_date === FALSE) {
+                    throw new Exception("Invalid end_date format. Expected Y-m-d format.");
+                }
+            }
+            
+            if (empty($start_date_input)) {
+                $start_date = FALSE; // Will default to 24 hours before end_date in getTime()
+            } else {
+                $start_date = date('Y-m-d', strtotime($start_date_input));
+                if ($start_date === '1970-01-01' || $start_date === FALSE) {
+                    throw new Exception("Invalid start_date format. Expected Y-m-d format.");
+                }
+            }
+            
+            // Get facility name for logging
+            $facility = 'Unknown';
+            if (!empty($terminal_sn)) {
+                $machine = $this->db->query("SELECT area_name FROM biotime_devices WHERE sn = ?", array($terminal_sn))->row();
+                if ($machine && isset($machine->area_name)) {
+                    $facility = $machine->area_name;
+                }
+            }
+            
+            // Prepare response data
+            $response = array(
+                'status' => 'initiated',
+                'message' => 'Sync process started',
+                'timestamp' => date('Y-m-d H:i:s'),
+                'parameters' => array(
+                    'terminal_sn' => $terminal_sn,
+                    'facility' => $facility,
+                    'start_date' => $start_date ?: 'auto (24h before end_date)',
+                    'end_date' => $end_date,
+                    'sync_type' => $sync_type,
+                    'batch_size' => $batch_size,
+                    'async' => $async
+                )
+            );
+            
+            // Log the sync request
+            $log_message = "custom_logs() - Terminal: $terminal_sn, Facility: $facility, Start: " . ($start_date ?: 'auto') . ", End: $end_date, Type: $sync_type, Batch: $batch_size, Async: " . ($async ? 'yes' : 'no');
+            $this->log($log_message);
+            
+            if ($async) {
+                // Async processing - return immediately and run in background
+                if (function_exists('fastcgi_finish_request')) {
+                    // Send response immediately
+                    echo json_encode($response, JSON_PRETTY_PRINT);
+                    fastcgi_finish_request();
+                } else {
+                    // For non-FastCGI, flush output
+                    echo json_encode($response, JSON_PRETTY_PRINT);
+                    if (ob_get_level() > 0) {
+                        ob_end_flush();
+                    }
+                    flush();
+                }
+                
+                // Run sync in background
+                $this->run_sync_background($terminal_sn, $start_date, $end_date, $facility, $sync_type, $batch_size);
+                
+            } else {
+                // Synchronous processing - wait for completion
+                $result = $this->fetchBiotTimeLogs($end_date, $terminal_sn, $start_date, $batch_size);
+                
+                $response['status'] = $result['status'];
+                $response['message'] = $result['message'];
+                $response['records_fetched'] = $result['records_fetched'];
+                $response['records_saved'] = $result['records_saved'];
+                $response['pages_processed'] = $result['pages_processed'];
+                
+                if (!empty($result['errors'])) {
+                    $response['errors'] = $result['errors'];
+                }
+                
+                echo json_encode($response, JSON_PRETTY_PRINT);
+            }
+            
+        } catch (Exception $e) {
+            $error_response = array(
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'timestamp' => date('Y-m-d H:i:s')
+            );
+            echo json_encode($error_response, JSON_PRETTY_PRINT);
+            $this->log("custom_logs() exception: " . $e->getMessage());
+        } catch (Error $e) {
+            $error_response = array(
+                'status' => 'error',
+                'message' => "Fatal Error: " . $e->getMessage(),
+                'timestamp' => date('Y-m-d H:i:s')
+            );
+            echo json_encode($error_response, JSON_PRETTY_PRINT);
+            $this->log("custom_logs() fatal error: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Run sync in background (for async processing)
+     * 
+     * @param string $terminal_sn Terminal serial number
+     * @param string|bool $start_date Start date
+     * @param string $end_date End date
+     * @param string $facility Facility name
+     * @param string $sync_type Sync type
+     * @param int $batch_size Batch size
+     * @return void
+     */
+    private function run_sync_background($terminal_sn, $start_date, $end_date, $facility, $sync_type, $batch_size)
+    {
+        ignore_user_abort(true);
+        set_time_limit(0);
+        ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '512M');
         
-        // Log the sync request
-        $log_message = "Sync initiated - Terminal: $terminal_sn, End Date: $end_date, Type: $sync_type, Batch: $batch_size";
-        $this->log($log_message);
+        try {
+            $this->log("run_sync_background() started for terminal $terminal_sn");
+            
+            $result = $this->fetchBiotTimeLogs($end_date, $terminal_sn, $start_date, $batch_size);
+            
+            $this->log("run_sync_background() completed for terminal $terminal_sn: " . $result['message']);
+            
+            // Update machine last_activity if successful
+            if ($result['status'] === 'success' && $result['records_saved'] > 0) {
+                $this->db->where('sn', $terminal_sn);
+                $this->db->update('biotime_devices', array('last_activity' => $end_date));
+            }
+            
+        } catch (Exception $e) {
+            $this->log("run_sync_background() exception for terminal $terminal_sn: " . $e->getMessage());
+        } catch (Error $e) {
+            $this->log("run_sync_background() fatal error for terminal $terminal_sn: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Sync individual machine endpoint with progress tracking
+     * Returns JSON response suitable for frontend terminal display
+     * 
+     * @param string $terminal_sn Terminal serial number (URL parameter)
+     * @param string $end_date End date in Y-m-d format (URL parameter, optional)
+     * @return void Outputs JSON response
+     */
+    public function syncMachine($terminal_sn = FALSE, $end_date = FALSE)
+    {
+        header('Content-Type: application/json');
         
-        // Execute the sync command (async)
-        $url = "curl https://attend.health.go.ug/biotimejobs/fetchBiotTimeLogs/" . $end_date . "/" . $terminal_sn;
-        shell_exec("$url > /dev/null 2>&1 &");
-
-        echo json_encode($response, JSON_PRETTY_PRINT);
+        try {
+            // Get parameters from URL or GET
+            if (empty($terminal_sn)) {
+                $terminal_sn = $this->input->get('terminal_sn') ?: $this->uri->segment(3);
+            }
+            
+            if (empty($end_date)) {
+                $end_date = $this->input->get('end_date') ?: $this->uri->segment(4);
+            }
+            
+            // Validate terminal_sn
+            if (empty($terminal_sn)) {
+                throw new Exception("Terminal serial number is required");
+            }
+            
+            // Set default end_date if not provided
+            if (empty($end_date)) {
+                $end_date = date('Y-m-d');
+            } else {
+                $end_date = date('Y-m-d', strtotime($end_date));
+                if ($end_date === '1970-01-01' || $end_date === FALSE) {
+                    throw new Exception("Invalid end_date format. Expected Y-m-d format.");
+                }
+            }
+            
+            // Get machine info
+            $machine = $this->db->query("SELECT * FROM biotime_devices WHERE sn = ?", array($terminal_sn))->row();
+            
+            if (empty($machine)) {
+                throw new Exception("Machine with serial number '$terminal_sn' not found");
+            }
+            
+            $facility = isset($machine->area_name) ? $machine->area_name : 'Unknown';
+            $start_date = isset($machine->last_activity) && !empty($machine->last_activity) 
+                ? date('Y-m-d', strtotime($machine->last_activity . ' -1 day'))
+                : date('Y-m-d', strtotime('-7 days'));
+            
+            // Prepare response
+            $response = array(
+                'status' => 'initiated',
+                'message' => 'Machine sync process started',
+                'timestamp' => date('Y-m-d H:i:s'),
+                'machine' => array(
+                    'terminal_sn' => $terminal_sn,
+                    'facility' => $facility,
+                    'last_activity' => isset($machine->last_activity) ? $machine->last_activity : NULL
+                ),
+                'parameters' => array(
+                    'start_date' => $start_date,
+                    'end_date' => $end_date
+                )
+            );
+            
+            $this->log("syncMachine() initiated for terminal $terminal_sn ($facility) from $start_date to $end_date");
+            
+            // Run sync asynchronously
+            if (function_exists('fastcgi_finish_request')) {
+                echo json_encode($response, JSON_PRETTY_PRINT);
+                fastcgi_finish_request();
+            } else {
+                echo json_encode($response, JSON_PRETTY_PRINT);
+                if (ob_get_level() > 0) {
+                    ob_end_flush();
+                }
+                flush();
+            }
+            
+            // Run sync in background
+            $this->run_sync_background($terminal_sn, $start_date, $end_date, $facility, 'attendance', 10);
+            
+        } catch (Exception $e) {
+            $error_response = array(
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'timestamp' => date('Y-m-d H:i:s')
+            );
+            echo json_encode($error_response, JSON_PRETTY_PRINT);
+            $this->log("syncMachine() exception: " . $e->getMessage());
+        } catch (Error $e) {
+            $error_response = array(
+                'status' => 'error',
+                'message' => "Fatal Error: " . $e->getMessage(),
+                'timestamp' => date('Y-m-d H:i:s')
+            );
+            echo json_encode($error_response, JSON_PRETTY_PRINT);
+            $this->log("syncMachine() fatal error: " . $e->getMessage());
+        }
     }
 
 
@@ -1105,114 +1505,257 @@ class Biotimejobs extends MX_Controller
         $data = array('process_id' => $process, 'process' => $method, 'status' => $status);
         $this->db->replace("cronjob_register", $data);
     }
-    public function fetch_time_history($start_date, $end_date, $terminal_sn = FALSE,$facility=FALSE, $empcode = FALSE)
+    /**
+     * Fetch time history for a date range, processing day by day
+     * 
+     * @param string $start_date Start date in Y-m-d format
+     * @param string $end_date End date in Y-m-d format
+     * @param string|bool $terminal_sn Terminal serial number (default: FALSE = all terminals)
+     * @param string|bool $facility Facility name (for logging, default: FALSE)
+     * @param string|bool $empcode Employee code filter (default: FALSE = all employees)
+     * @param callable|null $progress_callback Optional callback function for progress updates
+     * @return array Result array with status, message, and statistics
+     */
+    public function fetch_time_history($start_date, $end_date, $terminal_sn = FALSE, $facility = FALSE, $empcode = FALSE, $progress_callback = NULL)
     {
         ignore_user_abort(true);
+        set_time_limit(0);
         ini_set('max_execution_time', 0);
-        $dates = array();
-        $currentDate = strtotime($start_date); // Convert start date to a timestamp
-        $endDate = strtotime($end_date); // Convert end date to a timestamp
+        ini_set('memory_limit', '512M');
         
-        // Loop until all dates are processed
-        while ($currentDate <= $endDate) {
-            $dates = date('Y-m-d', $currentDate);
-            $insert = array(); // Initialize the insert array for each date
-
-            // Fetch data from the database
-            $rows = $this->biotimejobs_mdl->sync_attendance_data($dates, $empcode, $terminal_sn);
-
-            // Check if there is data to insert
-            // if (!empty($rows)) {
-            //     foreach ($rows as $object) {
-            //         $datetime = date("Y-m-d H:i:s", strtotime($object->punch_time));
-            //         $rowData = array(
-            //             "emp_code" => $object->emp_code,
-            //             "terminal_sn" => $object->terminal_sn,
-            //             "area_alias" => $object->area_alias,
-            //             "longitude" => $object->longitude,
-            //             "latitude" => $object->latitude,
-            //             "punch_state" => $object->punch_state,
-            //             "punch_time" => $datetime // Changed to punch_time to match the object's key
-            //         );
-            //         $insert[] = $rowData;
-            //     }
-
-            //     // Insert data in batches of 1000 rows
-            //     foreach (array_chunk($insert, 1000) as $batch) {
-            //         $this->db->insert_batch('biotime_data', $batch);
-                  
+        $result = array(
+            'status' => 'error',
+            'message' => '',
+            'dates_processed' => 0,
+            'total_records' => 0,
+            'errors' => array()
+        );
+        
+        try {
+            // Validate dates
+            $currentDate = strtotime($start_date);
+            $endDate = strtotime($end_date);
+            
+            if ($currentDate === FALSE || $endDate === FALSE) {
+                throw new Exception("Invalid date format. Expected Y-m-d format.");
+            }
+            
+            if ($currentDate > $endDate) {
+                throw new Exception("Start date must be before or equal to end date.");
+            }
+            
+            // Calculate total days
+            $total_days = (int) ceil(($endDate - $currentDate) / 86400) + 1;
+            $days_processed = 0;
+            
+            // Loop through each date
+            while ($currentDate <= $endDate) {
+                $dates = date('Y-m-d', $currentDate);
+                $day_start = $dates . ' 00:00:00';
+                $day_end = $dates . ' 23:59:59';
+                
+                // Progress callback
+                if (is_callable($progress_callback)) {
+                    call_user_func($progress_callback, array(
+                        'date' => $dates,
+                        'day' => $days_processed + 1,
+                        'total_days' => $total_days,
+                        'terminal_sn' => $terminal_sn,
+                        'facility' => $facility
+                    ));
+                }
+                
+                // Fetch data for this date via API
+                $fetch_result = $this->fetchBiotTimeLogs($day_end, $terminal_sn, $day_start);
+                
+                if ($fetch_result['status'] === 'success') {
+                    $result['total_records'] += $fetch_result['records_saved'];
+                    $days_processed++;
                     
-            //     }
-
-            //     // Clear the insert array
-            //     $insert = array();
-            // }
-
-            // Increment current date by 1 day
-            $this->biotimeClockoutnight($dates);
-            $currentDate = strtotime('+1 day', $currentDate);
-
-            // Output status message
-            echo "Data for " . $dates . " inserted successfully. Total rows affected: " . $this->db->affected_rows() . " ".$terminal_sn."<br>";
+                    // Process clock-out data for this date
+                    $this->biotimeClockoutnight($dates);
+                    
+                    $this->log("fetch_time_history() processed date $dates: " . $fetch_result['records_saved'] . " records saved");
+                } else {
+                    $error_msg = "Failed to fetch data for date $dates: " . $fetch_result['message'];
+                    $result['errors'][] = $error_msg;
+                    $this->log("fetch_time_history() error: $error_msg");
+                }
+                
+                // Increment current date by 1 day
+                $currentDate = strtotime('+1 day', $currentDate);
+            }
+            
+            $result['dates_processed'] = $days_processed;
+            $result['status'] = 'success';
+            $result['message'] = "Successfully processed $days_processed of $total_days days. Total records: " . $result['total_records'];
+            
+            $this->log("fetch_time_history() completed: " . $result['message']);
+            
+        } catch (Exception $e) {
+            $result['status'] = 'error';
+            $result['message'] = "Error: " . $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            $this->log("fetch_time_history() exception: " . $e->getMessage());
+        } catch (Error $e) {
+            $result['status'] = 'error';
+            $result['message'] = "Fatal Error: " . $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            $this->log("fetch_time_history() fatal error: " . $e->getMessage());
         }
-
-        // Final completion message
-      echo  "\e[32mData insertion completed successfully.\e[0m\n";
-
-     
-
-        // clcokin
-
-    //    $clock = $this->db->query("CALL copy_clk_log_data()");
-    //    if ($clock){
-    //           $this->db->query("CALL insert_actuals()");
-    //    echo  "\e[34m$(echo $this->db->affected_rows())\e[0m Recognized\n";
-
-       //}
-
-       
-
+        
+        return $result;
     }
 
-    public function fetch_daily_attendance(){
-       
-        $end_date = date('Y-m-d');
-       
-        $machines = $this->db->query("SELECT * FROM biotime_devices")->result();
-       foreach ($machines as $machine) {
-        $device = $machine->sn;
-        $startdate = $machine->last_activity;
-		   //$startdate="2024-11-21";
-	 
-        $start_timestamp = strtotime($startdate);
-        $new_timestamp = $start_timestamp - 86400; // Subtracting one day (86400 seconds)
-        echo $start = date('Y-m-d', $new_timestamp);
-        $facility = $machine->area_name;
-        echo "Start Synchronisation for " . $device . " " . $facility;
-         
-            // Convert end date to timestamp
-            $end_timestamp = strtotime($end_date);
-
-            // Calculate the difference in seconds
-            $difference_seconds = $end_timestamp - $start_timestamp;
-
-            // If you want to convert the difference to days, you can do so
-            $difference_days = $difference_seconds / (60 * 60 * 24);
-            if($difference_days<60){
-            $this->fetch_time_history($start,$end_date,$device,$facility);
-            $this->biotimeClockin();
+    /**
+     * Fetch daily attendance for all machines
+     * Processes each machine individually with proper error handling
+     * 
+     * @param string|bool $end_date End date in Y-m-d format (default: FALSE = current date)
+     * @param int $max_days Maximum number of days to sync per machine (default: 60)
+     * @param string|bool $specific_device Specific device SN to sync (default: FALSE = all devices)
+     * @return array Result array with status, message, and statistics per machine
+     */
+    public function fetch_daily_attendance($end_date = FALSE, $max_days = 60, $specific_device = FALSE)
+    {
+        ignore_user_abort(true);
+        set_time_limit(0);
+        ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '512M');
+        
+        $result = array(
+            'status' => 'error',
+            'message' => '',
+            'machines_processed' => 0,
+            'machines_total' => 0,
+            'total_records' => 0,
+            'machine_results' => array(),
+            'errors' => array()
+        );
+        
+        try {
+            // Set end date
+            if (empty($end_date)) {
+                $end_date = date('Y-m-d');
             }
-       
-       }
-
-        $this->terminals();
-
-       
-        //$this->db->query("TRUNCATE biotime_data");
-      
-      
-
-
+            
+            // Build query for machines
+            $query = "SELECT * FROM biotime_devices";
+            if (!empty($specific_device)) {
+                $query .= " WHERE sn = " . $this->db->escape($specific_device);
+            }
+            $query .= " ORDER BY sn ASC";
+            
+            $machines = $this->db->query($query)->result();
+            
+            if (empty($machines)) {
+                throw new Exception("No machines found in database");
+            }
+            
+            $result['machines_total'] = count($machines);
+            $machines_processed = 0;
+            
+            foreach ($machines as $machine) {
+                $device = $machine->sn;
+                $facility = isset($machine->area_name) ? $machine->area_name : 'Unknown';
+                
+                $machine_result = array(
+                    'device' => $device,
+                    'facility' => $facility,
+                    'status' => 'error',
+                    'records' => 0,
+                    'message' => ''
+                );
+                
+                try {
+                    // Get start date from last_activity or use default
+                    $startdate = isset($machine->last_activity) && !empty($machine->last_activity) 
+                        ? $machine->last_activity 
+                        : date('Y-m-d', strtotime('-7 days'));
+                    
+                    // Ensure startdate is a valid date
+                    $start_timestamp = strtotime($startdate);
+                    if ($start_timestamp === FALSE) {
+                        $startdate = date('Y-m-d', strtotime('-7 days'));
+                        $start_timestamp = strtotime($startdate);
+                    }
+                    
+                    // Subtract one day to ensure we don't miss data
+                    $new_timestamp = $start_timestamp - 86400;
+                    $start = date('Y-m-d', $new_timestamp);
+                    
+                    // Convert end date to timestamp
+                    $end_timestamp = strtotime($end_date);
+                    
+                    // Calculate the difference in days
+                    $difference_seconds = $end_timestamp - $start_timestamp;
+                    $difference_days = $difference_seconds / (60 * 60 * 24);
+                    
+                    // Only sync if within max_days limit
+                    if ($difference_days <= $max_days && $difference_days >= 0) {
+                        $this->log("fetch_daily_attendance() starting sync for device $device ($facility) from $start to $end_date");
+                        
+                        // Fetch time history for this machine
+                        $fetch_result = $this->fetch_time_history($start, $end_date, $device, $facility);
+                        
+                        if ($fetch_result['status'] === 'success') {
+                            $machine_result['status'] = 'success';
+                            $machine_result['records'] = $fetch_result['total_records'];
+                            $machine_result['message'] = $fetch_result['message'];
+                            $result['total_records'] += $fetch_result['total_records'];
+                            $machines_processed++;
+                            
+                            // Update last_activity for this machine
+                            $this->db->where('sn', $device);
+                            $this->db->update('biotime_devices', array('last_activity' => $end_date));
+                            
+                            $this->log("fetch_daily_attendance() completed for device $device: " . $fetch_result['total_records'] . " records");
+                        } else {
+                            $machine_result['message'] = $fetch_result['message'];
+                            $result['errors'][] = "Device $device: " . $fetch_result['message'];
+                            $this->log("fetch_daily_attendance() failed for device $device: " . $fetch_result['message']);
+                        }
+                    } else {
+                        $machine_result['status'] = 'skipped';
+                        $machine_result['message'] = "Date range too large ($difference_days days, max: $max_days)";
+                        $this->log("fetch_daily_attendance() skipped device $device: date range too large");
+                    }
+                    
+                } catch (Exception $e) {
+                    $machine_result['message'] = "Error: " . $e->getMessage();
+                    $result['errors'][] = "Device $device: " . $e->getMessage();
+                    $this->log("fetch_daily_attendance() exception for device $device: " . $e->getMessage());
+                } catch (Error $e) {
+                    $machine_result['message'] = "Fatal Error: " . $e->getMessage();
+                    $result['errors'][] = "Device $device: " . $e->getMessage();
+                    $this->log("fetch_daily_attendance() fatal error for device $device: " . $e->getMessage());
+                }
+                
+                $result['machine_results'][] = $machine_result;
+            }
+            
+            // Sync terminals after processing all machines
+            $this->terminals();
+            
+            $result['machines_processed'] = $machines_processed;
+            $result['status'] = ($machines_processed > 0) ? 'success' : 'error';
+            $result['message'] = "Processed $machines_processed of " . $result['machines_total'] . " machines. Total records: " . $result['total_records'];
+            
+            $this->log("fetch_daily_attendance() completed: " . $result['message']);
+            
+        } catch (Exception $e) {
+            $result['status'] = 'error';
+            $result['message'] = "Error: " . $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            $this->log("fetch_daily_attendance() exception: " . $e->getMessage());
+        } catch (Error $e) {
+            $result['status'] = 'error';
+            $result['message'] = "Fatal Error: " . $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            $this->log("fetch_daily_attendance() fatal error: " . $e->getMessage());
+        }
+        
+        return $result;
     }
 
     public function daily_logs($ihris_id,$date){

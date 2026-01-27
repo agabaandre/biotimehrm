@@ -25,11 +25,11 @@ Class Department_model extends CI_Model
       try {
         // Reset query builder
         $this->db->reset_query();
-        
+      
         $qry = $this->db->query("SELECT distinct department from ihrisdata WHERE department IS NOT NULL AND department != '' ORDER BY department ASC");
 
         if ($qry) {
-          return $qry->result();
+      return $qry->result();
         } else {
           log_message('error', 'getAll_departments query failed');
           return array();
