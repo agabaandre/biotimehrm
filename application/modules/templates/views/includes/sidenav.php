@@ -146,7 +146,7 @@
                    <i class="far fa-circle nav-icon"></i>
                    Machines</a></li>
                <li class="nav-item">
-                 <a href="<?php echo base_url() ?>biotime/tasks" class="nav-link <?php echo ($this->uri->segment(1) == 'biotime' && $this->uri->segment(2) == 'tasks') ? 'active' : ''; ?>">
+                 <a href="<?php echo base_url() ?>biometrics/tasks" class="nav-link <?php echo ($this->uri->segment(1) == 'biometrics' && $this->uri->segment(2) == 'tasks') ? 'active' : ''; ?>">
                    <i class="far fa-circle nav-icon"></i>
                    Tasks</a>
                </li>
