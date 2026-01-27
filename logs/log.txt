@@ -10,3 +10,11 @@
 {"REQUEST DETAILS: 2026-01-22 22:50:36 Time": "1 save_department() Created Departments from Biotime 37"}\n
 {"REQUEST DETAILS: 2026-01-23 13:15:03 Time": "Sync initiated - Terminal: BYUJ191660018, End Date: 2026-01-23, Type: attendance, Batch: 500"}\n
 {"REQUEST DETAILS: 2026-01-23 13:15:41 Time": "Sync initiated - Terminal: 3929091915178, End Date: 2026-01-23, Type: attendance, Batch: 100"}\n
+{"REQUEST DETAILS: 2026-01-27 12:01:42 Time": "custom_logs() - Terminal: 3929091915178, Facility: MUBENDE Regional Referral, Start: auto, End: 2026-01-27, Type: attendance, Batch: 500, Async: yes"}\n
+{"REQUEST DETAILS: 2026-01-27 12:01:42 Time": "run_sync_background() started for terminal 3929091915178"}\n
+{"REQUEST DETAILS: 2026-01-27 12:01:45 Time": "fetchBiotTimeLogs() exception: PROCEDURE attend.clockin_users does not exist"}\n
+{"REQUEST DETAILS: 2026-01-27 12:01:45 Time": "run_sync_background() completed for terminal 3929091915178: Error: PROCEDURE attend.clockin_users does not exist"}\n
+{"REQUEST DETAILS: 2026-01-27 12:02:47 Time": "custom_logs() - Terminal: BYUJ192260042, Facility: GULU Regional Referral, Start: auto, End: 2026-01-27, Type: attendance, Batch: 500, Async: yes"}\n
+{"REQUEST DETAILS: 2026-01-27 12:02:47 Time": "run_sync_background() started for terminal BYUJ192260042"}\n
+{"REQUEST DETAILS: 2026-01-27 12:02:51 Time": "fetchBiotTimeLogs() exception: PROCEDURE attend.clockin_users does not exist"}\n
+{"REQUEST DETAILS: 2026-01-27 12:02:51 Time": "run_sync_background() completed for terminal BYUJ192260042: Error: PROCEDURE attend.clockin_users does not exist"}\n

@@ -133,8 +133,8 @@
          <?php } ?>
          <!--user perm 26-->
          <?php if (in_array('32', $permissions)) { ?>
-           <li class="nav-item has-treeview <?php echo ($this->uri->segment(1) == 'biotime' || $this->uri->segment(1) == 'svariables') ? 'menu-open' : ''; ?>">
-             <a href="#" class="nav-link <?php echo ($this->uri->segment(1) == 'biotime' || $this->uri->segment(1) == 'svariables') ? 'active' : ''; ?>">
+           <li class="nav-item has-treeview <?php echo ($this->uri->segment(1) == 'biometrics' || $this->uri->segment(1) == 'svariables') ? 'menu-open' : ''; ?>">
+             <a href="#" class="nav-link <?php echo ($this->uri->segment(1) == 'biometrics' || $this->uri->segment(1) == 'svariables') ? 'active' : ''; ?>">
                <i class="fa fa-fingerprint"></i>
                <p>
                  Biometrics
@@ -142,7 +142,7 @@
                </p>
              </a>
              <ul class="nav nav-treeview">
-               <li class="nav-item"><a href="<?php echo base_url() ?>biotime/updateTerminals" class="nav-link <?php echo ($this->uri->segment(1) == 'biotime' && $this->uri->segment(2) == 'updateTerminals') ? 'active' : ''; ?>">
+               <li class="nav-item"><a href="<?php echo base_url() ?>biometrics/updateTerminals" class="nav-link <?php echo ($this->uri->segment(1) == 'biometrics' && $this->uri->segment(2) == 'updateTerminals') ? 'active' : ''; ?>">
                    <i class="far fa-circle nav-icon"></i>
                    Machines</a></li>
                <li class="nav-item">
@@ -150,10 +150,10 @@
                    <i class="far fa-circle nav-icon"></i>
                    Tasks</a>
                </li>
-               <li class="nav-item"><a href="<?php echo base_url() ?>biotime/enrolled" class="nav-link <?php echo ($this->uri->segment(1) == 'biotime' && $this->uri->segment(2) == 'enrolled') ? 'active' : ''; ?>">
+               <li class="nav-item"><a href="<?php echo base_url() ?>biometrics/enrolled" class="nav-link <?php echo ($this->uri->segment(1) == 'biometrics' && $this->uri->segment(2) == 'enrolled') ? 'active' : ''; ?>">
                    <i class="far fa-circle nav-icon"></i>
                    Enrolled Users</a></li>
-               <li class="nav-item"><a href="<?php echo base_url() ?>biotime/unenrolled" class="nav-link <?php echo ($this->uri->segment(1) == 'biotime' && $this->uri->segment(2) == 'unenrolled') ? 'active' : ''; ?>">
+               <li class="nav-item"><a href="<?php echo base_url() ?>biometrics/unenrolled" class="nav-link <?php echo ($this->uri->segment(1) == 'biometrics' && $this->uri->segment(2) == 'unenrolled') ? 'active' : ''; ?>">
                    <i class="far fa-circle nav-icon"></i>
                    New Users</a></li>
             
