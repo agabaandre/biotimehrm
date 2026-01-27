@@ -48,13 +48,12 @@ class Biotimejobs extends MX_Controller
     //get terminals
     public function terminals()
     {
+        try {
         $http = new HttpUtils();
         $headr = array();
         $headr[] = 'Content-length: 0';
         $headr[] = 'Content-type: application/json';
         $headr[] = 'Authorization: JWT ' . $this->get_token();
-
-
 
         $query = array(
             'page_size' => 5000000
@@ -64,36 +63,67 @@ class Biotimejobs extends MX_Controller
         $endpoint = 'iclock/api/terminals/' . $params;
 
         $response = $http->curlgetHttp($endpoint, $headr, []);
-        //print_r($response->data);
-        // exit();
+            
+            // Validate response
+            if (!$response || !is_object($response)) {
+                throw new Exception("Invalid API response for terminals");
+            }
+            
+            // Check if data exists and is an array
+            if (!isset($response->data) || !is_array($response->data)) {
+                throw new Exception("No terminal data in API response");
+            }
+            
         $insert1 = array();
         foreach ($response->data as $terminal) {
-
+                // Validate terminal object
+                if (!is_object($terminal) || !isset($terminal->sn)) {
+                    continue; // Skip invalid terminals
+                }
 
             $insert = array(
-                'sn' => $terminal->sn,
-                'ip_address' => $terminal->ip_address,
-                'area_code' => $terminal->area->area_code,
-                'user_count' => $terminal->user_count,
-                'face_count' => $terminal->face_count,
-                'palm_count' => $terminal->palm_count,
-                'area_name' => $terminal->area_name,
-                'last_activity' => $terminal->last_activity
+                    'sn' => isset($terminal->sn) ? $terminal->sn : '',
+                    'ip_address' => isset($terminal->ip_address) ? $terminal->ip_address : '',
+                    'area_code' => isset($terminal->area) && isset($terminal->area->area_code) ? $terminal->area->area_code : '',
+                    'user_count' => isset($terminal->user_count) ? $terminal->user_count : 0,
+                    'face_count' => isset($terminal->face_count) ? $terminal->face_count : 0,
+                    'palm_count' => isset($terminal->palm_count) ? $terminal->palm_count : 0,
+                    'area_name' => isset($terminal->area_name) ? $terminal->area_name : '',
+                    'last_activity' => isset($terminal->last_activity) ? $terminal->last_activity : NULL
             );
             array_push($insert1, $insert);
         }
+            
         $message = $this->biotimejobs_mdl->addMachines($insert1);
         $this->log($message);
+            
         $process = 1;
         $method = "bioitimejobs/terminals";
-        if (count($response) > 0) {
+            
+            // Check if we have data to insert (count the array, not the response object)
+            if (count($insert1) > 0) {
             $status = "successful";
         } else {
             $status = "failed";
         }
+            
         $this->cronjob_register($process, $method, $status);
 
-        return ($response);
+            return $response;
+            
+        } catch (Exception $e) {
+            $this->log("terminals() exception: " . $e->getMessage());
+            $process = 1;
+            $method = "bioitimejobs/terminals";
+            $this->cronjob_register($process, $method, "failed");
+            return FALSE;
+        } catch (Error $e) {
+            $this->log("terminals() fatal error: " . $e->getMessage());
+            $process = 1;
+            $method = "bioitimejobs/terminals";
+            $this->cronjob_register($process, $method, "failed");
+            return FALSE;
+        }
     }
     //cron job
     //Fetches ihris stafflsit via the api
@@ -292,7 +322,7 @@ class Biotimejobs extends MX_Controller
             if (empty($rows)) {
                 log_message('error', 'saveEnrolled: No rows to insert');
                 return false;
-            }
+        }
 
         $message = $this->biotimejobs_mdl->add_enrolled($rows);
         $this->log($message);
@@ -338,27 +368,27 @@ class Biotimejobs extends MX_Controller
         $attempt = 0;
         while ($attempt < $max_retries) {
             try {
-                $headers = [
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'Authorization' => "JWT " . $this->get_token(),
-                ];
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => "JWT " . $this->get_token(),
+        ];
                 
                 // Handle date parameters
-                if (empty($end_date)) {
-                    $edate = date('Y-m-d H:i:s');
+        if (empty($end_date)) {
+            $edate = date('Y-m-d H:i:s');
                 } else {
                     // If only date is provided (Y-m-d), add time component
                     if (strlen($end_date) == 10) {
                         $edate = $end_date . ' 23:59:59';
-                    } else {
-                        $edate = $end_date;
+        } else {
+            $edate = $end_date;
                     }
                 }
                 
                 // Handle start date
                 if (empty($start_date)) {
-                    $sdate = date("Y-m-d H:i:s", strtotime("-24 hours", strtotime($edate)));
+            $sdate = date("Y-m-d H:i:s", strtotime("-24 hours", strtotime($edate)));
                 } else {
                     // If only date is provided (Y-m-d), add time component
                     if (strlen($start_date) == 10) {
@@ -376,21 +406,21 @@ class Biotimejobs extends MX_Controller
                 }
 
                 // Build query parameters
-                $query = array(
-                    'page' => $page,
-                    'start_time' => $sdate,
-                    'end_time' => $edate,
-                );
-                
+            $query = array(
+                'page' => $page,
+                'start_time' => $sdate,
+                'end_time' => $edate,
+            );
+
                 // Add terminal filter if provided
                 if (!empty($terminal)) {
                     $query['terminal_sn'] = $terminal;
-                }
+        }
 
-                $params = '?' . http_build_query($query);
-                $endpoint = 'iclock/api/transactions/' . $params;
+        $params = '?' . http_build_query($query);
+        $endpoint = 'iclock/api/transactions/' . $params;
 
-                $response = $http->getTimeLogs($endpoint, "GET", $headers);
+        $response = $http->getTimeLogs($endpoint, "GET", $headers);
                 
                 // Validate response
                 if (!isset($response) || !is_object($response)) {
@@ -403,7 +433,7 @@ class Biotimejobs extends MX_Controller
                     throw new Exception("API Error: " . $error_msg);
                 }
                 
-                return $response;
+        return $response;
                 
             } catch (Exception $e) {
                 $attempt++;
@@ -479,11 +509,11 @@ class Biotimejobs extends MX_Controller
                 return $result;
             }
             
-            $rows = array();
+        $rows = array();
             $total_processed = 0;
-            
+
             // Process all pages
-            for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
+        for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
                 $response = $this->getTime($currentPage, $end_date, $terminal, $start_date);
                 
                 if ($response === FALSE) {
@@ -501,23 +531,23 @@ class Biotimejobs extends MX_Controller
                 }
                 
                 // Process records from this page
-                foreach ($response->data as $mydata) {
+            foreach ($response->data as $mydata) {
                     if (!isset($mydata->punch_time) || !isset($mydata->emp_code)) {
                         continue; // Skip invalid records
                     }
                     
-                    $datetime = date("Y-m-d H:i:s", strtotime($mydata->punch_time));
-                    
-                    $data = array(
+                $datetime = date("Y-m-d H:i:s", strtotime($mydata->punch_time));
+             
+                $data = array(
                         "emp_code" => isset($mydata->emp_code) ? $mydata->emp_code : '',
                         "terminal_sn" => isset($mydata->terminal_sn) ? $mydata->terminal_sn : '',
                         "area_alias" => isset($mydata->area_alias) ? $mydata->area_alias : '',
                         "longitude" => isset($mydata->longitude) ? $mydata->longitude : NULL,
                         "latitude" => isset($mydata->latitude) ? $mydata->latitude : NULL,
                         "punch_state" => isset($mydata->punch_state) ? $mydata->punch_state : '',
-                        "punch_time" => $datetime
-                    );
-                    array_push($rows, $data);
+                    "punch_time" => $datetime
+                );
+                array_push($rows, $data);
                     $total_processed++;
                 }
                 
@@ -535,7 +565,7 @@ class Biotimejobs extends MX_Controller
                 
                 // Insert in batches to avoid memory issues
                 if (count($rows) >= 1000) {
-                    $message = $this->biotimejobs_mdl->add_time_logs($rows);
+        $message = $this->biotimejobs_mdl->add_time_logs($rows);
                     $result['records_saved'] += count($rows);
                     $rows = array(); // Clear array
                 }
@@ -554,10 +584,10 @@ class Biotimejobs extends MX_Controller
             $this->logattendance($result['message']);
             
             // Register cronjob
-            $process = 4;
-            $method = "bioitimejobs/fetchBiotTimeLogs";
+        $process = 4;
+        $method = "bioitimejobs/fetchBiotTimeLogs";
             $status = ($result['records_saved'] > 0) ? "successful" : "failed";
-            $this->cronjob_register($process, $method, $status);
+        $this->cronjob_register($process, $method, $status);
             
             // Process clock-in/out data
             $this->biotimeClockin();
@@ -590,7 +620,7 @@ class Biotimejobs extends MX_Controller
         try {
             // Get parameters
             $end_date_input = $this->input->get('end_date');
-            $terminal_sn = $this->input->get('terminal_sn');
+        $terminal_sn = $this->input->get('terminal_sn');
             $start_date_input = $this->input->get('start_date');
             $sync_type = $this->input->get('sync_type') ?: 'attendance';
             $batch_size = (int) ($this->input->get('batch_size') ?: 10);
@@ -1590,8 +1620,8 @@ class Biotimejobs extends MX_Controller
             $console("", 'info');
             
             // Loop through each date
-            while ($currentDate <= $endDate) {
-                $dates = date('Y-m-d', $currentDate);
+        while ($currentDate <= $endDate) {
+            $dates = date('Y-m-d', $currentDate);
                 $day_start = $dates . ' 00:00:00';
                 $day_end = $dates . ' 23:59:59';
                 $day_number = $days_processed + 1;
@@ -1627,7 +1657,7 @@ class Biotimejobs extends MX_Controller
                     $console("  ✓ Fetched: {$fetch_result['records_fetched']} | Saved: {$fetch_result['records_saved']}", 'success');
                     
                     // Process clock-out data for this date
-                    $this->biotimeClockoutnight($dates);
+            $this->biotimeClockoutnight($dates);
                     
                     $this->log("fetch_time_history() processed date $dates: " . $fetch_result['records_saved'] . " records saved");
                 } else {
@@ -1641,7 +1671,7 @@ class Biotimejobs extends MX_Controller
                 $result['daily_stats'][] = $daily_stat;
                 
                 // Increment current date by 1 day
-                $currentDate = strtotime('+1 day', $currentDate);
+            $currentDate = strtotime('+1 day', $currentDate);
             }
             
             $result['dates_processed'] = $days_processed;
@@ -1767,7 +1797,7 @@ class Biotimejobs extends MX_Controller
             $console("", 'info');
             
             foreach ($machines as $machine_index => $machine) {
-                $device = $machine->sn;
+        $device = $machine->sn;
                 $facility = isset($machine->area_name) ? $machine->area_name : 'Unknown';
                 $machine_num = $machine_index + 1;
                 
@@ -1811,11 +1841,11 @@ class Biotimejobs extends MX_Controller
                     
                     // Convert dates to timestamps for comparison
                     $start_timestamp = strtotime($start);
-                    $end_timestamp = strtotime($end_date);
-                    
+            $end_timestamp = strtotime($end_date);
+
                     // Calculate the difference in days
-                    $difference_seconds = $end_timestamp - $start_timestamp;
-                    $difference_days = $difference_seconds / (60 * 60 * 24);
+            $difference_seconds = $end_timestamp - $start_timestamp;
+            $difference_days = $difference_seconds / (60 * 60 * 24);
                     
                     // Check if last_activity is already at or after end_date
                     $last_activity_timestamp = $last_activity_date ? strtotime($last_activity_date) : 0;
@@ -1891,7 +1921,7 @@ class Biotimejobs extends MX_Controller
             
             // Sync terminals after processing all machines
             $console("Syncing terminal information...", 'info');
-            $this->terminals();
+        $this->terminals();
             $console("✓ Terminal sync completed", 'success');
             $console("", 'info');
             
