@@ -1507,6 +1507,7 @@ class Biotimejobs extends MX_Controller
     }
     /**
      * Fetch time history for a date range, processing day by day
+     * Uses PostgreSQL database for faster data retrieval
      * 
      * @param string $start_date Start date in Y-m-d format
      * @param string $end_date End date in Y-m-d format
@@ -1514,9 +1515,10 @@ class Biotimejobs extends MX_Controller
      * @param string|bool $facility Facility name (for logging, default: FALSE)
      * @param string|bool $empcode Employee code filter (default: FALSE = all employees)
      * @param callable|null $progress_callback Optional callback function for progress updates
+     * @param bool $output_console Whether to output console messages (default: true)
      * @return array Result array with status, message, and statistics
      */
-    public function fetch_time_history($start_date, $end_date, $terminal_sn = FALSE, $facility = FALSE, $empcode = FALSE, $progress_callback = NULL)
+    public function fetch_time_history($start_date, $end_date, $terminal_sn = FALSE, $facility = FALSE, $empcode = FALSE, $progress_callback = NULL, $output_console = TRUE)
     {
         ignore_user_abort(true);
         set_time_limit(0);
@@ -1528,8 +1530,37 @@ class Biotimejobs extends MX_Controller
             'message' => '',
             'dates_processed' => 0,
             'total_records' => 0,
-            'errors' => array()
+            'errors' => array(),
+            'daily_stats' => array()
         );
+        
+        // Console output helper
+        $console = function($message, $type = 'info') use ($output_console) {
+            if ($output_console) {
+                $timestamp = date('Y-m-d H:i:s');
+                $prefix = '';
+                switch($type) {
+                    case 'success':
+                        $prefix = '✓';
+                        break;
+                    case 'error':
+                        $prefix = '✗';
+                        break;
+                    case 'warning':
+                        $prefix = '⚠';
+                        break;
+                    case 'info':
+                    default:
+                        $prefix = '→';
+                        break;
+                }
+                echo "[$timestamp] $prefix $message\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            }
+        };
         
         try {
             // Validate dates
@@ -1548,29 +1579,52 @@ class Biotimejobs extends MX_Controller
             $total_days = (int) ceil(($endDate - $currentDate) / 86400) + 1;
             $days_processed = 0;
             
+            $console("=== Starting Time History Sync ===", 'info');
+            $console("Date Range: $start_date to $end_date ($total_days days)", 'info');
+            if ($terminal_sn) {
+                $console("Terminal: $terminal_sn", 'info');
+            }
+            if ($facility) {
+                $console("Facility: $facility", 'info');
+            }
+            $console("", 'info');
+            
             // Loop through each date
             while ($currentDate <= $endDate) {
                 $dates = date('Y-m-d', $currentDate);
                 $day_start = $dates . ' 00:00:00';
                 $day_end = $dates . ' 23:59:59';
+                $day_number = $days_processed + 1;
+                
+                $console("[$day_number/$total_days] Processing date: $dates", 'info');
                 
                 // Progress callback
                 if (is_callable($progress_callback)) {
                     call_user_func($progress_callback, array(
                         'date' => $dates,
-                        'day' => $days_processed + 1,
+                        'day' => $day_number,
                         'total_days' => $total_days,
                         'terminal_sn' => $terminal_sn,
                         'facility' => $facility
                     ));
                 }
                 
-                // Fetch data for this date via API
-                $fetch_result = $this->fetchBiotTimeLogs($day_end, $terminal_sn, $day_start);
+                // Fetch data for this date via database
+                $fetch_result = $this->biotimejobs_mdl->fetch_time_history($day_start, $day_end, $terminal_sn, $empcode);
+                
+                $daily_stat = array(
+                    'date' => $dates,
+                    'status' => $fetch_result['status'],
+                    'records_fetched' => $fetch_result['records_fetched'],
+                    'records_saved' => $fetch_result['records_saved'],
+                    'message' => $fetch_result['message']
+                );
                 
                 if ($fetch_result['status'] === 'success') {
                     $result['total_records'] += $fetch_result['records_saved'];
                     $days_processed++;
+                    
+                    $console("  ✓ Fetched: {$fetch_result['records_fetched']} | Saved: {$fetch_result['records_saved']}", 'success');
                     
                     // Process clock-out data for this date
                     $this->biotimeClockoutnight($dates);
@@ -1579,8 +1633,12 @@ class Biotimejobs extends MX_Controller
                 } else {
                     $error_msg = "Failed to fetch data for date $dates: " . $fetch_result['message'];
                     $result['errors'][] = $error_msg;
+                    $daily_stat['errors'] = $fetch_result['errors'];
+                    $console("  ✗ Error: " . $fetch_result['message'], 'error');
                     $this->log("fetch_time_history() error: $error_msg");
                 }
+                
+                $result['daily_stats'][] = $daily_stat;
                 
                 // Increment current date by 1 day
                 $currentDate = strtotime('+1 day', $currentDate);
@@ -1590,17 +1648,28 @@ class Biotimejobs extends MX_Controller
             $result['status'] = 'success';
             $result['message'] = "Successfully processed $days_processed of $total_days days. Total records: " . $result['total_records'];
             
+            $console("", 'info');
+            $console("=== Sync Summary ===", 'info');
+            $console("Days Processed: $days_processed / $total_days", 'info');
+            $console("Total Records: " . $result['total_records'], 'info');
+            if (!empty($result['errors'])) {
+                $console("Errors: " . count($result['errors']), 'warning');
+            }
+            $console("=== Sync Completed ===", 'success');
+            
             $this->log("fetch_time_history() completed: " . $result['message']);
             
         } catch (Exception $e) {
             $result['status'] = 'error';
             $result['message'] = "Error: " . $e->getMessage();
             $result['errors'][] = $e->getMessage();
+            $console("✗ Fatal Error: " . $e->getMessage(), 'error');
             $this->log("fetch_time_history() exception: " . $e->getMessage());
         } catch (Error $e) {
             $result['status'] = 'error';
             $result['message'] = "Fatal Error: " . $e->getMessage();
             $result['errors'][] = $e->getMessage();
+            $console("✗ Fatal Error: " . $e->getMessage(), 'error');
             $this->log("fetch_time_history() fatal error: " . $e->getMessage());
         }
         
@@ -1609,14 +1678,15 @@ class Biotimejobs extends MX_Controller
 
     /**
      * Fetch daily attendance for all machines
-     * Processes each machine individually with proper error handling
+     * Processes each machine individually with proper error handling and console output
      * 
      * @param string|bool $end_date End date in Y-m-d format (default: FALSE = current date)
      * @param int $max_days Maximum number of days to sync per machine (default: 60)
      * @param string|bool $specific_device Specific device SN to sync (default: FALSE = all devices)
+     * @param bool $output_console Whether to output console messages (default: true)
      * @return array Result array with status, message, and statistics per machine
      */
-    public function fetch_daily_attendance($end_date = FALSE, $max_days = 60, $specific_device = FALSE)
+    public function fetch_daily_attendance($end_date = FALSE, $max_days = 60, $specific_device = FALSE, $output_console = TRUE)
     {
         ignore_user_abort(true);
         set_time_limit(0);
@@ -1633,11 +1703,49 @@ class Biotimejobs extends MX_Controller
             'errors' => array()
         );
         
+        // Console output helper
+        $console = function($message, $type = 'info') use ($output_console) {
+            if ($output_console) {
+                $timestamp = date('Y-m-d H:i:s');
+                $prefix = '';
+                switch($type) {
+                    case 'success':
+                        $prefix = '✓';
+                        break;
+                    case 'error':
+                        $prefix = '✗';
+                        break;
+                    case 'warning':
+                        $prefix = '⚠';
+                        break;
+                    case 'info':
+                    default:
+                        $prefix = '→';
+                        break;
+                }
+                echo "[$timestamp] $prefix $message\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            }
+        };
+        
         try {
             // Set end date
             if (empty($end_date)) {
                 $end_date = date('Y-m-d');
             }
+            
+            $console("═══════════════════════════════════════════════════════", 'info');
+            $console("  DAILY ATTENDANCE SYNC - MACHINES", 'info');
+            $console("═══════════════════════════════════════════════════════", 'info');
+            $console("End Date: $end_date", 'info');
+            $console("Max Days Per Machine: $max_days", 'info');
+            if ($specific_device) {
+                $console("Specific Device: $specific_device", 'info');
+            }
+            $console("", 'info');
             
             // Build query for machines
             $query = "SELECT * FROM biotime_devices";
@@ -1655,9 +1763,17 @@ class Biotimejobs extends MX_Controller
             $result['machines_total'] = count($machines);
             $machines_processed = 0;
             
-            foreach ($machines as $machine) {
+            $console("Found " . $result['machines_total'] . " machine(s) to sync", 'info');
+            $console("", 'info');
+            
+            foreach ($machines as $machine_index => $machine) {
                 $device = $machine->sn;
                 $facility = isset($machine->area_name) ? $machine->area_name : 'Unknown';
+                $machine_num = $machine_index + 1;
+                
+                $console("─────────────────────────────────────────────────────", 'info');
+                $console("MACHINE [$machine_num/{$result['machines_total']}]: $device", 'info');
+                $console("Facility: $facility", 'info');
                 
                 $machine_result = array(
                     'device' => $device,
@@ -1691,12 +1807,16 @@ class Biotimejobs extends MX_Controller
                     $difference_seconds = $end_timestamp - $start_timestamp;
                     $difference_days = $difference_seconds / (60 * 60 * 24);
                     
+                    $console("Date Range: $start to $end_date ($difference_days days)", 'info');
+                    $console("Last Activity: " . ($machine->last_activity ?: 'Never'), 'info');
+                    
                     // Only sync if within max_days limit
                     if ($difference_days <= $max_days && $difference_days >= 0) {
+                        $console("Starting sync...", 'info');
                         $this->log("fetch_daily_attendance() starting sync for device $device ($facility) from $start to $end_date");
                         
-                        // Fetch time history for this machine
-                        $fetch_result = $this->fetch_time_history($start, $end_date, $device, $facility);
+                        // Fetch time history for this machine (with console output)
+                        $fetch_result = $this->fetch_time_history($start, $end_date, $device, $facility, FALSE, NULL, $output_console);
                         
                         if ($fetch_result['status'] === 'success') {
                             $machine_result['status'] = 'success';
@@ -1709,37 +1829,56 @@ class Biotimejobs extends MX_Controller
                             $this->db->where('sn', $device);
                             $this->db->update('biotime_devices', array('last_activity' => $end_date));
                             
+                            $console("✓ Sync completed: {$fetch_result['total_records']} records", 'success');
                             $this->log("fetch_daily_attendance() completed for device $device: " . $fetch_result['total_records'] . " records");
                         } else {
                             $machine_result['message'] = $fetch_result['message'];
                             $result['errors'][] = "Device $device: " . $fetch_result['message'];
+                            $console("✗ Sync failed: " . $fetch_result['message'], 'error');
                             $this->log("fetch_daily_attendance() failed for device $device: " . $fetch_result['message']);
                         }
                     } else {
                         $machine_result['status'] = 'skipped';
                         $machine_result['message'] = "Date range too large ($difference_days days, max: $max_days)";
+                        $console("⚠ Skipped: Date range too large ($difference_days days)", 'warning');
                         $this->log("fetch_daily_attendance() skipped device $device: date range too large");
                     }
                     
                 } catch (Exception $e) {
                     $machine_result['message'] = "Error: " . $e->getMessage();
                     $result['errors'][] = "Device $device: " . $e->getMessage();
+                    $console("✗ Exception: " . $e->getMessage(), 'error');
                     $this->log("fetch_daily_attendance() exception for device $device: " . $e->getMessage());
                 } catch (Error $e) {
                     $machine_result['message'] = "Fatal Error: " . $e->getMessage();
                     $result['errors'][] = "Device $device: " . $e->getMessage();
+                    $console("✗ Fatal Error: " . $e->getMessage(), 'error');
                     $this->log("fetch_daily_attendance() fatal error for device $device: " . $e->getMessage());
                 }
                 
                 $result['machine_results'][] = $machine_result;
+                $console("", 'info');
             }
             
             // Sync terminals after processing all machines
+            $console("Syncing terminal information...", 'info');
             $this->terminals();
+            $console("✓ Terminal sync completed", 'success');
+            $console("", 'info');
             
             $result['machines_processed'] = $machines_processed;
             $result['status'] = ($machines_processed > 0) ? 'success' : 'error';
             $result['message'] = "Processed $machines_processed of " . $result['machines_total'] . " machines. Total records: " . $result['total_records'];
+            
+            $console("═══════════════════════════════════════════════════════", 'info');
+            $console("  SYNC SUMMARY", 'info');
+            $console("═══════════════════════════════════════════════════════", 'info');
+            $console("Machines Processed: $machines_processed / {$result['machines_total']}", 'info');
+            $console("Total Records: " . $result['total_records'], 'info');
+            if (!empty($result['errors'])) {
+                $console("Errors: " . count($result['errors']), 'warning');
+            }
+            $console("═══════════════════════════════════════════════════════", 'info');
             
             $this->log("fetch_daily_attendance() completed: " . $result['message']);
             
@@ -1747,11 +1886,13 @@ class Biotimejobs extends MX_Controller
             $result['status'] = 'error';
             $result['message'] = "Error: " . $e->getMessage();
             $result['errors'][] = $e->getMessage();
+            $console("✗ Fatal Error: " . $e->getMessage(), 'error');
             $this->log("fetch_daily_attendance() exception: " . $e->getMessage());
         } catch (Error $e) {
             $result['status'] = 'error';
             $result['message'] = "Fatal Error: " . $e->getMessage();
             $result['errors'][] = $e->getMessage();
+            $console("✗ Fatal Error: " . $e->getMessage(), 'error');
             $this->log("fetch_daily_attendance() fatal error: " . $e->getMessage());
         }
         

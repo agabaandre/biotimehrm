@@ -379,37 +379,166 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
 
     
 
-    // public function get_attendance_data($date, $empcode = FALSE, $terminal_sn = FALSE)
-    // {
-       
-
-    //             $conn = pg_connect("host=172.27.1.105 port=7496 dbname=biotime user=postgres password=attendee@2020");
-    //             if ($conn) {
-    //                 echo "Connection successful!";
-    //             } else {
-    //                 echo "Connection failed!";
-    //             }
-
-
-
-    
-
-    //     if (!empty($empcode)) {
-    //         $empcode = "AND  emp_code ='$empcode'";
-    //     }
-
-    //     if (!empty($terminal_sn)) {
-    //         $terminal_sn = "AND terminal_sn = '$terminal_sn'";
-    //     }
-
-   
-
-
-    //     $data = $conn->query("SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time FROM iclock_transaction WHERE DATE_TRUNC('day', punch_time)= '$date' $empcode $terminal_sn" )->result();
-    //     //($data);
-
-    //     return $data;
-
-    // }
+    /**
+     * Fetch time history from PostgreSQL database for a date range
+     * 
+     * @param string $start_date Start date/time in Y-m-d H:i:s format
+     * @param string $end_date End date/time in Y-m-d H:i:s format
+     * @param string|bool $terminal_sn Terminal serial number (default: FALSE = all terminals)
+     * @param string|bool $empcode Employee code filter (default: FALSE = all employees)
+     * @param int $batch_size Batch size for inserts (default: 1000)
+     * @return array Result array with status, message, records_saved, and statistics
+     */
+    public function fetch_time_history($start_date, $end_date, $terminal_sn = FALSE, $empcode = FALSE, $batch_size = 1000)
+    {
+        $result = array(
+            'status' => 'error',
+            'message' => '',
+            'records_fetched' => 0,
+            'records_saved' => 0,
+            'errors' => array()
+        );
+        
+        try {
+            // Get PostgreSQL connection details from environment or use defaults
+            // Try $_ENV first, then getenv() as fallback
+            $pg_host = isset($_ENV['PG_DB_HOST']) ? $_ENV['PG_DB_HOST'] : (getenv('PG_DB_HOST') ?: '172.27.1.101');
+            $pg_port = isset($_ENV['PG_PORT']) ? $_ENV['PG_PORT'] : (getenv('PG_PORT') ?: '7496');
+            $pg_db = isset($_ENV['PG_DB_NAME']) ? $_ENV['PG_DB_NAME'] : (getenv('PG_DB_NAME') ?: 'biotime');
+            $pg_user = isset($_ENV['PG_USER']) ? $_ENV['PG_USER'] : (getenv('PG_USER') ?: 'postgres');
+            $pg_pass = isset($_ENV['PG_PASS']) ? $_ENV['PG_PASS'] : (getenv('PG_PASS') ?: 'attendee@2020');
+            
+            // Build connection string (pg_connect handles escaping internally)
+            $pg_conn_string = "host=$pg_host port=$pg_port dbname=$pg_db user=$pg_user password=$pg_pass connect_timeout=10";
+            
+            // Connect to PostgreSQL
+            $pg_conn = @pg_connect($pg_conn_string);
+            
+            if (!$pg_conn) {
+                $error = error_get_last();
+                $error_msg = $error ? $error['message'] : 'Unknown connection error';
+                throw new Exception("Connection to PostgreSQL failed! Host: $pg_host, Port: $pg_port, DB: $pg_db. Error: $error_msg");
+            }
+            
+            // Build query conditions
+            $conditions = "punch_time >= '$start_date' AND punch_time <= '$end_date'";
+            
+            if (!empty($terminal_sn)) {
+                $terminal_sn_escaped = pg_escape_string($pg_conn, $terminal_sn);
+                $conditions .= " AND terminal_sn = '$terminal_sn_escaped'";
+            }
+            
+            if (!empty($empcode)) {
+                $empcode_escaped = pg_escape_string($pg_conn, $empcode);
+                $conditions .= " AND emp_code = '$empcode_escaped'";
+            }
+            
+            // Construct the query
+            $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
+                      FROM iclock_transaction 
+                      WHERE $conditions
+                      ORDER BY punch_time ASC";
+            
+            // Execute the query
+            $pg_result = pg_query($pg_conn, $query);
+            
+            if (!$pg_result) {
+                $error = pg_last_error($pg_conn);
+                throw new Exception("Error executing PostgreSQL query: $error");
+            }
+            
+            // Get total count for progress tracking
+            $total_rows = pg_num_rows($pg_result);
+            $result['records_fetched'] = $total_rows;
+            
+            if ($total_rows == 0) {
+                pg_close($pg_conn);
+                $result['status'] = 'success';
+                $result['message'] = 'No records found for the specified date range';
+                return $result;
+            }
+            
+            // Prepare data for MySQL insertion in batches
+            $batch = array();
+            $inserted_count = 0;
+            $processed_count = 0;
+            
+            while ($row = pg_fetch_assoc($pg_result)) {
+                $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
+                
+                $batch[] = array(
+                    "emp_code" => isset($row['emp_code']) ? $row['emp_code'] : '',
+                    "terminal_sn" => isset($row['terminal_sn']) ? $row['terminal_sn'] : '',
+                    "area_alias" => isset($row['area_alias']) ? $row['area_alias'] : '',
+                    "longitude" => !empty($row['longitude']) ? $row['longitude'] : NULL,
+                    "latitude" => !empty($row['latitude']) ? $row['latitude'] : NULL,
+                    "punch_state" => isset($row['punch_state']) ? $row['punch_state'] : '',
+                    "punch_time" => $datetime
+                );
+                
+                $processed_count++;
+                
+                // Insert batch into MySQL when the batch size is reached
+                if (count($batch) >= $batch_size) {
+                    if ($this->db->insert_batch('biotime_data', $batch)) {
+                        $inserted_count += count($batch);
+                    } else {
+                        $error = $this->db->error();
+                        $error_msg = isset($error['message']) ? $error['message'] : 'Unknown error';
+                        $result['errors'][] = "Batch insert failed: $error_msg";
+                        log_message('error', 'fetch_time_history() batch insert failed: ' . $error_msg);
+                    }
+                    $batch = array(); // Clear the batch array
+                }
+            }
+            
+            // Insert any remaining rows in the batch
+            if (!empty($batch)) {
+                if ($this->db->insert_batch('biotime_data', $batch)) {
+                    $inserted_count += count($batch);
+                } else {
+                    $error = $this->db->error();
+                    $error_msg = isset($error['message']) ? $error['message'] : 'Unknown error';
+                    $result['errors'][] = "Final batch insert failed: $error_msg";
+                    log_message('error', 'fetch_time_history() final batch insert failed: ' . $error_msg);
+                }
+            }
+            
+            // Clean up invalid records
+            $this->db->query("DELETE FROM biotime_data WHERE emp_code='0'");
+            
+            // Close PostgreSQL connection
+            pg_close($pg_conn);
+            
+            $result['records_saved'] = $inserted_count;
+            $result['status'] = ($inserted_count > 0) ? 'success' : 'error';
+            $result['message'] = "Fetched $total_rows records, saved $inserted_count records to database";
+            
+            if (!empty($result['errors'])) {
+                $result['message'] .= ". Errors: " . count($result['errors']);
+            }
+            
+        } catch (Exception $e) {
+            $result['status'] = 'error';
+            $result['message'] = "Exception: " . $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            log_message('error', 'fetch_time_history() exception: ' . $e->getMessage());
+            
+            if (isset($pg_conn) && $pg_conn) {
+                pg_close($pg_conn);
+            }
+        } catch (Error $e) {
+            $result['status'] = 'error';
+            $result['message'] = "Fatal Error: " . $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            log_message('error', 'fetch_time_history() fatal error: ' . $e->getMessage());
+            
+            if (isset($pg_conn) && $pg_conn) {
+                pg_close($pg_conn);
+            }
+        }
+        
+        return $result;
+    }
 
 }
