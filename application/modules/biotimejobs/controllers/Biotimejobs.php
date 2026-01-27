@@ -1785,33 +1785,67 @@ class Biotimejobs extends MX_Controller
                 
                 try {
                     // Get start date from last_activity or use default
-                    $startdate = isset($machine->last_activity) && !empty($machine->last_activity) 
+                    $last_activity = isset($machine->last_activity) && !empty($machine->last_activity) 
                         ? $machine->last_activity 
-                        : date('Y-m-d', strtotime('-7 days'));
+                        : NULL;
                     
-                    // Ensure startdate is a valid date
-                    $start_timestamp = strtotime($startdate);
-                    if ($start_timestamp === FALSE) {
-                        $startdate = date('Y-m-d', strtotime('-7 days'));
-                        $start_timestamp = strtotime($startdate);
+                    // Extract date part from last_activity (in case it's a datetime)
+                    if ($last_activity) {
+                        $last_activity_date = date('Y-m-d', strtotime($last_activity));
+                        if ($last_activity_date === '1970-01-01' || $last_activity_date === FALSE) {
+                            $last_activity_date = NULL;
+                        }
+                    } else {
+                        $last_activity_date = NULL;
                     }
                     
-                    // Subtract one day to ensure we don't miss data
-                    $new_timestamp = $start_timestamp - 86400;
-                    $start = date('Y-m-d', $new_timestamp);
+                    // Determine start date
+                    if ($last_activity_date) {
+                        // Use last_activity date, subtract one day to ensure we don't miss data
+                        $start_timestamp = strtotime($last_activity_date . ' -1 day');
+                        $start = date('Y-m-d', $start_timestamp);
+                    } else {
+                        // No last_activity, use default (7 days ago)
+                        $start = date('Y-m-d', strtotime('-7 days'));
+                    }
                     
-                    // Convert end date to timestamp
+                    // Convert dates to timestamps for comparison
+                    $start_timestamp = strtotime($start);
                     $end_timestamp = strtotime($end_date);
                     
                     // Calculate the difference in days
                     $difference_seconds = $end_timestamp - $start_timestamp;
                     $difference_days = $difference_seconds / (60 * 60 * 24);
                     
-                    $console("Date Range: $start to $end_date ($difference_days days)", 'info');
-                    $console("Last Activity: " . ($machine->last_activity ?: 'Never'), 'info');
+                    // Check if last_activity is already at or after end_date
+                    $last_activity_timestamp = $last_activity_date ? strtotime($last_activity_date) : 0;
+                    $end_date_timestamp = strtotime($end_date);
+                    $is_already_synced = $last_activity_timestamp >= $end_date_timestamp;
                     
-                    // Only sync if within max_days limit
-                    if ($difference_days <= $max_days && $difference_days >= 0) {
+                    $console("Date Range: $start to $end_date ($difference_days days)", 'info');
+                    $console("Last Activity: " . ($last_activity ?: 'Never'), 'info');
+                    
+                    // Determine if we should sync
+                    if ($is_already_synced) {
+                        // Machine is already synced up to or beyond end_date
+                        $machine_result['status'] = 'skipped';
+                        $machine_result['message'] = "Already up to date (last activity: $last_activity_date >= end date: $end_date)";
+                        $console("✓ Skipped: Already up to date (last activity: $last_activity_date)", 'info');
+                        $this->log("fetch_daily_attendance() skipped device $device: already up to date");
+                    } elseif ($difference_days < 0) {
+                        // Negative range shouldn't happen, but handle it
+                        $machine_result['status'] = 'skipped';
+                        $machine_result['message'] = "Invalid date range (start date after end date)";
+                        $console("⚠ Skipped: Invalid date range", 'warning');
+                        $this->log("fetch_daily_attendance() skipped device $device: invalid date range");
+                    } elseif ($difference_days > $max_days) {
+                        // Date range exceeds maximum
+                        $machine_result['status'] = 'skipped';
+                        $machine_result['message'] = "Date range too large ($difference_days days, max: $max_days)";
+                        $console("⚠ Skipped: Date range too large ($difference_days days, max: $max_days)", 'warning');
+                        $this->log("fetch_daily_attendance() skipped device $device: date range too large ($difference_days days)");
+                    } else {
+                        // Proceed with sync
                         $console("Starting sync...", 'info');
                         $this->log("fetch_daily_attendance() starting sync for device $device ($facility) from $start to $end_date");
                         
@@ -1825,7 +1859,7 @@ class Biotimejobs extends MX_Controller
                             $result['total_records'] += $fetch_result['total_records'];
                             $machines_processed++;
                             
-                            // Update last_activity for this machine
+                            // Update last_activity for this machine (use end_date, not datetime)
                             $this->db->where('sn', $device);
                             $this->db->update('biotime_devices', array('last_activity' => $end_date));
                             
@@ -1837,11 +1871,6 @@ class Biotimejobs extends MX_Controller
                             $console("✗ Sync failed: " . $fetch_result['message'], 'error');
                             $this->log("fetch_daily_attendance() failed for device $device: " . $fetch_result['message']);
                         }
-                    } else {
-                        $machine_result['status'] = 'skipped';
-                        $machine_result['message'] = "Date range too large ($difference_days days, max: $max_days)";
-                        $console("⚠ Skipped: Date range too large ($difference_days days)", 'warning');
-                        $this->log("fetch_daily_attendance() skipped device $device: date range too large");
                     }
                     
                 } catch (Exception $e) {
