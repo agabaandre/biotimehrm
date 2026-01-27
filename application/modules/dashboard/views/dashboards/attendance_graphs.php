@@ -151,43 +151,43 @@
             name: 'Staff',
             data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
         }]
-    });
-    
-            Highcharts.chart('line_graph_att', {
-        chart: {
-            type: 'line'
-        },
-        title: {
-            text: 'Average Number of Employees Attending per Month - <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]) ?>'
-        },
-        subtitle: {
-            text: ''
-        },
-        xAxis: {
-            categories: <?php echo json_encode($graph['period']); ?>
-        },
-        yAxis: {
+        });
+        
+        Highcharts.chart('line_graph_att', {
+            chart: {
+                type: 'line'
+            },
             title: {
-                text: 'Staff'
-            }
-        },
-        plotOptions: {
-            line: {
-                dataLabels: {
-                    enabled: true
-                },
-                enableMouseTracking: true
-            }
-        },
-        credits: {
-            enabled: false
-        },
-        series: [{
-            name: 'Staff',
-            data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
-        }]
-    });
-        }
+                text: 'Average Number of Employees Attending per Month - <?php echo " " . str_replace("'", " ", $_SESSION["facility_name"]) ?>'
+            },
+            subtitle: {
+                text: ''
+            },
+            xAxis: {
+                categories: <?php echo json_encode($graph['period']); ?>
+            },
+            yAxis: {
+                title: {
+                    text: 'Staff'
+                }
+            },
+            plotOptions: {
+                line: {
+                    dataLabels: {
+                        enabled: true
+                    },
+                    enableMouseTracking: true
+                }
+            },
+            credits: {
+                enabled: false
+            },
+            series: [{
+                name: 'Staff',
+                data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
+            }]
+        });
+    }
         
         // Average Hours Gauge function - must check Highcharts before using
         function knobgauge(gvalue) {

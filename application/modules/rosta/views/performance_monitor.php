@@ -60,9 +60,6 @@
         
         <div class="row mt-3">
             <div class="col-md-12">
-                <button type="button" class="btn btn-primary" onclick="createIndexes()">
-                    <i class="fas fa-database"></i> Create Performance Indexes
-                </button>
                 <button type="button" class="btn btn-info" onclick="refreshStats()">
                     <i class="fas fa-sync"></i> Refresh Stats
                 </button>
@@ -87,22 +84,6 @@ function refreshStats() {
             console.error('Failed to fetch performance stats');
         }
     });
-}
-
-function createIndexes() {
-    if (confirm('This will create database indexes to improve performance. Continue?')) {
-        $.ajax({
-            url: '<?php echo base_url("rosta/createIndexes"); ?>',
-            type: 'GET',
-            success: function(response) {
-                alert('Indexes created successfully: ' + response);
-                refreshStats();
-            },
-            error: function() {
-                alert('Failed to create indexes');
-            }
-        });
-    }
 }
 
 // Load stats on page load

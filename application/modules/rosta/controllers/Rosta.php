@@ -915,20 +915,6 @@ file_put_contents('log.txt',$data,FILE_APPEND);*/
 	}
 	
 	/**
-	 * Create performance indexes for better query performance
-	 * This should be called once during setup
-	 */
-	public function createIndexes()
-	{
-		if (!$this->session->userdata('isLoggedIn')) {
-			redirect('auth');
-		}
-		
-		$result = $this->rosta_model->create_performance_indexes();
-		echo $result;
-	}
-	
-	/**
 	 * Get performance statistics
 	 */
 	public function getPerformanceStats()
