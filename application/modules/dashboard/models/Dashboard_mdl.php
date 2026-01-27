@@ -42,17 +42,42 @@ class Dashboard_mdl extends CI_Model
         $fac = $this->db->query("Select *  from biotime_devices");
         $data['biometrics'] = $fac->num_rows();
 
+        // iHRIS sync date
         $fac = $this->db->query("Select max(last_update) as date  from ihrisdata where facility_id='$facility'");
-        $data['ihris_sync'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
-        //Att gen
+        $result = $fac->result();
+        if (!empty($result) && isset($result[0]->date) && !empty($result[0]->date)) {
+            $data['ihris_sync'] = date('j F, Y H:i:s', strtotime($result[0]->date));
+        } else {
+            $data['ihris_sync'] = 'N/A';
+        }
+        
+        // Attendance generation date
         $fac = $this->db->query("Select max(last_gen) as date  from person_att_final");
-        $data['attendance'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
-        //Roster gen
+        $result = $fac->result();
+        if (!empty($result) && isset($result[0]->date) && !empty($result[0]->date)) {
+            $data['attendance'] = date('j F, Y H:i:s', strtotime($result[0]->date));
+        } else {
+            $data['attendance'] = 'No Data Available';
+        }
+        
+        // Roster generation date
         $fac = $this->db->query("Select max(last_gen) as date  from person_dut_final");
-        $data['roster'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
-        //Biotime att sync
-        $fac = $this->db->query("Select max(last_sync) as date  from biotime_data_history");
-        $data['biotime_last'] = date('j F, Y H:i:s', strtotime($fac->result()[0]->date));
+        $result = $fac->result();
+        if (!empty($result) && isset($result[0]->date) && !empty($result[0]->date)) {
+            $data['roster'] = date('j F, Y H:i:s', strtotime($result[0]->date));
+        } else {
+            $data['roster'] = 'No Data Available';
+        }
+        
+        // BioTime last sync - Get most recent punch_time from biotime_data (synced from PostgreSQL)
+        // This represents the most recent attendance data that was synced from PostgreSQL
+        $fac = $this->db->query("Select max(punch_time) as date from biotime_data");
+        $result = $fac->result();
+        if (!empty($result) && isset($result[0]->date) && !empty($result[0]->date)) {
+            $data['biotime_last'] = date('j F, Y H:i:s', strtotime($result[0]->date));
+        } else {
+            $data['biotime_last'] = 'N/A';
+        }
 
         $fac = $this->db->query("SELECT * FROM actuals WHERE  schedule_id = 22 AND actuals.date = '$today' and facility_id='$facility'");
         $data['present'] =  $fac->num_rows();
@@ -116,7 +141,7 @@ class Dashboard_mdl extends CI_Model
                 (SELECT MAX(last_update) FROM ihrisdata WHERE facility_id = ?) as ihris_sync,
                 (SELECT MAX(last_gen) FROM person_att_final) as attendance,
                 (SELECT MAX(last_gen) FROM person_dut_final) as roster,
-                (SELECT MAX(last_sync) FROM biotime_data) as biotime_last
+                (SELECT MAX(punch_time) FROM biotime_data) as biotime_last
         ";
         
         $dates_result = $this->db->query($dates_query, [$facility]);
@@ -125,6 +150,7 @@ class Dashboard_mdl extends CI_Model
         $data['ihris_sync'] = $dates->ihris_sync ? date('j F, Y H:i:s', strtotime($dates->ihris_sync)) : 'N/A';
         $data['attendance'] = $dates->attendance ? date('j F, Y H:i:s', strtotime($dates->attendance)) : 'No Data Available';
         $data['roster'] = $dates->roster ? date('j F, Y H:i:s', strtotime($dates->roster)) : 'No Data Available';
+        // Use punch_time from biotime_data as last sync indicator (data synced from PostgreSQL)
         $data['biotime_last'] = $dates->biotime_last ? date('j F, Y H:i:s', strtotime($dates->biotime_last)) : 'N/A';
         
         // Optimize attendance status queries with a single query
