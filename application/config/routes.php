@@ -66,11 +66,6 @@ $route['attend/index.php'] = 'home/index';
 // Add 404 override to handle missing pages gracefully
 $route['404_override'] = 'errors/page_missing';
 
-// Biotime module routes - handle case sensitivity issues
-$route['biotime/updateterminals'] = 'biotime/updateTerminals';
-$route['biotime/UpdateTerminals'] = 'biotime/updateTerminals';
-$route['biotime/update-terminals'] = 'biotime/updateTerminals';
-
 //set modules/config/routes.php
 $modules_path = APPPATH . 'modules/';
 $modules = scandir($modules_path);

@@ -549,8 +549,8 @@ class Biotimejobs extends MX_Controller
                 );
                 array_push($rows, $data);
                     $total_processed++;
-                }
-                
+        }
+
                 $result['pages_processed'] = $currentPage;
                 
                 // Call progress callback if provided
@@ -580,7 +580,7 @@ class Biotimejobs extends MX_Controller
             $result['records_fetched'] = $total_processed;
             $result['status'] = 'success';
             $result['message'] = "Successfully fetched and saved $total_processed records";
-            
+
             $this->logattendance($result['message']);
             
             // Register cronjob
@@ -1627,7 +1627,7 @@ class Biotimejobs extends MX_Controller
                 $day_number = $days_processed + 1;
                 
                 $console("[$day_number/$total_days] Processing date: $dates", 'info');
-                
+
                 // Progress callback
                 if (is_callable($progress_callback)) {
                     call_user_func($progress_callback, array(
@@ -1764,7 +1764,7 @@ class Biotimejobs extends MX_Controller
         try {
             // Set end date
             if (empty($end_date)) {
-                $end_date = date('Y-m-d');
+        $end_date = date('Y-m-d');
             }
             
             $console("═══════════════════════════════════════════════════════", 'info');

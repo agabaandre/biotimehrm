@@ -39,14 +39,6 @@ class Biotime extends MX_Controller{
       
     
     }
-    
-    /**
-     * Alias method for case-insensitive access (Linux servers are case-sensitive)
-     * Handles: /biotime/updateterminals
-     */
-    public function updateterminals(){
-        return $this->updateTerminals();
-    }
     public function tasks(){
     
             $data['view']='biotime_tasks';
