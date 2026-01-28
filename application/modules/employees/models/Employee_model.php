@@ -769,6 +769,82 @@ class Employee_model extends CI_Model
         $query = $this->db->query("SELECT ihris_pid from ihrisdata where $filters $search");
         return $query->num_rows();
     }
+
+    /**
+     * Server-side DataTables count for timesheet employees list.
+     * Note: $filters is a pre-built SQL fragment used across the app.
+     */
+    public function countTimesheetAjax($filters, $employee = '', $job = '', $search = '')
+    {
+        $where = "WHERE $filters";
+
+        if (!empty($employee)) {
+            $emp = $this->db->escape($employee);
+            $where .= " AND ihrisdata.ihris_pid = $emp";
+        }
+
+        if (!empty($job)) {
+            $jobEsc = $this->db->escape_like_str($job);
+            $where .= " AND ihrisdata.job LIKE '%$jobEsc%'";
+        }
+
+        if (!empty($search)) {
+            $s = $this->db->escape_like_str($search);
+            $where .= " AND (ihrisdata.ihris_pid LIKE '%$s%' OR ihrisdata.surname LIKE '%$s%' OR ihrisdata.firstname LIKE '%$s%' OR ihrisdata.othername LIKE '%$s%' OR ihrisdata.job LIKE '%$s%')";
+        }
+
+        $query = $this->db->query("SELECT COUNT(DISTINCT ihrisdata.ihris_pid) as total FROM ihrisdata $where");
+        $row = $query->row();
+        return isset($row->total) ? (int)$row->total : 0;
+    }
+
+    /**
+     * Server-side DataTables fetch for timesheet employees list (paged).
+     * Returns: ihris_pid, fullname, job
+     */
+    public function fetchTimesheetEmployeesAjax($filters, $employee = '', $job = '', $start = 0, $length = 20, $search = '')
+    {
+        $start = (int)$start;
+        $length = (int)$length;
+        if ($length <= 0) {
+            $length = 20;
+        }
+
+        $where = "WHERE $filters";
+
+        if (!empty($employee)) {
+            $emp = $this->db->escape($employee);
+            $where .= " AND ihrisdata.ihris_pid = $emp";
+        }
+
+        if (!empty($job)) {
+            $jobEsc = $this->db->escape_like_str($job);
+            $where .= " AND ihrisdata.job LIKE '%$jobEsc%'";
+        }
+
+        if (!empty($search)) {
+            $s = $this->db->escape_like_str($search);
+            $where .= " AND (ihrisdata.ihris_pid LIKE '%$s%' OR ihrisdata.surname LIKE '%$s%' OR ihrisdata.firstname LIKE '%$s%' OR ihrisdata.othername LIKE '%$s%' OR ihrisdata.job LIKE '%$s%')";
+        }
+
+        $sql = "
+            SELECT DISTINCT ihrisdata.ihris_pid,
+                CONCAT(
+                    COALESCE(ihrisdata.surname,''),
+                    ' ',
+                    COALESCE(ihrisdata.firstname,''),
+                    ' ',
+                    COALESCE(ihrisdata.othername,'')
+                ) AS fullname,
+                ihrisdata.job
+            FROM ihrisdata
+            $where
+            ORDER BY ihrisdata.surname ASC
+            LIMIT $start, $length
+        ";
+
+        return $this->db->query($sql)->result_array();
+    }
     public function fetch_TimeSheet($date_range = FALSE, $start = FALSE, $limit = FALSE, $employee = FALSE, $filters=FALSE, $job = NULL)
     {
         $month = $this->input->post('month');

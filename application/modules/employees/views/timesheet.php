@@ -27,38 +27,29 @@
 				<div class="panel panel-default">
 					<div class="panel-body" style="overflow-x: scroll;">
 						<div class="callout callout-success">
-							<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>employees/timesheet" method="post">
+							<form id="timesheetFiltersForm" class="form-horizontal" style="padding-bottom: 2em;" action="javascript:void(0);" method="post">
 								<input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 								<div class="row">
 									<div class="col-md-2">
 										<div class="control-group">
-											<select class="form-control select2" name="month" onchange="this.form.submit()">
-												<option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10))) . "(Showing below)"; ?></option>
-												<option value="01">JANUARY</option>
-												<option value="02">FEBRUARY</option>
-												<option value="03">MARCH</option>
-												<option value="04">APRIL</option>
-												<option value="05">MAY</option>
-												<option value="06">JUNE</option>
-												<option value="07">JULY</option>
-												<option value="08">AUGUST</option>
-												<option value="09">SEPTEMBER</option>
-												<option value="10">OCTOBER</option>
-												<option value="11">NOVEMBER</option>
-												<option value="12">DECEMBER</option>
-											</select>
-											<input type="hidden" id="month" value="<?php echo $month = $this->input->post('month'); ?>">
+											<label style="font-size:12px;">Date From:</label>
+											<div class="input-group">
+												<div class="input-group-prepend">
+													<span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
+												</div>
+												<input type="text" name="date_from" id="ts_date_from" class="form-control datepicker" value="<?php echo isset($date_from) ? $date_from : date('Y-m-01'); ?>" autocomplete="off">
+											</div>
 										</div>
 									</div>
 									<div class="col-md-2">
 										<div class="control-group">
-											<select class="form-control select2" name="year" onchange="this.form.submit()">
-												<option><?php echo $year; ?></option>
-												<?php for ($i = -5; $i <= 25; $i++) {  ?>
-													<option><?php echo 2017 + $i; ?></option>
-												<?php }  ?>
-											</select>
-											<input type="hidden" id="year" value="<?php echo $year = $this->input->post('year'); ?>">
+											<label style="font-size:12px;">Date To:</label>
+											<div class="input-group">
+												<div class="input-group-prepend">
+													<span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
+												</div>
+												<input type="text" name="date_to" id="ts_date_to" class="form-control datepicker" value="<?php echo isset($date_to) ? $date_to : date('Y-m-t'); ?>" autocomplete="off">
+											</div>
 										</div>
 									</div>
 									<div class="col-md-2">
@@ -67,7 +58,7 @@
 											$facility = $this->session->userdata['facility'];
 											//print_r($facility);
 											$employees = Modules::run("employees/get_employees"); ?>
-											<select class="form-control select2" name="empid" select2>
+											<select class="form-control select2" name="empid" id="ts_empid" select2>
 												<option value="" selected disabled>SELECT EMPLOYEE</option>
 												<?php foreach ($employees as $employee) {  ?>
 													<option value="<?php echo $employee->ihris_pid ?>"><?php echo $employee->surname . ' ' . $employee->firstname . ' ' . $employee->othername; ?></option>
@@ -76,7 +67,7 @@
 										</div>
 									</div>
 									<div class="col-md-2">
-										<select name="job" class="form-control select2">
+										<select name="job" id="ts_job" class="form-control select2">
 											<option value="">SELECT JOB</option>
 											<?php $jobs = Modules::run("jobs/getJobs");
 											foreach ($jobs as $element) {
@@ -89,12 +80,9 @@
 									</div>
 									<div class="col-md-4">
 										<div class="control-group">
-											<button type="submit" name="" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-tasks" aria-hidden="true"></i>Apply</button>
-											<?php
-											if ($this->input->post('month')) { ?>
-												<a target="_blank" href="<?php echo base_url(); ?>employees/print_timesheet/<?php echo $this->input->post('month') . '/' . $this->input->post('year') . '/' . 'emp' . urlencode($this->input->post('empid')) . '/' . 'job' . $this->input->post('job') ?>" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-print" aria-hidden="true"></i>Print</a>
-												<a target="_blank" href="<?php echo base_url(); ?>employees/csv_timesheet/<?php echo $this->input->post('month') . '/' . $this->input->post('year') . '/' . 'emp' . urlencode($this->input->post('empid')) . '/' . 'job' . $this->input->post('job') ?>" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-file-excel" aria-hidden="true"></i>Excel</a>
-											<?php } ?>
+											<button type="button" id="ts_apply" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-tasks" aria-hidden="true"></i>Apply</button>
+											<a target="_blank" id="ts_print" href="<?php echo base_url(); ?>employees/print_timesheet_range/<?php echo (isset($date_from)?$date_from:date('Y-m-01')) . '/' . (isset($date_to)?$date_to:date('Y-m-t')) . '/emp/job'; ?>" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-print" aria-hidden="true"></i>Print</a>
+											<a target="_blank" id="ts_excel" href="<?php echo base_url(); ?>employees/csv_timesheet_range/<?php echo (isset($date_from)?$date_from:date('Y-m-01')) . '/' . (isset($date_to)?$date_to:date('Y-m-t')) . '/emp/job'; ?>" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-file-excel" aria-hidden="true"></i>Excel</a>
 										</div>
 										<?php //echo $this->uri->segment(2); 
 										?>
@@ -113,113 +101,166 @@
 							echo "              " . date('F, Y', strtotime($year . "-" . $month));
 							?>
 						</h4>
-						<?php if (count($workinghours) > 0) { ?>
-							<?php //print_r($workinghours['0']); 
-							?>
-							<br>
-							<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-							<div id="table">
-								<div class="header-row tbrow ">
-									<span class="cell tbprimary"><b id="name"></b>#</span>
-									<span class="cell" style="width:10%;">Name</span>
-									<span class="cell">Position</span>
-									<?php
-									//print_r($workinghours);
-									$monthh = $month;
-									$yearh = $year;
-									$monthdays = cal_days_in_month(CAL_GREGORIAN, $monthh, $yearh); // get days in a month
-									for ($i = 1; $i < ($monthdays + 1); $i++) {
-										$dy = $i;
-										if ($i < 10) {
-											$dy = "0" . $i;
-										}
-										$wekday = $year . "-" . $month . "-" . $dy;
-										if (isWeekend($wekday) == 'yes') {
-											$color = "red";
-										} else {
-											$color = "";
-										}
-									?>
-										<span class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color; ?>"><?php echo $i; ?></span>
-									<?php } ?>
-									<span class="cell" style="width:10%;">Hrs</span>
-									<span class="cell" style="width:10%;">Days</span>
-									<span class="cell" style="width:10%;">% Present</span>
-								</div>
-								<?php
-								$no = 0;
-								//$nonworkables contains non duty days
-								//$workeddays contains  worked days
-								foreach ($workinghours as $hours) {
-									$personhrs = array();
-									$no++;
-								?>
-									<div class="table-row tbrow">
-										<span class="cell" data-label="No"><?php echo $no; ?></span>
-										<span class="cell" data-label="Name" style="text-align:left; padding-left:1em;">
-											<?php echo $hours['fullname'] . ' ' . @$hours['othername']; ?>
-										</span>
-										<span class="cell" data-label="Position"><?php echo character_limiter($hours['job'], 15);
-																					?>
-										</span>
-										<?php
-										$month_days = $monthdays; //days in a month
-										for ($i = 1; $i <= $month_days; $i++) { // repeating td
-											$day = "day" . $i;  //changing day 
-										?>
-											<span class="cell" data-label="Day<?php echo $i; ?>">
-												<?php
-												$date_d = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i);
-												$pid    = $hours['ihris_pid'];
-												$timedata = gettimedata($pid, $date_d);
-												if (!empty($timedata)) {
-													$Time_data = array();
+						<br>
+						<div class="table-responsive">
+							<table id="timesheetTable" class="table table-bordered table-striped table-sm" style="width:100%">
+								<thead>
+									<tr id="ts_header_row"></tr>
+								</thead>
+								<tbody></tbody>
+							</table>
+						</div>
 
-													$starTime = @$timedata->time_in;
-													$endTime = @$timedata->time_out;
-													$initial_time = strtotime($starTime) / 3600;
-													$final_time = strtotime($endTime) / 3600;
-													if (empty($initial_time) || empty($final_time)) {
-														$hours_worked = 0;
-													} elseif ($initial_time == $final_time) {
-														$hours_worked = 0;
-													} else {
-														$hours_worked = round(($final_time - $initial_time), 1);
-													}
-													if ($hours_worked < 0) {
-														echo $hours_worked = $hours_worked * -1;
-													} elseif ($hours_worked == -0) {
-														echo $hours_worked = 0;
-													} else {
-														echo $hours_worked;
-													}
-													array_push($personhrs, $hours_worked);
-												}
-												?>
-											</span>
-										<?php } //repeat days 
-										?>
-										<span class="cell" style="width:5%;"><?php echo array_sum($personhrs); ?></span>
-										<?php
-										$mydate = $year . "-" . $month;
-										$roster = Modules::run('attendance/attrosta', $mydate, urlencode($hours['ihris_pid']));
-										$day = $roster['Day'][0]->days;
-										$eve = $roster['Evening'][0]->days;
-										$night = $roster['Night'][0]->days;
-										?>
-										<span class="cell" style="width:5%;"><?php echo $workedfor = count($personhrs) . "/" . $twdays = ($day + $eve + $night); ?></span>
-										<span class="cell" style="width:10%;"><?php echo round(divide_numbers($workedfor, $twdays),0)*100 . "%"; ?>
-									
-									
-									</span>
-									</div>
-								<?php } ?>
-							</div>
-							<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-						<?php } else {
-							echo "<center><span style='color: red;' >No Timesheet for this Month!</span></center>";
-						}
-						?>
+						<script>
+						$(document).ready(function() {
+							var table = null;
+
+							function getFilters() {
+								return {
+									date_from: $('#ts_date_from').val() || '<?php echo isset($date_from) ? $date_from : date('Y-m-01'); ?>',
+									date_to: $('#ts_date_to').val() || '<?php echo isset($date_to) ? $date_to : date('Y-m-t'); ?>',
+									empid: $('#ts_empid').val() || '',
+									job: $('#ts_job').val() || ''
+								};
+							}
+
+							function parseDateYmd(s) {
+								// Expect YYYY-MM-DD
+								var parts = (s || '').split('-');
+								if (parts.length !== 3) return null;
+								var y = parseInt(parts[0], 10);
+								var m = parseInt(parts[1], 10);
+								var d = parseInt(parts[2], 10);
+								if (!y || !m || !d) return null;
+								return new Date(y, m - 1, d);
+							}
+
+							function isWeekendDate(dt) {
+								var d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+								var dow = d.getDay(); // 0=Sun,6=Sat
+								return (dow === 0 || dow === 6);
+							}
+
+							function updatePrintLinks() {
+								var f = getFilters();
+								var empPart = 'emp' + encodeURIComponent(f.empid || '');
+								var jobPart = 'job' + encodeURIComponent(f.job || '');
+								$('#ts_print').attr('href', '<?php echo base_url(); ?>employees/print_timesheet_range/' + encodeURIComponent(f.date_from) + '/' + encodeURIComponent(f.date_to) + '/' + empPart + '/' + jobPart);
+								$('#ts_excel').attr('href', '<?php echo base_url(); ?>employees/csv_timesheet_range/' + encodeURIComponent(f.date_from) + '/' + encodeURIComponent(f.date_to) + '/' + empPart + '/' + jobPart);
+							}
+
+							function buildHeader(dateList) {
+								var $row = $('#ts_header_row');
+								$row.empty();
+								$row.append('<th style="width:50px;">#</th>');
+								$row.append('<th style="min-width:220px;">Name</th>');
+								$row.append('<th style="min-width:160px;">Position</th>');
+								for (var i = 0; i < dateList.length; i++) {
+									var dt = dateList[i];
+									var weekend = isWeekendDate(dt);
+									var label = dt.getDate(); // day of month
+									var style = 'min-width:40px; text-align:center;' + (weekend ? ' background-color:#ffcccc;' : '');
+									$row.append('<th style="' + style + '">' + label + '</th>');
+								}
+								$row.append('<th style="min-width:70px;">Hrs</th>');
+								$row.append('<th style="min-width:90px;">Days</th>');
+								$row.append('<th style="min-width:90px;">% Present</th>');
+							}
+
+							function buildDateList(fromStr, toStr) {
+								var from = parseDateYmd(fromStr);
+								var to = parseDateYmd(toStr);
+								if (!from || !to) return [];
+								if (from > to) {
+									var tmp = from; from = to; to = tmp;
+								}
+								var ms = 24 * 60 * 60 * 1000;
+								var diff = Math.floor((to - from) / ms) + 1;
+								if (diff > 31) {
+									alert('Please select a date range of 31 days or less (timesheet grid limit).');
+									// Clamp to 31 days
+									to = new Date(from.getTime() + (30 * ms));
+									$('#ts_date_to').val(to.toISOString().slice(0,10));
+									diff = 31;
+								}
+								var list = [];
+								for (var i = 0; i < diff; i++) {
+									list.push(new Date(from.getTime() + (i * ms)));
+								}
+								return list;
+							}
+
+							function initOrReinitTable() {
+								var f = getFilters();
+								var dateList = buildDateList(f.date_from, f.date_to);
+								buildHeader(dateList);
+
+								var columns = [];
+								for (var i = 0; i < (3 + dateList.length + 3); i++) {
+									columns.push({ data: i });
+								}
+
+								if (table) {
+									table.destroy();
+									$('#timesheetTable tbody').empty();
+								}
+
+								table = $('#timesheetTable').DataTable({
+									processing: true,
+									serverSide: true,
+									searchDelay: 400,
+									pageLength: 20,
+									scrollX: true,
+									ordering: false,
+									ajax: {
+										url: '<?php echo base_url("employees/timesheetAjax"); ?>',
+										type: 'POST',
+										data: function(d) {
+											var f2 = getFilters();
+											d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+											d.date_from = f2.date_from;
+											d.date_to = f2.date_to;
+											d.empid = f2.empid;
+											d.job = f2.job;
+										},
+										error: function(xhr, error, thrown) {
+											console.error('Timesheet DataTables error', { xhr: xhr, error: error, thrown: thrown, responseText: xhr.responseText });
+										}
+									},
+									columns: columns,
+									dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+										 '<"row"<"col-sm-12"tr>>' +
+										 '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
+								});
+							}
+
+							// Prevent any form submit (all AJAX now)
+							$('#timesheetFiltersForm').on('submit', function(e) {
+								e.preventDefault();
+								return false;
+							});
+
+							$('#ts_apply').on('click', function() {
+								updatePrintLinks();
+								if (table) table.ajax.reload();
+							});
+
+							// Rebuild table when month/year changes (days columns change)
+							$('#ts_date_from, #ts_date_to').on('change', function() {
+								updatePrintLinks();
+								initOrReinitTable();
+							});
+
+							// Simple reload when employee/job changes
+							$('#ts_empid, #ts_job').on('change', function() {
+								updatePrintLinks();
+								if (table) table.ajax.reload();
+							});
+
+							updatePrintLinks();
+							initOrReinitTable();
+						});
+						</script>
 					</div>
 				</div>
 			</div>

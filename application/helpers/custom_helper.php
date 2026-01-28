@@ -382,11 +382,32 @@ if (!function_exists('full_url')) {
         return ($new_params) ? $fullURL . "&" . $new_params : $fullURL;
     }
     if (!function_exists('divide_numbers')) {
-        function divide_numbers($numerator, $demominator)
+        function divide_numbers($numerator, $denominator)
         {
-            if (@eval(" try{ \$res = $numerator/$numerator; } catch(Exception \$e){}") === FALSE)
-                $res = 0;
-            return "$res\n" . " %";
+            // Check for division by zero
+            if (empty($denominator) || $denominator == 0) {
+                return 0;
+            }
+            
+            // Check if numerator is numeric
+            if (!is_numeric($numerator)) {
+                $numerator = 0;
+            }
+            
+            // Check if denominator is numeric
+            if (!is_numeric($denominator)) {
+                return 0;
+            }
+            
+            // Perform safe division
+            try {
+                $res = $numerator / $denominator;
+                return $res;
+            } catch (DivisionByZeroError $e) {
+                return 0;
+            } catch (Exception $e) {
+                return 0;
+            }
         }
     }
 	if (!function_exists('arrayToCommaSeparatedString')) {

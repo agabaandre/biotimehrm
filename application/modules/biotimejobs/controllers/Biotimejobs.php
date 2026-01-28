@@ -761,7 +761,8 @@ class Biotimejobs extends MX_Controller
             // Update machine last_activity if successful
             if ($result['status'] === 'success' && $result['records_saved'] > 0) {
                 $this->db->where('sn', $terminal_sn);
-                $this->db->update('biotime_devices', array('last_activity' => $end_date));
+                // Store last sync timestamp (datetime) so interval-based scheduling works
+                $this->db->update('biotime_devices', array('last_activity' => date('Y-m-d H:i:s')));
             }
             
         } catch (Exception $e) {
@@ -1716,7 +1717,7 @@ class Biotimejobs extends MX_Controller
      * @param bool $output_console Whether to output console messages (default: true)
      * @return array Result array with status, message, and statistics per machine
      */
-    public function fetch_daily_attendance($end_date = FALSE, $max_days = 60, $specific_device = FALSE, $output_console = TRUE)
+    public function fetch_daily_attendance($end_date = FALSE, $max_days = 60, $specific_device = FALSE, $output_console = TRUE, $min_interval_hours = 4)
     {
         ignore_user_abort(true);
         set_time_limit(0);
@@ -1847,21 +1848,37 @@ class Biotimejobs extends MX_Controller
             $difference_seconds = $end_timestamp - $start_timestamp;
             $difference_days = $difference_seconds / (60 * 60 * 24);
                     
-                    // Check if last_activity is already at or after end_date
-                    $last_activity_timestamp = $last_activity_date ? strtotime($last_activity_date) : 0;
-                    $end_date_timestamp = strtotime($end_date);
-                    $is_already_synced = $last_activity_timestamp >= $end_date_timestamp;
+                    // We sync on an interval (e.g. every 4 hours), NOT just once per day.
+                    // last_activity is treated as "last sync timestamp" (datetime).
+                    $now_ts = time();
+                    $last_sync_ts = $last_activity ? strtotime($last_activity) : 0;
+                    $min_interval_seconds = max(0, (int)$min_interval_hours) * 3600;
+                    // If last_sync_ts is in the future (clock skew), don't block syncing.
+                    $synced_recently = (
+                        $last_sync_ts > 0 &&
+                        $last_sync_ts <= $now_ts &&
+                        ($now_ts - $last_sync_ts) < $min_interval_seconds
+                    );
                     
                     $console("Date Range: $start to $end_date ($difference_days days)", 'info');
                     $console("Last Activity: " . ($last_activity ?: 'Never'), 'info');
+                    if ($last_sync_ts > 0) {
+                        if ($last_sync_ts > $now_ts) {
+                            $console("Last Sync Age: clock skew detected (last sync is in the future)", 'warning');
+                        } else {
+                            $age_seconds = $now_ts - $last_sync_ts;
+                            $age_minutes = round($age_seconds / 60);
+                            $console("Last Sync Age: {$age_minutes} minutes (min interval: {$min_interval_hours}h)", 'info');
+                        }
+                    }
                     
                     // Determine if we should sync
-                    if ($is_already_synced) {
-                        // Machine is already synced up to or beyond end_date
+                    if ($synced_recently) {
+                        // Machine was synced recently; skip until interval elapses
                         $machine_result['status'] = 'skipped';
-                        $machine_result['message'] = "Already up to date (last activity: $last_activity_date >= end date: $end_date)";
-                        $console("✓ Skipped: Already up to date (last activity: $last_activity_date)", 'info');
-                        $this->log("fetch_daily_attendance() skipped device $device: already up to date");
+                        $machine_result['message'] = "Skipped: Synced recently (last sync: $last_activity)";
+                        $console("✓ Skipped: Synced recently (last sync: $last_activity)", 'info');
+                        $this->log("fetch_daily_attendance() skipped device $device: synced recently");
                     } elseif ($difference_days < 0) {
                         // Negative range shouldn't happen, but handle it
                         $machine_result['status'] = 'skipped';
@@ -1889,9 +1906,9 @@ class Biotimejobs extends MX_Controller
                             $result['total_records'] += $fetch_result['total_records'];
                             $machines_processed++;
                             
-                            // Update last_activity for this machine (use end_date, not datetime)
+                            // Update last_activity for this machine as last sync timestamp (datetime)
                             $this->db->where('sn', $device);
-                            $this->db->update('biotime_devices', array('last_activity' => $end_date));
+                            $this->db->update('biotime_devices', array('last_activity' => date('Y-m-d H:i:s')));
                             
                             $console("✓ Sync completed: {$fetch_result['total_records']} records", 'success');
                             $this->log("fetch_daily_attendance() completed for device $device: " . $fetch_result['total_records'] . " records");

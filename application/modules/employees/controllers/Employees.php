@@ -557,6 +557,200 @@ class Employees extends MX_Controller
     }
     exit;
   }
+
+  /**
+   * Print timesheet for a date range (max 31 days).
+   */
+  public function print_timesheet_range($date_from, $date_to, $employee, $job)
+  {
+    $this->load->library('ML_pdf');
+
+    $startDate = date('Y-m-d', strtotime($date_from));
+    $endDate = date('Y-m-d', strtotime($date_to));
+    if (strtotime($startDate) > strtotime($endDate)) {
+      $tmp = $startDate;
+      $startDate = $endDate;
+      $endDate = $tmp;
+    }
+    $daysDiff = (int)floor((strtotime($endDate) - strtotime($startDate)) / 86400) + 1;
+    if ($daysDiff > 31) {
+      $endDate = date('Y-m-d', strtotime($startDate . ' +30 days'));
+      $daysDiff = 31;
+    }
+
+    $data = array();
+    $data['date_from'] = $startDate;
+    $data['date_to'] = $endDate;
+    $data['month'] = date('m', strtotime($startDate));
+    $data['year'] = date('Y', strtotime($startDate));
+
+    $data['workinghours'] = $this->empModel->fetch_TimeSheet(
+      $startDate, // date_range (not used heavily in model)
+      $perpage = FALSE,
+      $page = FALSE,
+      str_replace("emp", "", urldecode($employee)),
+      $this->filters,
+      str_replace("job", "", urldecode($job))
+    );
+
+    // Precompute scheduled days per employee for the range
+    $pids = array();
+    foreach ($data['workinghours'] as $row) {
+      if (!empty($row['ihris_pid'])) {
+        $pids[] = $row['ihris_pid'];
+      }
+    }
+    $scheduledDaysByPid = array();
+    if (!empty($pids)) {
+      $rows = $this->db
+        ->select('ihris_pid, schedule_id, COUNT(*) as days')
+        ->from('duty_rosta')
+        ->where_in('ihris_pid', $pids)
+        ->where_in('schedule_id', array(14, 15, 16))
+        ->where('duty_date >=', $startDate)
+        ->where('duty_date <=', $endDate)
+        ->group_by(array('ihris_pid', 'schedule_id'))
+        ->get()
+        ->result();
+      foreach ($rows as $r) {
+        $pid = (string)$r->ihris_pid;
+        $days = isset($r->days) ? (int)$r->days : 0;
+        if (!isset($scheduledDaysByPid[$pid])) {
+          $scheduledDaysByPid[$pid] = 0;
+        }
+        $scheduledDaysByPid[$pid] += $days;
+      }
+    }
+    $data['scheduledDaysByPid'] = $scheduledDaysByPid;
+
+    $fac = $_SESSION['facility_name'];
+    $filename = $fac . " Timesheet_Report_" . $startDate . "_to_" . $endDate . ".pdf";
+    ini_set('max_execution_time', 0);
+
+    $html = $this->load->view('print_timesheet', $data, true);
+    $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+
+    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+    $this->ml_pdf->pdf->showWatermarkImage = true;
+    date_default_timezone_set("Africa/Kampala");
+    $this->ml_pdf->pdf->SetHTMLFooter("<p style='font-size:8px'>Printed/ Accessed on: " . date('d F,Y h:i A') . ", Source: iHRIS - HRM Attend " . base_url() . "</p>");
+    $this->ml_pdf->pdf->WriteHTML($PDFContent);
+    $this->ml_pdf->pdf->Output($filename, 'I');
+  }
+
+  /**
+   * CSV timesheet summary for a date range (max 31 days).
+   */
+  public function csv_timesheet_range($date_from, $date_to, $employee, $job)
+  {
+    $startDate = date('Y-m-d', strtotime($date_from));
+    $endDate = date('Y-m-d', strtotime($date_to));
+    if (strtotime($startDate) > strtotime($endDate)) {
+      $tmp = $startDate;
+      $startDate = $endDate;
+      $endDate = $tmp;
+    }
+    $daysDiff = (int)floor((strtotime($endDate) - strtotime($startDate)) / 86400) + 1;
+    if ($daysDiff > 31) {
+      $endDate = date('Y-m-d', strtotime($startDate . ' +30 days'));
+      $daysDiff = 31;
+    }
+
+    ini_set('max_execution_time', 0);
+    $datas = $this->empModel->fetch_TimeSheet(
+      $startDate,
+      $perpage = FALSE,
+      $page = FALSE,
+      str_replace("emp", "", urldecode($employee)),
+      $this->filters,
+      str_replace("job", "", urldecode($job))
+    );
+
+    $fac = $_SESSION['facility_name'];
+    $csv_file = $fac . "_Timesheet_" . $startDate . "_to_" . $endDate . ".csv";
+    header("Content-Type: text/csv");
+    header("Content-Disposition: attachment; filename=\"$csv_file\"");
+    $fh = fopen('php://output', 'w');
+
+    $pids = array();
+    foreach ($datas as $row) {
+      if (!empty($row['ihris_pid'])) {
+        $pids[] = $row['ihris_pid'];
+      }
+    }
+
+    // Scheduled days per pid
+    $scheduledDaysByPid = array();
+    if (!empty($pids)) {
+      $rows = $this->db
+        ->select('ihris_pid, COUNT(*) as days')
+        ->from('duty_rosta')
+        ->where_in('ihris_pid', $pids)
+        ->where_in('schedule_id', array(14, 15, 16))
+        ->where('duty_date >=', $startDate)
+        ->where('duty_date <=', $endDate)
+        ->group_by('ihris_pid')
+        ->get()
+        ->result();
+      foreach ($rows as $r) {
+        $scheduledDaysByPid[(string)$r->ihris_pid] = (int)$r->days;
+      }
+    }
+
+    // Days worked + hours worked per pid from clk_log
+    $workStatsByPid = array(); // pid => ['days_worked'=>int, 'hours_worked'=>float]
+    if (!empty($pids)) {
+      $stats = $this->db->query("
+        SELECT ihris_pid,
+               COUNT(DISTINCT date) as days_worked,
+               SUM(CASE
+                     WHEN time_in IS NOT NULL AND time_out IS NOT NULL AND time_in != '' AND time_out != ''
+                     THEN ABS(TIMESTAMPDIFF(MINUTE, time_in, time_out)) / 60
+                     ELSE 0
+                   END) as hours_worked
+        FROM clk_log
+        WHERE ihris_pid IN (" . implode(',', array_map(array($this->db, 'escape'), $pids)) . ")
+          AND date >= " . $this->db->escape($startDate) . "
+          AND date <= " . $this->db->escape($endDate) . "
+        GROUP BY ihris_pid
+      ")->result();
+
+      foreach ($stats as $s) {
+        $workStatsByPid[(string)$s->ihris_pid] = array(
+          'days_worked' => (int)$s->days_worked,
+          'hours_worked' => round((float)$s->hours_worked, 1)
+        );
+      }
+    }
+
+    $records = array();
+    foreach ($datas as $row) {
+      $pid = (string)$row['ihris_pid'];
+      $scheduled = isset($scheduledDaysByPid[$pid]) ? (int)$scheduledDaysByPid[$pid] : 0;
+      $daysWorked = isset($workStatsByPid[$pid]) ? (int)$workStatsByPid[$pid]['days_worked'] : 0;
+      $hoursWorked = isset($workStatsByPid[$pid]) ? (float)$workStatsByPid[$pid]['hours_worked'] : 0.0;
+
+      $records[] = array(
+        "NAME" => $row['fullname'],
+        "JOB" => $row['job'],
+        "PERIOD" => $startDate . " to " . $endDate,
+        "DAYS WORKED" => $daysWorked,
+        "DAYS SCHEDULED" => $scheduled,
+        "HOURS WORKED" => $hoursWorked
+      );
+    }
+
+    $is_header = true;
+    foreach ($records as $rec) {
+      if ($is_header) {
+        fputcsv($fh, array_keys($rec));
+        $is_header = false;
+      }
+      fputcsv($fh, array_values($rec));
+    }
+    fclose($fh);
+    exit;
+  }
   public function test()
   {
     $staffs = $this->empModel->fetchAllStaff(10, 0, 'ihris_pid', 0);
@@ -564,63 +758,227 @@ class Employees extends MX_Controller
   }
   public function timesheet()
   {
-    $month = $this->input->post('month');
-    $year = $this->input->post('year');
-    if (!empty($month)) {
-      $_SESSION['month'] = $month;
-      $_SESSION['year'] = $year;
-      $date = $_SESSION['year'] . '-' . $_SESSION['month'];
+    // Date range filters (preferred)
+    $date_from = $this->input->post('date_from');
+    $date_to = $this->input->post('date_to');
+
+    // Defaults: full current month
+    $default_from = date('Y-m-01');
+    $default_to = date('Y-m-t');
+
+    if (!empty($date_from)) {
+      $_SESSION['timesheet_date_from'] = $date_from;
+      $_SESSION['timesheet_date_to'] = !empty($date_to) ? $date_to : $default_to;
     }
-    if (!empty($_SESSION['year'])) {
-      $date = $_SESSION['year'] . '-' . $_SESSION['month'];
-      $data['month'] = $_SESSION['month'];
-      $data['year'] = $_SESSION['year'];
-    } else {
-      $_SESSION['month'] = date('m');
-      $_SESSION['year'] = date('Y');
-      $date = $_SESSION['year'] . '-' . $_SESSION['month'];
-      $data['month'] = $_SESSION['month'];
-      $data['year'] = $_SESSION['year'];
-    }
-    $this->load->library('pagination');
-    $config = array();
-    $config['base_url'] = base_url() . "employees/timesheet/";
-    $employee = $this->input->post('empid');
-    $config['total_rows'] = $this->empModel->countTimesheet($this->filters, $employee);
-    $config['per_page'] = 20; //records per page
-    $config['uri_segment'] = 3; //segment in url
-    //pagination links styling
-    $config['full_tag_open'] = '<ul class="pagination">';
-    $config['full_tag_close'] = '</ul>';
-    $config['attributes'] = ['class' => 'page-link'];
-    $config['first_link'] = false;
-    $config['last_link'] = false;
-    $config['first_tag_open'] = '<li class="page-item">';
-    $config['first_tag_close'] = '</li>';
-    $config['prev_link'] = '&laquo';
-    $config['prev_tag_open'] = '<li class="page-item">';
-    $config['prev_tag_close'] = '</li>';
-    $config['next_link'] = '&raquo';
-    $config['next_tag_open'] = '<li class="page-item">';
-    $config['next_tag_close'] = '</li>';
-    $config['last_tag_open'] = '<li class="page-item">';
-    $config['last_tag_close'] = '</li>';
-    $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-    $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-    $config['num_tag_open'] = '<li class="page-item">';
-    $config['num_tag_close'] = '</li>';
-    $config['use_page_numbers'] = false;
-    $this->pagination->initialize($config);
-    $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
-    $data['links'] = $this->pagination->create_links();
+
+    $data['date_from'] = !empty($_SESSION['timesheet_date_from']) ? $_SESSION['timesheet_date_from'] : $default_from;
+    $data['date_to'] = !empty($_SESSION['timesheet_date_to']) ? $_SESSION['timesheet_date_to'] : $default_to;
+
+    // Keep month/year for backward compatibility (print endpoints etc.)
+    $data['month'] = date('m', strtotime($data['date_from']));
+    $data['year'] = date('Y', strtotime($data['date_from']));
     $data['title'] = 'Timesheet';
     $data['uptitle'] = 'Timesheet Report';
     $data['view'] = 'timesheet';
     $data['module'] = 'employees';
-
-    $job = $this->input->post('job');
-    $data['workinghours'] = $this->empModel->fetch_TimeSheet($date, $config['per_page'], $page, $employee, $this->filters, $job);
     echo Modules::run('templates/main', $data);
+  }
+
+  /**
+   * Server-side DataTables AJAX endpoint for the timesheet report.
+   * Returns a paginated set of employees with day-by-day hours for the selected month.
+   */
+  public function timesheetAjax()
+  {
+    // JSON response
+    header('Content-Type: application/json');
+
+    $draw = (int)($this->input->post('draw') ?? 1);
+    $start = (int)($this->input->post('start') ?? 0);
+    $length = (int)($this->input->post('length') ?? 20);
+    if ($length <= 0) {
+      $length = 20;
+    }
+
+    $search_post = $this->input->post('search');
+    $search = '';
+    if (!empty($search_post) && isset($search_post['value'])) {
+      $search = trim((string)$search_post['value']);
+    }
+
+    // Filters
+    $employee = (string)($this->input->post('empid') ?? '');
+    $job = (string)($this->input->post('job') ?? '');
+    $date_from = (string)($this->input->post('date_from') ?? ($_SESSION['timesheet_date_from'] ?? date('Y-m-01')));
+    $date_to = (string)($this->input->post('date_to') ?? ($_SESSION['timesheet_date_to'] ?? date('Y-m-t')));
+
+    $startDate = date('Y-m-d', strtotime($date_from));
+    $endDate = date('Y-m-d', strtotime($date_to));
+
+    if (empty($startDate) || empty($endDate) || strtotime($startDate) === false || strtotime($endDate) === false) {
+      $startDate = date('Y-m-01');
+      $endDate = date('Y-m-t');
+    }
+
+    if (strtotime($startDate) > strtotime($endDate)) {
+      // swap
+      $tmp = $startDate;
+      $startDate = $endDate;
+      $endDate = $tmp;
+    }
+
+    // Limit range to 31 days to keep the grid usable (matches original monthly layout)
+    $daysDiff = (int)floor((strtotime($endDate) - strtotime($startDate)) / 86400) + 1;
+    if ($daysDiff > 31) {
+      $endDate = date('Y-m-d', strtotime($startDate . ' +30 days'));
+      $daysDiff = 31;
+    }
+
+    $dateList = array();
+    for ($i = 0; $i < $daysDiff; $i++) {
+      $dateList[] = date('Y-m-d', strtotime($startDate . " +$i days"));
+    }
+
+    try {
+      // Counts
+      $total_records = $this->empModel->countTimesheetAjax($this->filters, $employee, $job, '');
+      $filtered_records = $this->empModel->countTimesheetAjax($this->filters, $employee, $job, $search);
+
+      // Page employees
+      $employees = $this->empModel->fetchTimesheetEmployeesAjax($this->filters, $employee, $job, $start, $length, $search);
+      $pids = array();
+      if (!empty($employees)) {
+        $pids = array_values(array_filter(array_column($employees, 'ihris_pid')));
+      }
+
+      // Bulk fetch time logs for this page/range
+      $hoursByPidDate = array(); // [pid][Y-m-d] => hours(float)
+      if (!empty($pids)) {
+        $logs = $this->db
+          ->select('ihris_pid, date, time_in, time_out')
+          ->from('clk_log')
+          ->where_in('ihris_pid', $pids)
+          ->where('date >=', $startDate)
+          ->where('date <=', $endDate)
+          ->get()
+          ->result();
+
+        foreach ($logs as $log) {
+          $pid = (string)$log->ihris_pid;
+          if (empty($pid) || empty($log->date)) {
+            continue;
+          }
+          $logDate = date('Y-m-d', strtotime($log->date));
+          if (!in_array($logDate, $dateList, true)) {
+            continue;
+          }
+
+          $startTime = isset($log->time_in) ? (string)$log->time_in : '';
+          $endTime = isset($log->time_out) ? (string)$log->time_out : '';
+
+          $hours_worked = 0.0;
+          if (!empty($startTime) && !empty($endTime)) {
+            $initial_time = strtotime($startTime) / 3600;
+            $final_time = strtotime($endTime) / 3600;
+            if (!empty($initial_time) && !empty($final_time) && $initial_time != $final_time) {
+              $hours_worked = round(($final_time - $initial_time), 1);
+            }
+          }
+          if ($hours_worked < 0) {
+            $hours_worked = $hours_worked * -1;
+          }
+          if ($hours_worked == -0.0) {
+            $hours_worked = 0.0;
+          }
+
+          // If multiple logs exist for the same day, keep the max (closest to prior behavior)
+          if (!isset($hoursByPidDate[$pid])) {
+            $hoursByPidDate[$pid] = array();
+          }
+          if (!isset($hoursByPidDate[$pid][$logDate])) {
+            $hoursByPidDate[$pid][$logDate] = $hours_worked;
+          } else {
+            $hoursByPidDate[$pid][$logDate] = max((float)$hoursByPidDate[$pid][$logDate], (float)$hours_worked);
+          }
+        }
+      }
+
+      // Bulk fetch duty roster schedule counts (Day=14, Evening=15, Night=16)
+      $scheduledDaysByPid = array(); // [pid] => int
+      if (!empty($pids)) {
+        $rows = $this->db
+          ->select('ihris_pid, schedule_id, COUNT(*) as days')
+          ->from('duty_rosta')
+          ->where_in('ihris_pid', $pids)
+          ->where_in('schedule_id', array(14, 15, 16))
+          ->where('duty_date >=', $startDate)
+          ->where('duty_date <=', $endDate)
+          ->group_by(array('ihris_pid', 'schedule_id'))
+          ->get()
+          ->result();
+
+        foreach ($rows as $r) {
+          $pid = (string)$r->ihris_pid;
+          $days = isset($r->days) ? (int)$r->days : 0;
+          if (!isset($scheduledDaysByPid[$pid])) {
+            $scheduledDaysByPid[$pid] = 0;
+          }
+          $scheduledDaysByPid[$pid] += $days;
+        }
+      }
+
+      // Build DataTables rows
+      $data = array();
+      $rowNo = $start + 1;
+      foreach ($employees as $emp) {
+        $pid = (string)$emp['ihris_pid'];
+        $fullname = (string)$emp['fullname'];
+        $position = (string)$emp['job'];
+
+        $row = array();
+        $row[] = $rowNo++;
+        $row[] = $fullname;
+        $row[] = $position;
+
+        $totalHours = 0.0;
+        $daysWorked = 0;
+        foreach ($dateList as $dStr) {
+          $val = '';
+          if (isset($hoursByPidDate[$pid]) && array_key_exists($dStr, $hoursByPidDate[$pid])) {
+            $val = $hoursByPidDate[$pid][$dStr];
+            $totalHours += (float)$val;
+            $daysWorked++;
+          }
+          $row[] = ($val === '' ? '' : $val);
+        }
+
+        $scheduled = isset($scheduledDaysByPid[$pid]) ? (int)$scheduledDaysByPid[$pid] : 0;
+        $row[] = round($totalHours, 1);
+        $row[] = $daysWorked . '/' . $scheduled;
+        $percent = ($scheduled > 0) ? round(($daysWorked / $scheduled) * 100, 0) : 0;
+        $row[] = $percent . '%';
+
+        $data[] = $row;
+      }
+
+      echo json_encode(array(
+        'draw' => $draw,
+        'recordsTotal' => $total_records,
+        'recordsFiltered' => $filtered_records,
+        'data' => $data
+      ));
+      exit;
+    } catch (Throwable $e) {
+      log_message('error', 'timesheetAjax error: ' . $e->getMessage());
+      echo json_encode(array(
+        'draw' => $draw,
+        'recordsTotal' => 0,
+        'recordsFiltered' => 0,
+        'data' => array(),
+        'error' => 'Failed to load timesheet data'
+      ));
+      exit;
+    }
   }
   public function getdata()
   {
