@@ -152,6 +152,60 @@ class Reports_mdl extends CI_Model
 		return array('period' => $period, 'data' => $datas, 'target' => $targets);
 	}
 
+	/**
+	 * Attendance per month graph using `actuals` table, ordered by Financial Year (Jun -> May).
+	 * Uses schedule_id=22 (Present) as "Attending".
+	 *
+	 * Returns: ['period' => [labels...], 'data' => [counts...]]
+	 */
+	public function attendanceActualsGraphData($facility = null)
+	{
+		$facility = $facility ?: $_SESSION['facility'];
+
+		$current_year = (int) date('Y');
+		$current_month = (int) date('m');
+
+		// Financial year starts in June (06). FY runs Jun -> May.
+		$fy_start_year = ($current_month >= 6) ? $current_year : ($current_year - 1);
+
+		$fy_start = $fy_start_year . '-06-01';
+		$fy_end = ($fy_start_year + 1) . '-05-31';
+
+		// Fetch counts per month within FY. Count distinct employees marked Present.
+		$query = $this->db->query(
+			"SELECT DATE_FORMAT(date,'%Y-%m') as ym, COUNT(DISTINCT ihris_pid) as cnt
+			 FROM actuals
+			 WHERE facility_id = ?
+			   AND schedule_id = 22
+			   AND date >= ?
+			   AND date <= ?
+			 GROUP BY DATE_FORMAT(date,'%Y-%m')
+			 ORDER BY ym ASC",
+			[$facility, $fy_start, $fy_end]
+		);
+
+		$rows = $query ? $query->result() : [];
+		$map = [];
+		foreach ($rows as $r) {
+			if (!empty($r->ym)) {
+				$map[$r->ym] = (int) $r->cnt;
+			}
+		}
+
+		// Build ordered month labels from Jun..May, filling missing with 0.
+		$period = [];
+		$data = [];
+		$start = new DateTime($fy_start);
+		for ($i = 0; $i < 12; $i++) {
+			$ym = $start->format('Y-m');
+			$period[] = $start->format('M Y'); // e.g., Jun 2025
+			$data[] = isset($map[$ym]) ? $map[$ym] : 0;
+			$start->modify('+1 month');
+		}
+
+		return ['period' => $period, 'data' => $data];
+	}
+
 	public function attroData()
 	{
 		$facility = $_SESSION['facility'];

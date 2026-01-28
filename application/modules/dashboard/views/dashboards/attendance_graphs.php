@@ -157,7 +157,8 @@
             });
 
     <?php
-    $graph = Modules::run("reports/dutygraphData");
+    // Attendance per month uses actuals table (FY Jun->May)
+    $graph = Modules::run("reports/attendanceActualsGraphData");
     ?>
     
     // All Highcharts chart creation must be inside waitForHighcharts callback

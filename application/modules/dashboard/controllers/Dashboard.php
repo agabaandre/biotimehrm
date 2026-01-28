@@ -169,8 +169,8 @@ class Dashboard extends MX_Controller {
 		ini_set('memory_limit', '128M');
 		
 		try {
-			// Get graph data first (faster)
-			$graph = Modules::run("reports/dutygraphData");
+			// Attendance per Month graph now uses actuals table (attendance_rate may not exist)
+			$graph = Modules::run("reports/attendanceActualsGraphData");
 			
 			// Get average hours (can be slower, so we'll try with timeout protection)
 			$avg_hours = 0;
@@ -194,7 +194,7 @@ class Dashboard extends MX_Controller {
 			echo json_encode(array(
 				'error' => $e->getMessage(),
 				'avg_hours' => 0,
-				'graph' => array('period' => array(), 'data' => array(), 'target' => array())
+				'graph' => array('period' => array(), 'data' => array())
 			));
 		}
 	}

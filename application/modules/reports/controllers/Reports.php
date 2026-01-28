@@ -83,6 +83,15 @@ class Reports extends MX_Controller
 		return $data;
 	}
 
+	/**
+	 * Attendance per month graph (Financial Year Jun->May) using `actuals` table.
+	 */
+	public function attendanceActualsGraphData()
+	{
+		$data = $this->reports_mdl->attendanceActualsGraphData();
+		return $data;
+	}
+
 	public function attroData()
 	{
 		$data = $this->reports_mdl->attroData();
