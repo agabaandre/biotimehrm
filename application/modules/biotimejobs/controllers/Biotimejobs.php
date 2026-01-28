@@ -1639,10 +1639,12 @@ class Biotimejobs extends MX_Controller
                         'facility' => $facility
                     ));
                 }
-                
+                //
                 // Fetch data for this date via database
                 $fetch_result = $this->biotimejobs_mdl->fetch_time_history($day_start, $day_end, $terminal_sn, $empcode);
+
                 
+
                 $daily_stat = array(
                     'date' => $dates,
                     'status' => $fetch_result['status'],
