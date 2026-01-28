@@ -52,26 +52,102 @@ class Reports_mdl extends CI_Model
 
 	public function dutygraphData()
 	{
-
 		$facility = $_SESSION['facility'];
-		$date_from = date("Y-m", strtotime("-11 month"));
-		$date_to = date('Y-m');
+		
+		// Calculate financial year range (June to June)
+		// Get current date
+		$current_year = (int)date('Y');
+		$current_month = (int)date('m');
+		
+		// Financial year starts in June (month 06)
+		// If current month is June or later, we're in the current financial year
+		// If current month is before June, we're in the previous financial year
+		if ($current_month >= 6) {
+			// Financial year: June current_year to May next_year
+			$fy_start_year = $current_year;
+		} else {
+			// Financial year: June previous_year to May current_year
+			$fy_start_year = $current_year - 1;
+		}
+		
+		// Get data for last 3 financial years
 		$datas = array();
 		$period = array();
 		$targets = array();
-		$target = $this->db->query("SELECT staff from staffing_rate WHERE date like '$date_to%' AND facility_id='$facility'");
-
-		foreach ($target->result() as $dt):
-			$staff = $dt->staff;
-		endforeach;
-		$query = $this->db->query("SELECT distinct(date) as period, round(reporting_rate) as data from rosta_rate WHERE date BETWEEN '$date_from' AND '$date_to' AND facility_id='$facility'");
-
-		foreach ($query->result() as $data):
-			array_push($targets, $staff);
-			array_push($period, $data->period);
-			array_push($datas, $data->data);
-
-		endforeach;
+		
+		// Loop through last 3 financial years
+		for ($i = 2; $i >= 0; $i--) {
+			$fy_year = $fy_start_year - $i;
+			$fy_start = $fy_year . '-06-01';
+			$fy_end = ($fy_year + 1) . '-05-31';
+			
+			// Format period label as "FY 2024-25"
+			$period_label = 'FY ' . $fy_year . '-' . substr(strval($fy_year + 1), 2);
+			
+			// Query to get average reporting rate for roster (scheduled) data for this financial year
+			$roster_query = $this->db->query("
+				SELECT 
+					ROUND(AVG(reporting_rate)) as data,
+					COUNT(DISTINCT date) as month_count
+				FROM rosta_rate 
+				WHERE facility_id = '$facility'
+				AND date >= '$fy_start' 
+				AND date <= '$fy_end'
+			");
+			
+			$roster_result = $roster_query->row();
+			$roster_data = $roster_result ? (float)$roster_result->data : 0;
+			$roster_month_count = $roster_result ? (int)$roster_result->month_count : 0;
+			
+			// Query to get average reporting rate for attendance data for this financial year
+			$attendance_query = $this->db->query("
+				SELECT 
+					ROUND(AVG(reporting_rate)) as data,
+					COUNT(DISTINCT date) as month_count
+				FROM attendance_rate 
+				WHERE facility_id = '$facility'
+				AND date >= '$fy_start' 
+				AND date <= '$fy_end'
+			");
+			
+			$attendance_result = $attendance_query->row();
+			$attendance_data = $attendance_result ? (float)$attendance_result->data : 0;
+			$attendance_month_count = $attendance_result ? (int)$attendance_result->month_count : 0;
+			
+			// Use the data that has more months, or roster if both are equal
+			// This ensures we show data even if one table has partial data
+			if ($roster_month_count >= $attendance_month_count && $roster_month_count > 0) {
+				$avg_data = $roster_data;
+				$month_count = $roster_month_count;
+			} elseif ($attendance_month_count > 0) {
+				$avg_data = $attendance_data;
+				$month_count = $attendance_month_count;
+			} else {
+				$avg_data = 0;
+				$month_count = 0;
+			}
+			
+			// Only include financial years that have data
+			if ($month_count > 0) {
+				array_push($period, $period_label);
+				array_push($datas, $avg_data);
+				
+				// Get target staff for this financial year (use latest available)
+				$target_query = $this->db->query("
+					SELECT staff 
+					FROM staffing_rate 
+					WHERE facility_id = '$facility'
+					AND date >= '$fy_start' 
+					AND date <= '$fy_end'
+					ORDER BY date DESC 
+					LIMIT 1
+				");
+				
+				$target_result = $target_query->row();
+				$staff = $target_result ? (int)$target_result->staff : 0;
+				array_push($targets, $staff);
+			}
+		}
 
 		return array('period' => $period, 'data' => $datas, 'target' => $targets);
 	}

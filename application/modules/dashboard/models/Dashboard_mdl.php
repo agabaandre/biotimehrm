@@ -309,13 +309,33 @@ class Dashboard_mdl extends CI_Model
     public function avghours()
     {
         $userdata = $this->session->userdata();
-        $date = $userdata['year'] . '-' . $userdata['month'];
+        $year = isset($userdata['year']) ? $userdata['year'] : date('Y');
+        $month = isset($userdata['month']) ? $userdata['month'] : date('m');
         $facility = $_SESSION['facility'];
 
-
-        $query = "SELECT (SUM(time_diff)/COUNT(pid)) as avg FROM clk_diff WHERE facility_id=? AND DATE_FORMAT(date,'%Y-%m')=?";
-        $fac = $this->db->query($query, [$facility, $date]);
-        $data['avg_hours'] = $fac->row()->avg;
+        // Optimize query: Use date range instead of DATE_FORMAT to allow index usage
+        // Calculate start and end dates for the month
+        $start_date = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
+        $end_date = date('Y-m-t', strtotime($start_date)); // Last day of the month
+        
+        // Optimized query with date range and proper aggregation
+        // Use COALESCE to handle NULL values and ensure we return 0 if no data
+        $query = "
+            SELECT 
+                COALESCE(SUM(time_diff) / NULLIF(COUNT(DISTINCT pid), 0), 0) as avg
+            FROM clk_diff 
+            WHERE facility_id = ? 
+            AND date >= ? 
+            AND date <= ?
+            AND time_diff IS NOT NULL
+            AND time_diff > 0
+        ";
+        
+        $fac = $this->db->query($query, [$facility, $start_date, $end_date]);
+        $result = $fac->row();
+        
+        // Handle null result gracefully
+        $data['avg_hours'] = ($result && isset($result->avg) && $result->avg !== null) ? (float)$result->avg : 0;
 
         return $data;
     }

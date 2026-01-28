@@ -613,14 +613,16 @@
 		</div>
 		
 		<!-- Attendance Graphs Section (loaded separately) -->
-		<div class="row" id="attendance-graphs-section">
-			<div class="col-12 mb-3">
-				<h4 class="text-muted">
-					<i class="fas fa-chart-line mr-2"></i>Attendance Analytics
-					<span id="graphs-loading" class="ml-2" style="display:none;">
-						<i class="fas fa-spinner fa-spin text-primary"></i> Loading graphs...
-					</span>
-				</h4>
+		<div id="attendance-graphs-section">
+			<div class="row mb-3">
+				<div class="col-12">
+					<h4 class="text-muted">
+						<i class="fas fa-chart-line mr-2"></i>Attendance Analytics
+						<span id="graphs-loading" class="ml-2" style="display:none;">
+							<i class="fas fa-spinner fa-spin text-primary"></i> Loading graphs...
+						</span>
+					</h4>
+				</div>
 			</div>
 			<?php echo Modules::run('dashboard/attendance_graphs'); ?>
 		</div>
@@ -780,12 +782,23 @@
 		 */
 		function loadAttendanceCalendar() {
 			return new Promise(function(resolve, reject) {
+				// Wait for fullCalendar to be loaded
+				if (typeof $.fullCalendar === 'undefined') {
+					setTimeout(function() {
+						loadAttendanceCalendar().then(resolve).catch(reject);
+					}, 100);
+					return;
+				}
+				
 				var base_url = $('.base_url').html();
+				if (!base_url) {
+					base_url = '<?php echo base_url(); ?>';
+				}
 				
 				// Show loading indicator
 				$('#calendar-loading').show();
 				
-				// Initialize calendar with optimized streaming endpoint
+				// Initialize calendar with fallback to original endpoint
 				$('#attcalendar').fullCalendar({
 					defaultView: 'basicWeek',
 					header: {
@@ -801,9 +814,12 @@
 						}
 					},
 					events: function(start, end, timezone, callback) {
-						// Use optimized streaming endpoint
+						// Try optimized streaming endpoint first, fallback to original
+						var streamUrl = base_url + 'calendar/getattEventsStream';
+						var fallbackUrl = base_url + 'calendar/getattEvents';
+						
 						$.ajax({
-							url: base_url + 'calendar/getattEventsStream',
+							url: streamUrl,
 							type: 'GET',
 							dataType: 'json',
 							data: {
@@ -812,13 +828,38 @@
 							},
 							timeout: 60000,
 							success: function(events) {
-								callback(events);
+								if (Array.isArray(events)) {
+									callback(events);
+								} else {
+									callback([]);
+								}
 							},
 							error: function(xhr, status, error) {
-								console.error('Calendar load error:', error);
-								callback([]);
-								$('#calendar-loading').html('<span class="text-danger">Error loading calendar</span>');
-								resolve(); // Resolve anyway to not block
+								console.warn('Stream endpoint failed, trying fallback:', error);
+								// Fallback to original endpoint
+								$.ajax({
+									url: fallbackUrl,
+									type: 'GET',
+									dataType: 'json',
+									data: {
+										start: start.format('YYYY-MM-DD'),
+										end: end.format('YYYY-MM-DD')
+									},
+									timeout: 60000,
+									success: function(events) {
+										if (Array.isArray(events)) {
+											callback(events);
+										} else {
+											callback([]);
+										}
+									},
+									error: function(xhr2, status2, error2) {
+										console.error('Calendar load error (both endpoints failed):', error2);
+										callback([]);
+										$('#calendar-loading').html('<span class="text-danger">Error loading calendar</span>');
+										resolve(); // Resolve anyway to not block
+									}
+								});
 							}
 						});
 					},

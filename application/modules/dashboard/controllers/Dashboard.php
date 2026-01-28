@@ -164,22 +164,58 @@ class Dashboard extends MX_Controller {
 	public function graphsData() {
 		header('Content-Type: application/json');
 		
+		// Set execution limits for this endpoint
+		set_time_limit(30);
+		ini_set('memory_limit', '128M');
+		
 		try {
-			// Get average hours
-			$avg_hours = $this->dash_mdl->avghours();
-			
-			// Get graph data
+			// Get graph data first (faster)
 			$graph = Modules::run("reports/dutygraphData");
 			
+			// Get average hours (can be slower, so we'll try with timeout protection)
+			$avg_hours = 0;
+			try {
+				$avg_hours_result = $this->dash_mdl->avghours();
+				$avg_hours = isset($avg_hours_result['avg_hours']) ? (float)$avg_hours_result['avg_hours'] : 0;
+			} catch (Exception $e) {
+				// If average hours calculation fails, log but don't break the whole response
+				log_message('error', 'avghours calculation error: ' . $e->getMessage());
+				$avg_hours = 0;
+			}
+			
 			$data = array(
-				'avg_hours' => isset($avg_hours['avg_hours']) ? $avg_hours['avg_hours'] : 0,
+				'avg_hours' => $avg_hours,
 				'graph' => $graph
 			);
 			
 			echo json_encode($data);
 		} catch (Exception $e) {
 			log_message('error', 'graphsData error: ' . $e->getMessage());
-			echo json_encode(array('error' => $e->getMessage()));
+			echo json_encode(array(
+				'error' => $e->getMessage(),
+				'avg_hours' => 0,
+				'graph' => array('period' => array(), 'data' => array(), 'target' => array())
+			));
+		}
+	}
+	
+	/**
+	 * Separate lightweight endpoint for average hours only
+	 * Can be called independently if needed
+	 */
+	public function avgHoursOnly() {
+		header('Content-Type: application/json');
+		
+		set_time_limit(15);
+		
+		try {
+			$avg_hours_result = $this->dash_mdl->avghours();
+			$avg_hours = isset($avg_hours_result['avg_hours']) ? (float)$avg_hours_result['avg_hours'] : 0;
+			
+			echo json_encode(array('avg_hours' => $avg_hours));
+		} catch (Exception $e) {
+			log_message('error', 'avgHoursOnly error: ' . $e->getMessage());
+			echo json_encode(array('avg_hours' => 0));
 		}
 	}
 
