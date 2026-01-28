@@ -14,15 +14,9 @@ Class Biometrics_model extends CI_Model
    public  function __construct(){
         parent:: __construct();
         
-        // Safely get facility from session - try multiple methods
+        // Safely get facility from session
         $userdata = $this->session->userdata;
         $this->facility = isset($userdata['facility']) ? $userdata['facility'] : null;
-        
-        // Fallback to $_SESSION if not found
-        if (empty($this->facility) && isset($_SESSION['facility'])) {
-            $this->facility = $_SESSION['facility'];
-        }
-        
         $this->user = $this->session->get_userdata();
         $this->watermark = FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
         
@@ -125,200 +119,11 @@ public function get_enrolled(){
   $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device!=''");
 return $query->result(); 
 }
-
-public function getEnrolledCount($search = '') {
-    try {
-        $this->db->from('fingerprints_final');
-        
-        // Only filter by facility if it's set
-        if (!empty($this->facility)) {
-            $this->db->where('facilityId', $this->facility);
-        }
-        
-        $this->db->where("device != ''");
-        $this->db->where("device IS NOT NULL");
-        
-        if (!empty($search)) {
-            $this->db->group_start();
-            $this->db->like('ihris_pid', $search);
-            $this->db->or_like('fullname', $search);
-            $this->db->or_like('othername', $search);
-            $this->db->or_like('facility', $search);
-            $this->db->or_like('device', $search);
-            $this->db->or_like('job', $search);
-            $this->db->or_like('card_number', $search);
-            $this->db->group_end();
-        }
-        
-        $count = $this->db->count_all_results();
-        log_message('debug', 'getEnrolledCount: facility=' . ($this->facility ?? 'null') . ', count=' . $count);
-        return $count;
-    } catch (Exception $e) {
-        log_message('error', 'getEnrolledCount error: ' . $e->getMessage());
-        log_message('error', 'getEnrolledCount facility: ' . ($this->facility ?? 'null'));
-        return 0;
-    }
-}
-
-public function getEnrolledPaginated($start, $length, $search = '', $order = null) {
-    try {
-        $this->db->select('*');
-        $this->db->from('fingerprints_final');
-        
-        // Only filter by facility if it's set
-        if (!empty($this->facility)) {
-            $this->db->where('facilityId', $this->facility);
-        }
-        
-        $this->db->where("device != ''");
-        $this->db->where("device IS NOT NULL");
-        
-        if (!empty($search)) {
-            $this->db->group_start();
-            $this->db->like('ihris_pid', $search);
-            $this->db->or_like('fullname', $search);
-            $this->db->or_like('othername', $search);
-            $this->db->or_like('facility', $search);
-            $this->db->or_like('device', $search);
-            $this->db->or_like('job', $search);
-            $this->db->or_like('card_number', $search);
-            $this->db->group_end();
-        }
-        
-        if ($order && isset($order['column']) && isset($order['dir'])) {
-            // Map DataTable column indices to database columns
-            // Columns: 0=# (not sortable), 1=ihris_pid, 2=fullname, 3=facility, 4=device, 5=job, 6=card_number, 7=status (not sortable)
-            $columns = ['ihris_pid', 'fullname', 'facility', 'device', 'job', 'card_number'];
-            $columnIndex = intval($order['column']);
-            
-            // Adjust for # column (index 0 is not sortable) and status (index 7 is not sortable)
-            if ($columnIndex > 0 && $columnIndex < 7 && ($columnIndex - 1) < count($columns)) {
-                $this->db->order_by($columns[$columnIndex - 1], $order['dir']);
-            } else {
-                $this->db->order_by('fullname', 'asc');
-            }
-        } else {
-            $this->db->order_by('fullname', 'asc');
-        }
-        
-        $this->db->limit($length, $start);
-        $query = $this->db->get();
-        
-        if ($query) {
-            $results = $query->result();
-            log_message('debug', 'getEnrolledPaginated: facility=' . ($this->facility ?? 'null') . ', results=' . count($results));
-            return $results;
-        } else {
-            log_message('error', 'getEnrolledPaginated query failed: ' . $this->db->error()['message']);
-            return array();
-        }
-    } catch (Exception $e) {
-        log_message('error', 'getEnrolledPaginated error: ' . $e->getMessage());
-        log_message('error', 'getEnrolledPaginated facility: ' . ($this->facility ?? 'null'));
-        log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-        return array();
-    }
-}
-
 public function get_new_users(){
     $facility=$_SESSION['facility'];
     $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device=''");
  return $query->result();
  }
-
-public function getUnenrolledCount($search = '') {
-    try {
-        $this->db->from('fingerprints_final');
-        
-        // Only filter by facility if it's set
-        if (!empty($this->facility)) {
-            $this->db->where('facilityId', $this->facility);
-        }
-        
-        $this->db->group_start();
-        $this->db->where("device = ''");
-        $this->db->or_where("device IS NULL");
-        $this->db->group_end();
-        
-        if (!empty($search)) {
-            $this->db->group_start();
-            $this->db->like('ihris_pid', $search);
-            $this->db->or_like('fullname', $search);
-            $this->db->or_like('othername', $search);
-            $this->db->or_like('job', $search);
-            $this->db->or_like('card_number', $search);
-            $this->db->group_end();
-        }
-        
-        $count = $this->db->count_all_results();
-        log_message('debug', 'getUnenrolledCount: facility=' . ($this->facility ?? 'null') . ', count=' . $count);
-        return $count;
-    } catch (Exception $e) {
-        log_message('error', 'getUnenrolledCount error: ' . $e->getMessage());
-        log_message('error', 'getUnenrolledCount facility: ' . ($this->facility ?? 'null'));
-        return 0;
-    }
-}
-
-public function getUnenrolledPaginated($start, $length, $search = '', $order = null) {
-    try {
-        $this->db->select('*');
-        $this->db->from('fingerprints_final');
-        
-        // Only filter by facility if it's set
-        if (!empty($this->facility)) {
-            $this->db->where('facilityId', $this->facility);
-        }
-        
-        $this->db->group_start();
-        $this->db->where("device = ''");
-        $this->db->or_where("device IS NULL");
-        $this->db->group_end();
-        
-        if (!empty($search)) {
-            $this->db->group_start();
-            $this->db->like('ihris_pid', $search);
-            $this->db->or_like('fullname', $search);
-            $this->db->or_like('othername', $search);
-            $this->db->or_like('job', $search);
-            $this->db->or_like('card_number', $search);
-            $this->db->group_end();
-        }
-        
-        if ($order && isset($order['column']) && isset($order['dir'])) {
-            // Map DataTable column indices to database columns
-            // Columns: 0=# (not sortable), 1=ihris_pid, 2=fullname, 3=job, 4=card_number
-            $columns = ['ihris_pid', 'fullname', 'job', 'card_number'];
-            $columnIndex = intval($order['column']);
-            
-            // Adjust for # column (index 0 is not sortable)
-            if ($columnIndex > 0 && ($columnIndex - 1) < count($columns)) {
-                $this->db->order_by($columns[$columnIndex - 1], $order['dir']);
-            } else {
-                $this->db->order_by('fullname', 'asc');
-            }
-        } else {
-            $this->db->order_by('fullname', 'asc');
-        }
-        
-        $this->db->limit($length, $start);
-        $query = $this->db->get();
-        
-        if ($query) {
-            $results = $query->result();
-            log_message('debug', 'getUnenrolledPaginated: facility=' . ($this->facility ?? 'null') . ', results=' . count($results));
-            return $results;
-        } else {
-            log_message('error', 'getUnenrolledPaginated query failed: ' . $this->db->error()['message']);
-            return array();
-        }
-    } catch (Exception $e) {
-        log_message('error', 'getUnenrolledPaginated error: ' . $e->getMessage());
-        log_message('error', 'getUnenrolledPaginated facility: ' . ($this->facility ?? 'null'));
-        log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-        return array();
-    }
-}
  public function get_new_deps(){
     $facility=$_SESSION['facility'];
     $query=$this->db->query("SELECT distinct(department),department_id FROM  ihrisdata WHERE department_id NOT IN (SELECT dept_code from biotime_departments)");
