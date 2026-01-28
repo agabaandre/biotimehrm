@@ -18,3 +18,7 @@
 {"REQUEST DETAILS: 2026-01-27 12:02:47 Time": "run_sync_background() started for terminal BYUJ192260042"}\n
 {"REQUEST DETAILS: 2026-01-27 12:02:51 Time": "fetchBiotTimeLogs() exception: PROCEDURE attend.clockin_users does not exist"}\n
 {"REQUEST DETAILS: 2026-01-27 12:02:51 Time": "run_sync_background() completed for terminal BYUJ192260042: Error: PROCEDURE attend.clockin_users does not exist"}\n
+{"REQUEST DETAILS: 2026-01-28 22:51:28 Time": "custom_logs() - Terminal: 3929091915182, Facility: KABALE Regional Referral, Start: auto, End: 2026-01-28, Type: attendance, Batch: 500, Async: yes"}\n
+{"REQUEST DETAILS: 2026-01-28 22:51:28 Time": "run_sync_background() started for terminal 3929091915182"}\n
+{"REQUEST DETAILS: 2026-01-28 22:51:31 Time": "fetchBiotTimeLogs() exception: PROCEDURE attend.clockin_users does not exist"}\n
+{"REQUEST DETAILS: 2026-01-28 22:51:31 Time": "run_sync_background() completed for terminal 3929091915182: Error: PROCEDURE attend.clockin_users does not exist"}\n

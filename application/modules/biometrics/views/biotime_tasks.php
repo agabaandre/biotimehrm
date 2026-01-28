@@ -410,16 +410,17 @@ $(document).ready(function() {
             }
         },
         columns: [
-            { data: 0 }, // Serial Number
-            { data: 1 }, // Facility
-            { data: 2 }, // Last Sync
-            { data: 3 }, // Number of Records
-            { data: 4 }, // IP Address
-            { data: 5 }, // Status
-            { data: 6 }  // Manual Sync
+            { data: 0, orderable: true }, // Serial Number
+            { data: 1, orderable: true }, // Facility
+            { data: 2, orderable: true }, // Last Sync
+            { data: 3, orderable: true }, // Number of Records
+            { data: 4, orderable: true }, // IP Address
+            { data: 5, orderable: false }, // Status (not sortable)
+            { data: 6, orderable: false }  // Manual Sync (not sortable)
         ],
         order: [[2, 'desc']], // Sort by last sync date by default
-        pageLength: 25,
+        pageLength: 20,
+        lengthMenu: [[10, 20, 25, 50, 100], [10, 20, 25, 50, 100]],
         responsive: true,
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
              '<"row"<"col-sm-12"tr>>' +
