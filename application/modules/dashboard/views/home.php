@@ -641,19 +641,24 @@
  			// Your knobgauge function code here
  		}
 
- 		function loadDashboardData() {
- 			return new Promise(function(resolve, reject) {
-            // Show loading indicator
-            $('.stat-number, .status-value').html('<i class="fas fa-spinner fa-spin loading-pulse"></i>');
-            
- 				$.ajax({
- 					type: 'GET',
- 					url: '<?php echo base_url('dashboard/dashboardData') ?>',
- 					dataType: 'json',
- 					data: '',
- 					async: true,
-                timeout: 30000,
- 					success: function(data) {
+		function loadDashboardData(showLoader) {
+			return new Promise(function(resolve, reject) {
+            // Show loading indicator (only for the first attempt)
+            if (showLoader !== false) {
+              $('.stat-number, .status-value').html('<i class="fas fa-spinner fa-spin loading-pulse"></i>');
+            }
+
+				$.ajax({
+					type: 'GET',
+					url: '<?php echo base_url('dashboard/dashboardData') ?>',
+					dataType: 'json',
+					data: '',
+					async: true,
+                timeout: 60000,
+					success: function(data) {
+                    // Reset retry state on success
+                    window.__dashboardDataRetry = { attempt: 0, timer: null };
+
                     // Update dashboard data with fade-in effect
                     updateDashboardValue('#workers', data.workers);
                     updateDashboardValue('#facilities', data.facilities);
@@ -680,13 +685,47 @@
  						resolve();
  					},
                 error: function(xhr, status, error) {
-                    console.error('Dashboard data error:', error);
-                    $('.stat-number, .status-value').html('<span class="text-danger">Error loading data</span>');
- 						reject(error);
+                    console.error('Dashboard data error:', status, error);
+
+                    // If this was a background retry, don't blow away existing values
+                    if (showLoader !== false) {
+                      $('.stat-number, .status-value').html('<span class="text-danger">Error loading data</span>');
+                    }
+
+                    // Schedule a background retry with exponential backoff (non-blocking)
+                    window.__dashboardDataRetry = window.__dashboardDataRetry || { attempt: 0, timer: null };
+                    if (!window.__dashboardDataRetry.timer) {
+                      var attempt = window.__dashboardDataRetry.attempt || 0;
+                      var delay = Math.min(60000, 2000 * Math.pow(2, attempt)); // 2s, 4s, 8s, ... max 60s
+                      window.__dashboardDataRetry.attempt = attempt + 1;
+
+                      // Small user hint without spamming (only if we were showing loader)
+                      if (showLoader !== false) {
+                        $('.stat-number, .status-value').html('<span class="text-warning">Retrying...</span>');
+                      }
+
+                      window.__dashboardDataRetry.timer = setTimeout(function() {
+                        window.__dashboardDataRetry.timer = null;
+                        loadDashboardData(false).catch(function() { /* retry loop continues via backoff */ });
+                      }, delay);
+                    }
+
+						reject(error || status);
  					}
  				});
  			});
  		}
+
+    // Background refresh loop (keeps the dashboard up to date and self-heals after timeouts)
+    function startDashboardAutoRefresh() {
+      window.__dashboardAutoRefresh = window.__dashboardAutoRefresh || { timer: null };
+      if (window.__dashboardAutoRefresh.timer) return;
+
+      window.__dashboardAutoRefresh.timer = setInterval(function() {
+        // quiet refresh (no loaders)
+        loadDashboardData(false).catch(function() { /* retry handled in loadDashboardData */ });
+      }, 300000); // every 5 minutes
+    }
     
     function updateDashboardValue(selector, value) {
         if (value !== undefined && value !== null) {
@@ -752,14 +791,17 @@
  			});
  		}
  		
- 		// Chain the functions in order
- 		 loadDashboardData()
+ 		// Chain the functions in order (data fetch auto-retries in the background on errors/timeouts)
+ 		 loadDashboardData(true)
  			.then(function() {
  				return loadAttendanceCalendar();
  			})
  			.catch(function(error) {
  				console.error('An error occurred:', error);
  			});
+
+     // Start background refresh after initial attempt (success or failure)
+     startDashboardAutoRefresh();
      
      // Session testing function (remove in production)
      window.testSessionEndpoints = function() {

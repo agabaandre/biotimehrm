@@ -370,6 +370,8 @@
 
 <script>
 $(document).ready(function() {
+    var baseUrl = '<?php echo base_url(); ?>';
+
     // Declare table variable in wider scope
     var table;
     
@@ -395,7 +397,14 @@ $(document).ready(function() {
             { data: 'serial', className: 'text-center' },
             { data: 'ihris_pid', className: 'text-center' },
             { data: 'nin', className: 'text-center' },
-            { data: 'fullname' },
+            { data: 'fullname', render: function(data, type, row) {
+                if (type !== 'display') return data;
+                var safeName = $('<div>').text(data || '').html();
+                var pid = row && row.ihris_pid ? String(row.ihris_pid) : '';
+                if (!pid) return safeName;
+                var href = baseUrl + 'employees/employeeTimeLogs/' + encodeURIComponent(pid);
+                return '<a href="' + href + '" title="View time logs">' + safeName + '</a>';
+            }},
             { data: 'gender', className: 'text-center' },
             { data: 'birth_date', className: 'text-center' },
             { data: 'phone', className: 'text-center' },

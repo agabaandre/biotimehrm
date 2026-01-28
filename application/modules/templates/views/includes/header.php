@@ -27,47 +27,79 @@
   <script src="<?php echo base_url() ?>node_modules/jquery/dist/jquery.min.js"></script>
   <script src="<?php echo base_url() ?>node_modules/highcharts/highcharts.js"></script>
   <script>
-    // Ensure Highcharts is loaded before loading modules
+    /**
+     * Highcharts loader (hardened)
+     * Fixes intermittent "Highcharts module loaded before core" crashes by:
+     * - waiting for a compatible core (v10+ exposes Highcharts._modules)
+     * - loading modules sequentially and only once (idempotent)
+     */
     (function loadHighchartsModules() {
-      if (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function') {
-        // Highcharts is loaded, now load modules
-        var moduleScripts = [
-          '<?php echo base_url() ?>node_modules/highcharts/highcharts-more.js',
-          '<?php echo base_url() ?>node_modules/highcharts/modules/solid-gauge.js',
-          '<?php echo base_url() ?>node_modules/highcharts/modules/exporting.js',
-          '<?php echo base_url() ?>node_modules/highcharts/modules/export-data.js',
-          '<?php echo base_url() ?>node_modules/highcharts/modules/accessibility.js'
-        ];
-        
-        function loadScript(src, callback) {
+      window.__hcLoaderState = window.__hcLoaderState || {
+        started: false,
+        loaded: false,
+        tries: 0
+      };
+
+      if (window.__hcLoaderState.loaded) {
+        return;
+      }
+
+      // Core must exist and be compatible with the module bundle we ship (v10+)
+      var hasCore = (typeof window.Highcharts !== 'undefined' &&
+        typeof window.Highcharts.setOptions === 'function' &&
+        typeof window.Highcharts._modules === 'object');
+
+      if (!hasCore) {
+        window.__hcLoaderState.tries++;
+        // Give up after ~10s to avoid infinite loops; pages should still work without charts
+        if (window.__hcLoaderState.tries > 200) {
+          console.warn('Highcharts core not ready/compatible; skipping module loading.');
+          return;
+        }
+        setTimeout(loadHighchartsModules, 50);
+        return;
+      }
+
+      if (window.__hcLoaderState.started) {
+        return;
+      }
+      window.__hcLoaderState.started = true;
+
+      var moduleScripts = [
+        '<?php echo base_url() ?>node_modules/highcharts/highcharts-more.js',
+        '<?php echo base_url() ?>node_modules/highcharts/modules/solid-gauge.js',
+        '<?php echo base_url() ?>node_modules/highcharts/modules/exporting.js',
+        '<?php echo base_url() ?>node_modules/highcharts/modules/export-data.js',
+        '<?php echo base_url() ?>node_modules/highcharts/modules/accessibility.js'
+      ];
+
+      function loadScript(src) {
+        return new Promise(function(resolve) {
+          // Prevent double-inserting the same script
+          if (document.querySelector('script[data-hc-module="' + src + '"]')) {
+            resolve();
+            return;
+          }
+
           var script = document.createElement('script');
           script.src = src;
-          script.async = false; // Load synchronously
+          script.async = false;
+          script.setAttribute('data-hc-module', src);
+          script.onload = function() { resolve(); };
           script.onerror = function() {
-            console.error('Failed to load Highcharts module: ' + src);
-            if (callback) callback();
-          };
-          script.onload = function() {
-            if (callback) callback();
+            console.error('Failed to load Highcharts module:', src);
+            resolve(); // continue so one bad module doesn't block the rest
           };
           document.head.appendChild(script);
-        }
-        
-        // Load modules sequentially
-        var index = 0;
-        function loadNext() {
-          if (index < moduleScripts.length) {
-            loadScript(moduleScripts[index], function() {
-              index++;
-              loadNext();
-            });
-          }
-        }
-        loadNext();
-      } else {
-        // Retry after a short delay
-        setTimeout(loadHighchartsModules, 50);
+        });
       }
+
+      // Load sequentially
+      moduleScripts.reduce(function(p, src) {
+        return p.then(function() { return loadScript(src); });
+      }, Promise.resolve()).then(function() {
+        window.__hcLoaderState.loaded = true;
+      });
     })();
   </script>
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">

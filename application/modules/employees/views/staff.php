@@ -115,6 +115,8 @@
 
 <script>
 $(document).ready(function() {
+    var baseUrl = '<?php echo base_url(); ?>';
+
     // Initialize Select2
     $('.select2').select2({
         theme: 'bootstrap-5',
@@ -139,7 +141,15 @@ $(document).ready(function() {
             }},
             { data: 'ihris_pid', className: 'text-center' },
             { data: 'nin', className: 'text-center' },
-            { data: 'fullname' },
+            { data: 'fullname', render: function(data, type, row) {
+                // Make full name clickable to employee time logs
+                if (type !== 'display') return data;
+                var safeName = $('<div>').text(data || '').html();
+                var pid = row && row.ihris_pid ? String(row.ihris_pid) : '';
+                if (!pid) return safeName;
+                var href = baseUrl + 'employees/employeeTimeLogs/' + encodeURIComponent(pid);
+                return '<a href="' + href + '" title="View time logs">' + safeName + '</a>';
+            }},
             { data: 'gender', className: 'text-center' },
             { data: 'birth_date', className: 'text-center' },
             { data: 'ipps', className: 'text-center' },
