@@ -1642,9 +1642,7 @@ class Biotimejobs extends MX_Controller
                 //
                 // Fetch data for this date via database
                 $fetch_result = $this->biotimejobs_mdl->fetch_time_history($day_start, $day_end, $terminal_sn, $empcode);
-
                 
-
                 $daily_stat = array(
                     'date' => $dates,
                     'status' => $fetch_result['status'],
@@ -1660,7 +1658,8 @@ class Biotimejobs extends MX_Controller
                     $console("  ✓ Fetched: {$fetch_result['records_fetched']} | Saved: {$fetch_result['records_saved']}", 'success');
                     
                     // Process clock-out data for this date
-            $this->biotimeClockoutnight($dates);
+                    $this->biotimeClockin();
+                 //$this->this($dates);
                     
                     $this->log("fetch_time_history() processed date $dates: " . $fetch_result['records_saved'] . " records saved");
                 } else {
