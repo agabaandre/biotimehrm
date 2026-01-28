@@ -32,24 +32,31 @@
 								<div class="row">
 									<div class="col-md-2">
 										<div class="control-group">
-											<label style="font-size:12px;">Date From:</label>
-											<div class="input-group">
-												<div class="input-group-prepend">
-													<span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
-												</div>
-												<input type="text" name="date_from" id="ts_date_from" class="form-control datepicker" value="<?php echo isset($date_from) ? $date_from : date('Y-m-01'); ?>" autocomplete="off">
-											</div>
+											<select class="form-control select2" name="month" id="ts_month">
+												<option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10))) . " (Showing below)"; ?></option>
+												<option value="01">JANUARY</option>
+												<option value="02">FEBRUARY</option>
+												<option value="03">MARCH</option>
+												<option value="04">APRIL</option>
+												<option value="05">MAY</option>
+												<option value="06">JUNE</option>
+												<option value="07">JULY</option>
+												<option value="08">AUGUST</option>
+												<option value="09">SEPTEMBER</option>
+												<option value="10">OCTOBER</option>
+												<option value="11">NOVEMBER</option>
+												<option value="12">DECEMBER</option>
+											</select>
 										</div>
 									</div>
 									<div class="col-md-2">
 										<div class="control-group">
-											<label style="font-size:12px;">Date To:</label>
-											<div class="input-group">
-												<div class="input-group-prepend">
-													<span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
-												</div>
-												<input type="text" name="date_to" id="ts_date_to" class="form-control datepicker" value="<?php echo isset($date_to) ? $date_to : date('Y-m-t'); ?>" autocomplete="off">
-											</div>
+											<select class="form-control select2" name="year" id="ts_year">
+												<option><?php echo $year; ?></option>
+												<?php for ($i = -5; $i <= 25; $i++) {  ?>
+													<option><?php echo 2017 + $i; ?></option>
+												<?php }  ?>
+											</select>
 										</div>
 									</div>
 									<div class="col-md-2">
@@ -81,8 +88,8 @@
 									<div class="col-md-4">
 										<div class="control-group">
 											<button type="button" id="ts_apply" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-tasks" aria-hidden="true"></i>Apply</button>
-											<a target="_blank" id="ts_print" href="<?php echo base_url(); ?>employees/print_timesheet_range/<?php echo (isset($date_from)?$date_from:date('Y-m-01')) . '/' . (isset($date_to)?$date_to:date('Y-m-t')) . '/emp/job'; ?>" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-print" aria-hidden="true"></i>Print</a>
-											<a target="_blank" id="ts_excel" href="<?php echo base_url(); ?>employees/csv_timesheet_range/<?php echo (isset($date_from)?$date_from:date('Y-m-01')) . '/' . (isset($date_to)?$date_to:date('Y-m-t')) . '/emp/job'; ?>" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-file-excel" aria-hidden="true"></i>Excel</a>
+											<a target="_blank" id="ts_print" href="<?php echo base_url(); ?>employees/print_timesheet/<?php echo $month . '/' . $year . '/emp/job'; ?>" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-print" aria-hidden="true"></i>Print</a>
+											<a target="_blank" id="ts_excel" href="<?php echo base_url(); ?>employees/csv_timesheet/<?php echo $month . '/' . $year . '/emp/job'; ?>" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-file-excel" aria-hidden="true"></i>Excel</a>
 										</div>
 										<?php //echo $this->uri->segment(2); 
 										?>
@@ -117,22 +124,11 @@
 
 							function getFilters() {
 								return {
-									date_from: $('#ts_date_from').val() || '<?php echo isset($date_from) ? $date_from : date('Y-m-01'); ?>',
-									date_to: $('#ts_date_to').val() || '<?php echo isset($date_to) ? $date_to : date('Y-m-t'); ?>',
+									month: $('#ts_month').val() || '<?php echo $month; ?>',
+									year: $('#ts_year').val() || '<?php echo $year; ?>',
 									empid: $('#ts_empid').val() || '',
 									job: $('#ts_job').val() || ''
 								};
-							}
-
-							function parseDateYmd(s) {
-								// Expect YYYY-MM-DD
-								var parts = (s || '').split('-');
-								if (parts.length !== 3) return null;
-								var y = parseInt(parts[0], 10);
-								var m = parseInt(parts[1], 10);
-								var d = parseInt(parts[2], 10);
-								if (!y || !m || !d) return null;
-								return new Date(y, m - 1, d);
 							}
 
 							function isWeekendDate(dt) {
@@ -145,21 +141,28 @@
 								var f = getFilters();
 								var empPart = 'emp' + encodeURIComponent(f.empid || '');
 								var jobPart = 'job' + encodeURIComponent(f.job || '');
-								$('#ts_print').attr('href', '<?php echo base_url(); ?>employees/print_timesheet_range/' + encodeURIComponent(f.date_from) + '/' + encodeURIComponent(f.date_to) + '/' + empPart + '/' + jobPart);
-								$('#ts_excel').attr('href', '<?php echo base_url(); ?>employees/csv_timesheet_range/' + encodeURIComponent(f.date_from) + '/' + encodeURIComponent(f.date_to) + '/' + empPart + '/' + jobPart);
+								$('#ts_print').attr('href', '<?php echo base_url(); ?>employees/print_timesheet/' + f.month + '/' + f.year + '/' + empPart + '/' + jobPart);
+								$('#ts_excel').attr('href', '<?php echo base_url(); ?>employees/csv_timesheet/' + f.month + '/' + f.year + '/' + empPart + '/' + jobPart);
 							}
 
-							function buildHeader(dateList) {
+							function buildHeader(month, year) {
 								var $row = $('#ts_header_row');
 								$row.empty();
 								$row.append('<th style="width:50px;">#</th>');
 								$row.append('<th style="min-width:220px;">Name</th>');
 								$row.append('<th style="min-width:160px;">Position</th>');
-								for (var i = 0; i < dateList.length; i++) {
-									var dt = dateList[i];
+								var y = parseInt(year, 10);
+								var m = parseInt(month, 10);
+								if (!y || !m) {
+									y = new Date().getFullYear();
+									m = new Date().getMonth() + 1;
+								}
+								var daysInMonth = new Date(y, m, 0).getDate();
+								for (var i = 1; i <= daysInMonth; i++) {
+									var dt = new Date(y, m - 1, i);
 									var weekend = isWeekendDate(dt);
-									var label = dt.getDate(); // day of month
-									var style = 'min-width:40px; text-align:center;' + (weekend ? ' background-color:#ffcccc;' : '');
+									var label = dt.getDate();
+									var style = 'min-width:28px; text-align:center;' + (weekend ? ' background-color:#ffcccc;' : '');
 									$row.append('<th style="' + style + '">' + label + '</th>');
 								}
 								$row.append('<th style="min-width:70px;">Hrs</th>');
@@ -167,36 +170,20 @@
 								$row.append('<th style="min-width:90px;">% Present</th>');
 							}
 
-							function buildDateList(fromStr, toStr) {
-								var from = parseDateYmd(fromStr);
-								var to = parseDateYmd(toStr);
-								if (!from || !to) return [];
-								if (from > to) {
-									var tmp = from; from = to; to = tmp;
-								}
-								var ms = 24 * 60 * 60 * 1000;
-								var diff = Math.floor((to - from) / ms) + 1;
-								if (diff > 31) {
-									alert('Please select a date range of 31 days or less (timesheet grid limit).');
-									// Clamp to 31 days
-									to = new Date(from.getTime() + (30 * ms));
-									$('#ts_date_to').val(to.toISOString().slice(0,10));
-									diff = 31;
-								}
-								var list = [];
-								for (var i = 0; i < diff; i++) {
-									list.push(new Date(from.getTime() + (i * ms)));
-								}
-								return list;
-							}
-
 							function initOrReinitTable() {
 								var f = getFilters();
-								var dateList = buildDateList(f.date_from, f.date_to);
-								buildHeader(dateList);
+								buildHeader(f.month, f.year);
 
+								// 3 fixed columns + daysInMonth + 3 summary columns
+								var y = parseInt(f.year, 10);
+								var m = parseInt(f.month, 10);
+								if (!y || !m) {
+									y = new Date().getFullYear();
+									m = new Date().getMonth() + 1;
+								}
+								var daysInMonth = new Date(y, m, 0).getDate();
 								var columns = [];
-								for (var i = 0; i < (3 + dateList.length + 3); i++) {
+								for (var i = 0; i < (3 + daysInMonth + 3); i++) {
 									columns.push({ data: i });
 								}
 
@@ -208,7 +195,7 @@
 								table = $('#timesheetTable').DataTable({
 									processing: true,
 									serverSide: true,
-									searchDelay: 400,
+									searching: false,
 									pageLength: 20,
 									scrollX: true,
 									ordering: false,
@@ -218,8 +205,8 @@
 										data: function(d) {
 											var f2 = getFilters();
 											d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
-											d.date_from = f2.date_from;
-											d.date_to = f2.date_to;
+											d.month = f2.month;
+											d.year = f2.year;
 											d.empid = f2.empid;
 											d.job = f2.job;
 										},
@@ -228,7 +215,7 @@
 										}
 									},
 									columns: columns,
-									dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+									dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6">>' +
 										 '<"row"<"col-sm-12"tr>>' +
 										 '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
 								});
@@ -246,7 +233,7 @@
 							});
 
 							// Rebuild table when month/year changes (days columns change)
-							$('#ts_date_from, #ts_date_to').on('change', function() {
+							$('#ts_month, #ts_year').on('change', function() {
 								updatePrintLinks();
 								initOrReinitTable();
 							});

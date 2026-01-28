@@ -758,25 +758,28 @@ class Employees extends MX_Controller
   }
   public function timesheet()
   {
-    // Date range filters (preferred)
-    $date_from = $this->input->post('date_from');
-    $date_to = $this->input->post('date_to');
+    // Month/year filters for monthly timesheet
+    $month = $this->input->post('month');
+    $year = $this->input->post('year');
 
-    // Defaults: full current month
-    $default_from = date('Y-m-01');
-    $default_to = date('Y-m-t');
-
-    if (!empty($date_from)) {
-      $_SESSION['timesheet_date_from'] = $date_from;
-      $_SESSION['timesheet_date_to'] = !empty($date_to) ? $date_to : $default_to;
+    if (!empty($month)) {
+      $_SESSION['month'] = $month;
+      $_SESSION['year'] = $year ?: date('Y');
     }
 
-    $data['date_from'] = !empty($_SESSION['timesheet_date_from']) ? $_SESSION['timesheet_date_from'] : $default_from;
-    $data['date_to'] = !empty($_SESSION['timesheet_date_to']) ? $_SESSION['timesheet_date_to'] : $default_to;
+    if (!empty($_SESSION['year'])) {
+      $data['month'] = $_SESSION['month'];
+      $data['year'] = $_SESSION['year'];
+    } else {
+      $_SESSION['month'] = date('m');
+      $_SESSION['year'] = date('Y');
+      $data['month'] = $_SESSION['month'];
+      $data['year'] = $_SESSION['year'];
+    }
 
-    // Keep month/year for backward compatibility (print endpoints etc.)
-    $data['month'] = date('m', strtotime($data['date_from']));
-    $data['year'] = date('Y', strtotime($data['date_from']));
+    // Also expose date_from/date_to for header if needed
+    $data['date_from'] = date('Y-m-01', strtotime($data['year'] . '-' . $data['month'] . '-01'));
+    $data['date_to'] = date('Y-m-t', strtotime($data['year'] . '-' . $data['month'] . '-01'));
     $data['title'] = 'Timesheet';
     $data['uptitle'] = 'Timesheet Report';
     $data['view'] = 'timesheet';
@@ -809,34 +812,23 @@ class Employees extends MX_Controller
     // Filters
     $employee = (string)($this->input->post('empid') ?? '');
     $job = (string)($this->input->post('job') ?? '');
-    $date_from = (string)($this->input->post('date_from') ?? ($_SESSION['timesheet_date_from'] ?? date('Y-m-01')));
-    $date_to = (string)($this->input->post('date_to') ?? ($_SESSION['timesheet_date_to'] ?? date('Y-m-t')));
+    $month = (string)($this->input->post('month') ?? ($_SESSION['month'] ?? date('m')));
+    $year = (string)($this->input->post('year') ?? ($_SESSION['year'] ?? date('Y')));
 
-    $startDate = date('Y-m-d', strtotime($date_from));
-    $endDate = date('Y-m-d', strtotime($date_to));
-
-    if (empty($startDate) || empty($endDate) || strtotime($startDate) === false || strtotime($endDate) === false) {
-      $startDate = date('Y-m-01');
-      $endDate = date('Y-m-t');
+    if (strlen($month) === 1) {
+      $month = '0' . $month;
+    }
+    if (empty($year)) {
+      $year = date('Y');
     }
 
-    if (strtotime($startDate) > strtotime($endDate)) {
-      // swap
-      $tmp = $startDate;
-      $startDate = $endDate;
-      $endDate = $tmp;
-    }
+    $startDate = date('Y-m-01', strtotime($year . '-' . $month . '-01'));
+    $endDate = date('Y-m-t', strtotime($year . '-' . $month . '-01'));
 
-    // Limit range to 31 days to keep the grid usable (matches original monthly layout)
-    $daysDiff = (int)floor((strtotime($endDate) - strtotime($startDate)) / 86400) + 1;
-    if ($daysDiff > 31) {
-      $endDate = date('Y-m-d', strtotime($startDate . ' +30 days'));
-      $daysDiff = 31;
-    }
-
+    $daysInMonth = (int)cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
     $dateList = array();
-    for ($i = 0; $i < $daysDiff; $i++) {
-      $dateList[] = date('Y-m-d', strtotime($startDate . " +$i days"));
+    for ($d = 1; $d <= $daysInMonth; $d++) {
+      $dateList[] = date('Y-m-d', strtotime($year . '-' . $month . '-' . str_pad((string)$d, 2, '0', STR_PAD_LEFT)));
     }
 
     try {
