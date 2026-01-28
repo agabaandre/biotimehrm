@@ -116,29 +116,18 @@
                 console.error('Error setting Highcharts options:', e);
             }
 
-            // Initialize with 0, will be updated when data loads
-            // This prevents blocking - chart shows immediately
+            // Initialize gauge with 0 immediately (non-blocking)
             knobgauge(0);
-            
-            // Load graph data asynchronously with optimized timeout
+
+            // 1) Load Attendance per Month graph data (fast)
             $.ajax({
                 type: 'GET',
                 url: '<?php echo base_url('dashboard/graphsData') ?>',
                 dataType: "json",
-                timeout: 20000, // Reduced timeout to prevent hanging
+                timeout: 15000,
                 cache: false,
                 success: function (data) {
-                    if (data.avg_hours !== undefined && data.avg_hours !== null) {
-                        // Update gauge with actual value
-                        var hours = parseFloat(data.avg_hours) || 0;
-                        // Ensure value is within valid range (0-24)
-                        hours = Math.max(0, Math.min(24, hours));
-                        knobgauge(hours);
-                    }
-                    
-                    // Update graph data if available
                     if (data.graph && data.graph.period && data.graph.data) {
-                        // Update the existing charts if they exist
                         if (typeof Highcharts !== 'undefined' && Highcharts.charts) {
                             var attChart = Highcharts.charts.find(function(chart) {
                                 return chart && chart.renderTo && chart.renderTo.id === 'line_graph_att';
@@ -152,9 +141,27 @@
                 },
                 error: function(xhr, status, error) {
                     console.error('Graphs data load error:', error);
-                    // Keep default values
                 }
             });
+
+            // 2) Load Average Monthly Hours separately (clk_diff) so it can never slow down the main graph
+            setTimeout(function() {
+                $.ajax({
+                    type: 'GET',
+                    url: '<?php echo base_url('dashboard/avgHoursOnly') ?>',
+                    dataType: "json",
+                    timeout: 8000,
+                    cache: false,
+                    success: function(resp) {
+                        var hours = (resp && resp.avg_hours !== undefined) ? parseFloat(resp.avg_hours) : 0;
+                        hours = Math.max(0, Math.min(24, (hours || 0)));
+                        knobgauge(hours);
+                    },
+                    error: function() {
+                        // keep 0; don't block
+                    }
+                });
+            }, 300);
 
     <?php
     // Attendance per month uses actuals table (FY Jun->May)
@@ -169,7 +176,7 @@
                 type: 'line'
             },
             title: {
-                text: 'Employees Attending per Month'
+                text: 'Average Daily Attendance (Unique Staff)'
             },
             subtitle: {
                 text: '<?php echo str_replace("'", " ", $_SESSION["facility_name"]); ?>'
@@ -179,7 +186,7 @@
             },
             yAxis: {
                 title: {
-                    text: 'Staff'
+                    text: 'Avg Daily Staff'
                 }
             },
             plotOptions: {

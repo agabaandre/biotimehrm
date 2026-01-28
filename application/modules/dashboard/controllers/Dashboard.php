@@ -172,19 +172,7 @@ class Dashboard extends MX_Controller {
 			// Attendance per Month graph now uses actuals table (attendance_rate may not exist)
 			$graph = Modules::run("reports/attendanceActualsGraphData");
 			
-			// Get average hours (can be slower, so we'll try with timeout protection)
-			$avg_hours = 0;
-			try {
-				$avg_hours_result = $this->dash_mdl->avghours();
-				$avg_hours = isset($avg_hours_result['avg_hours']) ? (float)$avg_hours_result['avg_hours'] : 0;
-			} catch (Exception $e) {
-				// If average hours calculation fails, log but don't break the whole response
-				log_message('error', 'avghours calculation error: ' . $e->getMessage());
-				$avg_hours = 0;
-			}
-			
 			$data = array(
-				'avg_hours' => $avg_hours,
 				'graph' => $graph
 			);
 			
@@ -193,7 +181,6 @@ class Dashboard extends MX_Controller {
 			log_message('error', 'graphsData error: ' . $e->getMessage());
 			echo json_encode(array(
 				'error' => $e->getMessage(),
-				'avg_hours' => 0,
 				'graph' => array('period' => array(), 'data' => array())
 			));
 		}

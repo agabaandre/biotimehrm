@@ -171,9 +171,15 @@ class Reports_mdl extends CI_Model
 		$fy_start = $fy_start_year . '-06-01';
 		$fy_end = ($fy_start_year + 1) . '-05-31';
 
-		// Fetch counts per month within FY. Count distinct employees marked Present.
+		// Fetch counts per month within FY.
+		// We de-duplicate by (employee, date) to avoid inflated results if there are duplicates.
+		// Then we compute an *average daily attendance* per month:
+		//   avg_daily = unique_employee_days / distinct_days_in_month
 		$query = $this->db->query(
-			"SELECT DATE_FORMAT(date,'%Y-%m') as ym, COUNT(DISTINCT ihris_pid) as cnt
+			"SELECT
+			    DATE_FORMAT(date,'%Y-%m') as ym,
+			    COUNT(DISTINCT CONCAT(ihris_pid,'|',date)) as uniq_emp_days,
+			    COUNT(DISTINCT date) as uniq_days
 			 FROM actuals
 			 WHERE facility_id = ?
 			   AND schedule_id = 22
@@ -188,7 +194,10 @@ class Reports_mdl extends CI_Model
 		$map = [];
 		foreach ($rows as $r) {
 			if (!empty($r->ym)) {
-				$map[$r->ym] = (int) $r->cnt;
+				$uniq_emp_days = isset($r->uniq_emp_days) ? (int) $r->uniq_emp_days : 0;
+				$uniq_days = isset($r->uniq_days) ? (int) $r->uniq_days : 0;
+				$avg_daily = ($uniq_days > 0) ? (int) round($uniq_emp_days / $uniq_days) : 0;
+				$map[$r->ym] = $avg_daily;
 			}
 		}
 
