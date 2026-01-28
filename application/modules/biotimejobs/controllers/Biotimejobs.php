@@ -1657,7 +1657,7 @@ class Biotimejobs extends MX_Controller
                     
                     $console("  ✓ Fetched: {$fetch_result['records_fetched']} | Saved: {$fetch_result['records_saved']}", 'success');
                     
-                    // Process clock-out data for this date
+                    // Process clock data for this date
                     $this->biotimeClockin();
                  //$this->this($dates);
                     
