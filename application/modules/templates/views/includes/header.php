@@ -108,12 +108,30 @@
   <!-- Theme style -->
   <link href="<?php echo base_url(); ?>assets/css/fullcalendar.css" rel="stylesheet">
   <script>
-    $(window).on('load', function() {
+    (function() {
+      function hidePreloader() {
+        try {
+          // Only hide if present
+          var $status = $('#status');
+          var $preloader = $('#preloader');
+          if ($status.length) $status.stop(true, true).fadeOut(300);
+          if ($preloader.length) $preloader.stop(true, true).fadeOut(400);
 
-      $('#status').delay(900).fadeOut(1000); // will first fade out the loading animation
-      $('#preloader').delay(900).fadeOut(1000); // will fade out the white div
+          // Clean up rare leftover backdrops when no modal is open
+          if (!$('.modal.show').length) {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
 
-    });
+      // Run on DOM ready, window load, and as a hard timeout fallback.
+      $(function() { setTimeout(hidePreloader, 500); });
+      $(window).on('load', function() { setTimeout(hidePreloader, 500); });
+      setTimeout(hidePreloader, 8000);
+    })();
   </script>
   <style>
     @media (max-width: 767px) {
