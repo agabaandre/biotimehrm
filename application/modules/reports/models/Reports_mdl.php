@@ -156,48 +156,79 @@ class Reports_mdl extends CI_Model
 	 * Attendance per month graph using `actuals` table, ordered by Financial Year (Jun -> May).
 	 * Uses schedule_id=22 (Present) as "Attending".
 	 *
-	 * Returns: ['period' => [labels...], 'data' => [counts...]]
+	 * When NO person is selected: returns facility-wide Avg Daily Attendance (unique staff).
+	 * When a person is selected: returns that person's Days Present per month (unique days).
+	 *
+	 * Returns: ['period' => [...], 'data' => [...], 'meta' => [...]]
 	 */
-	public function attendanceActualsGraphData($facility = null)
+	public function attendanceActualsGraphData($facility = null, $year = null, $month = null, $empid = null)
 	{
 		$facility = $facility ?: $_SESSION['facility'];
-
-		$current_year = (int) date('Y');
-		$current_month = (int) date('m');
+		$year = $year ?: (int) ($this->session->userdata('year') ?: date('Y'));
+		$month = $month ?: (int) ($this->session->userdata('month') ?: date('m'));
+		$empid = $empid !== null ? trim((string)$empid) : trim((string) $this->session->userdata('dashboard_empid'));
 
 		// Financial year starts in June (06). FY runs Jun -> May.
-		$fy_start_year = ($current_month >= 6) ? $current_year : ($current_year - 1);
+		$fy_start_year = ((int)$month >= 6) ? (int)$year : ((int)$year - 1);
 
 		$fy_start = $fy_start_year . '-06-01';
 		$fy_end = ($fy_start_year + 1) . '-05-31';
 
-		// Fetch counts per month within FY.
-		// We de-duplicate by (employee, date) to avoid inflated results if there are duplicates.
-		// Then we compute an *average daily attendance* per month:
-		//   avg_daily = unique_employee_days / distinct_days_in_month
-		$query = $this->db->query(
-			"SELECT
-			    DATE_FORMAT(date,'%Y-%m') as ym,
-			    COUNT(DISTINCT CONCAT(ihris_pid,'|',date)) as uniq_emp_days,
-			    COUNT(DISTINCT date) as uniq_days
-			 FROM actuals
-			 WHERE facility_id = ?
-			   AND schedule_id = 22
-			   AND date >= ?
-			   AND date <= ?
-			 GROUP BY DATE_FORMAT(date,'%Y-%m')
-			 ORDER BY ym ASC",
-			[$facility, $fy_start, $fy_end]
-		);
+		$params = [$facility, $fy_start, $fy_end];
+		$meta = [
+			'fy_start' => $fy_start,
+			'fy_end' => $fy_end,
+			'mode' => empty($empid) ? 'facility' : 'person',
+			'empid' => $empid
+		];
+
+		if (!empty($empid)) {
+			// Person selected: plot that person's unique Days Present per month
+			$params[] = $empid;
+			$query = $this->db->query(
+				"SELECT
+				    DATE_FORMAT(date,'%Y-%m') as ym,
+				    COUNT(DISTINCT date) as days_present
+				 FROM actuals
+				 WHERE facility_id = ?
+				   AND schedule_id = 22
+				   AND date >= ?
+				   AND date <= ?
+				   AND ihris_pid = ?
+				 GROUP BY DATE_FORMAT(date,'%Y-%m')
+				 ORDER BY ym ASC",
+				$params
+			);
+		} else {
+			// Facility-wide: plot Avg Daily Attendance (unique staff)
+			$query = $this->db->query(
+				"SELECT
+				    DATE_FORMAT(date,'%Y-%m') as ym,
+				    COUNT(DISTINCT CONCAT(ihris_pid,'|',date)) as uniq_emp_days,
+				    COUNT(DISTINCT date) as uniq_days
+				 FROM actuals
+				 WHERE facility_id = ?
+				   AND schedule_id = 22
+				   AND date >= ?
+				   AND date <= ?
+				 GROUP BY DATE_FORMAT(date,'%Y-%m')
+				 ORDER BY ym ASC",
+				$params
+			);
+		}
 
 		$rows = $query ? $query->result() : [];
 		$map = [];
 		foreach ($rows as $r) {
 			if (!empty($r->ym)) {
-				$uniq_emp_days = isset($r->uniq_emp_days) ? (int) $r->uniq_emp_days : 0;
-				$uniq_days = isset($r->uniq_days) ? (int) $r->uniq_days : 0;
-				$avg_daily = ($uniq_days > 0) ? (int) round($uniq_emp_days / $uniq_days) : 0;
-				$map[$r->ym] = $avg_daily;
+				if (!empty($empid)) {
+					$map[$r->ym] = isset($r->days_present) ? (int) $r->days_present : 0;
+				} else {
+					$uniq_emp_days = isset($r->uniq_emp_days) ? (int) $r->uniq_emp_days : 0;
+					$uniq_days = isset($r->uniq_days) ? (int) $r->uniq_days : 0;
+					$avg_daily = ($uniq_days > 0) ? (int) round($uniq_emp_days / $uniq_days) : 0;
+					$map[$r->ym] = $avg_daily;
+				}
 			}
 		}
 
@@ -212,7 +243,7 @@ class Reports_mdl extends CI_Model
 			$start->modify('+1 month');
 		}
 
-		return ['period' => $period, 'data' => $data];
+		return ['period' => $period, 'data' => $data, 'meta' => $meta];
 	}
 
 	public function attroData()

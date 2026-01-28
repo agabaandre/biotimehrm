@@ -48,6 +48,11 @@ class Dashboard extends MX_Controller {
 		$month = (int) $this->input->post('month');
 		$year = (int) $this->input->post('year');
 		$empid = trim((string) $this->input->post('empid'));
+		$facility_id = trim((string) $this->input->post('facility_id'));
+
+		$permissions = $this->session->userdata('permissions') ?: [];
+		$user_role = (string) $this->session->userdata('role');
+		$is_role10 = in_array('10', $permissions) || ($user_role === 'District Admin') || ($user_role === 'Regional Admin');
 
 		// Basic validation
 		if ($month < 1 || $month > 12) $month = (int) date('m');
@@ -58,11 +63,35 @@ class Dashboard extends MX_Controller {
 		$this->session->set_userdata('year', (string) $year);
 		$this->session->set_userdata('dashboard_empid', $empid);
 
+		// Role 10: allow facility selection (chains staff + affects dashboard context)
+		if ($is_role10) {
+			if ($facility_id === '' || $facility_id === 'all') {
+				$facility_id = '';
+			}
+			$this->session->set_userdata('dashboard_facility', $facility_id);
+
+			// If facility is chosen, set it as current facility for consistent filtering (calendar/sessionfilters etc.)
+			if (!empty($facility_id)) {
+				$this->session->set_userdata('facility', $facility_id);
+				// Attempt to set facility_name for UI
+				$name = null;
+				$q = $this->db->query("SELECT DISTINCT facility FROM ihrisdata WHERE facility_id = ? LIMIT 1", [$facility_id]);
+				if ($q && $q->num_rows() > 0) {
+					$row = $q->row();
+					$name = isset($row->facility) ? $row->facility : null;
+				}
+				if ($name) {
+					$this->session->set_userdata('facility_name', $name);
+				}
+			}
+		}
+
 		return $this->output->set_output(json_encode([
 			'status' => 'success',
 			'month' => str_pad((string) $month, 2, '0', STR_PAD_LEFT),
 			'year' => (string) $year,
-			'empid' => $empid
+			'empid' => $empid,
+			'facility_id' => $is_role10 ? $facility_id : ''
 		]));
 	}
 
@@ -72,15 +101,22 @@ class Dashboard extends MX_Controller {
 	public function searchEmployees() {
 		$this->output->set_content_type('application/json');
 		$term = trim((string) $this->input->get('term'));
-		$facility = $this->session->userdata('facility');
+		$facility_param = trim((string) $this->input->get('facility_id'));
+		$facility = $facility_param ?: (string) $this->session->userdata('facility');
+		$district_id = (string) $this->session->userdata('district_id');
 
-		if (!$facility) {
+		// If facility is not set (e.g., district-level users), fall back to district scope so Name filter still works.
+		if (!$facility && !$district_id) {
 			return $this->output->set_output(json_encode(['results' => []]));
 		}
 
 		$this->db->select("ihris_pid, CONCAT(COALESCE(surname,''),' ',COALESCE(firstname,''),' ',COALESCE(othername,'')) as fullname", false);
 		$this->db->from('ihrisdata');
-		$this->db->where('facility_id', $facility);
+		if ($facility) {
+			$this->db->where('facility_id', $facility);
+		} else {
+			$this->db->where('district_id', $district_id);
+		}
 		if ($term !== '') {
 			$this->db->group_start();
 			$this->db->like('surname', $term);
@@ -98,6 +134,37 @@ class Dashboard extends MX_Controller {
 			$results[] = ['id' => $r->ihris_pid, 'text' => trim($r->fullname)];
 		}
 
+		return $this->output->set_output(json_encode(['results' => $results]));
+	}
+
+	/**
+	 * Select2 endpoint: search facilities for role-10 dashboard filter (district-scoped).
+	 */
+	public function searchFacilities() {
+		$this->output->set_content_type('application/json');
+		$term = trim((string) $this->input->get('term'));
+		$district_id = (string) $this->session->userdata('district_id');
+		if (!$district_id) {
+			return $this->output->set_output(json_encode(['results' => []]));
+		}
+
+		$this->db->select('DISTINCT facility_id as id, facility as text', false);
+		$this->db->from('ihrisdata');
+		$this->db->where('district_id', $district_id);
+		if ($term !== '') {
+			$this->db->group_start();
+			$this->db->like('facility', $term);
+			$this->db->or_like('facility_id', $term);
+			$this->db->group_end();
+		}
+		$this->db->order_by('facility', 'ASC');
+		$this->db->limit(20);
+
+		$q = $this->db->get();
+		$results = [];
+		foreach ($q->result() as $r) {
+			$results[] = ['id' => $r->id, 'text' => $r->text];
+		}
 		return $this->output->set_output(json_encode(['results' => $results]));
 	}
 
@@ -231,8 +298,13 @@ class Dashboard extends MX_Controller {
 		ini_set('memory_limit', '128M');
 		
 		try {
-			// Attendance per Month graph now uses actuals table (attendance_rate may not exist)
-			$graph = Modules::run("reports/attendanceActualsGraphData");
+			// Attendance per Month graph:
+			// - facility mode: Avg Daily Attendance (unique staff)
+			// - person mode: Days Present per month for selected person
+			$year = $this->session->userdata('year') ?: date('Y');
+			$month = $this->session->userdata('month') ?: date('m');
+			$empid = $this->session->userdata('dashboard_empid') ?: '';
+			$graph = Modules::run("reports/attendanceActualsGraphData", $year, $month, $empid);
 			
 			$data = array(
 				'graph' => $graph

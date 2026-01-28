@@ -358,6 +358,10 @@
       $sel_month = $this->session->userdata('month') ?: date('m');
       $sel_year = $this->session->userdata('year') ?: date('Y');
       $sel_empid = $this->session->userdata('dashboard_empid') ?: '';
+      $permissions_for_filters = $this->session->userdata('permissions') ?: [];
+      $role_for_filters = (string) $this->session->userdata('role');
+      $is_role10 = in_array('10', $permissions_for_filters) || ($role_for_filters === 'District Admin') || ($role_for_filters === 'Regional Admin');
+      $sel_facility = $this->session->userdata('dashboard_facility') ?: ($this->session->userdata('facility') ?: '');
       $years = [];
       $cy = (int) date('Y');
       for ($y = $cy + 1; $y >= $cy - 5; $y--) { $years[] = $y; }
@@ -399,12 +403,30 @@
                   <?php endforeach; ?>
                 </select>
               </div>
+              <?php if ($is_role10): ?>
+              <div class="form-group col-md-3">
+                <label for="dash_facility">Facility</label>
+                <select id="dash_facility" class="form-control" style="width:100%;">
+                  <option value="">All Facilities</option>
+                  <?php if (!empty($sel_facility)): ?>
+                    <option value="<?php echo $sel_facility; ?>" selected><?php echo $sel_facility; ?></option>
+                  <?php endif; ?>
+                </select>
+              </div>
+              <div class="form-group col-md-3">
+                <label for="dash_empid">Name</label>
+                <select id="dash_empid" class="form-control" style="width:100%;">
+                  <option value="">All Staff</option>
+                </select>
+              </div>
+              <?php else: ?>
               <div class="form-group col-md-6">
                 <label for="dash_empid">Name</label>
                 <select id="dash_empid" class="form-control" style="width:100%;">
                   <option value="">All Staff</option>
                 </select>
               </div>
+              <?php endif; ?>
             </div>
             <div class="d-flex justify-content-end">
               <button id="dash_apply" type="button" class="btn btn-primary mr-2">
@@ -724,18 +746,59 @@ waitForHighcharts(function() {
 			
 			// Name filter (Select2)
 			if ($.fn.select2) {
+				// Facility filter for role-10 users (chains staff)
+				if ($('#dash_facility').length) {
+					$('#dash_facility').select2({
+						placeholder: 'All Facilities',
+						allowClear: true,
+						width: '100%',
+						minimumInputLength: 0,
+						ajax: {
+							url: '<?php echo base_url('dashboard/searchFacilities'); ?>',
+							dataType: 'json',
+							delay: 250,
+							data: function(params) { return { term: params.term || '' }; },
+							processResults: function(data) { return data; },
+							cache: true
+						}
+					});
+					
+					// Ensure options show even before typing
+					$('#dash_facility').on('select2:open', function() {
+						var search = document.querySelector('.select2-container--open .select2-search__field');
+						if (search) { search.value = ''; search.dispatchEvent(new Event('input')); }
+					});
+					
+					// When facility changes, clear name selection so it refreshes to the chosen facility
+					$('#dash_facility').on('change', function() {
+						$('#dash_empid').val(null).trigger('change');
+					});
+				}
+
 				$('#dash_empid').select2({
 					placeholder: 'All Staff',
 					allowClear: true,
 					width: '100%',
+					minimumInputLength: 0,
 					ajax: {
 						url: '<?php echo base_url('dashboard/searchEmployees'); ?>',
 						dataType: 'json',
 						delay: 250,
-						data: function(params) { return { term: params.term || '' }; },
+						data: function(params) {
+							return {
+								term: params.term || '',
+								facility_id: $('#dash_facility').length ? ($('#dash_facility').val() || '') : ''
+							};
+						},
 						processResults: function(data) { return data; },
 						cache: true
 					}
+				});
+
+				// Ensure Name dropdown shows results even before typing
+				$('#dash_empid').on('select2:open', function() {
+					var search = document.querySelector('.select2-container--open .select2-search__field');
+					if (search) { search.value = ''; search.dispatchEvent(new Event('input')); }
 				});
 			}
 			
@@ -744,6 +807,7 @@ waitForHighcharts(function() {
 					month: month,
 					year: year,
 					empid: empid || '',
+					facility_id: $('#dash_facility').length ? ($('#dash_facility').val() || '') : '',
 					'<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
 				};
 				
@@ -786,6 +850,9 @@ waitForHighcharts(function() {
 				var y = '<?php echo date('Y'); ?>';
 				$('#dash_month').val(m);
 				$('#dash_year').val(y);
+				if ($('#dash_facility').length) {
+					$('#dash_facility').val(null).trigger('change');
+				}
 				$('#dash_empid').val(null).trigger('change');
 				$('#dash_apply').trigger('click');
 			});

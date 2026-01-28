@@ -86,9 +86,9 @@ class Reports extends MX_Controller
 	/**
 	 * Attendance per month graph (Financial Year Jun->May) using `actuals` table.
 	 */
-	public function attendanceActualsGraphData()
+	public function attendanceActualsGraphData($year = null, $month = null, $empid = null)
 	{
-		$data = $this->reports_mdl->attendanceActualsGraphData();
+		$data = $this->reports_mdl->attendanceActualsGraphData(null, $year, $month, $empid);
 		return $data;
 	}
 

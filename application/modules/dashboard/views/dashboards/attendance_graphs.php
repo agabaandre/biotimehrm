@@ -111,6 +111,19 @@
                             if (attChart) {
                                 attChart.series[0].setData(data.graph.data);
                                 attChart.xAxis[0].setCategories(data.graph.period);
+                                if (data.graph.meta && data.graph.meta.mode === 'person') {
+                                    attChart.update({
+                                        title: { text: 'Days Present per Month (Selected Staff)' },
+                                        yAxis: { title: { text: 'Days Present' } },
+                                        series: [{ name: 'Days Present', data: data.graph.data }]
+                                    }, true, false);
+                                } else {
+                                    attChart.update({
+                                        title: { text: 'Average Daily Attendance (Unique Staff)' },
+                                        yAxis: { title: { text: 'Avg Daily Staff' } },
+                                        series: [{ name: 'Staff', data: data.graph.data }]
+                                    }, true, false);
+                                }
                             }
                         }
                     }
@@ -131,7 +144,7 @@
 
     <?php
     // Attendance per month uses actuals table (FY Jun->May)
-    $graph = Modules::run("reports/attendanceActualsGraphData");
+    $graph = Modules::run("reports/attendanceActualsGraphData", ($this->session->userdata('year') ?: date('Y')), ($this->session->userdata('month') ?: date('m')), ($this->session->userdata('dashboard_empid') ?: ''));
     ?>
     
     // All Highcharts chart creation must be inside waitForHighcharts callback
@@ -142,7 +155,7 @@
                 type: 'line'
             },
             title: {
-                text: 'Average Daily Attendance (Unique Staff)'
+                text: '<?php echo (!empty($graph["meta"]["empid"])) ? "Days Present per Month (Selected Staff)" : "Average Daily Attendance (Unique Staff)"; ?>'
             },
             subtitle: {
                 text: '<?php echo str_replace("'", " ", $_SESSION["facility_name"]); ?>'
@@ -152,7 +165,7 @@
             },
             yAxis: {
                 title: {
-                    text: 'Avg Daily Staff'
+                    text: '<?php echo (!empty($graph["meta"]["empid"])) ? "Days Present" : "Avg Daily Staff"; ?>'
                 }
             },
             plotOptions: {
@@ -167,7 +180,7 @@
                 enabled: false
             },
             series: [{
-                name: 'Staff',
+                name: '<?php echo (!empty($graph["meta"]["empid"])) ? "Days Present" : "Staff"; ?>',
                 data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
             }]
         });
