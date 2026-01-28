@@ -95,8 +95,8 @@
                 console.error('Error setting Highcharts options:', e);
             }
 
-            // Load Attendance per Month graph data (fast)
-            $.ajax({
+            function refreshAttendanceGraph() {
+                return $.ajax({
                 type: 'GET',
                 url: '<?php echo base_url('dashboard/graphsData') ?>',
                 dataType: "json",
@@ -118,7 +118,16 @@
                 error: function(xhr, status, error) {
                     console.error('Graphs data load error:', error);
                 }
-            });
+                });
+            }
+
+            // Expose a global hook so the dashboard filters can refresh the chart without reloading the page
+            window.reloadAttendancePerMonth = function() {
+                return refreshAttendanceGraph();
+            };
+
+            // Initial load
+            refreshAttendanceGraph();
 
     <?php
     // Attendance per month uses actuals table (FY Jun->May)

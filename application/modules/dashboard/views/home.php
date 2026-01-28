@@ -353,6 +353,72 @@
       </div>
     </div>
 
+    <!-- Dashboard Filters (collapsible) -->
+    <?php
+      $sel_month = $this->session->userdata('month') ?: date('m');
+      $sel_year = $this->session->userdata('year') ?: date('Y');
+      $sel_empid = $this->session->userdata('dashboard_empid') ?: '';
+      $years = [];
+      $cy = (int) date('Y');
+      for ($y = $cy + 1; $y >= $cy - 5; $y--) { $years[] = $y; }
+      $months = [
+        '01'=>'January','02'=>'February','03'=>'March','04'=>'April','05'=>'May','06'=>'June',
+        '07'=>'July','08'=>'August','09'=>'September','10'=>'October','11'=>'November','12'=>'December'
+      ];
+    ?>
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card card-outline card-success collapsed-card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-filter mr-2"></i>Dashboard Filters</h3>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group col-md-3">
+                <label for="dash_month">Month</label>
+                <select id="dash_month" class="form-control">
+                  <?php foreach ($months as $m => $label): ?>
+                    <option value="<?php echo $m; ?>" <?php echo ($sel_month == $m) ? 'selected' : ''; ?>>
+                      <?php echo $label; ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div class="form-group col-md-3">
+                <label for="dash_year">Year</label>
+                <select id="dash_year" class="form-control">
+                  <?php foreach ($years as $y): ?>
+                    <option value="<?php echo $y; ?>" <?php echo ((string)$sel_year === (string)$y) ? 'selected' : ''; ?>>
+                      <?php echo $y; ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div class="form-group col-md-6">
+                <label for="dash_empid">Name</label>
+                <select id="dash_empid" class="form-control" style="width:100%;">
+                  <option value="">All Staff</option>
+                </select>
+              </div>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button id="dash_apply" type="button" class="btn btn-primary mr-2">
+                <i class="fas fa-check"></i> Apply
+              </button>
+              <button id="dash_reset" type="button" class="btn btn-outline-secondary">
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Statistics Row -->
     <div class="row mb-4">
  		<?php
@@ -431,7 +497,7 @@
             <div class="status-icon primary">
  								<i class="fas fa-calendar-check"></i>
             </div>
-            <h3 class="status-title">Daily Attendance Status</h3>
+            <h3 class="status-title">Daily Attendance Status <small class="text-muted" id="daily_status_date"></small></h3>
           </div>
           
           <div class="status-item">
@@ -476,22 +542,23 @@
  				</div>
  			</div>
 
-      <!-- Out of Station Requests -->
+      <!-- Monthly Attendance Stats (replaces Out of Station Requests) -->
       <div class="col-xl-4 col-md-6 mb-3">
         <div class="status-card">
           <div class="status-header">
             <div class="status-icon info">
-              <i class="fas fa-paper-plane"></i>
+              <i class="fas fa-chart-pie"></i>
             </div>
-            <h3 class="status-title">Out of Station Requests</h3>
+            <h3 class="status-title">Monthly Attendance Stats</h3>
+            <small class="text-muted ml-2" id="monthly_label"></small>
           </div>
           
           <div class="status-item">
             <div class="status-info">
               <div class="status-indicator warning"></div>
-              <p class="status-text">Requests Submitted</p>
+              <p class="status-text">Present (Staff-days)</p>
             </div>
-            <div class="status-value" id="rsent">
+            <div class="status-value" id="monthly_present">
               <i class="fas fa-spinner fa-spin loading-pulse"></i>
             </div>
           </div>
@@ -499,9 +566,9 @@
           <div class="status-item">
             <div class="status-info">
               <div class="status-indicator present"></div>
-              <p class="status-text">Requests Approved</p>
+              <p class="status-text">Off Duty (Staff-days)</p>
             </div>
-            <div class="status-value" id="rapproved">
+            <div class="status-value" id="monthly_offduty">
               <i class="fas fa-spinner fa-spin loading-pulse"></i>
             </div>
           </div>
@@ -509,9 +576,9 @@
           <div class="status-item">
             <div class="status-info">
               <div class="status-indicator leave"></div>
-              <p class="status-text">Requests Rejected</p>
+              <p class="status-text">On Leave (Staff-days)</p>
  					</div>
-            <div class="status-value" id="rrejected">
+            <div class="status-value" id="monthly_leave">
               <i class="fas fa-spinner fa-spin loading-pulse"></i>
  						</div>
  						</div>
@@ -519,9 +586,9 @@
           <div class="status-item">
             <div class="status-info">
               <div class="status-indicator info"></div>
-              <p class="status-text">Total Requests</p>
+              <p class="status-text">Official/Workshop (Staff-days)</p>
  						</div>
-            <div class="status-value" id="trequests">
+            <div class="status-value" id="monthly_request">
               <i class="fas fa-spinner fa-spin loading-pulse"></i>
  						</div>
  					</div>
@@ -646,8 +713,82 @@
 		}
 	}
 	
-	waitForHighcharts(function() {
+waitForHighcharts(function() {
 		$(document).ready(function() {
+			// Dashboard filter state (persisted via session; used by calendar + chart refresh)
+			window.__dashFilters = window.__dashFilters || {
+				month: '<?php echo $sel_month ?? date('m'); ?>',
+				year: '<?php echo $sel_year ?? date('Y'); ?>',
+				empid: '<?php echo $sel_empid ?? ''; ?>'
+			};
+			
+			// Name filter (Select2)
+			if ($.fn.select2) {
+				$('#dash_empid').select2({
+					placeholder: 'All Staff',
+					allowClear: true,
+					width: '100%',
+					ajax: {
+						url: '<?php echo base_url('dashboard/searchEmployees'); ?>',
+						dataType: 'json',
+						delay: 250,
+						data: function(params) { return { term: params.term || '' }; },
+						processResults: function(data) { return data; },
+						cache: true
+					}
+				});
+			}
+			
+			function applyDashboardFilters(month, year, empid) {
+				var postData = {
+					month: month,
+					year: year,
+					empid: empid || '',
+					'<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
+				};
+				
+				return $.ajax({
+					type: 'POST',
+					url: '<?php echo base_url('dashboard/setDashboardFilters'); ?>',
+					dataType: 'json',
+					data: postData,
+					timeout: 15000
+				}).then(function(resp) {
+					window.__dashFilters.month = resp.month || month;
+					window.__dashFilters.year = resp.year || year;
+					window.__dashFilters.empid = resp.empid || empid || '';
+					return resp;
+				});
+			}
+			
+			$(document).on('click', '#dash_apply', function() {
+				var month = $('#dash_month').val();
+				var year = $('#dash_year').val();
+				var empid = $('#dash_empid').val() || '';
+				
+				applyDashboardFilters(month, year, empid).then(function() {
+					// Refresh stats
+					loadDashboardData(true).catch(function() {});
+					// Refresh chart (session-based)
+					if (window.reloadAttendancePerMonth) {
+						window.reloadAttendancePerMonth();
+					}
+					// Refresh calendar and jump to selected month
+					if ($('#attcalendar').data('fullCalendar')) {
+						$('#attcalendar').fullCalendar('gotoDate', year + '-' + month + '-01');
+						$('#attcalendar').fullCalendar('refetchEvents');
+					}
+				});
+			});
+			
+			$(document).on('click', '#dash_reset', function() {
+				var m = '<?php echo date('m'); ?>';
+				var y = '<?php echo date('Y'); ?>';
+				$('#dash_month').val(m);
+				$('#dash_year').val(y);
+				$('#dash_empid').val(null).trigger('change');
+				$('#dash_apply').trigger('click');
+			});
 			// Set Highcharts options only if Highcharts is available
 			if (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function') {
 				Highcharts.setOptions({
@@ -692,11 +833,21 @@
                     updateDashboardValue('#offduty', data.offduty);
                     updateDashboardValue('#leave', data.leave);
                     updateDashboardValue('#request', data.request);
-                    updateDashboardValue('#requesting', data.requesting);
-                    
-                    if (data.avg_hours) {
- 						knobgauge(data.avg_hours);
+                    updateDashboardValue('#monthly_present', data.monthly_present);
+                    updateDashboardValue('#monthly_offduty', data.monthly_offduty);
+                    updateDashboardValue('#monthly_leave', data.monthly_leave);
+                    updateDashboardValue('#monthly_request', data.monthly_request);
+
+                    if (data.dashboard_month && data.dashboard_year) {
+                      var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                      var mi = parseInt(data.dashboard_month, 10) - 1;
+                      $('#monthly_label').text((monthNames[mi] || data.dashboard_month) + ' ' + data.dashboard_year);
                     }
+                    if (data.status_date) {
+                      $('#daily_status_date').text('(' + data.status_date + ')');
+                    }
+                    
+                    // avg_hours removed from dashboard
                     
                     // Add fade-in animation
                     $('.stat-card, .status-card').addClass('fade-in');
@@ -824,7 +975,8 @@
 							dataType: 'json',
 							data: {
 								start: start.format('YYYY-MM-DD'),
-								end: end.format('YYYY-MM-DD')
+								end: end.format('YYYY-MM-DD'),
+								empid: (window.__dashFilters && window.__dashFilters.empid) ? window.__dashFilters.empid : ''
 							},
 							timeout: 60000,
 							success: function(events) {
@@ -843,7 +995,8 @@
 									dataType: 'json',
 									data: {
 										start: start.format('YYYY-MM-DD'),
-										end: end.format('YYYY-MM-DD')
+										end: end.format('YYYY-MM-DD'),
+										empid: (window.__dashFilters && window.__dashFilters.empid) ? window.__dashFilters.empid : ''
 									},
 									timeout: 60000,
 									success: function(events) {

@@ -217,6 +217,27 @@ if ($posted_timestamp > $current_timestamp) {
 							.dataTables_wrapper {
 								overflow-x: auto !important;
 							}
+
+							/* Mobile: make inputs tap-friendly + allow horizontal scroll for many day columns */
+							@media (max-width: 768px) {
+								.dataTables_wrapper {
+									-webkit-overflow-scrolling: touch;
+								}
+								#tabular_table {
+									/* Let the table grow wider than the viewport so columns stay readable */
+									width: max-content !important;
+								}
+								#tabular_table thead th {
+									padding: 8px 4px !important;
+								}
+								#tabular_table tbody td {
+									padding: 4px !important;
+								}
+								#tabular_table input[type="text"] {
+									min-height: 34px !important;
+									font-size: 16px !important; /* avoids iOS zoom + improves readability */
+								}
+							}
 						</style>
 						<?php
 						?>
@@ -565,6 +586,7 @@ if ($posted_timestamp > $current_timestamp) {
 		var month = '<?php echo $month; ?>';
 		var year = '<?php echo $year; ?>';
 		var monthDays = <?php echo (int)cal_days_in_month(CAL_GREGORIAN, $month, $year); ?>;
+		var isMobile = (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) || (window.innerWidth && window.innerWidth <= 768);
 
 		function isWeekend(dateStr) {
 			var date = new Date(dateStr);
@@ -574,9 +596,9 @@ if ($posted_timestamp > $current_timestamp) {
 
 		function buildColumns() {
 			var cols = [];
-			cols.push({ data: 'rownum', title: '#', className: 'text-center', width: '40px', orderable: false });
-			cols.push({ data: 'fullname', title: 'Name', className: 'text-left', width: '120px', orderable: false });
-			cols.push({ data: 'job', title: 'Position', className: 'text-left', width: '120px', orderable: false });
+			cols.push({ data: 'rownum', title: '#', className: 'text-center', width: isMobile ? '50px' : '40px', orderable: false });
+			cols.push({ data: 'fullname', title: 'Name', className: 'text-left', width: isMobile ? '200px' : '120px', orderable: false });
+			cols.push({ data: 'job', title: 'Position', className: 'text-left', width: isMobile ? '180px' : '120px', orderable: false });
 
 			for (var d = 1; d <= monthDays; d++) {
 				var dayStr = (d < 10) ? '0' + d : d.toString();
@@ -590,7 +612,7 @@ if ($posted_timestamp > $current_timestamp) {
 						data: 'd' + dayNum,
 						title: '<span style="' + headerStyle + '">' + dayNum + '</span>',
 						className: headerClass,
-						width: '35px',
+						width: isMobile ? '52px' : '35px',
 						orderable: false,
 						render: function(data, type, row) {
 							if (type === 'display') {
@@ -600,8 +622,11 @@ if ($posted_timestamp > $current_timestamp) {
 								var disabledAttr = disabled ? 'disabled' : '';
 								var recordType = data ? 'update duty' : 'new duty';
 								var inputClass = data ? 'update duty' : 'new duty';
+								var fontSize = isMobile ? '16px' : '13px';
+								var padding = isMobile ? '6px 2px' : '1px 2px';
+								var height = isMobile ? '34px' : 'auto';
 								
-								return '<input type="text" style="padding:1px 2px; margin:0; text-align: center; width:100%; max-width:100%; box-sizing:border-box; font-size:13px; font-weight:bold; border:1px solid #ddd;" ' +
+								return '<input type="text" style="padding:' + padding + '; height:' + height + '; margin:0; text-align: center; width:100%; max-width:100%; box-sizing:border-box; font-size:' + fontSize + '; font-weight:bold; border:1px solid #ddd; border-radius:4px;" ' +
 									'class="' + inputClass + '" ' +
 									'id="' + entryId + '" ' +
 									'day="' + dayNum + '" ' +

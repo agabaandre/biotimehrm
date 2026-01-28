@@ -45,7 +45,13 @@ class Calendar extends MX_Controller {
 		}
 		
 		try {
-			$result = $this->calendar_model->getattEvents($this->filters);
+			$filters = $this->filters;
+			$empid = trim((string) $this->input->get('empid'));
+			if (!empty($empid)) {
+				$filters .= " and ihrisdata.ihris_pid='" . $this->db->escape_str($empid) . "'";
+			}
+
+			$result = $this->calendar_model->getattEvents($filters);
 			echo json_encode($result);
 		} catch (Exception $e) {
 			log_message('error', 'getattEvents error: ' . $e->getMessage());
@@ -72,6 +78,11 @@ class Calendar extends MX_Controller {
 		try {
 			$start = $this->input->get('start');
 			$end = $this->input->get('end');
+			$filters = $this->filters;
+			$empid = trim((string) $this->input->get('empid'));
+			if (!empty($empid)) {
+				$filters .= " and ihrisdata.ihris_pid='" . $this->db->escape_str($empid) . "'";
+			}
 			
 			// Limit date range to prevent huge queries
 			$startDate = new DateTime($start);
@@ -83,7 +94,7 @@ class Calendar extends MX_Controller {
 				$end = date('Y-m-d', strtotime($start . ' +90 days'));
 			}
 			
-			$result = $this->calendar_model->getattEventsOptimized($this->filters, $start, $end);
+			$result = $this->calendar_model->getattEventsOptimized($filters, $start, $end);
 			echo json_encode($result);
 		} catch (Exception $e) {
 			log_message('error', 'getattEventsStream error: ' . $e->getMessage());

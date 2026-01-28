@@ -39,6 +39,68 @@ class Dashboard extends MX_Controller {
 	echo json_encode($data);
 	}
 
+	/**
+	 * Persist dashboard filters (month/year/employee) in session for use by stats + charts.
+	 */
+	public function setDashboardFilters() {
+		$this->output->set_content_type('application/json');
+
+		$month = (int) $this->input->post('month');
+		$year = (int) $this->input->post('year');
+		$empid = trim((string) $this->input->post('empid'));
+
+		// Basic validation
+		if ($month < 1 || $month > 12) $month = (int) date('m');
+		if ($year < 2000 || $year > ((int) date('Y') + 2)) $year = (int) date('Y');
+		if ($empid === '' || $empid === 'all') $empid = '';
+
+		$this->session->set_userdata('month', str_pad((string) $month, 2, '0', STR_PAD_LEFT));
+		$this->session->set_userdata('year', (string) $year);
+		$this->session->set_userdata('dashboard_empid', $empid);
+
+		return $this->output->set_output(json_encode([
+			'status' => 'success',
+			'month' => str_pad((string) $month, 2, '0', STR_PAD_LEFT),
+			'year' => (string) $year,
+			'empid' => $empid
+		]));
+	}
+
+	/**
+	 * Select2 endpoint: search employees for dashboard Name filter (facility-scoped).
+	 */
+	public function searchEmployees() {
+		$this->output->set_content_type('application/json');
+		$term = trim((string) $this->input->get('term'));
+		$facility = $this->session->userdata('facility');
+
+		if (!$facility) {
+			return $this->output->set_output(json_encode(['results' => []]));
+		}
+
+		$this->db->select("ihris_pid, CONCAT(COALESCE(surname,''),' ',COALESCE(firstname,''),' ',COALESCE(othername,'')) as fullname", false);
+		$this->db->from('ihrisdata');
+		$this->db->where('facility_id', $facility);
+		if ($term !== '') {
+			$this->db->group_start();
+			$this->db->like('surname', $term);
+			$this->db->or_like('firstname', $term);
+			$this->db->or_like('othername', $term);
+			$this->db->or_like('ihris_pid', $term);
+			$this->db->group_end();
+		}
+		$this->db->order_by('surname', 'ASC');
+		$this->db->limit(20);
+
+		$q = $this->db->get();
+		$results = [];
+		foreach ($q->result() as $r) {
+			$results[] = ['id' => $r->ihris_pid, 'text' => trim($r->fullname)];
+		}
+
+		return $this->output->set_output(json_encode(['results' => $results]));
+	}
+
 	public function cache_stats(){
 		//$data = $this->dash_mdl->getData();
 		$data =array();

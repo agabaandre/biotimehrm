@@ -164,8 +164,18 @@ class Dashboard_mdl extends CI_Model
     {
         $facility = $_SESSION['facility'];
         $userdata = $this->session->userdata();
-        $date = $userdata['year'] . '-' . $userdata['month'];
+        $year = isset($userdata['year']) && $userdata['year'] ? (int) $userdata['year'] : (int) date('Y');
+        $month = isset($userdata['month']) && $userdata['month'] ? (int) $userdata['month'] : (int) date('m');
+        $date = $year . '-' . str_pad((string)$month, 2, '0', STR_PAD_LEFT);
         $today = date('Y-m-d');
+        $dashboard_empid = (string) $this->session->userdata('dashboard_empid');
+
+        $month_start = $date . '-01';
+        $month_end = date('Y-m-t', strtotime($month_start));
+
+        // For "Daily Attendance Status" we show today's counts if the selected month is current,
+        // otherwise we show the last day of the selected month.
+        $status_date = (substr($today, 0, 7) === substr($month_start, 0, 7)) ? $today : $month_end;
         
         // Use a single optimized query for all counts instead of multiple queries
         $counts_query = "
@@ -266,17 +276,22 @@ class Dashboard_mdl extends CI_Model
             $data['biotime_last'] = 'N/A';
         }
         
-        // Optimize attendance status queries with a single query
+        // Daily attendance status (unique staff per schedule for selected day)
         $attendance_query = "
             SELECT 
                 schedule_id,
-                COUNT(*) as count
+                COUNT(DISTINCT ihris_pid) as count
             FROM actuals 
             WHERE facility_id = ? AND date = ?
-            GROUP BY schedule_id
         ";
-        
-        $attendance_result = $this->db->query($attendance_query, [$facility, $today]);
+        $params = [$facility, $status_date];
+        if (!empty($dashboard_empid)) {
+            $attendance_query .= " AND ihris_pid = ? ";
+            $params[] = $dashboard_empid;
+        }
+        $attendance_query .= " GROUP BY schedule_id";
+
+        $attendance_result = $this->db->query($attendance_query, $params);
         $attendance_data = $attendance_result->result();
         
         // Initialize with defaults
@@ -299,10 +314,41 @@ class Dashboard_mdl extends CI_Model
             }
         }
         
-        // Optimize requests query
-        $requests_query = "SELECT COUNT(*) as count FROM requests WHERE date LIKE ?";
-        $requests_result = $this->db->query($requests_query, [$today . '%']);
-        $data['requesting'] = $requests_result->row()->count;
+        // Monthly attendance stats (staff-days, de-duplicated by staff+date)
+        $monthly_query = "
+            SELECT 
+                schedule_id,
+                COUNT(DISTINCT CONCAT(ihris_pid,'|',date)) as cnt
+            FROM actuals
+            WHERE facility_id = ?
+              AND date >= ?
+              AND date <= ?
+        ";
+        $mparams = [$facility, $month_start, $month_end];
+        if (!empty($dashboard_empid)) {
+            $monthly_query .= " AND ihris_pid = ? ";
+            $mparams[] = $dashboard_empid;
+        }
+        $monthly_query .= " GROUP BY schedule_id";
+
+        $monthly_result = $this->db->query($monthly_query, $mparams);
+        $monthly_data = $monthly_result ? $monthly_result->result() : [];
+
+        $data['monthly_present'] = 0;
+        $data['monthly_offduty'] = 0;
+        $data['monthly_leave'] = 0;
+        $data['monthly_request'] = 0;
+        foreach ($monthly_data as $row) {
+            if (isset($schedule_mapping[$row->schedule_id])) {
+                $key = 'monthly_' . $schedule_mapping[$row->schedule_id];
+                $data[$key] = (int) $row->cnt;
+            }
+        }
+
+        $data['dashboard_month'] = str_pad((string)$month, 2, '0', STR_PAD_LEFT);
+        $data['dashboard_year'] = (string) $year;
+        $data['dashboard_empid'] = $dashboard_empid;
+        $data['status_date'] = $status_date;
         
         return $data;
     }
