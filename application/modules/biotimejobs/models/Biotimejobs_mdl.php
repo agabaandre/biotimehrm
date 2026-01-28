@@ -400,6 +400,15 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         );
         
         try {
+            // If syncing a specific terminal, delete existing rows in MySQL for the same terminal + time range
+            // to make same-day re-syncs idempotent (avoid duplicates).
+            if (!empty($terminal_sn)) {
+                $this->db->where('terminal_sn', $terminal_sn);
+                $this->db->where('punch_time >=', $start_date);
+                $this->db->where('punch_time <=', $end_date);
+                $this->db->delete('biotime_data');
+            }
+
             // Get PostgreSQL connection details from environment or use defaults
             // Try $_ENV first, then getenv() as fallback
             $pg_host = isset($_ENV['PG_DB_HOST']) ? $_ENV['PG_DB_HOST'] : (getenv('PG_DB_HOST') ?: '172.27.1.101');
