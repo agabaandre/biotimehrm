@@ -22,7 +22,7 @@
         align-items: center;
         justify-content: center;
     }
-    #line_graph_att, #line_graph_roster {
+    #line_graph_att {
         width: 100% !important;
         height: 400px !important;
         min-width: 0;
@@ -36,7 +36,7 @@
         .chart-card .card-body {
             min-height: 350px;
         }
-        #line_graph_att, #line_graph_roster, #container-hours {
+        #line_graph_att, #container-hours {
             height: 350px !important;
         }
     }
@@ -44,7 +44,7 @@
         .chart-card .card-body {
             min-height: 300px;
         }
-        #line_graph_att, #line_graph_roster, #container-hours {
+        #line_graph_att, #container-hours {
             height: 300px !important;
         }
     }
@@ -86,24 +86,7 @@
         </div>
     </div>
 
-    <!-- Second Row: Duty Roster (Full Width) - Separate Row -->
-    <div class="row">
-        <!-- Roster Chart -->
-        <div class="col-12 mb-4">
-            <div class="chart-card">
-                <div class="card card-outline card-success">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-calendar-alt mr-2"></i>Employees Scheduled per Month
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="line_graph_roster" style="width:100%; height:400px;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Removed: Employees Scheduled per Month chart (per request) -->
 </div>
 <script src="<?php echo base_url() ?>assets/plugins/moment/moment.min.js"></script>
 <script src="<?php echo base_url() ?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
@@ -157,14 +140,6 @@
                     if (data.graph && data.graph.period && data.graph.data) {
                         // Update the existing charts if they exist
                         if (typeof Highcharts !== 'undefined' && Highcharts.charts) {
-                            var rosterChart = Highcharts.charts.find(function(chart) {
-                                return chart && chart.renderTo && chart.renderTo.id === 'line_graph_roster';
-                            });
-                            if (rosterChart) {
-                                rosterChart.series[0].setData(data.graph.data);
-                                rosterChart.xAxis[0].setCategories(data.graph.period);
-                            }
-                            
                             var attChart = Highcharts.charts.find(function(chart) {
                                 return chart && chart.renderTo && chart.renderTo.id === 'line_graph_att';
                             });
@@ -188,41 +163,6 @@
     // All Highcharts chart creation must be inside waitForHighcharts callback
     try {
         if (typeof Highcharts !== 'undefined' && typeof Highcharts.chart === 'function') {
-            Highcharts.chart('line_graph_roster', {
-        chart: {
-            type: 'line'
-        },
-        title: {
-            text: 'Employees Scheduled per Month'
-        },
-        subtitle: {
-            text: '<?php echo str_replace("'", " ", $_SESSION["facility_name"]); ?>'
-        },
-        xAxis: {
-            categories: <?php echo json_encode($graph['period']); ?>
-        },
-        yAxis: {
-            title: {
-                text: 'Staff'
-            }
-        },
-        plotOptions: {
-            line: {
-                dataLabels: {
-                    enabled: true
-                },
-                enableMouseTracking: true
-            }
-        },
-        credits: {
-            enabled: false
-        },
-        series: [{
-            name: 'Staff',
-            data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
-        }]
-        });
-        
         Highcharts.chart('line_graph_att', {
             chart: {
                 type: 'line'
