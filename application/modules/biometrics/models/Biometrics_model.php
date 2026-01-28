@@ -14,9 +14,15 @@ Class Biometrics_model extends CI_Model
    public  function __construct(){
         parent:: __construct();
         
-        // Safely get facility from session
+        // Safely get facility from session - try multiple methods
         $userdata = $this->session->userdata;
         $this->facility = isset($userdata['facility']) ? $userdata['facility'] : null;
+        
+        // Fallback to $_SESSION if not found
+        if (empty($this->facility) && isset($_SESSION['facility'])) {
+            $this->facility = $_SESSION['facility'];
+        }
+        
         $this->user = $this->session->get_userdata();
         $this->watermark = FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
         
@@ -123,7 +129,12 @@ return $query->result();
 public function getEnrolledCount($search = '') {
     try {
         $this->db->from('fingerprints_final');
-        $this->db->where('facilityId', $this->facility);
+        
+        // Only filter by facility if it's set
+        if (!empty($this->facility)) {
+            $this->db->where('facilityId', $this->facility);
+        }
+        
         $this->db->where("device != ''");
         $this->db->where("device IS NOT NULL");
         
@@ -139,9 +150,12 @@ public function getEnrolledCount($search = '') {
             $this->db->group_end();
         }
         
-        return $this->db->count_all_results();
+        $count = $this->db->count_all_results();
+        log_message('debug', 'getEnrolledCount: facility=' . ($this->facility ?? 'null') . ', count=' . $count);
+        return $count;
     } catch (Exception $e) {
         log_message('error', 'getEnrolledCount error: ' . $e->getMessage());
+        log_message('error', 'getEnrolledCount facility: ' . ($this->facility ?? 'null'));
         return 0;
     }
 }
@@ -150,7 +164,12 @@ public function getEnrolledPaginated($start, $length, $search = '', $order = nul
     try {
         $this->db->select('*');
         $this->db->from('fingerprints_final');
-        $this->db->where('facilityId', $this->facility);
+        
+        // Only filter by facility if it's set
+        if (!empty($this->facility)) {
+            $this->db->where('facilityId', $this->facility);
+        }
+        
         $this->db->where("device != ''");
         $this->db->where("device IS NOT NULL");
         
@@ -186,13 +205,17 @@ public function getEnrolledPaginated($start, $length, $search = '', $order = nul
         $query = $this->db->get();
         
         if ($query) {
-            return $query->result();
+            $results = $query->result();
+            log_message('debug', 'getEnrolledPaginated: facility=' . ($this->facility ?? 'null') . ', results=' . count($results));
+            return $results;
         } else {
-            log_message('error', 'getEnrolledPaginated query failed');
+            log_message('error', 'getEnrolledPaginated query failed: ' . $this->db->error()['message']);
             return array();
         }
     } catch (Exception $e) {
         log_message('error', 'getEnrolledPaginated error: ' . $e->getMessage());
+        log_message('error', 'getEnrolledPaginated facility: ' . ($this->facility ?? 'null'));
+        log_message('error', 'Stack trace: ' . $e->getTraceAsString());
         return array();
     }
 }
@@ -206,7 +229,12 @@ public function get_new_users(){
 public function getUnenrolledCount($search = '') {
     try {
         $this->db->from('fingerprints_final');
-        $this->db->where('facilityId', $this->facility);
+        
+        // Only filter by facility if it's set
+        if (!empty($this->facility)) {
+            $this->db->where('facilityId', $this->facility);
+        }
+        
         $this->db->group_start();
         $this->db->where("device = ''");
         $this->db->or_where("device IS NULL");
@@ -222,9 +250,12 @@ public function getUnenrolledCount($search = '') {
             $this->db->group_end();
         }
         
-        return $this->db->count_all_results();
+        $count = $this->db->count_all_results();
+        log_message('debug', 'getUnenrolledCount: facility=' . ($this->facility ?? 'null') . ', count=' . $count);
+        return $count;
     } catch (Exception $e) {
         log_message('error', 'getUnenrolledCount error: ' . $e->getMessage());
+        log_message('error', 'getUnenrolledCount facility: ' . ($this->facility ?? 'null'));
         return 0;
     }
 }
@@ -233,7 +264,12 @@ public function getUnenrolledPaginated($start, $length, $search = '', $order = n
     try {
         $this->db->select('*');
         $this->db->from('fingerprints_final');
-        $this->db->where('facilityId', $this->facility);
+        
+        // Only filter by facility if it's set
+        if (!empty($this->facility)) {
+            $this->db->where('facilityId', $this->facility);
+        }
+        
         $this->db->group_start();
         $this->db->where("device = ''");
         $this->db->or_where("device IS NULL");
@@ -269,13 +305,17 @@ public function getUnenrolledPaginated($start, $length, $search = '', $order = n
         $query = $this->db->get();
         
         if ($query) {
-            return $query->result();
+            $results = $query->result();
+            log_message('debug', 'getUnenrolledPaginated: facility=' . ($this->facility ?? 'null') . ', results=' . count($results));
+            return $results;
         } else {
-            log_message('error', 'getUnenrolledPaginated query failed');
+            log_message('error', 'getUnenrolledPaginated query failed: ' . $this->db->error()['message']);
             return array();
         }
     } catch (Exception $e) {
         log_message('error', 'getUnenrolledPaginated error: ' . $e->getMessage());
+        log_message('error', 'getUnenrolledPaginated facility: ' . ($this->facility ?? 'null'));
+        log_message('error', 'Stack trace: ' . $e->getTraceAsString());
         return array();
     }
 }

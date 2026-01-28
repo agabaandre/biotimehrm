@@ -544,6 +544,11 @@ class Biometrics extends MX_Controller{
                 $this->load->model('biometrics_model', 'biometrics_mdl');
             }
             
+            // Log for debugging
+            $userdata = $this->session->userdata;
+            $facility = isset($userdata['facility']) ? $userdata['facility'] : null;
+            log_message('debug', 'getEnrolledAjax: facility=' . ($facility ?? 'null') . ', search=' . $search);
+            
             // Get total count (without search) for recordsTotal
             $recordsTotal = $this->biometrics_mdl->getEnrolledCount('');
             
@@ -552,6 +557,8 @@ class Biometrics extends MX_Controller{
             
             // Get paginated data
             $users = $this->biometrics_mdl->getEnrolledPaginated($start, $length, $search, $order);
+            
+            log_message('debug', 'getEnrolledAjax: recordsTotal=' . $recordsTotal . ', recordsFiltered=' . $recordsFiltered . ', users=' . (is_array($users) ? count($users) : 'not array'));
             
             $data = array();
             $rowNum = $start + 1;
