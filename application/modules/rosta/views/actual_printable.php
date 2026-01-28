@@ -158,12 +158,9 @@
 						$state = "";
 						$date_d = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i);
 						$pid    = $singleduty['ihris_pid'];
-						$entry_id = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i) . $singleduty['ihris_pid'];
-						$duty_letter = retrieve_attendance_schedule($pid, $date_d);
-						//determine whetehr to update or insert on ajax
-						$record_type = (!empty($duty_letter)) ? "update actual" : "actual field";
+						$letter = isset($schedules[$pid][$date_d]) ? $schedules[$pid][$date_d] : '';
 					?>
-						<td class="cost"><?php echo $duty_letter; ?>
+						<td class="cost"><?php echo $letter; ?>
 						</td>
 					<?php } // end for , one that loops tds 
 					?>

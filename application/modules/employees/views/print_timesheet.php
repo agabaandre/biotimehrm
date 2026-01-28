@@ -192,13 +192,14 @@
 										echo $letters;
 										?></td>
 					<?php
+					// Use pre-fetched logs_by_pid_date (built in controller) to avoid per-cell DB queries
 					if (!empty($dateList)) {
 						foreach ($dateList as $date_d) {
 							?>
 							<td class="cell" data-label="Day<?php echo (int)date('j', strtotime($date_d)); ?>">
 								<?php
 								$pid    = $hours['ihris_pid'];
-								$timedata = gettimedata($pid, $date_d);
+								$timedata = isset($logs_by_pid_date[$pid][$date_d]) ? $logs_by_pid_date[$pid][$date_d] : null;
 								if (!empty($timedata)) {
 									$starTime = @$timedata->time_in;
 									$endTime = @$timedata->time_out;
@@ -231,10 +232,9 @@
 							?>
 							<td class="cell" data-label="Day<?php echo $i; ?>">
 								<?php
-								$hours_data = $hours[$day];
 								$date_d = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i);
 								$pid    = $hours['ihris_pid'];
-								$timedata = gettimedata($pid, $date_d);
+								$timedata = isset($logs_by_pid_date[$pid][$date_d]) ? $logs_by_pid_date[$pid][$date_d] : null;
 								if (!empty($timedata)) {
 									$Time_data = array();
 									$starTime = @$timedata->time_in;

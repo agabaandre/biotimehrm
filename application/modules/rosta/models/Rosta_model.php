@@ -107,6 +107,63 @@ class Rosta_model extends CI_Model
 		return $data;
 	}
 
+	/**
+	 * Server-side helpers for Monthly Attendance Form (attfrom_report)
+	 */
+	public function count_attendance_form($valid_range, $filters, $employee = NULL)
+	{
+		// $valid_range is 'YYYY-MM'
+		$employee = !empty($employee) ? $employee : $this->input->post('empid');
+
+		$search = "";
+		if (!empty($employee)) {
+			$search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
+		}
+
+		$sql = "SELECT COUNT(DISTINCT ihrisdata.ihris_pid) AS total
+				FROM ihrisdata
+				WHERE $filters $search";
+
+		$query = $this->db->query($sql);
+		$row = $query->row();
+		return $row ? (int)$row->total : 0;
+	}
+
+	public function fetch_attendance_form($valid_range, $start, $length, $filters, $employee = NULL)
+	{
+		// $valid_range is 'YYYY-MM'
+		$employee = !empty($employee) ? $employee : $this->input->post('empid');
+
+		$search = "";
+		if (!empty($employee)) {
+			$search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
+		}
+
+		$limit_sql = "";
+		if ($length !== NULL && (int)$length > 0) {
+			$start = (int)$start;
+			$length = (int)$length;
+			$limit_sql = " LIMIT {$start},{$length}";
+		}
+
+		$sql = "SELECT DISTINCT ihrisdata.ihris_pid,
+					CONCAT(
+						COALESCE(surname,'',''),
+						' ',
+						COALESCE(firstname,'',''),
+						' ',
+						COALESCE(othername,'','')
+					) AS fullname,
+					ihrisdata.job
+				FROM ihrisdata
+				WHERE $filters $search
+				ORDER BY surname ASC
+				{$limit_sql}";
+
+		$query = $this->db->query($sql);
+		return $query->result_array();
+	}
+
 
 
 	public function matches($date)
@@ -188,6 +245,58 @@ class Rosta_model extends CI_Model
 			) AS fullname,ihrisdata.job from ihrisdata where $filters $search ");
 		$data = $all->num_rows();
 		return $data;
+	}
+	
+	/**
+	 * Server-side helper for Actuals - count employees
+	 */
+	public function count_actuals($valid_range, $filters, $employee = NULL)
+	{
+		$employee = !empty($employee) ? $employee : $this->input->post('empid');
+		
+		$search = "";
+		if (!empty($employee)) {
+			$search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
+		}
+		
+		$sql = "SELECT COUNT(DISTINCT ihrisdata.ihris_pid) AS total
+				FROM ihrisdata
+				WHERE $filters $search";
+		
+		$query = $this->db->query($sql);
+		$row = $query->row();
+		return $row ? (int)$row->total : 0;
+	}
+	
+	/**
+	 * Server-side helper for Actuals - fetch employees
+	 */
+	public function fetch_actuals($valid_range, $start, $length, $filters, $employee = NULL)
+	{
+		$employee = !empty($employee) ? $employee : $this->input->post('empid');
+		
+		$search = "";
+		if (!empty($employee)) {
+			$search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
+		}
+		
+		$sql = "SELECT DISTINCT 
+					ihrisdata.ihris_pid,
+					CONCAT(
+						COALESCE(surname,''),
+						' ',
+						COALESCE(firstname,''),
+						' ',
+						COALESCE(othername,'')
+					) AS fullname,
+					ihrisdata.job
+				FROM ihrisdata
+				WHERE $filters $search
+				ORDER BY surname ASC, firstname ASC
+				LIMIT ?, ?";
+		
+		$query = $this->db->query($sql, array($start, $length));
+		return $query->result_array();
 	}
 	public function count_tabs()
 	{
@@ -283,8 +392,8 @@ class Rosta_model extends CI_Model
 			$params[] = $employee;
 		}
 		
-		// Add ordering and pagination
-		$sql .= " ORDER BY ihrisdata.surname ASC LIMIT ?, ?";
+		// Add ordering and pagination - order by surname ASC, then firstname ASC
+		$sql .= " ORDER BY COALESCE(ihrisdata.surname, '') ASC, COALESCE(ihrisdata.firstname, '') ASC LIMIT ?, ?";
 		$params[] = (int)$start;
 		$params[] = (int)$limit;
 		
@@ -643,6 +752,139 @@ class Rosta_model extends CI_Model
 		$query  = $this->db->query($sql);
 		$row 	= $query->row();
 		return ($row) ? $this->find_schedule($row->schedule_id)->letter : "";
+	}
+
+	/**
+	 * Bulk fetch attendance schedules for a month & list of employees.
+	 * Returns array keyed by [ihris_pid][Y-m-d] = letter.
+	 */
+	public function get_attendance_schedules_bulk($valid_range, $employee_ids = array())
+	{
+		if (empty($employee_ids)) {
+			return array();
+		}
+
+		$facility = isset($_SESSION['facility']) ? $_SESSION['facility'] : $this->session->userdata('facility');
+
+		// Build placeholders for IN clause
+		$placeholders = implode(',', array_fill(0, count($employee_ids), '?'));
+
+		$sql = "SELECT actuals.ihris_pid, actuals.date, schedules.letter
+				FROM actuals
+				JOIN schedules ON schedules.schedule_id = actuals.schedule_id
+				WHERE schedules.purpose = 'a'
+				AND actuals.facility_id = ?
+				AND DATE_FORMAT(actuals.date, '%Y-%m') = ?
+				AND actuals.ihris_pid IN ($placeholders)";
+
+		$params = array_merge(array($facility, $valid_range), $employee_ids);
+		$query = $this->db->query($sql, $params);
+		$rows = $query->result_array();
+
+		$result = array();
+		foreach ($rows as $row) {
+			$pid = $row['ihris_pid'];
+			$date = $row['date'];
+			if (!isset($result[$pid])) {
+				$result[$pid] = array();
+			}
+			$result[$pid][$date] = $row['letter'];
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Server-side helpers for Duty Roster Report (fetch_report)
+	 */
+	public function count_duty_roster($valid_range, $filters, $employee = NULL)
+	{
+		$employee = !empty($employee) ? $employee : $this->input->post('empid');
+
+		$search = "";
+		if (!empty($employee)) {
+			$search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
+		}
+
+		$sql = "SELECT COUNT(DISTINCT ihrisdata.ihris_pid) AS total
+				FROM ihrisdata
+				WHERE $filters $search";
+
+		$query = $this->db->query($sql);
+		$row = $query->row();
+		return $row ? (int)$row->total : 0;
+	}
+
+	public function fetch_duty_roster($valid_range, $start, $length, $filters, $employee = NULL)
+	{
+		$employee = !empty($employee) ? $employee : $this->input->post('empid');
+
+		$search = "";
+		if (!empty($employee)) {
+			$search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
+		}
+
+		$limit_sql = "";
+		if ($length !== NULL && (int)$length > 0) {
+			$start = (int)$start;
+			$length = (int)$length;
+			$limit_sql = " LIMIT {$start},{$length}";
+		}
+
+		$sql = "SELECT DISTINCT ihrisdata.ihris_pid,
+					CONCAT(
+						COALESCE(surname,'',''),
+						' ',
+						COALESCE(firstname,'',''),
+						' ',
+						COALESCE(othername,'','')
+					) AS fullname,
+					ihrisdata.job
+				FROM ihrisdata
+				WHERE $filters $search
+				ORDER BY surname ASC
+				{$limit_sql}";
+
+		$query = $this->db->query($sql);
+		return $query->result_array();
+	}
+
+	/**
+	 * Bulk fetch roster schedules for a month & list of employees.
+	 * Returns array keyed by [ihris_pid][Y-m-d] = letter.
+	 */
+	public function get_roster_schedules_bulk($valid_range, $employee_ids = array())
+	{
+		if (empty($employee_ids)) {
+			return array();
+		}
+
+		$facility = isset($_SESSION['facility']) ? $_SESSION['facility'] : $this->session->userdata('facility');
+
+		$placeholders = implode(',', array_fill(0, count($employee_ids), '?'));
+
+		$sql = "SELECT duty_rosta.ihris_pid, duty_rosta.duty_date, schedules.letter
+				FROM duty_rosta
+				JOIN schedules ON schedules.schedule_id = duty_rosta.schedule_id
+				WHERE duty_rosta.facility_id = ?
+				AND DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') = ?
+				AND duty_rosta.ihris_pid IN ($placeholders)";
+
+		$params = array_merge(array($facility, $valid_range), $employee_ids);
+		$query = $this->db->query($sql, $params);
+		$rows = $query->result_array();
+
+		$result = array();
+		foreach ($rows as $row) {
+			$pid = $row['ihris_pid'];
+			$date = $row['duty_date'];
+			if (!isset($result[$pid])) {
+				$result[$pid] = array();
+			}
+			$result[$pid][$date] = $row['letter'];
+		}
+
+		return $result;
 	}
 
 	/**

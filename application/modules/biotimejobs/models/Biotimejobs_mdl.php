@@ -441,7 +441,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 $empcode_escaped = pg_escape_string($pg_conn, $empcode);
                 $conditions .= " AND emp_code = '$empcode_escaped'";
             }
-            
+
             // Construct the query
             $query = "SELECT emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time 
                       FROM iclock_transaction 

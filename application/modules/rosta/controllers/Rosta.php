@@ -223,6 +223,137 @@ class Rosta extends MX_Controller
 		
 		echo Modules::run("templates/main", $data);
 	}
+
+	/**
+	 * Server-side DataTables endpoint for Tabular Duty Roster.
+	 */
+	public function tabularAjax()
+	{
+		if (!$this->input->is_ajax_request()) {
+			show_404();
+			return;
+		}
+
+		// Helper function for weekend check
+		if (!function_exists('isWeekend')) {
+			function isWeekend($date) {
+				$day = intval(date('N', strtotime($date)));
+				return ($day >= 6);
+			}
+		}
+
+		$month = $this->input->post('month');
+		$year  = $this->input->post('year');
+		$empid = $this->input->post('empid');
+
+		if (empty($month) || empty($year)) {
+			$month = isset($_SESSION['month']) ? $_SESSION['month'] : date('m');
+			$year  = isset($_SESSION['year']) ? $_SESSION['year'] : date('Y');
+		}
+
+		$date = $year . '-' . $month;
+
+		$draw   = (int)$this->input->post('draw');
+		$start  = (int)$this->input->post('start');
+		$length = (int)$this->input->post('length');
+
+		// Total employees for this report (respecting filters and employee filter)
+		$total = $this->rosta_model->count_tabs_optimized($this->filters, $empid);
+
+		// Fetch page of employees
+		$employees = $this->rosta_model->fetch_tabs_optimized($start, $length, $empid, $this->filters);
+
+		$employee_ids = array();
+		foreach ($employees as $row) {
+			if (!empty($row['ihris_pid'])) {
+				$employee_ids[] = $row['ihris_pid'];
+			}
+		}
+
+		// Prefetch all roster schedules for this month + employee IDs
+		$schedules = $this->rosta_model->get_roster_schedules_bulk($date, $employee_ids);
+
+		$month_days = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
+
+		// Get tab schedules for validation
+		$tab_schedules = $this->rosta_model->tab_matches();
+
+		// Calculate editing lock conditions
+		$user_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
+		$is_sadmin = ($user_role === 'sadmin');
+		$today = date('Y-m-d');
+		$posted_date = $date;
+		$posted_timestamp = strtotime($posted_date . '-01');
+		$current_timestamp = strtotime('first day of +2 months');
+		$is_future_month = ($posted_timestamp > $current_timestamp);
+
+		$data = array();
+		$rownum = $start;
+
+		for ($idx = 0; $idx < count($employees); $idx++) {
+			$emp = $employees[$idx];
+			$pid = $emp['ihris_pid'];
+
+			$row = array();
+			$rownum++;
+			$row['rownum'] = $rownum;
+			$row['fullname'] = $emp['fullname'];
+			$row['job'] = $emp['job'];
+			$row['ihris_pid'] = $pid;
+
+			for ($d = 1; $d <= $month_days; $d++) {
+				$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
+				$ymd = $year . '-' . $month . '-' . $dayStr;
+				$entry_id = $ymd . $pid;
+				$letter = isset($schedules[$pid][$ymd]) ? $schedules[$pid][$ymd] : '';
+				
+				// Determine if this cell should be disabled
+				$is_disabled = false;
+				$disabled_reason = '';
+				
+				if ($is_future_month && !$is_sadmin) {
+					$is_disabled = true;
+					$disabled_reason = 'future_month';
+				} elseif (!$is_sadmin) {
+					$day_timestamp = strtotime($ymd);
+					$today_timestamp = strtotime($today);
+					
+					if ($day_timestamp > $today_timestamp) {
+						// Future day - always disabled
+						$is_disabled = true;
+						$disabled_reason = 'future_day';
+					} elseif ($day_timestamp < $today_timestamp && !empty($letter)) {
+						// Past day with schedule - disabled
+						$is_disabled = true;
+						$disabled_reason = 'past_scheduled';
+					}
+				}
+				
+				$row['d' . $d] = $letter;
+				$row['entry_id_' . $d] = $entry_id;
+				$row['disabled_' . $d] = $is_disabled;
+				$row['disabled_reason_' . $d] = $disabled_reason;
+				$row['is_weekend_' . $d] = (isWeekend($ymd) == 'yes');
+			}
+
+			$data[] = $row;
+		}
+
+		$response = array(
+			'draw' => $draw,
+			'recordsTotal' => $total,
+			'recordsFiltered' => $total,
+			'data' => $data,
+			'tab_schedules' => $tab_schedules,
+			'is_sadmin' => $is_sadmin,
+			'is_future_month' => $is_future_month
+		);
+
+		$this->output
+			->set_content_type('application/json')
+			->set_output(json_encode($response));
+	}
+
 	public function getrosterschedules($date = "2022-09-01", $person = "person|1320128")
 	{
 		$data = $this->rosta_model->get_roster_schedules($person, $date);
@@ -289,32 +420,180 @@ class Rosta extends MX_Controller
 		$data['uptitle'] = "Duty Roster Report";
 		echo Modules::run('templates/main', $data);
 	}
-	public function print_roster($year, $month)
+
+	/**
+	 * Server-side DataTables endpoint for Duty Roster Report.
+	 */
+	public function fetch_reportAjax()
+	{
+		if (!$this->input->is_ajax_request()) {
+			show_404();
+			return;
+		}
+
+		$month = $this->input->post('month');
+		$year  = $this->input->post('year');
+		$empid = $this->input->post('empid');
+
+		if (empty($month) || empty($year)) {
+			$month = isset($_SESSION['month']) ? $_SESSION['month'] : date('m');
+			$year  = isset($_SESSION['year']) ? $_SESSION['year'] : date('Y');
+		}
+
+		$date = $year . '-' . $month;
+
+		$draw   = (int)$this->input->post('draw');
+		$start  = (int)$this->input->post('start');
+		$length = (int)$this->input->post('length');
+
+		// Total employees for this report (respecting filters and employee filter)
+		$total = $this->rosta_model->count_duty_roster($date, $this->filters, $empid);
+
+		// Fetch page of employees
+		$employees = $this->rosta_model->fetch_duty_roster($date, $start, $length, $this->filters, $empid);
+
+		$employee_ids = array();
+		foreach ($employees as $row) {
+			if (!empty($row['ihris_pid'])) {
+				$employee_ids[] = $row['ihris_pid'];
+			}
+		}
+
+		// Prefetch all roster schedules for this month + employee IDs
+		$schedules = $this->rosta_model->get_roster_schedules_bulk($date, $employee_ids);
+
+		$month_days = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
+
+		$data = array();
+		$rownum = $start;
+
+		for ($idx = 0; $idx < count($employees); $idx++) {
+			$emp = $employees[$idx];
+			$pid = $emp['ihris_pid'];
+
+			$row = array();
+			$rownum++;
+			$row['rownum'] = $rownum;
+			$row['fullname'] = $emp['fullname'];
+			$row['job'] = $emp['job'];
+
+			for ($d = 1; $d <= $month_days; $d++) {
+				$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
+				$ymd = $year . '-' . $month . '-' . $dayStr;
+				$letter = isset($schedules[$pid][$ymd]) ? $schedules[$pid][$ymd] : '';
+				$row['d' . $d] = $letter;
+			}
+
+			$data[] = $row;
+		}
+
+		$response = array(
+			'draw' => $draw,
+			'recordsTotal' => $total,
+			'recordsFiltered' => $total,
+			'data' => $data
+		);
+
+		$this->output
+			->set_content_type('application/json')
+			->set_output(json_encode($response));
+	}
+
+	public function print_roster($year, $month, $empid = NULL)
 	{
 		$data['dates'] = $year . '-' . $month;
 		$date = $data['dates'];
-		$data['dates'] = $date;
+		if (empty($empid)) {
+			$empid = $this->input->get('empid');
+		}
+
+		$data['duties'] = $this->rosta_model->fetch_duty_roster($date, 0, 0, $this->filters, $empid);
+
+		$employee_ids = array();
+		foreach ($data['duties'] as $row) {
+			if (!empty($row['ihris_pid'])) {
+				$employee_ids[] = $row['ihris_pid'];
+			}
+		}
+		$data['schedules'] = $this->rosta_model->get_roster_schedules_bulk($date, $employee_ids);
+
 		$data['month'] = $month;
 		$data['year'] = $year;
 		$this->load->library('ML_pdf');
 		$data['username'] = $this->username;
 		$data['checks'] = $this->checks;
-		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'] = 10000, $page = 0, $employee = NULL, $this->filters);
-		$html = $this->load->view('rosta/rosta_printable', $data, true);
-		$date = date('F-Y', strtotime($data['duties'][0]['day1']));
-		$filename = $_SESSION['facility_name'] . "_rota_report_" . $date . ".pdf";
+		$html = $this->load->view('rosta/duty_roster_printable', $data, true);
+		$filename = $_SESSION['facility_name'] . "_rota_report_" . date('F-Y', strtotime($date)) . ".pdf";
 		ini_set('max_execution_time', 0);
 		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
 		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		$this->ml_pdf->pdf->showWatermarkImage = true;
 		date_default_timezone_set("Africa/Kampala");
 		$this->ml_pdf->pdf->SetHTMLFooter("Printed / Accessed on: <b>" . date('d F,Y h:i A') . "</b>");
 		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		$this->ml_pdf->showWatermarkImage = true;
 		ini_set('max_execution_time', 0);
-		$this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
-		//download it D save F.
+
+		// Chunk HTML to avoid pcre.backtrack_limit errors
+		$parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
+		$buffer = '';
+		$chunkLimit = 80000;
+		foreach ($parts as $part) {
+			$buffer .= $part;
+			if (strlen($buffer) >= $chunkLimit) {
+				$this->ml_pdf->pdf->WriteHTML($buffer);
+				$buffer = '';
+			}
+		}
+		if (trim($buffer) !== '') {
+			$this->ml_pdf->pdf->WriteHTML($buffer);
+		}
+
 		$this->ml_pdf->pdf->Output($filename, 'I');
+	}
+
+	public function roster_csv($year, $month, $empid = NULL)
+	{
+		$date = $year . '-' . $month;
+		if (empty($empid)) {
+			$empid = $this->input->get('empid');
+		}
+
+		$duties = $this->rosta_model->fetch_duty_roster($date, 0, 0, $this->filters, $empid);
+
+		$employee_ids = array();
+		foreach ($duties as $row) {
+			if (!empty($row['ihris_pid'])) {
+				$employee_ids[] = $row['ihris_pid'];
+			}
+		}
+		$schedules = $this->rosta_model->get_roster_schedules_bulk($date, $employee_ids);
+
+		$month_days = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
+
+		$csv_file = $_SESSION['facility'] . "_roster_report_" . date('Y-m-d') . ".csv";
+		header("Content-Type: text/csv");
+		header("Content-Disposition: attachment; filename=\"$csv_file\"");
+		$fh = fopen('php://output', 'w');
+
+		$header = array('NAME', 'POSITION');
+		for ($i = 1; $i <= $month_days; $i++) {
+			$header[] = 'Day ' . $i;
+		}
+		fputcsv($fh, $header);
+
+		foreach ($duties as $row) {
+			$pid = $row['ihris_pid'];
+			$line = array($row['fullname'], $row['job']);
+			for ($d = 1; $d <= $month_days; $d++) {
+				$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
+				$ymd = $year . '-' . $month . '-' . $dayStr;
+				$letter = isset($schedules[$pid][$ymd]) ? $schedules[$pid][$ymd] : '';
+				$line[] = $letter;
+			}
+			fputcsv($fh, $line);
+		}
+
+		fclose($fh);
+		exit;
 	}
 	public function summary()
 	{
@@ -561,67 +840,111 @@ class Rosta extends MX_Controller
 		if (!empty($month)) {
 			$_SESSION['month'] = $month;
 			$_SESSION['year'] = $year;
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 		}
 		if (!empty($_SESSION['year'])) {
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 			$data['month'] = $_SESSION['month'];
 			$data['year'] = $_SESSION['year'];
 		} else {
 			$_SESSION['month'] = date('m');
 			$_SESSION['year'] = date('Y');
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 			$data['month'] = $_SESSION['month'];
 			$data['year'] = $_SESSION['year'];
 		}
-		$this->load->library('pagination');
-		$config = array();
-		$config['base_url'] = base_url() . "rosta/actuals";
-		$empid = $this->input->post('empid');
-		$config['total_rows'] = $this->rosta_model->countActuals($date, $config['per_page'] = 0, $page = 0, $empid, $this->filters);
-		$config['per_page'] = 20; //records per page
-		$config['uri_segment'] = 3; //segment in url
-		//pagination links styling
-		$config['full_tag_open'] = '<ul class="pagination">';
-		$config['full_tag_close'] = '</ul>';
-		$config['attributes'] = ['class' => 'page-link'];
-		$config['first_link'] = false;
-		$config['last_link'] = false;
-		$config['first_tag_open'] = '<li class="page-item">';
-		$config['first_tag_close'] = '</li>';
-		$config['prev_link'] = '&laquo';
-		$config['prev_tag_open'] = '<li class="page-item">';
-		$config['prev_tag_close'] = '</li>';
-		$config['next_link'] = '&raquo';
-		$config['next_tag_open'] = '<li class="page-item">';
-		$config['next_tag_close'] = '</li>';
-		$config['last_tag_open'] = '<li class="page-item">';
-		$config['last_tag_close'] = '</li>';
-		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-		$config['num_tag_open'] = '<li class="page-item">';
-		$config['num_tag_close'] = '</li>';
-		$config['use_page_numbers'] = FALSE;
-		$this->pagination->initialize($config);
-		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits
-		$data['links'] = $this->pagination->create_links();
-
-		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'], $page, $empid, $this->filters);
-		$nonworkables = $this->rosta_model->nonworkables();
-		$data['facilities'] = Modules::run('facilities/getFacilities');
-		//$data['facilities']=$this->attendance_model->get_facility();
-		$actualrows = $this->rosta_model->getActuals($date);
-		$actuals = array();
-		foreach ($actualrows as $actual) {
-			$entry = $actual['entry_id'];
-			$duty = $actual['actual'];
-			$actuals[$entry] = $duty;
-		}
-		$data['actuals'] = $actuals;
+		
+		$data['filters'] = $this->filters;
 		$data['view'] = 'actuals';
 		$data['module'] = $this->rostamodule;
-		//print_r($actualrows);
 		echo Modules::run('templates/main', $data);
+	}
+	
+	public function actualsAjax()
+	{
+		// Get DataTables parameters
+		$draw = intval($this->input->post('draw'));
+		$start = intval($this->input->post('start'));
+		$length = intval($this->input->post('length'));
+		
+		// Get filters
+		$month = $this->input->post('month') ?: $_SESSION['month'];
+		$year = $this->input->post('year') ?: $_SESSION['year'];
+		$empid = $this->input->post('empid') ?: '';
+		
+		$valid_range = $year . '-' . $month;
+		
+		// Count total records
+		$totalRecords = $this->rosta_model->count_actuals($valid_range, $this->filters, $empid);
+		
+		// Fetch paginated data
+		$employees = $this->rosta_model->fetch_actuals($valid_range, $start, $length, $this->filters, $empid);
+		
+		// Get employee IDs for bulk schedule fetch
+		$employee_ids = array();
+		foreach ($employees as $emp) {
+			if (!empty($emp['ihris_pid'])) {
+				$employee_ids[] = $emp['ihris_pid'];
+			}
+		}
+		
+		// Bulk fetch all actuals schedules for this month
+		$schedules = $this->rosta_model->get_attendance_schedules_bulk($valid_range, $employee_ids);
+		
+		// Build response data
+		$data = array();
+		$monthDays = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+		
+		foreach ($employees as $index => $emp) {
+			$row = array();
+			$row['rownum'] = $start + $index + 1;
+			$row['ihris_pid'] = $emp['ihris_pid'];
+			$row['fullname'] = $emp['fullname'];
+			$row['job'] = $emp['job'];
+			
+			// Add day columns
+			for ($d = 1; $d <= $monthDays; $d++) {
+				$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
+				$dateStr = $year . '-' . $month . '-' . $dayStr;
+				$pid = $emp['ihris_pid'];
+				$entryId = $dateStr . $pid;
+				
+				// Get actual letter from bulk schedules
+				$letter = '';
+				if (isset($schedules[$pid][$dateStr])) {
+					$letter = $schedules[$pid][$dateStr];
+				}
+				
+				$row['d' . $d] = $letter;
+				$row['entry_id_' . $d] = $entryId;
+				$row['date_' . $d] = $dateStr;
+				
+				// Determine if field should be disabled
+				$isWeekend = (date('N', strtotime($dateStr)) >= 6);
+				$isPast = (strtotime($dateStr) < strtotime(date('Y-m-d')));
+				$isFuture = (strtotime($dateStr) > strtotime(date('Y-m-d')));
+				$isSadmin = ($_SESSION['role'] === 'sadmin');
+				
+				// Check if facility uses biotime (if function exists)
+				$biotimeFacility = 0;
+				if (function_exists('biotime_facility')) {
+					$biotimeFacility = biotime_facility($this->session->userdata['facility']);
+				}
+				
+				// Lock if biotime facility or future date (unless super admin)
+				$isLocked = ($biotimeFacility > 0) || ($isFuture && !$isSadmin);
+				
+				$row['disabled_' . $d] = $isLocked;
+			}
+			
+			$data[] = $row;
+		}
+		
+		$response = array(
+			'draw' => $draw,
+			'recordsTotal' => $totalRecords,
+			'recordsFiltered' => $totalRecords,
+			'data' => $data
+		);
+		
+		$this->output->set_content_type('application/json')->set_output(json_encode($response));
 	}
 	//presense tracking
 	function getschedules()
@@ -653,11 +976,21 @@ class Rosta extends MX_Controller
 				'department_id' => $department,
 				'color' => $color,
 				'ihris_pid' => $pid,
-				'facility_id' => $facility, '
-			allDay' => 'true'
+				'facility_id' => $facility,
+				'allDay' => 'true'
 			);
-			//print_r($data);
-			$result = $this->rosta_model->saveActual($data);
+			
+			// Check if entry exists
+			$this->db->where('entry_id', $entry);
+			$existing = $this->db->get('actuals')->row();
+			
+			if ($existing) {
+				// Update existing
+				$result = $this->rosta_model->updateActual($data);
+			} else {
+				// Insert new
+				$result = $this->rosta_model->saveActual($data);
+			}
 
 			if(($duty==22)||($duty==23)){
 			$timedata = array(
@@ -767,29 +1100,192 @@ class Rosta extends MX_Controller
 		$data['module'] = $this->rostamodule;
 		echo Modules::run('templates/main', $data);
 	}
-	public function print_actuals($year, $month)
+
+	/**
+	 * Server-side DataTables endpoint for Monthly Attendance Form.
+	 */
+	public function attfrom_reportAjax()
+	{
+		if (!$this->input->is_ajax_request()) {
+			show_404();
+			return;
+		}
+
+		$month = $this->input->post('month');
+		$year  = $this->input->post('year');
+		$empid = $this->input->post('empid');
+
+		if (empty($month) || empty($year)) {
+			$month = isset($_SESSION['month']) ? $_SESSION['month'] : date('m');
+			$year  = isset($_SESSION['year']) ? $_SESSION['year'] : date('Y');
+		}
+
+		$date = $year . '-' . $month;
+
+		$draw   = (int)$this->input->post('draw');
+		$start  = (int)$this->input->post('start');
+		$length = (int)$this->input->post('length');
+
+		// Total employees for this report (respecting filters and employee filter)
+		$total = $this->rosta_model->count_attendance_form($date, $this->filters, $empid);
+
+		// Fetch page of employees
+		$employees = $this->rosta_model->fetch_attendance_form($date, $start, $length, $this->filters, $empid);
+
+		$employee_ids = array();
+		foreach ($employees as $row) {
+			if (!empty($row['ihris_pid'])) {
+				$employee_ids[] = $row['ihris_pid'];
+			}
+		}
+
+		// Prefetch all attendance schedules for this month + employee IDs
+		$schedules = $this->rosta_model->get_attendance_schedules_bulk($date, $employee_ids);
+
+		$month_days = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
+
+		$data = array();
+		$rownum = $start;
+
+		for ($idx = 0; $idx < count($employees); $idx++) {
+			$emp = $employees[$idx];
+			$pid = $emp['ihris_pid'];
+
+			$row = array();
+			$rownum++;
+			$row['rownum'] = $rownum;
+			$row['fullname'] = $emp['fullname'];
+			$row['job'] = $emp['job'];
+
+			for ($d = 1; $d <= $month_days; $d++) {
+				$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
+				$ymd = $year . '-' . $month . '-' . $dayStr;
+				$letter = isset($schedules[$pid][$ymd]) ? $schedules[$pid][$ymd] : '';
+				$row['d' . $d] = $letter;
+			}
+
+			$data[] = $row;
+		}
+
+		$response = array(
+			'draw' => $draw,
+			'recordsTotal' => $total,
+			'recordsFiltered' => $total,
+			'data' => $data
+		);
+
+		$this->output
+			->set_content_type('application/json')
+			->set_output(json_encode($response));
+	}
+	public function print_actuals($year, $month, $empid = NULL)
 	{
 		$data['dates'] = $year . '-' . $month;
 		$date = $data['dates'];
 		$this->load->library('ML_pdf');
-		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'] = 10000, $page = 0, $empid = FALSE, $this->filters);
+		if (empty($empid)) {
+			$empid = $this->input->get('empid');
+		}
+
+		// Use the same filtered employees set as server-side table
+		$data['duties'] = $this->rosta_model->fetch_attendance_form($date, 0, 0, $this->filters, $empid);
+
+		// Prefetch schedules for all employees in this print
+		$employee_ids = array();
+		foreach ($data['duties'] as $row) {
+			if (!empty($row['ihris_pid'])) {
+				$employee_ids[] = $row['ihris_pid'];
+			}
+		}
+		$data['schedules'] = $this->rosta_model->get_attendance_schedules_bulk($date, $employee_ids);
+
 		$data['month'] = $month;
 		$data['year'] = $year;
 		$html = $this->load->view('actual_printable', $data, true);
-		$date = date('F-Y', strtotime($data['duties'][0]['day1']));
-		$filename = $_SESSION['facility'] . "_actuals_report_" . $date . ".pdf";
+		$filename = $_SESSION['facility'] . "_actuals_report_" . date('F-Y', strtotime($date)) . ".pdf";
 		ini_set('max_execution_time', 0);
 		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
 		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		$this->ml_pdf->pdf->showWatermarkImage = true;
 		date_default_timezone_set("Africa/Kampala");
 		$this->ml_pdf->pdf->SetHTMLFooter("Printed / Accessed on: <b>" . date('d F,Y h:i A') . "</b>");
 		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		$this->ml_pdf->showWatermarkImage = true;
 		ini_set('max_execution_time', 0);
-		$this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
+
+		// Chunked WriteHTML to better handle large HTML
+		$parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
+		$buffer = '';
+		$chunkLimit = 80000;
+		foreach ($parts as $part) {
+			$buffer .= $part;
+			if (strlen($buffer) >= $chunkLimit) {
+				$this->ml_pdf->pdf->WriteHTML($buffer);
+				$buffer = '';
+			}
+		}
+		if (trim($buffer) !== '') {
+			$this->ml_pdf->pdf->WriteHTML($buffer);
+		}
 		//download it D save F.
 		$this->ml_pdf->pdf->Output($filename, 'I');
+	}
+
+	/**
+	 * CSV export for Monthly Attendance Form (respects filters).
+	 */
+	public function actuals_csv($year, $month, $empid = NULL)
+	{
+		$date = $year . '-' . $month;
+
+		if (empty($empid)) {
+			$empid = $this->input->get('empid');
+		}
+
+		// Fetch filtered employees
+		$duties = $this->rosta_model->fetch_attendance_form($date, 0, 0, $this->filters, $empid);
+
+		// Prefetch schedules
+		$employee_ids = array();
+		foreach ($duties as $row) {
+			if (!empty($row['ihris_pid'])) {
+				$employee_ids[] = $row['ihris_pid'];
+			}
+		}
+		$schedules = $this->rosta_model->get_attendance_schedules_bulk($date, $employee_ids);
+
+		$month_days = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
+
+		$csv_file = $_SESSION['facility'] . "_actuals_report_" . date('Y-m-d') . ".csv";
+		header("Content-Type: text/csv");
+		header("Content-Disposition: attachment; filename=\"$csv_file\"");
+
+		$fh = fopen('php://output', 'w');
+
+		// Header row
+		$header = array('NAME', 'POSITION');
+		for ($i = 1; $i <= $month_days; $i++) {
+			$header[] = 'Day ' . $i;
+		}
+		fputcsv($fh, $header);
+
+		// Data rows
+		foreach ($duties as $row) {
+			$pid = $row['ihris_pid'];
+			$line = array();
+			$line[] = $row['fullname'];
+			$line[] = $row['job'];
+
+			for ($d = 1; $d <= $month_days; $d++) {
+				$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
+				$ymd = $year . '-' . $month . '-' . $dayStr;
+				$letter = isset($schedules[$pid][$ymd]) ? $schedules[$pid][$ymd] : '';
+				$line[] = $letter;
+			}
+
+			fputcsv($fh, $line);
+		}
+
+		fclose($fh);
+		exit;
 	}
 	public function print_summary($date)
 	{
@@ -816,6 +1312,12 @@ class Rosta extends MX_Controller
 	{
 		$result = $this->rosta_model->addEvent();
 		echo $result;
+	}
+	
+	public function updateEvent()
+	{
+		$result = $this->rosta_model->updateEvent();
+		echo $result ? '1' : '0';
 	}
 	public function excel_template()
 	{

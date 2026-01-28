@@ -34,14 +34,14 @@ if (count($duties) > 0) {
 				<div class="panel panel-default">
 					<div class="panel-body" style="overflow-x: scroll;">
 						<div class="callout callout-success">
-							<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/fetch_report" method="post">
+							<form id="rosterFiltersForm" class="form-horizontal" style="padding-bottom: 2em;" action="javascript:void(0);" method="post">
 								<input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 								<div class="row">
-									<div class="col-md-3">
+									<div class="col-md-2">
 										<div class="control-group">
 											<input type="hidden" id="month" value="<?php echo $month; ?>">
-											<select class="form-control select2" name="month" onchange="this.form.submit()">
-												<option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10))) . "(Showing below)"; ?></option>
+											<select class="form-control select2" name="month" id="roster_month">
+												<option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10))) . " (Showing below)"; ?></option>
 												<option value="01">JANUARY</option>
 												<option value="02">FEBRUARY</option>
 												<option value="03">MARCH</option>
@@ -57,10 +57,10 @@ if (count($duties) > 0) {
 											</select>
 										</div>
 									</div>
-									<div class="col-md-3">
+									<div class="col-md-2">
 										<div class="control-group">
 											<input type="hidden" id="year" value="<?php echo $year; ?>">
-											<select class="form-control select2" name="year" onchange="this.form.submit()">
+											<select class="form-control select2" name="year" id="roster_year">
 												<option><?php echo $year; ?></option>
 												<?php for ($i = -5; $i <= 25; $i++) {  ?>
 													<option><?php echo 2017 + $i; ?></option>
@@ -68,13 +68,12 @@ if (count($duties) > 0) {
 											</select>
 										</div>
 									</div>
-									<div class="col-md-3">
+									<div class="col-md-2">
 										<div class="control-group">
 											<?php
 											$facility = $this->session->userdata['facility'];
-											//print_r($facility);
 											$employees = Modules::run("employees/get_employees"); ?>
-											<select class="form-control select2" name="empid" select2>
+											<select class="form-control select2" name="empid" id="roster_empid" select2>
 												<option value="" selected disabled>Select Employee</option>
 												<?php foreach ($employees as $employee) {  ?>
 													<option value="<?php echo $employee->ihris_pid ?>"><?php echo $employee->surname . ' ' . $employee->firstname . ' ' . $employee->othername; ?></option>
@@ -82,10 +81,11 @@ if (count($duties) > 0) {
 											</select>
 										</div>
 									</div>
-									<div class="col-md-3">
+									<div class="col-md-6">
 										<div class="control-group">
-											<button type="submit" name="" class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
-											<a href="<?php echo base_url() ?>rosta/print_roster/<?php echo $year . "/" . $month; ?>" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
+											<button type="button" id="roster_apply" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-tasks" aria-hidden="true"></i>Apply</button>
+											<a id="roster_print" href="<?php echo base_url() ?>rosta/print_roster/<?php echo $year . "/" . $month; ?>" class="btn bg-gray-dark color-pale" target="_blank" style="font-size:12px;"><i class="fa fa-print"></i>Print</a>
+											<a id="roster_csv" href="<?php echo base_url() ?>rosta/roster_csv/<?php echo $year . "/" . $month; ?>" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-file-excel"></i>CSV</a>
 										</div>
 									</div>
 								</div>
@@ -137,65 +137,8 @@ if (count($duties) > 0) {
 									echo "              " . date('F, Y', strtotime($year . "-" . $month));
 									?></p>
 							</div>
-							<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
 						</div>
-						<div id="table" class="tabtable" style="max-width: 100%;">
-							<div class="header-row tbrow">
-								<span class="cell tbprimary"># <b id="name"></b></span>
-								<span class="cell name">Name</span>
-								<span class="cell">Position</span>
-								<?php
-								$monthdays = cal_days_in_month(CAL_GREGORIAN, $month, $year); // get days in a month
-								for ($i = 1; $i < ($monthdays + 1); $i++) {
-									$dy = $i;
-									if ($i < 10) {
-										$dy = "0" . $i;
-									}
-									$wekday = $year . "-" . $month . "-" . $dy;
-									if (isWeekend($wekday) == 'yes') {
-										$color = "red";
-									} else {
-										$color = "";
-									}
-								?>
-									<span class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: <?php echo $color; ?>"><?php echo $i; ?></span>
-								<?php } ?>
-							</div>
-							<?php
-							// if beyond tenth disable editing or for other month for non system admins
-							$no = (!empty($this->uri->segment(3))) ? $this->uri->segment(3) : 0;
-							foreach ($duties as $singleduty) {
-								// print_r($singleduty);
-								$no++;
-							?>
-								<div class="table-row tbrow">
-									<input type="radio" name="expand" class="fa fa-angle-double-down trigger">
-									<span class="cell tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no; ?>
-										<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $singleduty['fullname']; ?></span></b>
-									</span>
-									<span class="cell text-left name" data-label="Name"><?php echo character_limiter($singleduty['fullname'], 15); ?></span>
-									<span class="cell text-left" data-label="Position"><?php echo character_limiter($singleduty['job'], 15); ?>
-									</span>
-									<?php
-									for ($i = 1; $i < ($monthdays + 1); $i++) {
-										$state = "";
-										$date_d = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i);
-										$pid    = $singleduty['ihris_pid'];
-										$entry_id = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i) . $singleduty['ihris_pid'];
-										$duty_letter = retrieve_schedule($pid, $date_d);
-										//determine whetehr to update or insert on ajax
-										$record_type = (!empty($duty_letter)) ? "update duty" : "new duty";
-									?>
-										<span class="cell" data-label="Day<?php echo $i; ?>">
-											<?php echo $duty_letter; ?>
-										</span>
-									<?php } // end for , one that loops tds 
-									?>
-								</div>
-							<?php }
-							?>
-						</div>
-						<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
+						<table id="roster_table" class="table table-bordered table-striped table-condensed" style="width:100%; font-size:11px;"></table>
 					</div>
 				</div>
 			</div>
@@ -208,4 +151,82 @@ if (count($duties) > 0) {
 	if (url == '<?php echo base_url(); ?>rosta/tabular') {
 		$('.fixed-top').addClass('mini-navbar');
 	}
+
+	$(document).ready(function() {
+		var baseUrl = '<?php echo base_url(); ?>';
+		var month = '<?php echo $month; ?>';
+		var year = '<?php echo $year; ?>';
+		var monthDays = <?php echo (int)cal_days_in_month(CAL_GREGORIAN, $month, $year); ?>;
+
+		function buildColumns() {
+			var cols = [];
+			cols.push({ data: 'rownum', title: '#', className: 'text-center', width: '40px' });
+			cols.push({ data: 'fullname', title: 'Name', className: 'text-left', width: '120px' });
+			cols.push({ data: 'job', title: 'Position', className: 'text-left', width: '120px' });
+
+			for (var d = 1; d <= monthDays; d++) {
+				cols.push({
+					data: 'd' + d,
+					title: d.toString(),
+					className: 'text-center',
+					width: '16px'
+				});
+			}
+			return cols;
+		}
+
+		var rosterTable = $('#roster_table').DataTable({
+			processing: true,
+			serverSide: true,
+			searching: false,
+			ordering: false,
+			pageLength: 50,
+			lengthChange: true,
+			lengthMenu: [[25, 50, 100, 200], [25, 50, 100, 200]],
+			pagingType: 'simple_numbers',
+			dom: '<"top"lp>rt<"bottom"ip><"clear">',
+			ajax: {
+				url: baseUrl + 'rosta/fetch_reportAjax',
+				type: 'POST',
+				data: function(d) {
+					d.month = $('#roster_month').val() || month;
+					d.year = $('#roster_year').val() || year;
+					d.empid = $('#roster_empid').val() || '';
+					d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+				}
+			},
+			columns: buildColumns(),
+			scrollX: true
+		});
+
+		function updateExportLinks() {
+			var selMonth = $('#roster_month').val() || month;
+			var selYear = $('#roster_year').val() || year;
+			var empid = $('#roster_empid').val() || '';
+
+			var printUrl = baseUrl + 'rosta/print_roster/' + selYear + '/' + selMonth;
+			var csvUrl = baseUrl + 'rosta/roster_csv/' + selYear + '/' + selMonth;
+
+			if (empid) {
+				printUrl += '/' + encodeURIComponent(empid);
+				csvUrl += '/' + encodeURIComponent(empid);
+			}
+
+			$('#roster_print').attr('href', printUrl);
+			$('#roster_csv').attr('href', csvUrl);
+		}
+
+		updateExportLinks();
+
+		$('#roster_apply').on('click', function(e) {
+			e.preventDefault();
+			rosterTable.ajax.reload();
+			updateExportLinks();
+		});
+
+		$('#roster_month, #roster_year, #roster_empid').on('change', function() {
+			rosterTable.ajax.reload();
+			updateExportLinks();
+		});
+	});
 </script>

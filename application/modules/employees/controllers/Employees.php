@@ -421,11 +421,9 @@ class Employees extends MX_Controller
     ini_set('max_execution_time', 0);
     $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
     $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-    $this->m_pdf->pdf->showWatermarkImage = true;
     date_default_timezone_set("Africa/Kampala");
     $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>" . date('d F,Y h:i A') . "</b><br style='font-size: 9px !imporntant;'>" . "Source: iHRIS - HRM Attend " . base_url());
     $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-    $this->m_pdf->showWatermarkImage = true;
     ini_set('max_execution_time', 0);
     $this->m_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
     //download it D save F.
@@ -441,13 +439,25 @@ class Employees extends MX_Controller
     $html = $this->load->view('print_time_logs', $data, true);
     $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
     $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-    $this->ml_pdf->pdf->showWatermarkImage = true;
     date_default_timezone_set("Africa/Kampala");
     $this->ml_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>" . date('d F,Y h:i A') . "</b><br style='font-size: 9px !imporntant;'>" . " Source: iHRIS - HRM Attend " . base_url());
     $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-    $this->ml_pdf->showWatermarkImage = true;
     ini_set('max_execution_time', 0);
-    $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not ml_pdf
+
+    // Chunked WriteHTML to avoid pcre.backtrack_limit issues for big timelog PDFs
+    $parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
+    $buffer = '';
+    $chunkLimit = 80000;
+    foreach ($parts as $part) {
+      $buffer .= $part;
+      if (strlen($buffer) >= $chunkLimit) {
+        $this->ml_pdf->pdf->WriteHTML($buffer);
+        $buffer = '';
+      }
+    }
+    if (trim($buffer) !== '') {
+      $this->ml_pdf->pdf->WriteHTML($buffer);
+    }
     //download it D save F.
     $this->ml_pdf->pdf->Output($filename, 'I');
   }
@@ -462,6 +472,38 @@ class Employees extends MX_Controller
       $date = date('Y-m');
     }
     $data['workinghours'] = $this->empModel->fetch_TimeSheet($date, $perpage = FALSE, $page = FALSE, str_replace("emp", "", urldecode($employee)), $this->filters, str_replace("job", "", $job));
+
+    // Optimized: prefetch all clk_log rows for this month + set of employees,
+    // so the PDF view does not call gettimedata() per cell.
+    $pids = array();
+    foreach ($data['workinghours'] as $row) {
+      if (!empty($row['ihris_pid'])) {
+        $pids[] = $row['ihris_pid'];
+      }
+    }
+    $logs_by_pid_date = array();
+    if (!empty($pids)) {
+      $startDate = date('Y-m-01', strtotime($date . '-01'));
+      $endDate = date('Y-m-t', strtotime($date . '-01'));
+      $logs = $this->db
+        ->select('ihris_pid, date, time_in, time_out')
+        ->from('clk_log')
+        ->where_in('ihris_pid', $pids)
+        ->where('date >=', $startDate)
+        ->where('date <=', $endDate)
+        ->get()
+        ->result();
+
+      foreach ($logs as $log) {
+        $pid = (string)$log->ihris_pid;
+        $d = $log->date;
+        if (!isset($logs_by_pid_date[$pid])) {
+          $logs_by_pid_date[$pid] = array();
+        }
+        $logs_by_pid_date[$pid][$d] = $log;
+      }
+    }
+    $data['logs_by_pid_date'] = $logs_by_pid_date;
     $this->load->library('ML_pdf');
     $fac = $_SESSION['facility_name'];
     $filename = $fac . " Timesheet_Report_" . $date . ".pdf";
@@ -469,13 +511,25 @@ class Employees extends MX_Controller
     $html = $this->load->view('print_timesheet', $data, true);
     $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
     $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-    $this->ml_pdf->pdf->showWatermarkImage = true;
     date_default_timezone_set("Africa/Kampala");
     $this->ml_pdf->pdf->SetHTMLFooter("<p style='font-size:8px'>Printed/ Accessed on: " . date('d F,Y h:i A') . ", Source: iHRIS - HRM Attend " . base_url() . "</p>");
     $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-    $this->ml_pdf->showWatermarkImage = true;
     ini_set('max_execution_time', 0);
-    $this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not ml_pdf
+
+    // Chunked WriteHTML for monthly timesheet
+    $parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
+    $buffer = '';
+    $chunkLimit = 80000;
+    foreach ($parts as $part) {
+      $buffer .= $part;
+      if (strlen($buffer) >= $chunkLimit) {
+        $this->ml_pdf->pdf->WriteHTML($buffer);
+        $buffer = '';
+      }
+    }
+    if (trim($buffer) !== '') {
+      $this->ml_pdf->pdf->WriteHTML($buffer);
+    }
     //download it D save F.
     $this->ml_pdf->pdf->Output($filename, 'I');
   }
@@ -490,6 +544,36 @@ class Employees extends MX_Controller
     }
     ini_set('max_execution_time', 0);
     $datas = $data['workinghours'] = $this->empModel->fetch_TimeSheet($date, $perpage = FALSE, $page = FALSE, str_replace("emp", "", urldecode($employee)), $this->filters, str_replace("job", "", $job));
+
+    // Optimized: prefetch all clk_log rows for this month + employees
+    $pids = array();
+    foreach ($datas as $row) {
+      if (!empty($row['ihris_pid'])) {
+        $pids[] = $row['ihris_pid'];
+      }
+    }
+    $logs_by_pid_date = array();
+    if (!empty($pids)) {
+      $startDate = date('Y-m-01', strtotime($date . '-01'));
+      $endDate = date('Y-m-t', strtotime($date . '-01'));
+      $logs = $this->db
+        ->select('ihris_pid, date, time_in, time_out')
+        ->from('clk_log')
+        ->where_in('ihris_pid', $pids)
+        ->where('date >=', $startDate)
+        ->where('date <=', $endDate)
+        ->get()
+        ->result();
+
+      foreach ($logs as $log) {
+        $pid = (string)$log->ihris_pid;
+        $d = $log->date;
+        if (!isset($logs_by_pid_date[$pid])) {
+          $logs_by_pid_date[$pid] = array();
+        }
+        $logs_by_pid_date[$pid][$d] = $log;
+      }
+    }
     $fac = $_SESSION['facility_name'];
     $csv_file = $fac . " Attend_TimeLogs" . date('Y-m-d') . '_' . $_SESSION['facility'] . ".csv";
     header("Content-Type: text/csv");
@@ -505,7 +589,7 @@ class Employees extends MX_Controller
         $date_d = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i);
         $date = $year . "-" . $month;
         //  print_r($hours_data);
-        $timedata = gettimedata($data['ihris_pid'], $date_d);
+        $timedata = isset($logs_by_pid_date[$data['ihris_pid']][$date_d]) ? $logs_by_pid_date[$data['ihris_pid']][$date_d] : null;
         if (!empty($timedata)) {
           $starTime = @$timedata->time_in;
           $endTime = @$timedata->time_out;
@@ -631,10 +715,23 @@ class Employees extends MX_Controller
     $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
 
     $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-    $this->ml_pdf->pdf->showWatermarkImage = true;
     date_default_timezone_set("Africa/Kampala");
     $this->ml_pdf->pdf->SetHTMLFooter("<p style='font-size:8px'>Printed/ Accessed on: " . date('d F,Y h:i A') . ", Source: iHRIS - HRM Attend " . base_url() . "</p>");
-    $this->ml_pdf->pdf->WriteHTML($PDFContent);
+
+    // Chunked WriteHTML for range timesheet (avoid backtrack limit)
+    $parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
+    $buffer = '';
+    $chunkLimit = 80000;
+    foreach ($parts as $part) {
+      $buffer .= $part;
+      if (strlen($buffer) >= $chunkLimit) {
+        $this->ml_pdf->pdf->WriteHTML($buffer);
+        $buffer = '';
+      }
+    }
+    if (trim($buffer) !== '') {
+      $this->ml_pdf->pdf->WriteHTML($buffer);
+    }
     $this->ml_pdf->pdf->Output($filename, 'I');
   }
 
@@ -1068,11 +1165,9 @@ class Employees extends MX_Controller
     $html = $this->load->view($view, $data, true);
     $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
     $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-    $this->m_pdf->pdf->showWatermarkImage = true;
     date_default_timezone_set("Africa/Kampala");
     $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>" . date('d F,Y h:i A') . "</b><br style='font-size: 9px !imporntant;'>" . " Source: iHRIS - HRM Attend " . base_url());
     $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-    $this->m_pdf->showWatermarkImage = true;
     ini_set('max_execution_time', 0);
     $this->m_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
     //download it D save F.
