@@ -516,7 +516,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             // Clean up invalid records
             $this->db->query("DELETE FROM biotime_data WHERE emp_code='0'");
 
-            DD($batch);
+           // DD($batch);
             
             // Close PostgreSQL connection
             pg_close($pg_conn);
