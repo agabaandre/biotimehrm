@@ -160,18 +160,42 @@
   border-color: #dee2e6;
 }
 
-/* DataTables Buttons */
-.dt-buttons .btn {
-  margin-right: 0.25rem;
-  margin-bottom: 0.25rem;
+/* DataTables Buttons (uniform + professional) */
+#staffTable_wrapper .dt-buttons .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  line-height: 1;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  margin: 0;
 }
 
-.dt-buttons .btn i {
-  margin-right: 0.25rem;
+#staffTable_wrapper .dt-buttons .btn i {
+  font-size: 14px;
+  line-height: 1;
+  width: 16px;
+  text-align: center;
+}
+
+#staffTable_wrapper .dt-buttons .btn.buttons-collection::after {
+  margin-left: 8px;
 }
 
 /* Responsive improvements */
 @media (max-width: 768px) {
+  #staffTable_wrapper .dt-buttons .btn {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
   .card-body {
     padding: 1rem;
   }

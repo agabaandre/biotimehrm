@@ -102,6 +102,46 @@
 </section>
 
 <!-- DataTables Scripts -->
+<style>
+  /* Employees page: make DataTables action buttons uniform + professional */
+  #staffTable_wrapper .dt-buttons .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 14px;
+    line-height: 1;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  #staffTable_wrapper .dt-buttons .btn i {
+    font-size: 14px;
+    line-height: 1;
+    width: 16px;
+    text-align: center;
+  }
+
+  #staffTable_wrapper .dt-buttons .btn + .btn { margin-left: 0; }
+
+  /* Ensure the "Columns" collection button matches size too */
+  #staffTable_wrapper .dt-buttons .btn.buttons-collection::after {
+    margin-left: 8px;
+  }
+
+  /* Keep the toolbar aligned nicely on small screens */
+  @media (max-width: 768px) {
+    #staffTable_wrapper .dt-buttons .btn {
+      height: 36px;
+      padding: 0 12px;
+      font-size: 13px;
+      border-radius: 8px;
+    }
+  }
+</style>
 <script src="<?php echo base_url('assets/plugins/datatables-responsive/js/dataTables.responsive.min.js'); ?>"></script>
 <script src="<?php echo base_url('assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js'); ?>"></script>
 <script src="<?php echo base_url('assets/plugins/datatables-buttons/js/dataTables.buttons.min.js'); ?>"></script>

@@ -134,6 +134,22 @@
     })();
   </script>
   <style>
+    /* Global: DataTables Buttons toolbar - keep buttons on one line */
+    .dt-buttons {
+      display: inline-flex !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      gap: 6px !important;
+      white-space: nowrap !important;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .dt-buttons .btn {
+      flex: 0 0 auto;
+      margin: 0 !important;
+    }
+
     @media (max-width: 767px) {
       .hidden-mobile {
         display: none;
