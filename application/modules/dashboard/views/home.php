@@ -582,35 +582,51 @@
  		</div>
 
     <!-- Calendar Section -->
- 		<div class="row">
+		<div class="row">
       <!-- Daily Attendance Calendar -->
       <div class="col-lg-12 mb-4">
         <div class="calendar-card">
           <div class="calendar-header">
             <h3 class="calendar-title">
               <i class="fas fa-calendar-check mr-2"></i>Daily Attendance Calendar
- 						</h3>
+              <span id="calendar-loading" class="ml-2" style="display:none;">
+                <i class="fas fa-spinner fa-spin text-primary"></i> Loading calendar...
+              </span>
+						</h3>
           </div>
           
           <div class="calendar-legend">
- 								<?php $colors = Modules::run('schedules/getattKey'); ?>
- 									<?php foreach ($colors as $color) { ?>
+								<?php $colors = Modules::run('schedules/getattKey'); ?>
+									<?php foreach ($colors as $color) { ?>
               <div class="legend-item">
                 <span class="legend-color" style="background-color:<?php echo $color->color; ?>;"></span>
                 <span class="legend-text"><?php echo $color->schedule; ?></span>
               </div>
             <?php } ?>
- 								</div>
+								</div>
           
           <div class="card-body p-0">
             <div id="attcalendar"></div>
- 						</div>
- 						</div>
- 				</div>
+						</div>
+						</div>
+				</div>
+		</div>
+		
+		<!-- Attendance Graphs Section (loaded separately) -->
+		<div class="row" id="attendance-graphs-section">
+			<div class="col-12 mb-3">
+				<h4 class="text-muted">
+					<i class="fas fa-chart-line mr-2"></i>Attendance Analytics
+					<span id="graphs-loading" class="ml-2" style="display:none;">
+						<i class="fas fa-spinner fa-spin text-primary"></i> Loading graphs...
+					</span>
+				</h4>
+			</div>
+			<?php echo Modules::run('dashboard/attendance_graphs'); ?>
+		</div>
 
-
- 				</div>
- 			</section>
+				</div>
+			</section>
 
 <!-- Scripts -->
  <script src="<?php echo base_url() ?>assets/plugins/moment/moment.min.js"></script>
@@ -758,47 +774,106 @@
  			});
  		}
 
- 		function loadAttendanceCalendar() {
- 			var base_url = $('.base_url').html();
- 			$('#attcalendar').fullCalendar({
- 				defaultView: 'basicWeek',
- 				header: {
- 					left: 'prev, next, today',
- 					center: 'title',
- 					right: 'month, basicWeek, basicDay'
- 				},
-            eventLimit: true,
- 				events: base_url + 'calendar/getattEvents',
- 				selectable: false,
- 				selectHelper: true,
- 				editable: false,
- 				eventMouseover: function(calEvent, jsEvent, view) {
- 					var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
- 					$("body").append(tooltip);
- 					$(this).mouseover(function(e) {
- 						$(this).css('z-index', 10000);
- 						$('.event-tooltip').fadeIn('500');
- 						$('.event-tooltip').fadeTo('10', 1.9);
- 					}).mousemove(function(e) {
- 						$('.event-tooltip').css('top', e.pageY + 10);
- 						$('.event-tooltip').css('left', e.pageX + 20);
- 					});
- 				},
- 				eventMouseout: function(calEvent, jsEvent) {
- 					$(this).css('z-index', 8);
- 					$('.event-tooltip').remove();
- 				},
- 			});
- 		}
- 		
- 		// Chain the functions in order (data fetch auto-retries in the background on errors/timeouts)
- 		 loadDashboardData(true)
- 			.then(function() {
- 				return loadAttendanceCalendar();
- 			})
- 			.catch(function(error) {
- 				console.error('An error occurred:', error);
- 			});
+		/**
+		 * Load attendance calendar separately and asynchronously
+		 * This prevents the dashboard from hanging
+		 */
+		function loadAttendanceCalendar() {
+			return new Promise(function(resolve, reject) {
+				var base_url = $('.base_url').html();
+				
+				// Show loading indicator
+				$('#calendar-loading').show();
+				
+				// Initialize calendar with optimized streaming endpoint
+				$('#attcalendar').fullCalendar({
+					defaultView: 'basicWeek',
+					header: {
+						left: 'prev, next, today',
+						center: 'title',
+						right: 'month, basicWeek, basicDay'
+					},
+					eventLimit: true,
+					loading: function(isLoading) {
+						if (!isLoading) {
+							$('#calendar-loading').hide();
+							resolve();
+						}
+					},
+					events: function(start, end, timezone, callback) {
+						// Use optimized streaming endpoint
+						$.ajax({
+							url: base_url + 'calendar/getattEventsStream',
+							type: 'GET',
+							dataType: 'json',
+							data: {
+								start: start.format('YYYY-MM-DD'),
+								end: end.format('YYYY-MM-DD')
+							},
+							timeout: 60000,
+							success: function(events) {
+								callback(events);
+							},
+							error: function(xhr, status, error) {
+								console.error('Calendar load error:', error);
+								callback([]);
+								$('#calendar-loading').html('<span class="text-danger">Error loading calendar</span>');
+								resolve(); // Resolve anyway to not block
+							}
+						});
+					},
+					selectable: false,
+					selectHelper: true,
+					editable: false,
+					eventMouseover: function(calEvent, jsEvent, view) {
+						var tooltip = '<div class="event-tooltip">' + calEvent.duty + '</div>';
+						$("body").append(tooltip);
+						$(this).mouseover(function(e) {
+							$(this).css('z-index', 10000);
+							$('.event-tooltip').fadeIn('500');
+							$('.event-tooltip').fadeTo('10', 1.9);
+						}).mousemove(function(e) {
+							$('.event-tooltip').css('top', e.pageY + 10);
+							$('.event-tooltip').css('left', e.pageX + 20);
+						});
+					},
+					eventMouseout: function(calEvent, jsEvent) {
+						$(this).css('z-index', 8);
+						$('.event-tooltip').remove();
+					},
+				});
+			});
+		}
+		
+		/**
+		 * Initialize attendance graphs after page load
+		 * Graphs are already in the DOM, just need to ensure they initialize properly
+		 */
+		function initializeAttendanceGraphs() {
+			// Graphs are already loaded in the DOM
+			// Just ensure Highcharts is ready and graphs initialize
+			waitForHighcharts(function() {
+				// Graphs will initialize via their own script in attendance_graphs.php
+				console.log('Attendance graphs ready');
+			});
+		}
+		
+		// Load dashboard stats first (non-blocking)
+		loadDashboardData(true).catch(function(error) {
+			console.error('Dashboard data error:', error);
+		});
+		
+		// Load calendar separately and asynchronously (non-blocking)
+		setTimeout(function() {
+			loadAttendanceCalendar().then(function() {
+				// After calendar loads, initialize graphs
+				setTimeout(function() {
+					initializeAttendanceGraphs();
+				}, 1000);
+			}).catch(function(error) {
+				console.error('Calendar load error:', error);
+			});
+		}, 500); // Small delay to let dashboard stats start loading
 
      // Start background refresh after initial attempt (success or failure)
      startDashboardAutoRefresh();

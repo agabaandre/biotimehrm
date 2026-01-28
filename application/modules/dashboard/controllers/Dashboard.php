@@ -141,6 +141,47 @@ class Dashboard extends MX_Controller {
 		
 		echo json_encode($debug_data);
 	}
+	
+	/**
+	 * Load attendance graphs view
+	 */
+	public function attendance_graphs() {
+		$data = array();
+		$this->load->view('dashboards/attendance_graphs', $data);
+	}
+	
+	/**
+	 * Load attendance graphs view asynchronously (for AJAX)
+	 */
+	public function loadGraphs() {
+		$data = array();
+		$this->load->view('dashboards/attendance_graphs', $data);
+	}
+	
+	/**
+	 * Optimized endpoint for attendance graphs data
+	 */
+	public function graphsData() {
+		header('Content-Type: application/json');
+		
+		try {
+			// Get average hours
+			$avg_hours = $this->dash_mdl->avghours();
+			
+			// Get graph data
+			$graph = Modules::run("reports/dutygraphData");
+			
+			$data = array(
+				'avg_hours' => isset($avg_hours['avg_hours']) ? $avg_hours['avg_hours'] : 0,
+				'graph' => $graph
+			);
+			
+			echo json_encode($data);
+		} catch (Exception $e) {
+			log_message('error', 'graphsData error: ' . $e->getMessage());
+			echo json_encode(array('error' => $e->getMessage()));
+		}
+	}
 
 	
 

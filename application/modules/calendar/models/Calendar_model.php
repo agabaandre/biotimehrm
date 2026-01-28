@@ -43,6 +43,54 @@ class Calendar_model extends CI_Model
 
 		return $query->result();
 	}
+	
+	/**
+	 * Optimized version with better query performance
+	 */
+	public function getattEventsOptimized($filters, $start, $end)
+	{
+		// Use raw query with proper escaping for better performance
+		$start_escaped = $this->db->escape($start);
+		$end_escaped = $this->db->escape($end);
+		
+		$query = $this->db->query("SELECT actuals.entry_id as id, actuals.end, actuals.ihris_pid as person_id, schedules.schedule as duty, actuals.facility_id,
+			CONCAT(COALESCE(ihrisdata.surname, ''), ' ', COALESCE(ihrisdata.firstname, '')) as title,
+			actuals.color, actuals.date as start, actuals.schedule_id as schedule
+			FROM actuals
+			INNER JOIN ihrisdata ON ihrisdata.ihris_pid = actuals.ihris_pid
+			INNER JOIN schedules ON schedules.schedule_id = actuals.schedule_id
+			WHERE ($filters) 
+			AND actuals.date >= $start_escaped 
+			AND actuals.date <= $end_escaped
+			ORDER BY ihrisdata.salary_grade ASC, actuals.date DESC
+			LIMIT 5000");
+		
+		return $query->result();
+	}
+	
+	/**
+	 * Optimized version for duty roster events
+	 */
+	public function getEventsOptimized($filters, $start, $end)
+	{
+		// Use raw query with proper escaping for better performance
+		$start_escaped = $this->db->escape($start);
+		$end_escaped = $this->db->escape($end);
+		
+		$query = $this->db->query("SELECT duty_rosta.entry_id as id, duty_rosta.end, duty_rosta.ihris_pid as person_id, schedules.schedule as duty,
+			CONCAT(COALESCE(ihrisdata.surname, ''), ' ', COALESCE(ihrisdata.firstname, '')) as title,
+			duty_rosta.color, duty_rosta.duty_date as start, duty_rosta.schedule_id as schedule
+			FROM duty_rosta
+			INNER JOIN ihrisdata ON ihrisdata.ihris_pid = duty_rosta.ihris_pid
+			INNER JOIN schedules ON schedules.schedule_id = duty_rosta.schedule_id
+			WHERE ($filters) 
+			AND duty_rosta.duty_date >= $start_escaped 
+			AND duty_rosta.duty_date <= $end_escaped
+			ORDER BY ihrisdata.salary_grade ASC, duty_rosta.duty_date DESC
+			LIMIT 5000");
+		
+		return $query->result();
+	}
 	/*Read the data from DB */
 	public function getEvents($filters)
 	{

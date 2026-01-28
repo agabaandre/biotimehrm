@@ -100,15 +100,45 @@
         }
 
         $(document).ready(function () {
+        // Initialize with 0, will be updated when data loads
         knobgauge(0);
+        
+        // Load graph data asynchronously
         $.ajax({
             type: 'GET',
-            url: '<?php echo base_url('dashboard/') ?>',
+            url: '<?php echo base_url('dashboard/graphsData') ?>',
             dataType: "json",
-            data: '',
+            timeout: 30000,
             success: function (data) {
-                knobgauge(data.avg_hours);
-                console.log(data);
+                if (data.avg_hours !== undefined) {
+                    knobgauge(data.avg_hours);
+                }
+                
+                // Update graph data if available
+                if (data.graph && data.graph.period && data.graph.data) {
+                    // Update the existing charts if they exist
+                    if (typeof Highcharts !== 'undefined' && Highcharts.charts) {
+                        var rosterChart = Highcharts.charts.find(function(chart) {
+                            return chart && chart.renderTo && chart.renderTo.id === 'line_graph_roster';
+                        });
+                        if (rosterChart) {
+                            rosterChart.series[0].setData(data.graph.data);
+                            rosterChart.xAxis[0].setCategories(data.graph.period);
+                        }
+                        
+                        var attChart = Highcharts.charts.find(function(chart) {
+                            return chart && chart.renderTo && chart.renderTo.id === 'line_graph_att';
+                        });
+                        if (attChart) {
+                            attChart.series[0].setData(data.graph.data);
+                            attChart.xAxis[0].setCategories(data.graph.period);
+                        }
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Graphs data load error:', error);
+                // Keep default values
             }
         });
 
