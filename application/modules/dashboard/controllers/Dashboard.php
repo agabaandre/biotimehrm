@@ -186,25 +186,7 @@ class Dashboard extends MX_Controller {
 		}
 	}
 	
-	/**
-	 * Separate lightweight endpoint for average hours only
-	 * Can be called independently if needed
-	 */
-	public function avgHoursOnly() {
-		header('Content-Type: application/json');
-		
-		set_time_limit(15);
-		
-		try {
-			$avg_hours_result = $this->dash_mdl->avghours();
-			$avg_hours = isset($avg_hours_result['avg_hours']) ? (float)$avg_hours_result['avg_hours'] : 0;
-			
-			echo json_encode(array('avg_hours' => $avg_hours));
-		} catch (Exception $e) {
-			log_message('error', 'avgHoursOnly error: ' . $e->getMessage());
-			echo json_encode(array('avg_hours' => 0));
-		}
-	}
+	// Removed avgHoursOnly endpoint (Average Monthly Hours gauge removed from dashboard)
 
 	
 
