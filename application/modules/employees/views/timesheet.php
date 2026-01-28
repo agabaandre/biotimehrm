@@ -149,8 +149,8 @@
 								var $row = $('#ts_header_row');
 								$row.empty();
 								$row.append('<th style="width:50px;">#</th>');
-								$row.append('<th style="min-width:220px;">Name</th>');
-								$row.append('<th style="min-width:160px;">Position</th>');
+								$row.append('<th style="min-width:120px;">Name</th>');
+								$row.append('<th style="min-width:120px;">Position</th>');
 								var y = parseInt(year, 10);
 								var m = parseInt(month, 10);
 								if (!y || !m) {
@@ -162,7 +162,7 @@
 									var dt = new Date(y, m - 1, i);
 									var weekend = isWeekendDate(dt);
 									var label = dt.getDate();
-									var style = 'min-width:28px; text-align:center;' + (weekend ? ' background-color:#ffcccc;' : '');
+									var style = 'min-width:20px; width:20px; text-align:center; padding:4px 2px; font-size:11px;' + (weekend ? ' background-color:#ffcccc;' : '');
 									$row.append('<th style="' + style + '">' + label + '</th>');
 								}
 								$row.append('<th style="min-width:70px;">Hrs</th>');
