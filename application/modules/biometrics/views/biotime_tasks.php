@@ -167,11 +167,20 @@
                 <small class="form-text text-muted">Machine identifier</small>
               </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-3">
               <div class="form-group">
-                <label for="end_date" class="font-weight-bold">Date Before</label>
+                <label for="start_date" class="font-weight-bold">Start Date</label>
+                <input type="date" name="start_date" id="start_date" class="form-control" required>
+                <small class="form-text text-muted">Sync data from this date</small>
+                <small class="form-text text-danger" id="date_range_error" style="display:none;"></small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="end_date" class="font-weight-bold">End Date</label>
                 <input type="date" name="end_date" id="end_date" class="form-control" required>
-                <small class="form-text text-muted">Sync data before this date</small>
+                <small class="form-text text-muted">Sync data to this date</small>
+                <small class="form-text text-info" id="date_range_info"></small>
               </div>
             </div>
           </div>
@@ -202,6 +211,7 @@
           <div class="alert alert-info">
             <i class="fas fa-info-circle"></i>
             <strong>Note:</strong> This will sync data from the selected machine. Large datasets may take several minutes to process.
+            <br><i class="fas fa-calendar-alt"></i> <strong>Date Range Limit:</strong> Maximum 30 days between start and end dates.
           </div>
         </form>
       </div>
@@ -643,12 +653,65 @@ $(document).ready(function() {
         clearTerminal();
     });
 
+    // Date range validation (max 30 days)
+    function validateDateRange() {
+        var start_date = $('#start_date').val();
+        var end_date = $('#end_date').val();
+        var errorEl = $('#date_range_error');
+        var infoEl = $('#date_range_info');
+        
+        if (start_date && end_date) {
+            var start = new Date(start_date);
+            var end = new Date(end_date);
+            var diffTime = Math.abs(end - start);
+            var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            if (start > end) {
+                errorEl.text('Start date must be before or equal to end date.').show();
+                infoEl.hide();
+                return false;
+            } else if (diffDays > 30) {
+                errorEl.text('Date range cannot exceed 30 days. Selected: ' + diffDays + ' days.').show();
+                infoEl.hide();
+                return false;
+            } else {
+                errorEl.hide();
+                infoEl.text('Range: ' + diffDays + ' day(s)').show();
+                return true;
+            }
+        } else {
+            errorEl.hide();
+            infoEl.hide();
+            return true;
+        }
+    }
+    
+    // Validate on date change
+    $('#start_date, #end_date').on('change', function() {
+        validateDateRange();
+    });
+    
+    // Set default end date to today
+    $('#end_date').val(new Date().toISOString().split('T')[0]);
+    
+    // Set default start date to 30 days ago
+    var defaultStartDate = new Date();
+    defaultStartDate.setDate(defaultStartDate.getDate() - 30);
+    $('#start_date').val(defaultStartDate.toISOString().split('T')[0]);
+    validateDateRange();
+
     // Handle form submission
     $('#syncForm').on('submit', function(e) {
         e.preventDefault();
         
+        // Validate date range before submission
+        if (!validateDateRange()) {
+            return false;
+        }
+        
         var formData = $(this).serialize();
         var terminal_sn = $('#terminal_sn').val();
+        var start_date = $('#start_date').val();
         var end_date = $('#end_date').val();
         var sync_type = $('#sync_type').val();
         var batch_size = $('#batch_size').val();

@@ -187,7 +187,9 @@ $(document).ready(function() {
                 var safeName = $('<div>').text(data || '').html();
                 var pid = row && row.ihris_pid ? String(row.ihris_pid) : '';
                 if (!pid) return safeName;
-                var href = baseUrl + 'employees/employeeTimeLogs/' + encodeURIComponent(pid);
+                // Format as person|{id} then URL encode
+                var personId = 'person|' + pid;
+                var href = baseUrl + 'employees/employeeTimeLogs/' + encodeURIComponent(personId);
                 return '<a href="' + href + '" title="View time logs">' + safeName + '</a>';
             }},
             { data: 'gender', className: 'text-center' },

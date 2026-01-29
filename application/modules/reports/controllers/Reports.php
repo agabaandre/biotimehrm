@@ -174,61 +174,155 @@ class Reports extends MX_Controller
 
 	public function attendance_aggregate()
 	{
-		$search = request_fields();
-		$group_by = (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
-		$month_year = request_fields('duty_date');
+		// Handle CSV export
 		$csv = request_fields('csv');
-
-
-		if (empty($month_year)) {
-
-			$month_year = date('Y-m');
-			$search['district'] = $_SESSION['district'];
-		}
-
-
-		flash_form();
-
-		  $search['duty_date'] = $month_year;
-		  //dd($month_year);
-
-		$totals = $this->reports_mdl->count_aggregated($search, $group_by);
-		$route = "reports/attendance_aggregate";
-		$per_page = (request_fields('rows')) ? request_fields('rows') : 144;
-		$segment = 3;
-		$page = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
-
-		$data['links'] = paginate($route, $totals, $per_page, $segment);
-
-		if ($csv)
-			$per_page = null;
-
-		$data['records'] = $this->reports_mdl->attendance_aggregates($search, $per_page, $page, $group_by);
-       // dd($this->db->last_query());
 		if ($csv) {
-
-			$this->export_aggregates_csv($data['records'], $group_by);
+			$search = request_fields();
+			$group_by = (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
+			$month_year = request_fields('duty_date');
+			
+			if (empty($month_year)) {
+				$month_year = date('Y-m');
+				$search['district'] = $_SESSION['district'];
+			}
+			
+			$search['duty_date'] = $month_year;
+			$records = $this->reports_mdl->attendance_aggregates($search, null, null, $group_by);
+			$this->export_aggregates_csv($records, $group_by);
 			return;
 		}
 
+		// Default values for view
+		$month_year = request_fields('duty_date');
+		if (empty($month_year)) {
+			$month_year = date('Y-m');
+		}
+
 		$data['module'] = $this->module;
-		$data['search'] = (object) $search;
-		$data['grouped_by'] = $group_by;
+		$data['grouped_by'] = (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
 		$data['period'] = $month_year;
-		$data['districts'] = $this->districts_mdl->get_all_Districts();
 		$data['districts'] = $this->districts_mdl->get_all_Districts();
 		$data['regions'] = $this->db->query("SELECT distinct region from ihrisdata WHERE region!='' ORDER BY region asc")->result();
 		$data['institutiontypes'] = $this->db->query("SELECT distinct institutiontype_name from ihrisdata ORDER BY institutiontype_name asc")->result();
 		$data['facilities'] = $this->facilities_mdl->getAll();
+		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "region", "department_id", "gender"];
 
 		$data['view'] = 'attendance_aggr';
 		$data['title'] = 'Attendance Form Summary';
 		$data['uptitle'] = 'Attendance Form Summary';
 
-
-		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "region", "department_id", "gender"];
-
 		echo Modules::run('templates/main', $data);
+	}
+
+	/**
+	 * Server-side DataTables AJAX endpoint for attendance aggregates.
+	 */
+	public function attendanceAggregateAjax()
+	{
+		$this->output->set_content_type('application/json');
+
+		$draw = (int) $this->input->post('draw');
+		$start = (int) $this->input->post('start');
+		$length = (int) $this->input->post('length');
+		$search = trim((string) $this->input->post('search')['value']);
+
+		// Get filters from POST
+		$filters = array();
+		$filters['district'] = $this->input->post('district');
+		$filters['facility_name'] = $this->input->post('facility_name');
+		$filters['region'] = $this->input->post('region');
+		$filters['institution_type'] = $this->input->post('institution_type');
+		$filters['duty_date'] = $this->input->post('duty_date');
+		$group_by = $this->input->post('group_by') ?: 'district';
+
+		// Remove empty filters
+		$filters = array_filter($filters, function($value) {
+			return !empty($value);
+		});
+
+		// Default duty_date if not provided
+		if (empty($filters['duty_date'])) {
+			$filters['duty_date'] = date('Y-m');
+		}
+
+		// If duty_date is string, convert to array
+		if (is_string($filters['duty_date'])) {
+			$filters['duty_date'] = array($filters['duty_date']);
+		}
+
+		try {
+			// Counts
+			$total_records = $this->reports_mdl->countAttendanceAggregatesAjax($filters, $group_by, '');
+			$filtered_records = $this->reports_mdl->countAttendanceAggregatesAjax($filters, $group_by, $search);
+
+			// Fetch data
+			$records = $this->reports_mdl->fetchAttendanceAggregatesAjax($filters, $group_by, $start, $length, $search);
+
+			// Format data for DataTables
+			$data = array();
+			$row_num = $start + 1;
+			foreach ($records as $row) {
+				$supposed_days = $row->days_supposed ?? 0;
+				$days_worked = ($supposed_days - ($row->days_absent ?? 0));
+
+				// Prevent division by zero
+				if ($supposed_days > 0) {
+					$attendance_rate = ($days_worked / $supposed_days) * 100;
+					$absentism_rate = (($row->days_absent ?? 0) / $supposed_days) * 100;
+					$present = (($row->present ?? 0) / $supposed_days) * 100;
+					$on_leave = (($row->own_leave ?? 0) / $supposed_days) * 100;
+					$official = (($row->official ?? 0) / $supposed_days) * 100;
+					$off = (($row->off ?? 0) / $supposed_days) * 100;
+					$holiday = (($row->holiday ?? 0) / $supposed_days) * 100;
+					$absent = (($row->absent ?? 0) / $supposed_days) * 100;
+				} else {
+					$attendance_rate = 0;
+					$absentism_rate = 0;
+					$present = 0;
+					$on_leave = 0;
+					$official = 0;
+					$off = 0;
+					$holiday = 0;
+					$absent = 0;
+				}
+
+				$grouped_value = $row->{$group_by} ?? 'N/A';
+
+				$data[] = array(
+					$row_num++,
+					$grouped_value,
+					$row->duty_date ?? '',
+					number_format($present, 1) . '%',
+					number_format($off, 1) . '%',
+					number_format($official, 1) . '%',
+					number_format($on_leave, 1) . '%',
+					number_format($holiday, 1) . '%',
+					number_format($absent, 1) . '%',
+					number_format($days_worked, 1),
+					number_format($supposed_days, 1),
+					number_format($attendance_rate, 1) . '%',
+					number_format($absentism_rate, 1) . '%'
+				);
+			}
+
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => $total_records,
+				'recordsFiltered' => $filtered_records,
+				'data' => $data
+			));
+			exit;
+		} catch (Throwable $e) {
+			log_message('error', 'attendanceAggregateAjax error: ' . $e->getMessage());
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => array(),
+				'error' => 'Failed to load attendance aggregate data'
+			));
+			exit;
+		}
 	}
 
 	public function export_aggregates_csv($data, $grouped_by)
@@ -270,16 +364,26 @@ class Reports extends MX_Controller
 			$days_worked = ($row->days_supposed - $row->days_absent);
 
 
-			$attendance_rate = number_format(($days_worked / $supposed_days) * 100, 1);
-			$absentism_rate = number_format(($row->days_absent / $supposed_days) * 100, 1);
-
-
-			$present = number_format(($row->present / $supposed_days) * 100, 1);
-			$on_leave = number_format(($row->own_leave / $supposed_days) * 100, 1);
-			$official = number_format(($row->official / $supposed_days) * 100, 1);
-			$off = number_format(($row->off / $supposed_days) * 100, 1);
-			$holiday = number_format(($row->holiday / $supposed_days) * 100, 1);
-			$absent = number_format(($row->absent / $supposed_days) * 100, 1);
+			// Prevent division by zero
+			if ($supposed_days > 0) {
+				$attendance_rate = number_format(($days_worked / $supposed_days) * 100, 1);
+				$absentism_rate = number_format(($row->days_absent / $supposed_days) * 100, 1);
+				$present = number_format(($row->present / $supposed_days) * 100, 1);
+				$on_leave = number_format(($row->own_leave / $supposed_days) * 100, 1);
+				$official = number_format(($row->official / $supposed_days) * 100, 1);
+				$off = number_format(($row->off / $supposed_days) * 100, 1);
+				$holiday = number_format(($row->holiday / $supposed_days) * 100, 1);
+				$absent = number_format(($row->absent / $supposed_days) * 100, 1);
+			} else {
+				$attendance_rate = 0;
+				$absentism_rate = 0;
+				$present = 0;
+				$on_leave = 0;
+				$official = 0;
+				$off = 0;
+				$holiday = 0;
+				$absent = 0;
+			}
 
 			$row = [$row->{$grouped_by}, $row->duty_date, $present, $on_leave, $official, $off, $holiday, $absent, $attendance_rate, $absentism_rate];
 
@@ -295,18 +399,19 @@ class Reports extends MX_Controller
 
 			array_push($exportable, $row);
 		}
-		//averages
+		//averages - prevent division by zero
+		$avg_divisor = ($count > 0) ? $count : 1;
 		$footer_row = [
 			"Averages: ",
 			"Duty Date: ",
-			number_format($total_present / $count, 1),
-			number_format($total_leave / $count, 1),
-			number_format($total_official / $count, 1),
-			number_format($total_off / $count, 1),
-			number_format($total_holiday / $count, 1),
-			number_format($total_absent / $count, 1),
-			number_format($total_attendance_rate / $count, 1),
-			number_format($total_absentism_rate / $count, 1)
+			number_format($total_present / $avg_divisor, 1),
+			number_format($total_leave / $avg_divisor, 1),
+			number_format($total_official / $avg_divisor, 1),
+			number_format($total_off / $avg_divisor, 1),
+			number_format($total_holiday / $avg_divisor, 1),
+			number_format($total_absent / $avg_divisor, 1),
+			number_format($total_attendance_rate / $avg_divisor, 1),
+			number_format($total_absentism_rate / $avg_divisor, 1)
 		];
 
 		array_push($exportable, $footer_row);

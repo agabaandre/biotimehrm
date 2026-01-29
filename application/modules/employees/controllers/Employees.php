@@ -310,101 +310,211 @@ class Employees extends MX_Controller
   }
   public function viewTimeLogs()
   {
-    $date_from = $this->input->post('date_from');
-    $date_to = $this->input->post('date_to');
-    $search_data['name'] = $this->input->post('name');
-    if (!empty($date_from)) {
-      $_SESSION['date_from'] = $date_from;
-      $_SESSION['date_to'] = $date_to;
-      $search_data['date_from'] = $_SESSION['date_from'];
-      $search_data['date_to'] = $_SESSION['date_to'];
-    }
-
-    if (!empty($_SESSION['date_from'])) {
-      $search_data['date_from'] = $_SESSION['date_from'];
-      $search_data['date_to'] = $_SESSION['date_to'];
-    } else {
-      $date_from = date("Y-m-d", strtotime("-1 month"));
-      $date_to = date('Y-m-d');
-      $_SESSION['date_from'] = $date_from;
-      $_SESSION['date_to'] = $date_to;
-      $search_data['date_from'] = $_SESSION['date_from'];
-      $search_data['date_to'] = $_SESSION['date_to'];
-    }
-    $config = array();
-    $config['base_url'] = base_url() . "employees/viewTimeLogs";
-    $config['total_rows'] = $this->empModel->count_timelogs($search_data, $this->filters);
-    $config['per_page'] = 200; //records per page
-    $config['uri_segment'] = 3; //segment in url  
-    //pagination links styling
-    $config['full_tag_open'] = '<ul class="pagination">';
-    $config['full_tag_close'] = '</ul>';
-    $config['attributes'] = ['class' => 'page-link'];
-    $config['first_link'] = false;
-    $config['last_link'] = false;
-    $config['first_tag_open'] = '<li class="page-item">';
-    $config['first_tag_close'] = '</li>';
-    $config['prev_link'] = '&laquo';
-    $config['prev_tag_open'] = '<li class="page-item">';
-    $config['prev_tag_close'] = '</li>';
-    $config['next_link'] = '&raquo';
-    $config['next_tag_open'] = '<li class="page-item">';
-    $config['next_tag_close'] = '</li>';
-    $config['last_tag_open'] = '<li class="page-item">';
-    $config['last_tag_close'] = '</li>';
-    $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-    $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-    $config['num_tag_open'] = '<li class="page-item">';
-    $config['num_tag_close'] = '</li>';
-    $config['use_page_numbers'] = false;
-    $this->pagination->initialize($config);
-    $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
-    $data['links'] = $this->pagination->create_links();
-    $data['timelogs'] = $this->empModel->getTimeLogs($config['per_page'], $page, $search_data, $this->filters);
+    // Default date range
+    $date_from = date("Y-m-d", strtotime("-1 month"));
+    $date_to = date('Y-m-d');
+    
+    $data['date_from'] = $date_from;
+    $data['date_to'] = $date_to;
     $data['title'] = "Staff Time Log Report";
     $data['uptitle'] = "Staff Time Log Report";
     $data['view'] = 'time_logs';
     $data['module'] = "employees";
     echo Modules::run("templates/main", $data);
   }
+
+  /**
+   * Server-side DataTables AJAX endpoint for time logs.
+   */
+  public function viewTimeLogsAjax()
+  {
+    $this->output->set_content_type('application/json');
+
+    $draw = (int) $this->input->post('draw');
+    $start = (int) $this->input->post('start');
+    $length = (int) $this->input->post('length');
+    $search = trim((string) $this->input->post('search')['value']);
+
+    // Filters from form
+    $date_from = trim((string) $this->input->post('date_from'));
+    $date_to = trim((string) $this->input->post('date_to'));
+    $name = trim((string) $this->input->post('name'));
+    $job = trim((string) $this->input->post('job'));
+
+    // Default date range if not provided
+    if (empty($date_from)) {
+      $date_from = date("Y-m-d", strtotime("-1 month"));
+    }
+    if (empty($date_to)) {
+      $date_to = date('Y-m-d');
+    }
+
+    $search_data = array(
+      'date_from' => $date_from,
+      'date_to' => $date_to,
+      'name' => $name,
+      'job' => $job
+    );
+
+    try {
+      // Counts
+      $total_records = $this->empModel->countTimeLogsAjax($search_data, $this->filters, '');
+      $filtered_records = $this->empModel->countTimeLogsAjax($search_data, $this->filters, $search);
+
+      // Fetch data
+      $timelogs = $this->empModel->fetchTimeLogsAjax($search_data, $this->filters, $start, $length, $search);
+
+      // Format data for DataTables
+      $data = array();
+      $row_num = $start + 1;
+      foreach ($timelogs as $log) {
+        // Calculate hours worked
+        $time_in = $log->time_in ?? null;
+        $time_out = $log->time_out ?? null;
+        $hours_worked = 0;
+        
+        if ($time_in && $time_out) {
+          $initial_time = strtotime($time_in) / 3600;
+          $final_time = strtotime($time_out) / 3600;
+          if ($initial_time > 0 && $final_time > 0 && $initial_time != $final_time) {
+            $hours_worked = round(($final_time - $initial_time), 1);
+            if ($hours_worked < 0) {
+              $hours_worked = abs($hours_worked);
+            }
+          }
+        }
+        
+        $data[] = array(
+          $row_num++,
+          trim(($log->surname ?? '') . ' ' . ($log->firstname ?? '')),
+          $log->job ?? '',
+          date('j F, Y', strtotime($log->date)),
+          $time_in ? date('H:i:s', strtotime($time_in)) : '',
+          $time_out ? date('H:i:s', strtotime($time_out)) : '',
+          $hours_worked . 'hr(s)'
+        );
+      }
+
+      echo json_encode(array(
+        'draw' => $draw,
+        'recordsTotal' => $total_records,
+        'recordsFiltered' => $filtered_records,
+        'data' => $data
+      ));
+      exit;
+    } catch (Throwable $e) {
+      log_message('error', 'viewTimeLogsAjax error: ' . $e->getMessage());
+      echo json_encode(array(
+        'draw' => $draw,
+        'recordsTotal' => 0,
+        'recordsFiltered' => 0,
+        'data' => array(),
+        'error' => 'Failed to load time log data'
+      ));
+      exit;
+    }
+  }
   public function groupedTimeLogs()
   {
-    $search_data = $this->input->post();
-    $config = array();
-    $config['base_url'] = base_url() . "employees/groupedTimeLogs";
-    $config['total_rows'] = $this->empModel->count_monthlytimelogs($search_data, $this->ufilters);
-    $config['per_page'] = 200; //records per page
-    $config['uri_segment'] = 3; //segment in url  
-    //pagination links styling
-    $config['full_tag_open'] = '<ul class="pagination">';
-    $config['full_tag_close'] = '</ul>';
-    $config['attributes'] = ['class' => 'page-link'];
-    $config['first_link'] = false;
-    $config['last_link'] = false;
-    $config['first_tag_open'] = '<li class="page-item">';
-    $config['first_tag_close'] = '</li>';
-    $config['prev_link'] = '&laquo';
-    $config['prev_tag_open'] = '<li class="page-item">';
-    $config['prev_tag_close'] = '</li>';
-    $config['next_link'] = '&raquo';
-    $config['next_tag_open'] = '<li class="page-item">';
-    $config['next_tag_close'] = '</li>';
-    $config['last_tag_open'] = '<li class="page-item">';
-    $config['last_tag_close'] = '</li>';
-    $config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-    $config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-    $config['num_tag_open'] = '<li class="page-item">';
-    $config['num_tag_close'] = '</li>';
-    $config['use_page_numbers'] = false;
-    $this->pagination->initialize($config);
-    $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
-    $data['links'] = $this->pagination->create_links();
-    $data['timelogs'] = $this->empModel->groupmonthlyTimeLogs($config['per_page'], $page, $search_data, $this->ufilters);
+    // Default date range
+    $date_from = date("Y-m-d", strtotime("-1 month"));
+    $date_to = date('Y-m-d');
+    
+    $data['date_from'] = $date_from;
+    $data['date_to'] = $date_to;
     $data['title'] = "Monthly Time Log Report";
     $data['uptitle'] = "Monthly Time Log Report";
     $data['view'] = 'groupedtime_logs';
     $data['module'] = "employees";
     echo Modules::run("templates/main", $data);
+  }
+
+  /**
+   * Server-side DataTables AJAX endpoint for grouped monthly time logs.
+   */
+  public function groupedTimeLogsAjax()
+  {
+    $this->output->set_content_type('application/json');
+
+    $draw = (int) $this->input->post('draw');
+    $start = (int) $this->input->post('start');
+    $length = (int) $this->input->post('length');
+    $search = trim((string) $this->input->post('search')['value']);
+
+    // Filters from form
+    $date_from = trim((string) $this->input->post('date_from'));
+    $date_to = trim((string) $this->input->post('date_to'));
+    $name = trim((string) $this->input->post('name'));
+    $job = trim((string) $this->input->post('job'));
+
+    // Default date range if not provided
+    if (empty($date_from)) {
+      $date_from = date("Y-m-d", strtotime("-1 month"));
+    }
+    if (empty($date_to)) {
+      $date_to = date('Y-m-d');
+    }
+
+    $search_data = array(
+      'date_from' => $date_from,
+      'date_to' => $date_to,
+      'name' => $name,
+      'job' => $job
+    );
+
+    try {
+      // Counts
+      $total_records = $this->empModel->countGroupedMonthlyTimeLogsAjax($search_data, $this->ufilters, '');
+      $filtered_records = $this->empModel->countGroupedMonthlyTimeLogsAjax($search_data, $this->ufilters, $search);
+
+      // Fetch data
+      $timelogs = $this->empModel->fetchGroupedMonthlyTimeLogsAjax($search_data, $this->ufilters, $start, $length, $search);
+
+      // Format data for DataTables
+      $data = array();
+      $row_num = $start + 1;
+      foreach ($timelogs as $log) {
+        // Format date - log->date should be in Y-m-d format (first day of month from GROUP BY)
+        $dateStr = $log->date ?? '';
+        if (!empty($dateStr)) {
+          try {
+            $dateFormatted = date('F, Y', strtotime($dateStr));
+          } catch (Exception $e) {
+            $dateFormatted = $dateStr;
+          }
+        } else {
+          $dateFormatted = '';
+        }
+        
+        $data[] = array(
+          $row_num++,
+          trim(($log->surname ?? '') . ' ' . ($log->firstname ?? '')),
+          $log->job ?? '',
+          $log->facility ?? '',
+          $log->department ?? '',
+          $dateFormatted,
+          number_format($log->m_timediff ?? 0, 2)
+        );
+      }
+
+      echo json_encode(array(
+        'draw' => $draw,
+        'recordsTotal' => $total_records,
+        'recordsFiltered' => $filtered_records,
+        'data' => $data
+      ));
+      exit;
+    } catch (Throwable $e) {
+      log_message('error', 'groupedTimeLogsAjax error: ' . $e->getMessage());
+      echo json_encode(array(
+        'draw' => $draw,
+        'recordsTotal' => 0,
+        'recordsFiltered' => 0,
+        'data' => array(),
+        'error' => 'Failed to load monthly time log data'
+      ));
+      exit;
+    }
   }
   // public function testing(){
   //     $search_data=$this->input->post();

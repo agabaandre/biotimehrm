@@ -620,7 +620,7 @@ class Biotimejobs extends MX_Controller
         try {
             // Get parameters
             $end_date_input = $this->input->get('end_date');
-        $terminal_sn = $this->input->get('terminal_sn');
+            $terminal_sn = $this->input->get('terminal_sn');
             $start_date_input = $this->input->get('start_date');
             $sync_type = $this->input->get('sync_type') ?: 'attendance';
             $batch_size = (int) ($this->input->get('batch_size') ?: 10);
@@ -642,12 +642,26 @@ class Biotimejobs extends MX_Controller
             }
             
             if (empty($start_date_input)) {
-                $start_date = FALSE; // Will default to 24 hours before end_date in getTime()
+                // Default to 30 days before end_date
+                $start_date = date('Y-m-d', strtotime('-30 days', strtotime($end_date)));
             } else {
                 $start_date = date('Y-m-d', strtotime($start_date_input));
                 if ($start_date === '1970-01-01' || $start_date === FALSE) {
                     throw new Exception("Invalid start_date format. Expected Y-m-d format.");
                 }
+            }
+            
+            // Validate date range (maximum 30 days)
+            $start_timestamp = strtotime($start_date);
+            $end_timestamp = strtotime($end_date);
+            $days_diff = (int) ceil(($end_timestamp - $start_timestamp) / 86400) + 1;
+            
+            if ($days_diff > 30) {
+                throw new Exception("Date range cannot exceed 30 days. Selected range: $days_diff days.");
+            }
+            
+            if ($start_timestamp > $end_timestamp) {
+                throw new Exception("Start date must be before or equal to end date.");
             }
             
             // Get facility name for logging
@@ -667,8 +681,9 @@ class Biotimejobs extends MX_Controller
                 'parameters' => array(
                     'terminal_sn' => $terminal_sn,
                     'facility' => $facility,
-                    'start_date' => $start_date ?: 'auto (24h before end_date)',
+                    'start_date' => $start_date,
                     'end_date' => $end_date,
+                    'days_range' => $days_diff,
                     'sync_type' => $sync_type,
                     'batch_size' => $batch_size,
                     'async' => $async
@@ -676,7 +691,7 @@ class Biotimejobs extends MX_Controller
             );
             
             // Log the sync request
-            $log_message = "custom_logs() - Terminal: $terminal_sn, Facility: $facility, Start: " . ($start_date ?: 'auto') . ", End: $end_date, Type: $sync_type, Batch: $batch_size, Async: " . ($async ? 'yes' : 'no');
+            $log_message = "custom_logs() - Terminal: $terminal_sn, Facility: $facility, Start: $start_date, End: $end_date, Days: $days_diff, Type: $sync_type, Batch: $batch_size, Async: " . ($async ? 'yes' : 'no');
             $this->log($log_message);
             
             if ($async) {
@@ -694,21 +709,24 @@ class Biotimejobs extends MX_Controller
                     flush();
                 }
                 
-                // Run sync in background
+                // Run sync in background using fetch_time_history
                 $this->run_sync_background($terminal_sn, $start_date, $end_date, $facility, $sync_type, $batch_size);
                 
             } else {
-                // Synchronous processing - wait for completion
-                $result = $this->fetchBiotTimeLogs($end_date, $terminal_sn, $start_date, $batch_size);
+                // Synchronous processing - wait for completion using fetch_time_history
+                $result = $this->fetch_time_history($start_date, $end_date, $terminal_sn, $facility);
                 
                 $response['status'] = $result['status'];
                 $response['message'] = $result['message'];
-                $response['records_fetched'] = $result['records_fetched'];
-                $response['records_saved'] = $result['records_saved'];
-                $response['pages_processed'] = $result['pages_processed'];
+                $response['dates_processed'] = $result['dates_processed'];
+                $response['total_records'] = $result['total_records'];
                 
                 if (!empty($result['errors'])) {
                     $response['errors'] = $result['errors'];
+                }
+                
+                if (!empty($result['daily_stats'])) {
+                    $response['daily_stats'] = $result['daily_stats'];
                 }
                 
                 echo json_encode($response, JSON_PRETTY_PRINT);
@@ -752,14 +770,15 @@ class Biotimejobs extends MX_Controller
         ini_set('memory_limit', '512M');
         
         try {
-            $this->log("run_sync_background() started for terminal $terminal_sn");
+            $this->log("run_sync_background() started for terminal $terminal_sn, date range: $start_date to $end_date");
             
-            $result = $this->fetchBiotTimeLogs($end_date, $terminal_sn, $start_date, $batch_size);
+            // Use fetch_time_history instead of fetchBiotTimeLogs
+            $result = $this->fetch_time_history($start_date, $end_date, $terminal_sn, $facility, FALSE, NULL, TRUE);
             
             $this->log("run_sync_background() completed for terminal $terminal_sn: " . $result['message']);
             
             // Update machine last_activity if successful
-            if ($result['status'] === 'success' && $result['records_saved'] > 0) {
+            if ($result['status'] === 'success' && $result['total_records'] > 0) {
                 $this->db->where('sn', $terminal_sn);
                 // Use current timestamp so same-day incremental re-syncs remain possible
                 $this->db->update('biotime_devices', array('last_activity' => date('Y-m-d H:i:s')));

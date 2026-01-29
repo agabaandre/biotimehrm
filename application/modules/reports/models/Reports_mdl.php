@@ -348,12 +348,6 @@ class Reports_mdl extends CI_Model
 
 		$data = $this->db->get()->result();
 
-		$sql = $this->db->last_query();
-		dd($sql);
-
-		// Print or log the SQL query
-		//dd($sql);
-
 		return $data;
 	}
 
@@ -395,6 +389,82 @@ class Reports_mdl extends CI_Model
 			}
 		}
 
+	}
+
+	/**
+	 * Server-side DataTables count for attendance aggregates.
+	 */
+	public function countAttendanceAggregatesAjax($filters = null, $group_by = "district", $search = '')
+	{
+		// Build a subquery to count distinct groups
+		$this->db->select("COUNT(DISTINCT CONCAT(duty_date, '|', $group_by)) as cnt", false);
+		$this->apply_aggregation_filter($filters);
+
+		// Apply search filter
+		if (!empty($search)) {
+			$this->db->group_start();
+			$this->db->like('job', $search);
+			$this->db->or_like('facility_name', $search);
+			$this->db->or_like('district', $search);
+			$this->db->or_like('region', $search);
+			$this->db->or_like('duty_date', $search);
+			$this->db->group_end();
+		}
+
+		$this->db->from("person_att_final");
+		$query = $this->db->get();
+		$row = $query->row();
+		return (int) ($row->cnt ?? 0);
+	}
+
+	/**
+	 * Server-side DataTables fetch for attendance aggregates.
+	 */
+	public function fetchAttendanceAggregatesAjax($filters = null, $group_by = "district", $start = 0, $length = 200, $search = '')
+	{
+		$this->apply_aggregation_filter($filters);
+
+		// Apply search filter
+		if (!empty($search)) {
+			$this->db->group_start();
+			$this->db->like('job', $search);
+			$this->db->or_like('facility_name', $search);
+			$this->db->or_like('district', $search);
+			$this->db->or_like('region', $search);
+			$this->db->or_like('duty_date', $search);
+			$this->db->group_end();
+		}
+
+		$this->db->select("
+			job,
+			facility_name,
+			facility_type_name,
+			cadre,
+			gender,
+			duty_date,
+			district,
+			department_id,
+			region,
+			institution_type,
+			sum(P) as present,
+			sum(O) as off,
+			sum(L) as own_leave,
+			sum(R) as official,
+			sum(X) as absent,
+			sum(H) as holiday,
+			sum(base_line) as days_supposed,
+			sum(base_line - (P+O+L+R)) as days_absent
+		");
+
+		$this->db->from("person_att_final");
+		$this->db->group_by("duty_date");
+		$this->db->group_by("$group_by");
+		$this->db->order_by("duty_date", 'ASC');
+		$this->db->order_by("$group_by", 'ASC');
+		$this->db->limit($length, $start);
+
+		$query = $this->db->get();
+		return $query->result();
 	}
 
 	public function count_person_attendance($filters = null)
