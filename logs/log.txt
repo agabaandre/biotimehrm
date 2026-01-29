@@ -22,3 +22,5 @@
 {"REQUEST DETAILS: 2026-01-28 22:51:28 Time": "run_sync_background() started for terminal 3929091915182"}\n
 {"REQUEST DETAILS: 2026-01-28 22:51:31 Time": "fetchBiotTimeLogs() exception: PROCEDURE attend.clockin_users does not exist"}\n
 {"REQUEST DETAILS: 2026-01-28 22:51:31 Time": "run_sync_background() completed for terminal 3929091915182: Error: PROCEDURE attend.clockin_users does not exist"}\n
+{"REQUEST DETAILS: 2026-01-29 03:34:30 Time": "custom_logs() - Terminal: 3929091915172, Facility: LIRA Regional Referral, Start: 2025-12-30, End: 2026-01-01, Days: 3, Type: attendance, Batch: 500, Async: yes"}\n
+{"REQUEST DETAILS: 2026-01-29 03:34:30 Time": "run_sync_background() started for terminal 3929091915172, date range: 2025-12-30 to 2026-01-01"}\n

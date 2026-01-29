@@ -449,9 +449,21 @@ $(document).ready(function() {
     $(document).on('click', '.sync-machine', function() {
         var sn = $(this).data('sn');
         $('#terminal_sn').val(sn);
-        $('#end_date').val(new Date().toISOString().split('T')[0]);
+        
+        // Set default dates: end date = today, start date = 30 days ago
+        var endDate = new Date().toISOString().split('T')[0];
+        var startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+        var startDateStr = startDate.toISOString().split('T')[0];
+        
+        $('#end_date').val(endDate);
+        $('#start_date').val(startDateStr);
         $('#sync_type').val('attendance');
         $('#batch_size').val('500');
+        
+        // Validate and show info
+        validateDateRange();
+        
         $('#syncModal').modal('show');
     });
     
@@ -691,18 +703,24 @@ $(document).ready(function() {
         validateDateRange();
     });
     
-    // Set default end date to today
-    $('#end_date').val(new Date().toISOString().split('T')[0]);
-    
-    // Set default start date to 30 days ago
-    var defaultStartDate = new Date();
-    defaultStartDate.setDate(defaultStartDate.getDate() - 30);
-    $('#start_date').val(defaultStartDate.toISOString().split('T')[0]);
-    validateDateRange();
-
     // Handle form submission
     $('#syncForm').on('submit', function(e) {
         e.preventDefault();
+        
+        // Validate required fields
+        var terminal_sn = $('#terminal_sn').val();
+        var start_date = $('#start_date').val();
+        var end_date = $('#end_date').val();
+        
+        if (!terminal_sn) {
+            alert('Terminal Serial Number is required');
+            return false;
+        }
+        
+        if (!start_date || !end_date) {
+            alert('Start date and End date are required');
+            return false;
+        }
         
         // Validate date range before submission
         if (!validateDateRange()) {
@@ -710,9 +728,6 @@ $(document).ready(function() {
         }
         
         var formData = $(this).serialize();
-        var terminal_sn = $('#terminal_sn').val();
-        var start_date = $('#start_date').val();
-        var end_date = $('#end_date').val();
         var sync_type = $('#sync_type').val();
         var batch_size = $('#batch_size').val();
         
@@ -724,7 +739,10 @@ $(document).ready(function() {
         $('#terminal-output').empty();
         addTerminalLine('=== Sync Process Started ===', 'info');
         addTerminalLine('Terminal SN: ' + terminal_sn, 'info');
+        addTerminalLine('Start Date: ' + start_date, 'info');
         addTerminalLine('End Date: ' + end_date, 'info');
+        var daysRange = Math.ceil((new Date(end_date) - new Date(start_date)) / (1000 * 60 * 60 * 24)) + 1;
+        addTerminalLine('Date Range: ' + daysRange + ' day(s)', 'info');
         addTerminalLine('Sync Type: ' + sync_type, 'info');
         addTerminalLine('Batch Size: ' + batch_size, 'info');
         addTerminalLine('', 'info');
@@ -733,6 +751,7 @@ $(document).ready(function() {
         // Log sync parameters to console
         console.group('🔄 Sync Request');
         console.log('Terminal SN:', terminal_sn);
+        console.log('Start Date:', start_date);
         console.log('End Date:', end_date);
         console.log('Sync Type:', sync_type);
         console.log('Batch Size:', batch_size);
