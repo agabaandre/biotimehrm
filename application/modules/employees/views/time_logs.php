@@ -2,7 +2,47 @@
 $date_from = isset($date_from) ? $date_from : date("Y-m-d", strtotime("-1 month"));
 $date_to = isset($date_to) ? $date_to : date('Y-m-d');
 ?>
-<section class="col-lg-12">
+<style>
+#viewTimeLogsPage {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+#viewTimeLogsPage .card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#viewTimeLogsPage .card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+#viewTimeLogsPage #timeLogsTable_wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#viewTimeLogsPage #timeLogsTable_wrapper .dataTables_scroll {
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+#viewTimeLogsPage #timeLogsTable_wrapper .dataTables_scrollBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto !important;
+}
+#viewTimeLogsPage #timeLogsTable_wrapper .dataTables_scrollBody table {
+  width: 100% !important;
+}
+</style>
+<section id="viewTimeLogsPage" class="col-12">
   <!-- Custom tabs (Charts with tabs)-->
   <div class="card">
     <div class="card-header">
