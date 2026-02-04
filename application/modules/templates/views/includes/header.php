@@ -25,16 +25,40 @@
   <!-- Theme style -->
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/adminlte.min.css">
   <script src="<?php echo base_url() ?>node_modules/jquery/dist/jquery.min.js"></script>
-  <!-- Highcharts: load core first, then modules (synchronous order prevents "Cannot read setOptions of undefined"). -->
-  <script src="<?php echo base_url() ?>node_modules/highcharts/highcharts.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/highcharts-more.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/solid-gauge.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/exporting.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/export-data.js"></script>
-  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/accessibility.js"></script>
+  <!-- Highcharts: load only once and in order to avoid error #16 and module "undefined" errors. -->
   <script>
+  (function() {
     window.__hcLoaderState = window.__hcLoaderState || {};
-    window.__hcLoaderState.loaded = (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function');
+    function isReady() {
+      return typeof window.Highcharts !== 'undefined' && typeof window.Highcharts.setOptions === 'function';
+    }
+    if (isReady()) {
+      window.__hcLoaderState.loaded = true;
+      return;
+    }
+    var base = 'https://code.highcharts.com/10.3/';
+    var scripts = [
+      base + 'highcharts.js',
+      base + 'highcharts-more.js',
+      base + 'modules/solid-gauge.js',
+      base + 'modules/exporting.js',
+      base + 'modules/export-data.js',
+      base + 'modules/accessibility.js'
+    ];
+    function loadNext(i) {
+      if (i >= scripts.length) {
+        window.__hcLoaderState.loaded = isReady();
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = scripts[i];
+      s.async = false;
+      s.onload = function() { loadNext(i + 1); };
+      s.onerror = function() { loadNext(i + 1); };
+      document.head.appendChild(s);
+    }
+    loadNext(0);
+  })();
   </script>
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
