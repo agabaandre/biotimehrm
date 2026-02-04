@@ -117,23 +117,28 @@ class Dashboard extends MX_Controller {
 	}
 
 	/**
-	 * Select2 endpoint: search employees for dashboard Name filter (facility-scoped).
+	 * Select2 endpoint: search employees for dashboard Name filter (facility- or district-scoped).
 	 */
 	public function searchEmployees() {
 		$this->output->set_content_type('application/json');
 		$term = trim((string) $this->input->get('term'));
 		$facility_param = trim((string) $this->input->get('facility_id'));
-		$facility = $facility_param ?: (string) $this->session->userdata('facility');
-		$district_id = (string) $this->session->userdata('district_id');
 
-		// If facility is not set (e.g., district-level users), fall back to district scope so Name filter still works.
-		if (!$facility && !$district_id) {
+		// Resolve facility: GET param (role-10), then session (same source as Dashboard_mdl::stats()).
+		$facility = $facility_param;
+		if ($facility === '') {
+			$facility = isset($_SESSION['facility']) ? (string) $_SESSION['facility'] : (string) $this->session->userdata('facility');
+		}
+		$district_id = isset($_SESSION['district_id']) ? (string) $_SESSION['district_id'] : (string) $this->session->userdata('district_id');
+
+		// Need at least facility or district to scope the list.
+		if ($facility === '' && $district_id === '') {
 			return $this->output->set_output(json_encode(['results' => []]));
 		}
 
-		$this->db->select("ihris_pid, CONCAT(COALESCE(surname,''),' ',COALESCE(firstname,''),' ',COALESCE(othername,'')) as fullname", false);
+		$this->db->select('ihris_pid, surname, firstname, othername', false);
 		$this->db->from('ihrisdata');
-		if ($facility) {
+		if ($facility !== '') {
 			$this->db->where('facility_id', $facility);
 		} else {
 			$this->db->where('district_id', $district_id);
@@ -147,12 +152,13 @@ class Dashboard extends MX_Controller {
 			$this->db->group_end();
 		}
 		$this->db->order_by('surname', 'ASC');
-		$this->db->limit(20);
+		$this->db->limit(50);
 
 		$q = $this->db->get();
 		$results = [];
 		foreach ($q->result() as $r) {
-			$results[] = ['id' => $r->ihris_pid, 'text' => trim($r->fullname)];
+			$fullname = trim(implode(' ', array_filter([$r->surname, $r->firstname, $r->othername], 'strlen')));
+			$results[] = ['id' => $r->ihris_pid, 'text' => $fullname !== '' ? $fullname : (string) $r->ihris_pid];
 		}
 
 		return $this->output->set_output(json_encode(['results' => $results]));
