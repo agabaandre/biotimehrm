@@ -178,12 +178,9 @@ function isWeekend($date)
 								<img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px" style="float:left;">
 							</div>
 							<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0; margin:0 auto;">
-								<p style="text-align:center; font-weight:bold; font-size:20px; margin-bottom: 5px;">
-									MONTHLY ATTENDANCE FOR
-									<?php
-									echo " - " . $_SESSION['facility_name'];
-									echo "              " . date('F, Y', strtotime($year . "-" . $month));
-									?></p>
+								<p id="actuals_title" style="text-align:center; font-weight:bold; font-size:20px; margin-bottom: 5px;" data-facility-name="<?php echo htmlspecialchars($_SESSION['facility_name'] ?? 'Ministry of Health'); ?>">
+									MONTHLY ATTENDANCE FOR - <?php echo htmlspecialchars($_SESSION['facility_name'] ?? 'Ministry of Health'); ?> <?php echo date('F, Y', strtotime($year . "-" . $month)); ?>
+								</p>
 							</div>
 						</div>
 						<table id="actuals_table" class="table table-bordered table-striped table-condensed" style="width:100%; font-size:11px; margin-top: 0; border-collapse: collapse;"></table>
@@ -446,9 +443,10 @@ function isWeekend($date)
 
 	$(document).ready(function() {
 		// baseUrl is already defined at top level
-		var month = '<?php echo $month; ?>';
-		var year = '<?php echo $year; ?>';
-		var monthDays = <?php echo (int)cal_days_in_month(CAL_GREGORIAN, $month, $year); ?>;
+		var currentMonth = '<?php echo $month; ?>';
+		var currentYear = '<?php echo $year; ?>';
+		var actualsTable = null;
+		var tableColumns = null;
 
 		function isWeekend(dateStr) {
 			var date = new Date(dateStr);
@@ -456,7 +454,19 @@ function isWeekend($date)
 			return (day === 0 || day === 6); // Sunday = 0, Saturday = 6
 		}
 
-		function buildColumns() {
+		function getDaysInMonth(month, year) {
+			return new Date(parseInt(year, 10), parseInt(month, 10), 0).getDate();
+		}
+
+		function updateActualsTitle(month, year) {
+			var facilityName = $('#actuals_title').attr('data-facility-name') || 'Ministry of Health';
+			var dateObj = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+			var monthName = dateObj.toLocaleString('en-US', { month: 'long' });
+			$('#actuals_title').text('MONTHLY ATTENDANCE FOR - ' + facilityName + ' ' + monthName + ', ' + year);
+		}
+
+		function buildColumns(month, year) {
+			var monthDays = getDaysInMonth(month, year);
 			var cols = [];
 			cols.push({ data: 'rownum', title: '#', className: 'text-center', width: '40px', orderable: false });
 			cols.push({ data: 'fullname', title: 'Name', className: 'text-left', width: '150px', orderable: false });
@@ -464,7 +474,7 @@ function isWeekend($date)
 
 			for (var d = 1; d <= monthDays; d++) {
 				var dayStr = (d < 10) ? '0' + d : d.toString();
-				var ymd = year + '-' + month + '-' + dayStr;
+				var ymd = year + '-' + (month.length === 1 ? '0' + month : month) + '-' + dayStr;
 				var isWeekendDay = isWeekend(ymd);
 				var headerClass = isWeekendDay ? 'text-center weekend-header' : 'text-center';
 				var headerStyle = isWeekendDay ? 'background-color:red; color:#FFFFFF;' : '';
@@ -483,7 +493,6 @@ function isWeekend($date)
 								var dateStr = row['date_' + dayNum];
 								var disabled = row['disabled_' + dayNum] === true || row['disabled_' + dayNum] === 'true';
 								var disabledAttr = disabled ? 'disabled' : '';
-								var recordType = data ? 'update actual' : 'actual';
 								var inputClass = data ? 'update actual' : 'actual';
 								
 								return '<input type="text" style="padding:1px 2px; margin:0; text-align: center; width:100%; max-width:100%; box-sizing:border-box; font-size:13px; font-weight:bold; border:1px solid #ddd; text-transform:uppercase;" ' +
@@ -506,61 +515,64 @@ function isWeekend($date)
 			return cols;
 		}
 
-		var tableColumns = buildColumns();
-		
-		// Build columnDefs with explicit widths
-		var columnDefs = tableColumns.map(function(col, index) {
-			return {
-				targets: index,
-				width: col.width || '35px',
-				className: col.className || '',
-				orderable: col.orderable !== undefined ? col.orderable : false
-			};
-		});
-		
-		var actualsTable = $('#actuals_table').DataTable({
-			processing: true,
-			serverSide: true,
-			searching: false,
-			ordering: false,
-			autoWidth: false,
-			pageLength: 20,
-			lengthChange: true,
-			lengthMenu: [[20, 25, 50, 100, 200], [20, 25, 50, 100, 200]],
-			pagingType: 'simple_numbers',
-			dom: '<"top"lp>rt<"bottom"ip><"clear">',
-			columnDefs: columnDefs,
-			ajax: {
-				url: baseUrl + 'rosta/actualsAjax',
-				type: 'POST',
-				data: function(d) {
-					d.month = $('#actuals_month').val() || month;
-					d.year = $('#actuals_year').val() || year;
-					d.empid = $('#actuals_empid').val() || '';
-					d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+		function initActualsTable(month, year) {
+			currentMonth = month;
+			currentYear = year;
+			tableColumns = buildColumns(month, year);
+			
+			var columnDefs = tableColumns.map(function(col, index) {
+				return {
+					targets: index,
+					width: col.width || '35px',
+					className: col.className || '',
+					orderable: col.orderable !== undefined ? col.orderable : false
+				};
+			});
+			
+			actualsTable = $('#actuals_table').DataTable({
+				processing: true,
+				serverSide: true,
+				searching: false,
+				ordering: false,
+				autoWidth: false,
+				pageLength: 20,
+				lengthChange: true,
+				lengthMenu: [[20, 25, 50, 100, 200], [20, 25, 50, 100, 200]],
+				pagingType: 'simple_numbers',
+				dom: '<"top"lp>rt<"bottom"ip><"clear">',
+				columnDefs: columnDefs,
+				ajax: {
+					url: baseUrl + 'rosta/actualsAjax',
+					type: 'POST',
+					data: function(d) {
+						d.month = $('#actuals_month').val() || currentMonth;
+						d.year = $('#actuals_year').val() || currentYear;
+						d.empid = $('#actuals_empid').val() || '';
+						d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+					},
+					dataSrc: function(json) {
+						return json.data;
+					}
 				},
-				dataSrc: function(json) {
-					return json.data;
+				columns: tableColumns,
+				initComplete: function() {
+					var api = this.api();
+					setTimeout(function() {
+						forceColumnAlignment(api);
+					}, 50);
+				},
+				drawCallback: function() {
+					var api = this.api();
+					setTimeout(function() {
+						forceColumnAlignment(api);
+					}, 10);
+					attachActualHandlers();
 				}
-			},
-			columns: tableColumns,
-			initComplete: function() {
-				// Force column width synchronization after initial load
-				var api = this.api();
-				setTimeout(function() {
-					forceColumnAlignment(api);
-				}, 50);
-			},
-			drawCallback: function() {
-				var api = this.api();
-				// Force column alignment after each draw
-				setTimeout(function() {
-					forceColumnAlignment(api);
-				}, 10);
-				// Re-attach event handlers after table redraw
-				attachActualHandlers();
-			}
-		});
+			});
+		}
+
+		// Initial table build
+		initActualsTable(currentMonth, currentYear);
 
 		function forceColumnAlignment(api) {
 			// Use DataTables API to get columns and force alignment
@@ -799,13 +811,41 @@ function isWeekend($date)
 			});
 		}
 
+		function applyActualsFilter() {
+			var selMonth = $('#actuals_month').val() || currentMonth;
+			var selYear = $('#actuals_year').val() || currentYear;
+			updateActualsTitle(selMonth, selYear);
+			var monthOrYearChanged = (selMonth !== currentMonth || selYear !== currentYear);
+			if (monthOrYearChanged) {
+				currentMonth = selMonth;
+				currentYear = selYear;
+				if (actualsTable && $.fn.DataTable.isDataTable('#actuals_table')) {
+					actualsTable.destroy();
+					$('#actuals_table').empty();
+				}
+				initActualsTable(selMonth, selYear);
+			} else {
+				currentMonth = selMonth;
+				currentYear = selYear;
+				if (actualsTable) {
+					actualsTable.ajax.reload();
+				}
+			}
+		}
+
 		$('#actuals_apply').on('click', function(e) {
 			e.preventDefault();
-			actualsTable.ajax.reload();
+			applyActualsFilter();
 		});
 
-		$('#actuals_month, #actuals_year, #actuals_empid').on('change', function() {
-			actualsTable.ajax.reload();
+		$('#actuals_month, #actuals_year').on('change', function() {
+			applyActualsFilter();
+		});
+
+		$('#actuals_empid').on('change', function() {
+			if (actualsTable) {
+				actualsTable.ajax.reload();
+			}
 		});
 		
 		// Initialize sync indicator

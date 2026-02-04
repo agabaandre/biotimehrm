@@ -130,12 +130,9 @@ if (count($duties) > 0) {
 								<img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px" style="float:left;">
 							</div>
 							<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0; margin:0 auto;">
-								<p style="text-align:center; font-weight:bold; font-size:20px;">
-									MONTHLY DUTY ROSTER REPORT FOR
-									<?php
-									echo " - " . $_SESSION['facility_name'];
-									echo "              " . date('F, Y', strtotime($year . "-" . $month));
-									?></p>
+								<p id="roster_report_title" style="text-align:center; font-weight:bold; font-size:20px;" data-facility-name="<?php echo htmlspecialchars(isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Ministry of Health'); ?>">
+									MONTHLY DUTY ROSTER REPORT FOR - <?php echo htmlspecialchars(isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Ministry of Health'); ?> <?php echo date('F, Y', strtotime($year . "-" . $month)); ?>
+								</p>
 							</div>
 						</div>
 						<table id="roster_table" class="table table-bordered table-striped table-condensed" style="width:100%; font-size:11px;"></table>
@@ -157,25 +154,119 @@ if (count($duties) > 0) {
 		var month = '<?php echo $month; ?>';
 		var year = '<?php echo $year; ?>';
 		var monthDays = <?php echo (int)cal_days_in_month(CAL_GREGORIAN, $month, $year); ?>;
+		var rosterTable = null;
+		var tableColumns = null;
 
-		function buildColumns() {
+		function getDaysInMonth(monthNum, yearNum) {
+			var m = parseInt(monthNum, 10);
+			var y = parseInt(yearNum, 10);
+			return new Date(y, m, 0).getDate();
+		}
+
+		function isWeekend(dateStr) {
+			var date = new Date(dateStr);
+			var day = date.getDay();
+			return (day === 0 || day === 6);
+		}
+
+		function updateRosterReportTitle(monthVal, yearVal) {
+			var facilityName = $('#roster_report_title').attr('data-facility-name') || 'Ministry of Health';
+			var dateObj = new Date(parseInt(yearVal, 10), parseInt(monthVal, 10) - 1, 1);
+			var monthName = dateObj.toLocaleString('en-US', { month: 'long' });
+			$('#roster_report_title').text('MONTHLY DUTY ROSTER REPORT FOR - ' + facilityName + ' ' + monthName + ', ' + yearVal);
+		}
+
+		function buildColumns(monthVal, yearVal, daysInMonth) {
 			var cols = [];
-			cols.push({ data: 'rownum', title: '#', className: 'text-center', width: '40px' });
-			cols.push({ data: 'fullname', title: 'Name', className: 'text-left', width: '120px' });
-			cols.push({ data: 'job', title: 'Position', className: 'text-left', width: '120px' });
+			cols.push({ data: 'rownum', title: '#', className: 'text-center', width: '40px', orderable: false });
+			cols.push({ data: 'fullname', title: 'Name', className: 'text-left', width: '120px', orderable: false });
+			cols.push({ data: 'job', title: 'Position', className: 'text-left', width: '120px', orderable: false });
 
-			for (var d = 1; d <= monthDays; d++) {
+			for (var d = 1; d <= daysInMonth; d++) {
+				var dayStr = (d < 10) ? '0' + d : d.toString();
+				var ymd = yearVal + '-' + monthVal + '-' + dayStr;
+				var isWeekendDay = isWeekend(ymd);
+				var headerClass = isWeekendDay ? 'text-center weekend-header' : 'text-center';
+				var headerStyle = isWeekendDay ? 'background-color:red; color:#FFFFFF;' : '';
 				cols.push({
 					data: 'd' + d,
-					title: d.toString(),
-					className: 'text-center',
-					width: '16px'
+					title: '<span style="' + headerStyle + '">' + d + '</span>',
+					className: headerClass,
+					width: '22px',
+					orderable: false
 				});
 			}
 			return cols;
 		}
 
-		var rosterTable = $('#roster_table').DataTable({
+		function updateExportLinks() {
+			var selMonth = $('#roster_month').val() || month;
+			var selYear = $('#roster_year').val() || year;
+			var empid = $('#roster_empid').val() || '';
+
+			var printUrl = baseUrl + 'rosta/print_roster/' + selYear + '/' + selMonth;
+			var csvUrl = baseUrl + 'rosta/roster_csv/' + selYear + '/' + selMonth;
+
+			if (empid) {
+				printUrl += '/' + encodeURIComponent(empid);
+				csvUrl += '/' + encodeURIComponent(empid);
+			}
+
+			$('#roster_print').attr('href', printUrl);
+			$('#roster_csv').attr('href', csvUrl);
+		}
+
+		function applyRosterFilter() {
+			var selMonth = $('#roster_month').val() || month;
+			var selYear = $('#roster_year').val() || year;
+			updateRosterReportTitle(selMonth, selYear);
+			updateExportLinks();
+			var newDays = getDaysInMonth(selMonth, selYear);
+			var monthOrYearChanged = (selMonth !== month || selYear !== year);
+			if (monthOrYearChanged) {
+				month = selMonth;
+				year = selYear;
+				monthDays = newDays;
+				if (rosterTable && $.fn.DataTable.isDataTable('#roster_table')) {
+					rosterTable.destroy();
+					$('#roster_table').empty();
+				}
+				tableColumns = buildColumns(month, year, monthDays);
+				rosterTable = $('#roster_table').DataTable({
+					processing: true,
+					serverSide: true,
+					searching: false,
+					ordering: false,
+					pageLength: 50,
+					lengthChange: true,
+					lengthMenu: [[25, 50, 100, 200], [25, 50, 100, 200]],
+					pagingType: 'simple_numbers',
+					dom: '<"top"lp>rt<"bottom"ip><"clear">',
+					ajax: {
+						url: baseUrl + 'rosta/fetch_reportAjax',
+						type: 'POST',
+						data: function(d) {
+							d.month = $('#roster_month').val() || month;
+							d.year = $('#roster_year').val() || year;
+							d.empid = $('#roster_empid').val() || '';
+							d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+						}
+					},
+					columns: tableColumns,
+					scrollX: true
+				});
+			} else {
+				month = selMonth;
+				year = selYear;
+				if (rosterTable) {
+					rosterTable.ajax.reload();
+				}
+			}
+		}
+
+		// Initial build
+		tableColumns = buildColumns(month, year, monthDays);
+		rosterTable = $('#roster_table').DataTable({
 			processing: true,
 			serverSide: true,
 			searching: false,
@@ -195,38 +286,26 @@ if (count($duties) > 0) {
 					d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
 				}
 			},
-			columns: buildColumns(),
+			columns: tableColumns,
 			scrollX: true
 		});
-
-		function updateExportLinks() {
-			var selMonth = $('#roster_month').val() || month;
-			var selYear = $('#roster_year').val() || year;
-			var empid = $('#roster_empid').val() || '';
-
-			var printUrl = baseUrl + 'rosta/print_roster/' + selYear + '/' + selMonth;
-			var csvUrl = baseUrl + 'rosta/roster_csv/' + selYear + '/' + selMonth;
-
-			if (empid) {
-				printUrl += '/' + encodeURIComponent(empid);
-				csvUrl += '/' + encodeURIComponent(empid);
-			}
-
-			$('#roster_print').attr('href', printUrl);
-			$('#roster_csv').attr('href', csvUrl);
-		}
 
 		updateExportLinks();
 
 		$('#roster_apply').on('click', function(e) {
 			e.preventDefault();
-			rosterTable.ajax.reload();
-			updateExportLinks();
+			applyRosterFilter();
 		});
 
-		$('#roster_month, #roster_year, #roster_empid').on('change', function() {
-			rosterTable.ajax.reload();
+		$('#roster_month, #roster_year').on('change', function() {
+			applyRosterFilter();
+		});
+
+		$('#roster_empid').on('change', function() {
 			updateExportLinks();
+			if (rosterTable) {
+				rosterTable.ajax.reload();
+			}
 		});
 	});
 </script>

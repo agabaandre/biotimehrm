@@ -40,6 +40,27 @@ class Dashboard extends MX_Controller {
 	}
 
 	/**
+	 * Set only the year in session; month is set to current month.
+	 * Used by side nav "Year" select to switch period without changing month or other filters.
+	 */
+	public function setSessionYear() {
+		$this->output->set_content_type('application/json');
+		$year = (int) $this->input->post('year');
+		$current_year = (int) date('Y');
+		if ($year < 2000 || $year > ($current_year + 2)) {
+			$year = $current_year;
+		}
+		$month = (int) date('m');
+		$this->session->set_userdata('month', str_pad((string) $month, 2, '0', STR_PAD_LEFT));
+		$this->session->set_userdata('year', (string) $year);
+		return $this->output->set_output(json_encode([
+			'status' => 'success',
+			'month'  => str_pad((string) $month, 2, '0', STR_PAD_LEFT),
+			'year'   => (string) $year
+		]));
+	}
+
+	/**
 	 * Persist dashboard filters (month/year/employee) in session for use by stats + charts.
 	 */
 	public function setDashboardFilters() {

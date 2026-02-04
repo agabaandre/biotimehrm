@@ -279,13 +279,14 @@ class Rosta extends MX_Controller
 		$tab_schedules = $this->rosta_model->tab_matches();
 
 		// Calculate editing lock conditions
+		// Allow entry for current month and next month; past months immutable where data exists, open where empty.
 		$user_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
 		$is_sadmin = ($user_role === 'sadmin');
-		$today = date('Y-m-d');
-		$posted_date = $date;
-		$posted_timestamp = strtotime($posted_date . '-01');
-		$current_timestamp = strtotime('first day of +2 months');
-		$is_future_month = ($posted_timestamp > $current_timestamp);
+		$posted_ym = $date;
+		$current_ym = date('Y-m');
+		$next_ym = date('Y-m', strtotime('first day of next month'));
+		$is_past_month = ($posted_ym < $current_ym);
+		$is_future_month = ($posted_ym > $next_ym);
 
 		$data = array();
 		$rownum = $start;
@@ -314,20 +315,14 @@ class Rosta extends MX_Controller
 				if ($is_future_month && !$is_sadmin) {
 					$is_disabled = true;
 					$disabled_reason = 'future_month';
-				} elseif (!$is_sadmin) {
-					$day_timestamp = strtotime($ymd);
-					$today_timestamp = strtotime($today);
-					
-					if ($day_timestamp > $today_timestamp) {
-						// Future day - always disabled
-						$is_disabled = true;
-						$disabled_reason = 'future_day';
-					} elseif ($day_timestamp < $today_timestamp && !empty($letter)) {
-						// Past day with schedule - disabled
+				} elseif ($is_past_month) {
+					// Previous months: immutable where data exists, open where it doesn't
+					if (!empty($letter)) {
 						$is_disabled = true;
 						$disabled_reason = 'past_scheduled';
 					}
 				}
+				// Current month and next month: all cells editable (no disable by date)
 				
 				$row['d' . $d] = $letter;
 				$row['entry_id_' . $d] = $entry_id;

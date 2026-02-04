@@ -6,6 +6,19 @@
 			margin-top: 1em;
 		}
 	}
+	#timesheetTable {
+		font-size: 10px;
+		table-layout: fixed;
+	}
+	#timesheetTable thead th,
+	#timesheetTable tbody td {
+		padding: 2px 3px !important;
+		font-size: 10px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		box-sizing: border-box;
+	}
 </style>
 <!-- Contains page content -->
 <div class="dashtwo-order-area" style="padding-top: 10px;">
@@ -98,29 +111,26 @@
 							</form>
 						</div>
 						<span class="pull-left"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></span>
-						<h4 class="panel-title"> MONTHLY TIMESHEET
+						<h4 id="timesheet_title" class="panel-title" data-facility-name="<?php echo htmlspecialchars(isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Ministry of Health'); ?>">
+							MONTHLY TIMESHEET - <?php echo htmlspecialchars(isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Ministry of Health'); ?>
 							<?php
-							echo " - " . $_SESSION['facility_name'] . " ";
 							if (empty($month)) {
 								$month = date('m');
 								$year = date('Y');
 							}
-							echo "              " . date('F, Y', strtotime($year . "-" . $month));
+							echo ' ' . date('F, Y', strtotime($year . "-" . $month));
 							?>
 						</h4>
 						<br>
 						<div class="table-responsive">
-							<table id="timesheetTable" class="table table-bordered table-striped table-sm" style="width:100%">
-								<thead>
-									<tr id="ts_header_row"></tr>
-								</thead>
-								<tbody></tbody>
-							</table>
+							<table id="timesheetTable" class="table table-bordered table-striped table-sm" style="width:100%"></table>
 						</div>
 
 						<script>
 						$(document).ready(function() {
 							var table = null;
+							var lastBuiltMonth = null;
+							var lastBuiltYear = null;
 
 							function getFilters() {
 								return {
@@ -145,12 +155,14 @@
 								$('#ts_excel').attr('href', '<?php echo base_url(); ?>employees/csv_timesheet/' + f.month + '/' + f.year + '/' + empPart + '/' + jobPart);
 							}
 
-							function buildHeader(month, year) {
-								var $row = $('#ts_header_row');
-								$row.empty();
-								$row.append('<th style="width:50px;">#</th>');
-								$row.append('<th style="min-width:120px;">Name</th>');
-								$row.append('<th style="min-width:120px;">Position</th>');
+							function updateTimesheetTitle(monthVal, yearVal) {
+								var facilityName = $('#timesheet_title').attr('data-facility-name') || 'Ministry of Health';
+								var dateObj = new Date(parseInt(yearVal, 10), parseInt(monthVal, 10) - 1, 1);
+								var monthName = dateObj.toLocaleString('en-US', { month: 'long' });
+								$('#timesheet_title').text('MONTHLY TIMESHEET - ' + facilityName + ' ' + monthName + ', ' + yearVal);
+							}
+
+							function buildColumns(month, year) {
 								var y = parseInt(year, 10);
 								var m = parseInt(month, 10);
 								if (!y || !m) {
@@ -158,38 +170,64 @@
 									m = new Date().getMonth() + 1;
 								}
 								var daysInMonth = new Date(y, m, 0).getDate();
+								var cols = [];
+								cols.push({ data: 0, title: '#', orderable: false });
+								cols.push({ data: 1, title: 'Name', orderable: false });
+								cols.push({ data: 2, title: 'Position', orderable: false });
 								for (var i = 1; i <= daysInMonth; i++) {
 									var dt = new Date(y, m - 1, i);
 									var weekend = isWeekendDate(dt);
-									var label = dt.getDate();
-									var style = 'min-width:20px; width:20px; text-align:center; padding:4px 2px; font-size:11px;' + (weekend ? ' background-color:#ffcccc;' : '');
-									$row.append('<th style="' + style + '">' + label + '</th>');
+									var label = String(dt.getDate());
+									var style = weekend ? 'background-color:#ffcccc;' : '';
+									cols.push({
+										data: 2 + i,
+										title: '<span style="' + style + '">' + label + '</span>',
+										orderable: false,
+										className: 'text-center'
+									});
 								}
-								$row.append('<th style="min-width:70px;">Hrs</th>');
-								$row.append('<th style="min-width:90px;">Days</th>');
-								$row.append('<th style="min-width:90px;">% Present</th>');
+								cols.push({ data: 3 + daysInMonth, title: 'Hrs', orderable: false });
+								cols.push({ data: 4 + daysInMonth, title: 'Days', orderable: false });
+								cols.push({ data: 5 + daysInMonth, title: '%', orderable: false });
+								return cols;
 							}
 
-							function initOrReinitTable() {
-								var f = getFilters();
-								buildHeader(f.month, f.year);
-
-								// 3 fixed columns + daysInMonth + 3 summary columns
-								var y = parseInt(f.year, 10);
-								var m = parseInt(f.month, 10);
+							function buildColumnDefs(month, year) {
+								var y = parseInt(year, 10);
+								var m = parseInt(month, 10);
 								if (!y || !m) {
 									y = new Date().getFullYear();
 									m = new Date().getMonth() + 1;
 								}
 								var daysInMonth = new Date(y, m, 0).getDate();
-								var columns = [];
-								for (var i = 0; i < (3 + daysInMonth + 3); i++) {
-									columns.push({ data: i });
+								var defs = [
+									{ targets: 0, width: '28px' },
+									{ targets: 1, width: '80px' },
+									{ targets: 2, width: '80px' }
+								];
+								for (var i = 0; i < daysInMonth; i++) {
+									defs.push({ targets: 3 + i, width: '22px' });
 								}
+								defs.push(
+									{ targets: 3 + daysInMonth, width: '36px' },
+									{ targets: 4 + daysInMonth, width: '44px' },
+									{ targets: 5 + daysInMonth, width: '36px' }
+								);
+								return defs;
+							}
 
-								if (table) {
+							function initOrReinitTable() {
+								var f = getFilters();
+								updateTimesheetTitle(f.month, f.year);
+								lastBuiltMonth = f.month;
+								lastBuiltYear = f.year;
+
+								var columns = buildColumns(f.month, f.year);
+								var columnDefs = buildColumnDefs(f.month, f.year);
+
+								if (table && $.fn.DataTable.isDataTable('#timesheetTable')) {
 									table.destroy();
-									$('#timesheetTable tbody').empty();
+									$('#timesheetTable').empty();
 								}
 
 								table = $('#timesheetTable').DataTable({
@@ -197,8 +235,10 @@
 									serverSide: true,
 									searching: false,
 									pageLength: 20,
-									scrollX: true,
+									scrollX: false,
+									autoWidth: false,
 									ordering: false,
+									columnDefs: columnDefs,
 									ajax: {
 										url: '<?php echo base_url("employees/timesheetAjax"); ?>',
 										type: 'POST',
@@ -228,13 +268,20 @@
 							});
 
 							$('#ts_apply').on('click', function() {
+								var f = getFilters();
 								updatePrintLinks();
-								if (table) table.ajax.reload();
+								updateTimesheetTitle(f.month, f.year);
+								if (f.month !== lastBuiltMonth || f.year !== lastBuiltYear) {
+									initOrReinitTable();
+								} else if (table) {
+									table.ajax.reload();
+								}
 							});
 
 							// Rebuild table when month/year changes (days columns change)
 							$('#ts_month, #ts_year').on('change', function() {
 								updatePrintLinks();
+								updateTimesheetTitle($('#ts_month').val() || '<?php echo $month; ?>', $('#ts_year').val() || '<?php echo $year; ?>');
 								initOrReinitTable();
 							});
 

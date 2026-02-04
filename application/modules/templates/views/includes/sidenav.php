@@ -21,11 +21,48 @@
        </p>
        <hr>
        <p class="text-muted" style="color:#FEFFFF; font-size: 10px; height:20px; font-weight:bold; margin-top:1px;">
-         <?php
-          echo $period = "PERIOD:" . $userdata['month'] . '-' . $userdata['year'] . '<br>';
-          // echo date('Y-m-d H:i:s');
-          ?>
+         PERIOD:<?php echo $userdata['month'] . '-' . $userdata['year']; ?>
        </p>
+       <p class="mb-1 mt-1" style="font-size: 10px;">
+         <label class="mb-0" for="session_year_select">Year</label>
+         <select id="session_year_select" class="form-control form-control-sm" style="font-size: 10px; padding: 2px 4px; height: 26px;">
+           <?php
+           $current_year = (int) date('Y');
+           $session_year = isset($userdata['year']) ? (int) $userdata['year'] : $current_year;
+           for ($y = $current_year + 1; $y >= $current_year - 10; $y--) {
+             $sel = ($y === $session_year) ? ' selected="selected"' : '';
+             echo '<option value="' . (int) $y . '"' . $sel . '>' . $y . '</option>';
+           }
+           ?>
+         </select>
+       </p>
+       <script>
+       (function() {
+         function initSessionYearSelect() {
+           var el = document.getElementById('session_year_select');
+           if (!el) return;
+           var baseUrl = '<?php echo base_url(); ?>';
+           el.addEventListener('change', function() {
+             var year = this.value;
+             var xhr = new XMLHttpRequest();
+             xhr.open('POST', baseUrl + 'dashboard/setSessionYear', true);
+             xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+             xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+             xhr.onload = function() {
+               if (xhr.status >= 200 && xhr.status < 400) {
+                 window.location.reload();
+               }
+             };
+             xhr.send('year=' + encodeURIComponent(year) + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo $this->security->get_csrf_hash(); ?>');
+           });
+         }
+         if (typeof jQuery !== 'undefined') {
+           jQuery(initSessionYearSelect);
+         } else {
+           document.addEventListener('DOMContentLoaded', initSessionYearSelect);
+         }
+       })();
+       </script>
 
      </div>
      <!-- Sidebar Menu -->

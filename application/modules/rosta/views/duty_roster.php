@@ -136,7 +136,6 @@ if ($posted_timestamp > $current_timestamp) {
 							<hr style="color:#15b178;">
 							<?php $colors = Modules::run('schedules/getrosterKey'); ?>
 							<div class="col-lg-12" style="text-align:center;">
-								<p style="text-align:center; font-weight:bold; font:14rem;"></p>
 								<?php foreach ($colors as $color) { ?>
 									<button type="button" class="btn btn-sm btnkey bg-gray-dark color-pale"><?php echo $color->schedule; ?> (<?php echo $color->letter; ?>)
 									</button>
@@ -246,12 +245,9 @@ if ($posted_timestamp > $current_timestamp) {
 								<img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px" style="float:left;">
 							</div>
 							<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0; margin:0 auto;">
-								<p style="text-align:center; font-weight:bold; font-size:20px; margin-bottom: 5px;">
-									MONTHLY DUTY ROSTER FOR
-									<?php
-									echo " - " . $_SESSION['facility_name'];
-									echo "              " . date('F, Y', strtotime($year . "-" . $month));
-									?></p>
+								<p id="duty_roster_title" style="text-align:center; font-weight:bold; font-size:20px; margin-bottom: 5px;" data-facility-name="<?php echo htmlspecialchars(isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Ministry of Health'); ?>">
+									MONTHLY DUTY ROSTER FOR - <?php echo htmlspecialchars(isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Ministry of Health'); ?> <?php echo date('F, Y', strtotime($year . "-" . $month)); ?>
+								</p>
 							</div>
 						</div>
 						<table id="tabular_table" class="table table-bordered table-striped table-condensed" style="width:100%; font-size:11px; margin-top: 0; border-collapse: collapse;"></table>
@@ -588,21 +584,41 @@ if ($posted_timestamp > $current_timestamp) {
 		var monthDays = <?php echo (int)cal_days_in_month(CAL_GREGORIAN, $month, $year); ?>;
 		var isMobile = (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) || (window.innerWidth && window.innerWidth <= 768);
 
+		// Days in month for selected month/year (1-12, full year)
+		function getDaysInMonth(monthNum, yearNum) {
+			var m = parseInt(monthNum, 10);
+			var y = parseInt(yearNum, 10);
+			return new Date(y, m, 0).getDate();
+		}
+
 		function isWeekend(dateStr) {
 			var date = new Date(dateStr);
 			var day = date.getDay();
 			return (day === 0 || day === 6); // Sunday = 0, Saturday = 6
 		}
 
-		function buildColumns() {
+		function escapeHtml(val) {
+			if (val == null || val === '') return '';
+			var s = String(val);
+			return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		}
+
+		function updateDutyRosterTitle(monthVal, yearVal) {
+			var facilityName = $('#duty_roster_title').attr('data-facility-name') || 'Ministry of Health';
+			var dateObj = new Date(parseInt(yearVal, 10), parseInt(monthVal, 10) - 1, 1);
+			var monthName = dateObj.toLocaleString('en-US', { month: 'long' });
+			$('#duty_roster_title').text('MONTHLY DUTY ROSTER FOR - ' + facilityName + ' ' + monthName + ', ' + yearVal);
+		}
+
+		function buildColumns(monthVal, yearVal, daysInMonth) {
 			var cols = [];
 			cols.push({ data: 'rownum', title: '#', className: 'text-center', width: isMobile ? '50px' : '40px', orderable: false });
 			cols.push({ data: 'fullname', title: 'Name', className: 'text-left', width: isMobile ? '200px' : '120px', orderable: false });
 			cols.push({ data: 'job', title: 'Position', className: 'text-left', width: isMobile ? '180px' : '120px', orderable: false });
 
-			for (var d = 1; d <= monthDays; d++) {
+			for (var d = 1; d <= daysInMonth; d++) {
 				var dayStr = (d < 10) ? '0' + d : d.toString();
-				var ymd = year + '-' + month + '-' + dayStr;
+				var ymd = yearVal + '-' + monthVal + '-' + dayStr;
 				var isWeekendDay = isWeekend(ymd);
 				var headerClass = isWeekendDay ? 'text-center weekend-header' : 'text-center';
 				var headerStyle = isWeekendDay ? 'background-color:red; color:#FFFFFF;' : '';
@@ -616,15 +632,15 @@ if ($posted_timestamp > $current_timestamp) {
 						orderable: false,
 						render: function(data, type, row) {
 							if (type === 'display') {
-								var entryId = row['entry_id_' + dayNum];
-								var pid = row['ihris_pid'];
+								var entryId = row['entry_id_' + dayNum] || '';
+								var pid = row['ihris_pid'] || '';
 								var disabled = row['disabled_' + dayNum] === true || row['disabled_' + dayNum] === 'true';
 								var disabledAttr = disabled ? 'disabled' : '';
-								var recordType = data ? 'update duty' : 'new duty';
 								var inputClass = data ? 'update duty' : 'new duty';
 								var fontSize = isMobile ? '16px' : '13px';
 								var padding = isMobile ? '6px 2px' : '1px 2px';
 								var height = isMobile ? '34px' : 'auto';
+								var displayVal = escapeHtml(data || '');
 								
 								return '<input type="text" style="padding:' + padding + '; height:' + height + '; margin:0; text-align: center; width:100%; max-width:100%; box-sizing:border-box; font-size:' + fontSize + '; font-weight:bold; border:1px solid #ddd; border-radius:4px;" ' +
 									'class="' + inputClass + '" ' +
@@ -634,7 +650,7 @@ if ($posted_timestamp > $current_timestamp) {
 									'pattern="[A-Za-z]+" ' +
 									'maxlength="1" ' +
 									'title="Letters only for Duty" ' +
-									'value="' + (data || '') + '" ' +
+									'value="' + displayVal + '" ' +
 									disabledAttr + '>';
 							}
 							return data || '';
@@ -645,7 +661,7 @@ if ($posted_timestamp > $current_timestamp) {
 			return cols;
 		}
 
-		var tableColumns = buildColumns();
+		var tableColumns = buildColumns(month, year, monthDays);
 		
 		// Build columnDefs with explicit widths
 		var columnDefs = tableColumns.map(function(col, index) {
@@ -955,12 +971,89 @@ if ($posted_timestamp > $current_timestamp) {
 			});
 		}
 
+		function applyTabularFilter() {
+			var selMonth = $('#tabular_month').val() || month;
+			var selYear = $('#tabular_year').val() || year;
+			updateDutyRosterTitle(selMonth, selYear);
+			var newDays = getDaysInMonth(selMonth, selYear);
+			var monthOrYearChanged = (selMonth !== month || selYear !== year);
+			if (monthOrYearChanged) {
+				month = selMonth;
+				year = selYear;
+				monthDays = newDays;
+				if (tabularTable && $.fn.DataTable.isDataTable('#tabular_table')) {
+					tabularTable.destroy();
+					$('#tabular_table').empty();
+				}
+				tableColumns = buildColumns(month, year, monthDays);
+				columnDefs = tableColumns.map(function(col, index) {
+					return {
+						targets: index,
+						width: col.width || '35px',
+						className: col.className || '',
+						orderable: col.orderable !== undefined ? col.orderable : false
+					};
+				});
+				tabularTable = $('#tabular_table').DataTable({
+					processing: true,
+					serverSide: true,
+					searching: false,
+					ordering: false,
+					autoWidth: false,
+					pageLength: 20,
+					lengthChange: true,
+					lengthMenu: [[20, 25, 50, 100, 200], [20, 25, 50, 100, 200]],
+					pagingType: 'simple_numbers',
+					dom: '<"top"lp>rt<"bottom"ip><"clear">',
+					columnDefs: columnDefs,
+					ajax: {
+						url: baseUrl + 'rosta/tabularAjax',
+						type: 'POST',
+						data: function(d) {
+							d.month = $('#tabular_month').val() || month;
+							d.year = $('#tabular_year').val() || year;
+							d.empid = $('#tabular_empid').val() || '';
+							d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+						},
+						dataSrc: function(json) {
+							tabSchedules = json.tab_schedules || {};
+							isSadmin = json.is_sadmin || false;
+							isFutureMonth = json.is_future_month || false;
+							if (isFutureMonth && !isSadmin) {
+								$('#editing_locked_message').show();
+							} else {
+								$('#editing_locked_message').hide();
+							}
+							return json.data;
+						}
+					},
+					columns: tableColumns,
+					initComplete: function() {
+						var api = this.api();
+						setTimeout(function() { forceColumnAlignment(api); }, 50);
+					},
+					drawCallback: function() {
+						var api = this.api();
+						setTimeout(function() { forceColumnAlignment(api); }, 10);
+						attachDutyHandlers();
+					}
+				});
+			} else {
+				month = selMonth;
+				year = selYear;
+				tabularTable.ajax.reload();
+			}
+		}
+
 		$('#tabular_apply').on('click', function(e) {
 			e.preventDefault();
-			tabularTable.ajax.reload();
+			applyTabularFilter();
 		});
 
-		$('#tabular_month, #tabular_year, #tabular_empid').on('change', function() {
+		$('#tabular_month, #tabular_year').on('change', function() {
+			applyTabularFilter();
+		});
+		$('#tabular_empid').on('change', function() {
 			tabularTable.ajax.reload();
 		});
 		
