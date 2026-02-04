@@ -25,123 +25,16 @@
   <!-- Theme style -->
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/adminlte.min.css">
   <script src="<?php echo base_url() ?>node_modules/jquery/dist/jquery.min.js"></script>
+  <!-- Highcharts: load core first, then modules (synchronous order prevents "Cannot read setOptions of undefined"). -->
+  <script src="<?php echo base_url() ?>node_modules/highcharts/highcharts.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/highcharts-more.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/solid-gauge.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/exporting.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/export-data.js"></script>
+  <script src="<?php echo base_url() ?>node_modules/highcharts/modules/accessibility.js"></script>
   <script>
-    /**
-     * Highcharts loader (production-safe)
-     *
-     * The online crash you reported happens when Highcharts modules (highcharts-more/solid-gauge/accessibility)
-     * execute before the Highcharts core is available.
-     *
-     * This loader guarantees order:
-     * - load Highcharts core FIRST (with fallbacks)
-     * - then load modules sequentially
-     * - never load modules unless the core is actually present
-     *
-     * It is also idempotent (won't insert duplicates).
-     */
-    (function highchartsLoader() {
-      window.__hcLoaderState = window.__hcLoaderState || {
-        started: false,
-        loaded: false
-      };
-
-      if (window.__hcLoaderState.loaded || window.__hcLoaderState.started) return;
-      window.__hcLoaderState.started = true;
-
-      function hasHighchartsCore() {
-        return (typeof window.Highcharts !== 'undefined' &&
-          typeof window.Highcharts.setOptions === 'function' &&
-          typeof window.Highcharts.chart === 'function');
-      }
-
-      function loadScriptOnce(src, attrName) {
-        return new Promise(function(resolve, reject) {
-          var selector = 'script[' + attrName + '="' + src + '"]';
-          if (document.querySelector(selector)) {
-            resolve();
-            return;
-          }
-          var script = document.createElement('script');
-          script.src = src;
-          script.async = false;
-          script.setAttribute(attrName, src);
-          script.onload = function() { resolve(); };
-          script.onerror = function() { reject(new Error('Failed to load ' + src)); };
-          document.head.appendChild(script);
-        });
-      }
-
-      // Core fallbacks: keep node_modules first (dev), but allow production to swap without breaking.
-      var coreCandidates = [
-        '<?php echo base_url() ?>node_modules/highcharts/highcharts.js',
-        // If you later decide to host Highcharts under assets/, this will start working automatically.
-        '<?php echo base_url() ?>assets/plugins/highcharts/highcharts.js'
-      ];
-
-      function loadCoreWithFallbacks() {
-        // If already present, skip loading.
-        if (hasHighchartsCore()) return Promise.resolve();
-
-        // Try candidates in order.
-        return coreCandidates.reduce(function(p, src) {
-          return p.catch(function() {
-            return loadScriptOnce(src, 'data-hc-core').then(function() {
-              // Some servers may return HTML for missing files; verify we actually got Highcharts.
-              if (!hasHighchartsCore()) {
-                throw new Error('Highcharts core did not initialize from ' + src);
-              }
-            });
-          });
-        }, Promise.reject(new Error('init')));
-      }
-
-      var moduleScripts = [
-        '<?php echo base_url() ?>node_modules/highcharts/highcharts-more.js',
-        '<?php echo base_url() ?>node_modules/highcharts/modules/solid-gauge.js',
-        '<?php echo base_url() ?>node_modules/highcharts/modules/exporting.js',
-        '<?php echo base_url() ?>node_modules/highcharts/modules/export-data.js',
-        '<?php echo base_url() ?>node_modules/highcharts/modules/accessibility.js',
-        // Optional future asset fallbacks (won't run unless you host them)
-        'https://code.highcharts.com/highcharts.js',
-        'https://code.highcharts.com/highcharts-more.js',
-        'https://code.highcharts.com/modules/exporting.js',
-        'https://code.highcharts.com/modules/export-data.js',
-        'https://code.highcharts.com/modules/bullet.js',
-        'https://code.highcharts.com/modules/accessibility.js'
-      ];
-
-      function loadModulesSequentially() {
-        // Only load the *first* set that exists; if node_modules is missing in prod, the asset fallbacks can be used.
-        var primary = moduleScripts.slice(0, 5);
-        var secondary = moduleScripts.slice(5);
-
-        function loadList(list) {
-          return list.reduce(function(p, src) {
-            return p.then(function() {
-              if (!hasHighchartsCore()) throw new Error('Highcharts core missing while loading modules');
-              return loadScriptOnce(src, 'data-hc-module').catch(function(e) {
-                // If a module fails, keep going; missing optional modules should not kill the page.
-                console.warn(e.message);
-              });
-            });
-          }, Promise.resolve());
-        }
-
-        return loadList(primary).then(function() {
-          // If core exists but some modules couldn't load from node_modules, attempt asset fallback list.
-          return loadList(secondary);
-        });
-      }
-
-      loadCoreWithFallbacks()
-        .then(loadModulesSequentially)
-        .then(function() {
-          window.__hcLoaderState.loaded = true;
-        })
-        .catch(function(e) {
-          console.warn('Highcharts loader failed:', e && e.message ? e.message : e);
-        });
-    })();
+    window.__hcLoaderState = window.__hcLoaderState || {};
+    window.__hcLoaderState.loaded = (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function');
   </script>
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
