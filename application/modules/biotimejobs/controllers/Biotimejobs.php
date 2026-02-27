@@ -1353,7 +1353,7 @@ class Biotimejobs extends MX_Controller
 
     $sqlDay = "
         UPDATE clk_log cl
-        JOIN ihrisdata i ON i.ihris_pid = cl.person_id
+        JOIN ihrisdata i ON i.ihris_pid = cl.ihris_pid
         JOIN biotime_data b 
             ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
         SET cl.time_out = b.punch_time
@@ -1377,7 +1377,7 @@ class Biotimejobs extends MX_Controller
     $sqlNight = "
         UPDATE clk_log cl
         JOIN duty_rosta dr 
-            ON dr.ihris_pid = cl.person_id
+            ON dr.ihris_pid = cl.ihris_pid
         JOIN ihrisdata i 
             ON i.ihris_pid = dr.ihris_pid
         JOIN biotime_data b
