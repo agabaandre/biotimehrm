@@ -124,6 +124,10 @@ class Jobs extends MX_Controller {
             echo "\nRunning attendance fetch (no lock)...\n";
             $this->run('biotimejobs fetch_daily_attendance');
         }
+		  if ($hour % 3 == 0 && $minute == 0) {
+            echo "\nRunning attendance fetch (no lock)...\n";
+            $this->run('biotimejobs markattendance');
+        }
 
         echo "\n============================================\n";
         echo " JOBS MASTER COMPLETED\n";
