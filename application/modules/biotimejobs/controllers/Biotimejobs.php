@@ -1437,34 +1437,38 @@ class Biotimejobs extends MX_Controller
     | 4️⃣ POPULATE ACTUALS TABLE (Attendance Calendar)
     |--------------------------------------------------------------------------
     */
-
-    $sqlActuals = "
-        INSERT INTO actuals (
-            ihris_pid,
-            attendance_date,
-            status,
-            time_in,
-            time_out,
-            hours_worked,
-            created_at
-        )
-        SELECT
-            cl.ihris_pid,
-            cl.date,
-            'P',
-            cl.time_in,
-            cl.time_out,
-            ROUND(TIMESTAMPDIFF(MINUTE, cl.time_in, cl.time_out)/60,2),
-            NOW()
-        FROM clk_log cl
-        WHERE cl.date BETWEEN ? AND ?
-        AND cl.time_in IS NOT NULL
-        ON DUPLICATE KEY UPDATE
-            time_in = VALUES(time_in),
-            time_out = VALUES(time_out),
-            hours_worked = VALUES(hours_worked),
-            status = 'P'
-    ";
+$sqlActuals = "
+    INSERT INTO actuals (
+        entry_id,
+        facility_id,
+        department_id,
+        ihris_pid,
+        schedule_id,
+        color,
+        date,
+        end,
+        stream
+    )
+    SELECT DISTINCT 
+        CONCAT(cl.date, id.ihris_pid) AS entry_id,
+        id.facility_id,
+        id.department AS department_id,
+        id.ihris_pid,
+        s.schedule_id,
+        s.color,
+        cl.date,
+        DATE_ADD(cl.date, INTERVAL 1 DAY) AS end,
+        cl.source AS stream
+    FROM ihrisdata id
+    JOIN clk_log cl 
+        ON id.ihris_pid = cl.ihris_pid
+    JOIN schedules s 
+        ON s.schedule_id = 22
+    LEFT JOIN actuals a 
+        ON a.entry_id = CONCAT(cl.date, id.ihris_pid)
+    WHERE cl.date BETWEEN ? AND ?
+      AND a.entry_id IS NULL
+";
 
     $this->db->query($sqlActuals, [$startDate, $syncDate]);
     $actualsUpdated = $this->db->affected_rows();
