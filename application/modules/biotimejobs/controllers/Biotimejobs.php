@@ -1321,8 +1321,8 @@ class Biotimejobs extends MX_Controller
 
         $message = " Checkin " . $this->db->affected_rows();
 
-        $this->biotimeClockout();
-        $this->biotimeClockoutnight();
+        $this->biotimeClockoutUnified();
+       // $this->biotimeClockoutnight();
         $this->markAttendance();
 
         $this->db->query("CALL `biotime_cache`();");
@@ -1332,6 +1332,84 @@ class Biotimejobs extends MX_Controller
 
         $this->log($message);
     }
+
+//unified clockout
+	public function biotimeClockoutUnified($date = null)
+{
+    ignore_user_abort(true);
+    ini_set('max_execution_time', 0);
+
+    $today = $date ?? date('Y-m-d');
+    $yesterday = date('Y-m-d', strtotime('-1 day', strtotime($today)));
+
+    $this->db->trans_start();
+
+    /*
+     |--------------------------------------------------------------------------
+     | 1️⃣ NORMAL CLOCKOUT (Day Shift)
+     |--------------------------------------------------------------------------
+     | Updates all matching records in ONE query
+     */
+
+    $sqlDay = "
+        UPDATE clk_log cl
+        JOIN ihrisdata i ON i.ihris_pid = cl.person_id
+        JOIN biotime_data b 
+            ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+        SET cl.time_out = b.punch_time
+        WHERE cl.time_out IS NULL
+        AND b.punch_time > cl.time_in
+        AND DATE(b.punch_time) = ?
+    ";
+
+    $this->db->query($sqlDay, [$today]);
+
+    $dayAffected = $this->db->affected_rows();
+
+
+    /*
+     |--------------------------------------------------------------------------
+     | 2️⃣ NIGHT SHIFT CLOCKOUT
+     |--------------------------------------------------------------------------
+     | Night shift closes yesterday’s entry using today’s punch
+     */
+
+    $sqlNight = "
+        UPDATE clk_log cl
+        JOIN duty_rosta dr 
+            ON dr.ihris_pid = cl.person_id
+        JOIN ihrisdata i 
+            ON i.ihris_pid = dr.ihris_pid
+        JOIN biotime_data b
+            ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+        SET cl.time_out = b.punch_time
+        WHERE dr.schedule_id = '16'
+        AND cl.date = ?
+        AND DATE(b.punch_time) = ?
+        AND b.punch_time > cl.time_in
+        AND TIMESTAMPDIFF(HOUR, cl.time_in, b.punch_time) <= 15
+        AND cl.time_out IS NULL
+    ";
+
+    $this->db->query($sqlNight, [$yesterday, $today]);
+
+    $nightAffected = $this->db->affected_rows();
+
+    $this->db->trans_complete();
+
+    $total = $dayAffected + $nightAffected;
+
+    echo "\n====================================\n";
+    echo "Clockout Completed\n";
+    echo "Day Shift Updated: $dayAffected\n";
+    echo "Night Shift Updated: $nightAffected\n";
+    echo "Total Updated: $total\n";
+    echo "====================================\n";
+
+    $this->log("Clockout Unified: $total records updated");
+
+    return $total;
+}
     //rethink the clockin, clockin people as the data is fetched.
     public function biotimeClockout()
     {
