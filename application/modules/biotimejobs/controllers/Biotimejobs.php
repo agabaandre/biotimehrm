@@ -1357,25 +1357,23 @@ class Biotimejobs extends MX_Controller
     |--------------------------------------------------------------------------
     */
 
-    $sqlClockIn = "
-        INSERT INTO clk_log (entry_id, ihris_pid, date, time_in)
-        SELECT 
-            CONCAT(DATE(b.punch_time), i.ihris_pid),
-            i.ihris_pid,
-            DATE(b.punch_time),
-            MIN(b.punch_time)
-        FROM biotime_data b
-        JOIN ihrisdata i
-            ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
-        WHERE b.punch_time >= ?
-        AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
-        GROUP BY DATE(b.punch_time), i.ihris_pid
-        HAVING CONCAT(DATE(b.punch_time), i.ihris_pid)
-            NOT IN (SELECT entry_id FROM clk_log)
-    ";
-
-    $this->db->query($sqlClockIn, [$startDate, $syncDate]);
-    $clockinInserted = $this->db->affected_rows();
+   $sqlClockIn = "
+    INSERT INTO clk_log (entry_id, ihris_pid, date, time_in)
+    SELECT 
+        CONCAT(DATE(b.punch_time), i.ihris_pid) AS entry_id,
+        i.ihris_pid,
+        DATE(b.punch_time),
+        MIN(b.punch_time)
+    FROM biotime_data b
+    JOIN ihrisdata i
+        ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+    LEFT JOIN clk_log cl
+        ON cl.entry_id = CONCAT(DATE(b.punch_time), i.ihris_pid)
+    WHERE b.punch_time >= ?
+    AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
+    AND cl.entry_id IS NULL
+    GROUP BY DATE(b.punch_time), i.ihris_pid
+";
 
 
     /*
