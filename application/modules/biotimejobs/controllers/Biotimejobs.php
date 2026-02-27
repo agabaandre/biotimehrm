@@ -1737,7 +1737,7 @@ class Biotimejobs extends MX_Controller
      * @param bool $output_console Whether to output console messages (default: true)
      * @return array Result array with status, message, and statistics per machine
      */
-    public function fetch_daily_attendance($end_date = FALSE, $max_days = 60, $specific_device = FALSE, $output_console = TRUE)
+    public function fetch_daily_attendance($end_date = FALSE, $max_days = 365, $specific_device = FALSE, $output_console = TRUE)
     {
         ignore_user_abort(true);
         set_time_limit(0);
