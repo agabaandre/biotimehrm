@@ -1313,19 +1313,21 @@ class Biotimejobs extends MX_Controller
     }
 
 
-    public function biotimeClockin()
+    public function biotimeClockin($date=FALSE)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        $this->db->query("CALL `clockin_users`();");
 
-        $message = " Checkin " . $this->db->affected_rows();
+		$this->biotimeSyncAttendanceUnified($date)
+       //  $this->db->query("CALL `clockin_users`();");
 
-        $this->biotimeClockoutUnified();
-       // $this->biotimeClockoutnight();
-        $this->markAttendance();
+       //  $message = " Checkin " . $this->db->affected_rows();
 
-        $this->db->query("CALL `biotime_cache`();");
+       //  $this->biotimeClockoutUnified();
+       // // $this->biotimeClockoutnight();
+       //  $this->markAttendance();
+
+       // $this->db->query("CALL `biotime_cache`();");
 
         $this->db->query("TRUNCATE TABLE biotime_data");
 
@@ -1333,83 +1335,157 @@ class Biotimejobs extends MX_Controller
         $this->log($message);
     }
 
-//unified clockout
-	public function biotimeClockoutUnified($date = null)
+
+    public function biotimeSyncAttendanceUnified($date = null)
 {
     ignore_user_abort(true);
     ini_set('max_execution_time', 0);
 
-    $today = $date ?? date('Y-m-d');
-    $yesterday = date('Y-m-d', strtotime('-1 day', strtotime($today)));
+    $syncDate  = $date ?? date('Y-m-d');
+    $startDate = date('Y-m-d', strtotime('-1 day', strtotime($syncDate)));
+
+    echo "\n========================================\n";
+    echo " Unified Attendance Sync\n";
+    echo " Range: $startDate → $syncDate\n";
+    echo "========================================\n";
 
     $this->db->trans_start();
 
     /*
-     |--------------------------------------------------------------------------
-     | 1️⃣ NORMAL CLOCKOUT (Day Shift)
-     |--------------------------------------------------------------------------
-     | Updates all matching records in ONE query
-     */
+    |--------------------------------------------------------------------------
+    | 1️⃣ INSERT CLOCK-IN
+    |--------------------------------------------------------------------------
+    */
 
-    $sqlDay = "
-        UPDATE clk_log cl
-        JOIN ihrisdata i ON i.ihris_pid = cl.ihris_pid
-        JOIN biotime_data b 
+    $sqlClockIn = "
+        INSERT INTO clk_log (entry_id, ihris_pid, date, time_in)
+        SELECT 
+            CONCAT(DATE(b.punch_time), i.ihris_pid),
+            i.ihris_pid,
+            DATE(b.punch_time),
+            MIN(b.punch_time)
+        FROM biotime_data b
+        JOIN ihrisdata i
             ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
-        SET cl.time_out = b.punch_time
-        WHERE cl.time_out IS NULL
-        AND b.punch_time > cl.time_in
-        AND DATE(b.punch_time) = ?
+        WHERE b.punch_time >= ?
+        AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
+        GROUP BY DATE(b.punch_time), i.ihris_pid
+        HAVING CONCAT(DATE(b.punch_time), i.ihris_pid)
+            NOT IN (SELECT entry_id FROM clk_log)
     ";
 
-    $this->db->query($sqlDay, [$today]);
-
-    $dayAffected = $this->db->affected_rows();
+    $this->db->query($sqlClockIn, [$startDate, $syncDate]);
+    $clockinInserted = $this->db->affected_rows();
 
 
     /*
-     |--------------------------------------------------------------------------
-     | 2️⃣ NIGHT SHIFT CLOCKOUT
-     |--------------------------------------------------------------------------
-     | Night shift closes yesterday’s entry using today’s punch
-     */
+    |--------------------------------------------------------------------------
+    | 2️⃣ UPDATE CLOCK-OUT
+    |--------------------------------------------------------------------------
+    */
+
+    $sqlClockOut = "
+        UPDATE clk_log cl
+        JOIN (
+            SELECT 
+                i.ihris_pid,
+                DATE(b.punch_time) AS log_date,
+                MAX(b.punch_time) AS last_punch
+            FROM biotime_data b
+            JOIN ihrisdata i
+                ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+            WHERE b.punch_time >= ?
+            AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
+            GROUP BY i.ihris_pid, DATE(b.punch_time)
+        ) punches
+        ON punches.ihris_pid = cl.ihris_pid
+        AND punches.log_date = cl.date
+        SET cl.time_out = punches.last_punch
+        WHERE punches.last_punch > cl.time_in
+    ";
+
+    $this->db->query($sqlClockOut, [$startDate, $syncDate]);
+    $clockoutUpdated = $this->db->affected_rows();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 3️⃣ NIGHT SHIFT CORRECTION
+    |--------------------------------------------------------------------------
+    */
 
     $sqlNight = "
         UPDATE clk_log cl
-        JOIN duty_rosta dr 
+        JOIN duty_rosta dr
             ON dr.ihris_pid = cl.ihris_pid
-        JOIN ihrisdata i 
-            ON i.ihris_pid = dr.ihris_pid
         JOIN biotime_data b
+            ON b.punch_time >= ?
+            AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
+        JOIN ihrisdata i
             ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
         SET cl.time_out = b.punch_time
         WHERE dr.schedule_id = '16'
         AND cl.date = ?
-        AND DATE(b.punch_time) = ?
         AND b.punch_time > cl.time_in
         AND TIMESTAMPDIFF(HOUR, cl.time_in, b.punch_time) <= 15
-        AND cl.time_out IS NULL
     ";
 
-    $this->db->query($sqlNight, [$yesterday, $today]);
+    $this->db->query($sqlNight, [$startDate, $syncDate, $startDate]);
+    $nightUpdated = $this->db->affected_rows();
 
-    $nightAffected = $this->db->affected_rows();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 4️⃣ POPULATE ACTUALS TABLE (Attendance Calendar)
+    |--------------------------------------------------------------------------
+    */
+
+    $sqlActuals = "
+        INSERT INTO actuals (
+            ihris_pid,
+            attendance_date,
+            status,
+            time_in,
+            time_out,
+            hours_worked,
+            created_at
+        )
+        SELECT
+            cl.ihris_pid,
+            cl.date,
+            'P',
+            cl.time_in,
+            cl.time_out,
+            ROUND(TIMESTAMPDIFF(MINUTE, cl.time_in, cl.time_out)/60,2),
+            NOW()
+        FROM clk_log cl
+        WHERE cl.date BETWEEN ? AND ?
+        AND cl.time_in IS NOT NULL
+        ON DUPLICATE KEY UPDATE
+            time_in = VALUES(time_in),
+            time_out = VALUES(time_out),
+            hours_worked = VALUES(hours_worked),
+            status = 'P'
+    ";
+
+    $this->db->query($sqlActuals, [$startDate, $syncDate]);
+    $actualsUpdated = $this->db->affected_rows();
 
     $this->db->trans_complete();
 
-    $total = $dayAffected + $nightAffected;
+    $total = $clockinInserted + $clockoutUpdated + $nightUpdated;
 
-    echo "\n====================================\n";
-    echo "Clockout Completed\n";
-    echo "Day Shift Updated: $dayAffected\n";
-    echo "Night Shift Updated: $nightAffected\n";
-    echo "Total Updated: $total\n";
-    echo "====================================\n";
+    echo "\nClock-in Inserted : $clockinInserted\n";
+    echo "Clock-out Updated : $clockoutUpdated\n";
+    echo "Night Corrected   : $nightUpdated\n";
+    echo "Actuals Updated   : $actualsUpdated\n";
+    echo "Total Affected    : $total\n";
 
-    $this->log("Clockout Unified: $total records updated");
+    $this->log("Unified Sync + Actuals: $total logs, $actualsUpdated actuals");
 
     return $total;
 }
+	
     //rethink the clockin, clockin people as the data is fetched.
     public function biotimeClockout()
     {
@@ -1755,7 +1831,7 @@ class Biotimejobs extends MX_Controller
                     $console("  ✓ Fetched: {$fetch_result['records_fetched']} | Saved: {$fetch_result['records_saved']}", 'success');
                     
                     // Process clock data for this date
-                    $this->biotimeClockin();
+                    $this->biotimeClockin($dates);
                  //$this->this($dates);
                     
                     $this->log("fetch_time_history() processed date $dates: " . $fetch_result['records_saved'] . " records saved");
