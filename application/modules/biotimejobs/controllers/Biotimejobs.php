@@ -1318,7 +1318,7 @@ class Biotimejobs extends MX_Controller
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
 
-		$this->biotimeSyncAttendanceUnified($date)
+		$this->biotimeSyncAttendanceUnified($date);
        //  $this->db->query("CALL `clockin_users`();");
 
        //  $message = " Checkin " . $this->db->affected_rows();
