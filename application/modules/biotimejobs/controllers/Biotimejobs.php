@@ -1349,30 +1349,44 @@ class Biotimejobs extends MX_Controller
 
     /*
     |--------------------------------------------------------------------------
-    | 1️⃣ INSERT CLOCK-IN (one day per transaction to minimize lock scope)
+    | 1️⃣ REPLACE INTO CLOCK-IN (procedure-style, one day per transaction)
     |--------------------------------------------------------------------------
     */
-    // Single-day INSERT template: only touches biotime_data and clk_log for that day
+    // Procedure-style REPLACE: entry_id, ihris_pid, facility_id, time_in, date, location, source, facility
+    // Grouped so one row per (date, ihris_pid) with MIN(punch_time) as time_in; NOT IN scoped to same day to reduce lock
     $sqlClockInOneDay = "
-    INSERT INTO clk_log (entry_id, ihris_pid, date, time_in)
+    REPLACE INTO clk_log (
+        entry_id,
+        ihris_pid,
+        facility_id,
+        time_in,
+        date,
+        location,
+        source,
+        facility
+    )
     SELECT
         CONCAT(grp.log_date, grp.ihris_pid),
         grp.ihris_pid,
+        grp.facility_id,
+        grp.time_in,
         grp.log_date,
-        grp.first_punch
+        grp.location,
+        'BIO-TIME',
+        grp.facility
     FROM (
         SELECT
             DATE(b.punch_time) AS log_date,
             i.ihris_pid,
-            MIN(b.punch_time) AS first_punch
+            MAX(i.facility_id) AS facility_id,
+            MIN(b.punch_time) AS time_in,
+            MAX(b.area_alias) AS location,
+            MAX(i.facility) AS facility
         FROM biotime_data b
-        JOIN ihrisdata i
-            ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
-        LEFT JOIN clk_log cl
-            ON cl.entry_id = CONCAT(DATE(b.punch_time), i.ihris_pid)
+        JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
         WHERE b.punch_time >= ?
         AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
-        AND cl.entry_id IS NULL
+        AND CONCAT(DATE(b.punch_time), i.ihris_pid) NOT IN (SELECT entry_id FROM clk_log WHERE date = ?)
         GROUP BY DATE(b.punch_time), i.ihris_pid
     ) grp
     ";
@@ -1382,7 +1396,7 @@ class Biotimejobs extends MX_Controller
     while ($cursor <= $syncEnd) {
         $day = date('Y-m-d', $cursor);
         $this->db->trans_start();
-        $this->db->query($sqlClockInOneDay, [$day, $day]);
+        $this->db->query($sqlClockInOneDay, [$day, $day, $day]);
         $clockinInserted += $this->db->affected_rows();
         $this->db->trans_complete();
         $cursor = strtotime('+1 day', $cursor);
