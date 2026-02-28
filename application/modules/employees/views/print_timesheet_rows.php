@@ -70,13 +70,10 @@ foreach ($workinghours as $hours) {
 			<?php
 		}
 	}
-	$twdays = isset($scheduledDaysByPid[$pid]) ? (int)$scheduledDaysByPid[$pid] : 0;
 	$worked_days = count($personhrs);
-	$percent_present = $twdays > 0 ? round(($worked_days / $twdays) * 100, 0) : 0;
 	?>
 	<td class="cell" style="width:6%;"><?php echo array_sum($personhrs); ?></td>
-	<td class="cell" style="width:6%;"><?php echo $worked_days . "/" . $twdays; ?></td>
-	<td class="cell" style="width:7%;"><?php echo $percent_present . "%"; ?></td>
+	<td class="cell" style="width:6%;"><?php echo $worked_days; ?></td>
 </tr>
 <?php
 }

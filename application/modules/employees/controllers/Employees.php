@@ -693,7 +693,6 @@ class Employees extends MX_Controller
     }
     $header_row[] = 'Hours';
     $header_row[] = 'Days';
-    $header_row[] = '% Present';
     fputcsv($fh, $header_row);
 
     $row_no = 1;
@@ -745,12 +744,9 @@ class Employees extends MX_Controller
             $personhrs[] = $hrs;
           }
         }
-        $twdays = isset($scheduledDaysByPid[$pid]) ? (int) $scheduledDaysByPid[$pid] : 0;
         $worked = count($personhrs);
-        $pct = $twdays > 0 ? round(($worked / $twdays) * 100, 0) : 0;
         $row[] = array_sum($personhrs);
-        $row[] = $worked . '/' . $twdays;
-        $row[] = $pct . '%';
+        $row[] = $worked;
         fputcsv($fh, $row);
       }
       unset($batch, $pids, $logs_by_pid_date, $scheduledDaysByPid);
@@ -944,7 +940,6 @@ class Employees extends MX_Controller
     }
     $header_row[] = 'Hours';
     $header_row[] = 'Days';
-    $header_row[] = '% Present';
     fputcsv($fh, $header_row);
 
     $row_no = 1;
@@ -995,12 +990,9 @@ class Employees extends MX_Controller
             $personhrs[] = $hrs;
           }
         }
-        $twdays = isset($scheduledDaysByPid[$pid]) ? (int) $scheduledDaysByPid[$pid] : 0;
         $worked = count($personhrs);
-        $pct = $twdays > 0 ? round(($worked / $twdays) * 100, 0) : 0;
         $row[] = array_sum($personhrs);
-        $row[] = $worked . '/' . $twdays;
-        $row[] = $pct . '%';
+        $row[] = $worked;
         fputcsv($fh, $row);
       }
       unset($batch, $pids, $logs_by_pid_date, $scheduledDaysByPid);

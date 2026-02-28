@@ -80,7 +80,6 @@
 				?>
 				<th class="cell" style="width:10%;">Hours</th>
 				<th class="cell" style="width:10%;">Days</th>
-				<th class="cell" style="width:10%;">% Present</th>
 			</tr>
 		</thead>
 		<tbody>
