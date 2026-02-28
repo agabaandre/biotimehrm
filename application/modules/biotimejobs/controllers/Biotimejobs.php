@@ -1349,37 +1349,51 @@ class Biotimejobs extends MX_Controller
 
     /*
     |--------------------------------------------------------------------------
-    | 1️⃣ INSERT CLOCK-IN (short transaction to reduce lock time)
+    | 1️⃣ INSERT CLOCK-IN (one day per transaction to minimize lock scope)
     |--------------------------------------------------------------------------
     */
-    $sqlClockIn = "
+    // Single-day INSERT template: only touches biotime_data and clk_log for that day
+    $sqlClockInOneDay = "
     INSERT INTO clk_log (entry_id, ihris_pid, date, time_in)
     SELECT
-        CONCAT(DATE(b.punch_time), i.ihris_pid) AS entry_id,
-        i.ihris_pid,
-        DATE(b.punch_time),
-        MIN(b.punch_time)
-    FROM biotime_data b
-    JOIN ihrisdata i
-        ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
-    LEFT JOIN clk_log cl
-        ON cl.entry_id = CONCAT(DATE(b.punch_time), i.ihris_pid)
-    WHERE b.punch_time >= ?
-    AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
-    AND cl.entry_id IS NULL
-    GROUP BY DATE(b.punch_time), i.ihris_pid
+        CONCAT(grp.log_date, grp.ihris_pid),
+        grp.ihris_pid,
+        grp.log_date,
+        grp.first_punch
+    FROM (
+        SELECT
+            DATE(b.punch_time) AS log_date,
+            i.ihris_pid,
+            MIN(b.punch_time) AS first_punch
+        FROM biotime_data b
+        JOIN ihrisdata i
+            ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+        LEFT JOIN clk_log cl
+            ON cl.entry_id = CONCAT(DATE(b.punch_time), i.ihris_pid)
+        WHERE b.punch_time >= ?
+        AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
+        AND cl.entry_id IS NULL
+        GROUP BY DATE(b.punch_time), i.ihris_pid
+    ) grp
     ";
-    $this->db->trans_start();
-    $this->db->query($sqlClockIn, [$startDate, $syncDate]);
-    $clockinInserted = $this->db->affected_rows();
-    $this->db->trans_complete();
+    $clockinInserted = 0;
+    $cursor = strtotime($startDate);
+    $syncEnd = strtotime($syncDate . ' 23:59:59');
+    while ($cursor <= $syncEnd) {
+        $day = date('Y-m-d', $cursor);
+        $this->db->trans_start();
+        $this->db->query($sqlClockInOneDay, [$day, $day]);
+        $clockinInserted += $this->db->affected_rows();
+        $this->db->trans_complete();
+        $cursor = strtotime('+1 day', $cursor);
+    }
 
     /*
     |--------------------------------------------------------------------------
-    | 2️⃣ UPDATE CLOCK-OUT (separate short transaction)
+    | 2️⃣ UPDATE CLOCK-OUT (one day per transaction to minimize lock scope)
     |--------------------------------------------------------------------------
     */
-    $sqlClockOut = "
+    $sqlClockOutOneDay = "
         UPDATE clk_log cl
         JOIN (
             SELECT
@@ -1396,12 +1410,20 @@ class Biotimejobs extends MX_Controller
         ON punches.ihris_pid = cl.ihris_pid
         AND punches.log_date = cl.date
         SET cl.time_out = punches.last_punch
-        WHERE punches.last_punch > cl.time_in
+        WHERE cl.date = ?
+        AND punches.last_punch > cl.time_in
     ";
-    $this->db->trans_start();
-    $this->db->query($sqlClockOut, [$startDate, $syncDate]);
-    $clockoutUpdated = $this->db->affected_rows();
-    $this->db->trans_complete();
+    $clockoutUpdated = 0;
+    $cursor = strtotime($startDate);
+    $syncEnd = strtotime($syncDate . ' 23:59:59');
+    while ($cursor <= $syncEnd) {
+        $day = date('Y-m-d', $cursor);
+        $this->db->trans_start();
+        $this->db->query($sqlClockOutOneDay, [$day, $day, $day]);
+        $clockoutUpdated += $this->db->affected_rows();
+        $this->db->trans_complete();
+        $cursor = strtotime('+1 day', $cursor);
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -1432,11 +1454,11 @@ class Biotimejobs extends MX_Controller
 
     /*
     |--------------------------------------------------------------------------
-    | 4️⃣ POPULATE ACTUALS TABLE (separate short transaction)
+    | 4️⃣ POPULATE ACTUALS TABLE (one day per transaction to minimize lock scope)
     |--------------------------------------------------------------------------
     */
     $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : 'NULL';
-    $sqlActuals = "
+    $sqlActualsOneDay = "
     INSERT INTO actuals (
         entry_id,
         facility_id,
@@ -1465,13 +1487,20 @@ class Biotimejobs extends MX_Controller
         ON s.schedule_id = 22
     LEFT JOIN actuals a
         ON a.entry_id = CONCAT(cl.date, id.ihris_pid)
-    WHERE cl.date BETWEEN ? AND ?
+    WHERE cl.date = ?
       AND a.entry_id IS NULL
     ";
-    $this->db->trans_start();
-    $this->db->query($sqlActuals, [$startDate, $syncDate]);
-    $actualsUpdated = $this->db->affected_rows();
-    $this->db->trans_complete();
+    $actualsUpdated = 0;
+    $cursor = strtotime($startDate);
+    $syncEnd = strtotime($syncDate . ' 23:59:59');
+    while ($cursor <= $syncEnd) {
+        $day = date('Y-m-d', $cursor);
+        $this->db->trans_start();
+        $this->db->query($sqlActualsOneDay, [$day]);
+        $actualsUpdated += $this->db->affected_rows();
+        $this->db->trans_complete();
+        $cursor = strtotime('+1 day', $cursor);
+    }
 
     $total = $clockinInserted + $clockoutUpdated + $nightUpdated;
 
@@ -1792,6 +1821,9 @@ class Biotimejobs extends MX_Controller
                 $console("Facility: $facility", 'info');
             }
             $console("", 'info');
+
+            // Allow this job to wait longer for MySQL locks (default 50s often too short under load)
+            $this->db->query("SET SESSION innodb_lock_wait_timeout = 120");
             
             // Loop through each date
         while ($currentDate <= $endDate) {
@@ -1812,9 +1844,25 @@ class Biotimejobs extends MX_Controller
                         'facility' => $facility
                     ));
                 }
-                //
-                // Fetch data for this date via database
-                $fetch_result = $this->biotimejobs_mdl->fetch_time_history($day_start, $day_end, $terminal_sn, $empcode);
+
+                $fetch_result = null;
+                $max_retries = 3;
+                $retry_delay_seconds = 5;
+                for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
+                    try {
+                        $fetch_result = $this->biotimejobs_mdl->fetch_time_history($day_start, $day_end, $terminal_sn, $empcode);
+                        break;
+                    } catch (Exception $e) {
+                        $is_lock_wait = (strpos($e->getMessage(), 'Lock wait timeout exceeded') !== false);
+                        if ($is_lock_wait && $attempt < $max_retries) {
+                            $console("  ⚠ Lock wait, retry $attempt/$max_retries in {$retry_delay_seconds}s...", 'warning');
+                            sleep($retry_delay_seconds);
+                            continue;
+                        }
+                        $fetch_result = array('status' => 'error', 'records_fetched' => 0, 'records_saved' => 0, 'message' => $e->getMessage(), 'errors' => array());
+                        break;
+                    }
+                }
                 
                 $daily_stat = array(
                     'date' => $dates,
@@ -1830,15 +1878,30 @@ class Biotimejobs extends MX_Controller
                     
                     $console("  ✓ Fetched: {$fetch_result['records_fetched']} | Saved: {$fetch_result['records_saved']}", 'success');
                     
-                    // Process clock data for this date
-                    $this->biotimeClockin($dates);
-                 //$this->this($dates);
+                    // Process clock data for this date (retry only on lock wait; do not retry on SQL/syntax errors)
+                    for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
+                        try {
+                            $this->biotimeClockin($dates);
+                            break;
+                        } catch (Exception $e) {
+                            $is_lock_wait = (strpos($e->getMessage(), 'Lock wait timeout exceeded') !== false);
+                            if ($is_lock_wait && $attempt < $max_retries) {
+                                $console("  ⚠ Clockin lock wait, retry $attempt/$max_retries in {$retry_delay_seconds}s...", 'warning');
+                                sleep($retry_delay_seconds);
+                                continue;
+                            }
+                            throw $e;
+                        } catch (Error $e) {
+                            // ONLY_FULL_GROUP_BY etc. - do not retry
+                            throw $e;
+                        }
+                    }
                     
                     $this->log("fetch_time_history() processed date $dates: " . $fetch_result['records_saved'] . " records saved");
                 } else {
                     $error_msg = "Failed to fetch data for date $dates: " . $fetch_result['message'];
                     $result['errors'][] = $error_msg;
-                    $daily_stat['errors'] = $fetch_result['errors'];
+                    $daily_stat['errors'] = isset($fetch_result['errors']) ? $fetch_result['errors'] : array();
                     $console("  ✗ Error: " . $fetch_result['message'], 'error');
                     $this->log("fetch_time_history() error: $error_msg");
                 }
