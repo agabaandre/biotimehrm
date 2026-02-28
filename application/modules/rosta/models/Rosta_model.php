@@ -96,13 +96,9 @@ class Rosta_model extends CI_Model
 		} else {
 			$limits = " ";
 		}
-		$all = $this->db->query("select distinct ihrisdata.ihris_pid,CONCAT(
-				COALESCE(surname,'','')
-				,' ',
-				COALESCE(firstname,'','')
-				,' ',
-				COALESCE(othername,'','')
-			) AS fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
+		$all = $this->db->query("SELECT DISTINCT ihrisdata.ihris_pid,
+				CONCAT(COALESCE(surname,''),' ',COALESCE(firstname,''),' ',COALESCE(othername,'')) AS fullname,
+				ihrisdata.job FROM ihrisdata WHERE $filters $search ORDER BY fullname ASC $limits");
 		$data = $all->result_array();
 		return $data;
 	}
@@ -148,16 +144,16 @@ class Rosta_model extends CI_Model
 
 		$sql = "SELECT DISTINCT ihrisdata.ihris_pid,
 					CONCAT(
-						COALESCE(surname,'',''),
+						COALESCE(surname,''),
 						' ',
-						COALESCE(firstname,'',''),
+						COALESCE(firstname,''),
 						' ',
-						COALESCE(othername,'','')
+						COALESCE(othername,'')
 					) AS fullname,
 					ihrisdata.job
 				FROM ihrisdata
 				WHERE $filters $search
-				ORDER BY surname ASC
+				ORDER BY fullname ASC
 				{$limit_sql}";
 
 		$query = $this->db->query($sql);
@@ -292,7 +288,7 @@ class Rosta_model extends CI_Model
 					ihrisdata.job
 				FROM ihrisdata
 				WHERE $filters $search
-				ORDER BY surname ASC, firstname ASC
+				ORDER BY fullname ASC
 				LIMIT ?, ?";
 		
 		$query = $this->db->query($sql, array($start, $length));
@@ -348,13 +344,9 @@ class Rosta_model extends CI_Model
 		} else {
 			$limits = " ";
 		}
-		$all = $this->db->query("select distinct ihrisdata.ihris_pid,CONCAT(
-				COALESCE(surname,'','')
-				,' ',
-				COALESCE(firstname,'','')
-				,' ',
-				COALESCE(othername,'','')
-			) AS fullname,ihrisdata.job from ihrisdata where $filters $search order by surname ASC $limits");
+		$all = $this->db->query("SELECT DISTINCT ihrisdata.ihris_pid,
+				CONCAT(COALESCE(surname,''),' ',COALESCE(firstname,''),' ',COALESCE(othername,'')) AS fullname,
+				ihrisdata.job FROM ihrisdata WHERE $filters $search ORDER BY fullname ASC $limits");
 		$data = $all->result_array();
 		return $data;
 	}
@@ -392,8 +384,8 @@ class Rosta_model extends CI_Model
 			$params[] = $employee;
 		}
 		
-		// Add ordering and pagination - order by surname ASC, then firstname ASC
-		$sql .= " ORDER BY COALESCE(ihrisdata.surname, '') ASC, COALESCE(ihrisdata.firstname, '') ASC LIMIT ?, ?";
+		// Add ordering and pagination - order by fullname (MySQL 8: ORDER BY must be in SELECT when using DISTINCT)
+		$sql .= " ORDER BY fullname ASC LIMIT ?, ?";
 		$params[] = (int)$start;
 		$params[] = (int)$limit;
 		
@@ -833,16 +825,16 @@ class Rosta_model extends CI_Model
 
 		$sql = "SELECT DISTINCT ihrisdata.ihris_pid,
 					CONCAT(
-						COALESCE(surname,'',''),
+						COALESCE(surname,''),
 						' ',
-						COALESCE(firstname,'',''),
+						COALESCE(firstname,''),
 						' ',
-						COALESCE(othername,'','')
+						COALESCE(othername,'')
 					) AS fullname,
 					ihrisdata.job
 				FROM ihrisdata
 				WHERE $filters $search
-				ORDER BY surname ASC
+				ORDER BY fullname ASC
 				{$limit_sql}";
 
 		$query = $this->db->query($sql);
