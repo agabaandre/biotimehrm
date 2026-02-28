@@ -188,7 +188,6 @@
 								}
 								cols.push({ data: 3 + daysInMonth, title: 'Hrs', orderable: false });
 								cols.push({ data: 4 + daysInMonth, title: 'Days', orderable: false });
-								cols.push({ data: 5 + daysInMonth, title: '%', orderable: false });
 								return cols;
 							}
 
@@ -210,8 +209,7 @@
 								}
 								defs.push(
 									{ targets: 3 + daysInMonth, width: '36px' },
-									{ targets: 4 + daysInMonth, width: '44px' },
-									{ targets: 5 + daysInMonth, width: '36px' }
+									{ targets: 4 + daysInMonth, width: '44px' }
 								);
 								return defs;
 							}

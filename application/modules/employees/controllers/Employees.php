@@ -1193,11 +1193,8 @@ class Employees extends MX_Controller
           $row[] = ($val === '' ? '' : $val);
         }
 
-        $scheduled = isset($scheduledDaysByPid[$pid]) ? (int)$scheduledDaysByPid[$pid] : 0;
         $row[] = round($totalHours, 1);
-        $row[] = $daysWorked . '/' . $scheduled;
-        $percent = ($scheduled > 0) ? round(($daysWorked / $scheduled) * 100, 0) : 0;
-        $row[] = $percent . '%';
+        $row[] = $daysWorked;
 
         $data[] = $row;
       }
