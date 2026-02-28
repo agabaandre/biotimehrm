@@ -143,10 +143,10 @@
                                     <?php
 									if (count($records) > 0) {
 									?>
-                                    <!--<a href="<?php echo base_url() ?>attendance/print_attrowmary/<?php echo @$search->year . "-" . @$search->month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>-->
-
                                     <a href="<?php echo full_url('csv=1'); ?>" style="font-size:12px;"
                                         class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
+                                    <a href="<?php echo full_url('pdf=1'); ?>" style="font-size:12px;"
+                                        class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-file-pdf-o"></i> Export PDF</a>
                                     <?php } ?>
                                 </div>
 

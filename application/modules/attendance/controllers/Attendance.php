@@ -104,151 +104,141 @@ class Attendance extends MX_Controller
 		$data['module'] = $this->attendModule;
 		echo Modules::run('templates/main', $data);
 	}
+	/**
+	 * Print Attendance Summary: stream by batches to avoid locking.
+	 */
 	public function print_attsummary($date)
 	{
 		$month = $this->input->get('month');
 		$year = $this->input->get('year');
 		$empid = $this->input->get('empid');
 		$dep = $this->input->get('department');
+		$district = $facility = null;
 
-		if (!empty($month)) {
-			$_SESSION['month'] = $month;
-			$_SESSION['year'] = $year;
+		if (!empty($month) && !empty($year)) {
+			$date = $year . '-' . $month;
+		} elseif (!empty($_SESSION['year']) && !empty($_SESSION['month'])) {
 			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
-		}
-		if (!empty($_SESSION['year'])) {
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
-			$data['month'] = $_SESSION['month'];
-			$data['year'] = $_SESSION['year'];
 		} else {
-			$_SESSION['month'] = date('m');
-			$_SESSION['year'] = date('Y');
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
-			$data['month'] = $_SESSION['month'];
-			$data['year'] = $_SESSION['year'];
+			$date = date('Y-m');
 		}
-		$valid_range = $this->input->get('year') . "-" . $this->input->get('month');
-		if (empty($valid_range)) {
-			$valid_range = $date;
-		}
-		$data['dates'] = $date;
 
 		$this->load->library('ML_pdf');
-
-		//$data['username']=$this->username;
-		$data['sums'] = $this->attendance_model->attendance_summary($date, $this->filters, $config['per_page'] = FALSE, $page = FALSE, $empid = FALSE, $dep);
-		$fac = $_SESSION['facility_name'];
-		$html = $this->load->view('summary_pdf', $data, true);
-		//$fac=$_SESSION['facility'];
-		$filename = "Attendance_Symmary_" . $fac . "pdf";
+		$batch_size = 200;
+		$total = $this->attendance_model->countAttendanceSummary($date, $this->filters, 0, 0, $empid, $dep);
+		$period_label = date('F, Y', strtotime($date . '-01'));
+		$fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Attendance';
+		$filename = "Attendance_Summary_" . $fac . ".pdf";
 		ini_set('max_execution_time', 0);
-		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+
 		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
 		$this->ml_pdf->pdf->showWatermarkImage = true;
-		date_default_timezone_set("Africa/Kampala");
-		$this->ml_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>" . date('d F,Y h:i A') . "</b><br style='font-size: 9px !imporntant;'>" . "Source: iHRIS - HRM Attend " . base_url());
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		ini_set('max_execution_time', 0);
-		$this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
-		//download it D save F.
+		date_default_timezone_set('Africa/Kampala');
+		$this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
+
+		$header_data = array('dates' => $date, 'period_label' => $period_label);
+		$header_html = $this->load->view('summary_pdf_header', $header_data, true);
+		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+		$row_no = 1;
+		for ($offset = 0; $offset < $total; $offset += $batch_size) {
+			$batch = $this->attendance_model->attendance_summary($date, $this->filters, $offset, $batch_size, $district, $facility, $empid, $dep);
+			if (empty($batch)) {
+				break;
+			}
+			$pids = array();
+			foreach ($batch as $row) {
+				if (!empty($row['ihris_pid'])) {
+					$pids[] = $row['ihris_pid'];
+				}
+			}
+			$scheduledDaysByPid = $this->attendance_model->get_scheduled_days_for_month($pids, $date);
+			$rows_data = array(
+				'sums' => $batch,
+				'scheduledDaysByPid' => $scheduledDaysByPid,
+				'start_row_no' => $row_no,
+			);
+			$rows_html = $this->load->view('summary_pdf_rows', $rows_data, true);
+			$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+			$row_no += count($batch);
+			unset($batch, $pids, $scheduledDaysByPid, $rows_data, $rows_html);
+		}
+
+		$footer_html = $this->load->view('summary_pdf_footer', array(), true);
+		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
 		$this->ml_pdf->pdf->Output($filename, 'I');
 	}
+	/**
+	 * CSV export for Attendance Summary: stream by batches (no N×attrosta calls).
+	 */
 	public function attsums_csv($valid_range, $month, $year)
 	{
-		$month = $this->input->get('month');
-		$year = $this->input->get('year');
 		$empid = $this->input->get('empid');
 		$dep = $this->input->get('department');
+		if (empty($valid_range) || strlen($valid_range) < 6) {
+			$valid_range = !empty($_SESSION['year']) && !empty($_SESSION['month']) ? $_SESSION['year'] . '-' . $_SESSION['month'] : date('Y-m');
+		}
+		$district = $facility = null;
 
-		// if (!empty($month)) {
-		// 	$_SESSION['month'] = $month;
-		// 	$_SESSION['year'] = $year;
-		// 	$date = $_SESSION['year'] . '-' . $_SESSION['month'];
-		// }
-		// if (!empty($_SESSION['year'])) {
-		// 	$date = $_SESSION['year'] . '-' . $_SESSION['month'];
-		// 	$data['month'] = $_SESSION['month'];
-		// 	$data['year'] = $_SESSION['year'];
-		// } else {
-		// 	$_SESSION['month'] = date('m');
-		// 	$_SESSION['year'] = date('Y');
-		// 	$date = $_SESSION['year'] . '-' . $_SESSION['month'];
-		// 	$data['month'] = $_SESSION['month'];
-		// 	$data['year'] = $_SESSION['year'];
-		// }
-		// $valid_range = $this->input->get('year') . "-" . $this->input->get('month');
-		// if (empty($valid_range)) {
-		// 	$valid_range = $date;
-		// }
-		// $data['dates'] = $date;
-		$datas = $this->attendance_model->attendance_summary($valid_range, $this->filters, $config['per_page'] = NULL, $page = NULL, $empid, $dep);
-		$csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') . '_' . $_SESSION['facility_name'] . ".csv";
-		header("Content-Type: text/csv");
-		header("Content-Disposition: attachment; filename=\"$csv_file\"");
+		$batch_size = 200;
+		$total = $this->attendance_model->countAttendanceSummary($valid_range, $this->filters, 0, 0, $empid, $dep);
+		$fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Attendance';
+		$csv_file = 'Monthly_Attendance_Summary_' . date('Y-m-d') . '_' . $fac . '.csv';
+		header('Content-Type: text/csv');
+		header('Content-Disposition: attachment; filename="' . $csv_file . '"');
 		$fh = fopen('php://output', 'w');
-		$records = array(); //output each row of the data, format line as csv and write to file pointer
-		foreach ($datas as $data) {
-			$roster = Modules::run('attendance/attrosta', $valid_range, urlencode($data['ihris_pid']));
-			if (!empty($data['P'])) {
-				$present = $data['P'];
-			} else {
-				$present = 0;
-			}
-			if (!empty($data['O'])) {
-				$off = $data['O'];
-			} else {
-				$off = 0;
-			};
-			if (!empty($data['L'])) {
-				$leave = $data['L'];
-			} else {
-				$leave = 0;
-			};
-			if (!empty($data['R'])) {
-				$request = $data['R'];
-			} else {
-				$request = 0;
-			};
-			if (!empty($data['P'])) {
-				$present = $data['P'];
-			} else {
-				$present = 0;
-			};
-			if (!empty($data['H'])) {
-				$holiday = $data['H'];
-			} else {
-				$holiday = 0;
-			};
-			$duty_date = $data['duty_date'];
-			$eve = $roster['Evening'][0]->days;
-			$day = $roster['Day'][0]->days;
-			$night = $roster['Night'][0]->days;
-			$r_days = ($eve + $day + $night);
-			if ($r_days == 0) {
-				$r_days = 22;
-			}
-			$absent = days_absent_helper($present, $r_days);
+		ini_set('max_execution_time', 0);
 
-			$per =  per_present_helper($present, $r_days);
-			$days = array(
-				"Name" => $data['fullname'], "Job" => $data['job'], "Department" => $data['department_id'], "Duty Date" => $duty_date, "Off
-		Duty" => $off,
-				"Official
-		Request" => $request, "Leave" => $leave, "Holiday" => $holiday,  "Total Days Expected" => $r_days, "Total Days Worked" => $present, "Total Days Absent" => $absent, "% Present" => $per
-			);
-			array_push($records, $days);
-		}
-		$is_coloumn = true;
-		if (!empty($records)) {
-			foreach ($records as $record) {
-				if ($is_coloumn) {
-					fputcsv($fh, array_keys($record));
-					$is_coloumn = false;
-				}
-				fputcsv($fh, array_values($record));
+		$header_row = array('Name', 'Job', 'Department', 'Duty Date', 'Off Duty', 'Official Request', 'Leave', 'Holiday', 'Total Days Expected', 'Total Days Worked', 'Total Days Absent', '% Present');
+		fputcsv($fh, $header_row);
+
+		for ($offset = 0; $offset < $total; $offset += $batch_size) {
+			$batch = $this->attendance_model->attendance_summary($valid_range, $this->filters, $offset, $batch_size, $district, $facility, $empid, $dep);
+			if (empty($batch)) {
+				break;
 			}
-			fclose($fh);
+			$pids = array();
+			foreach ($batch as $row) {
+				if (!empty($row['ihris_pid'])) {
+					$pids[] = $row['ihris_pid'];
+				}
+			}
+			$scheduledDaysByPid = $this->attendance_model->get_scheduled_days_for_month($pids, $valid_range);
+
+			foreach ($batch as $data) {
+				$pid = isset($data['ihris_pid']) ? $data['ihris_pid'] : '';
+				$present = isset($data['P']) && $data['P'] !== '' ? $data['P'] : 0;
+				$off = isset($data['O']) && $data['O'] !== '' ? $data['O'] : 0;
+				$request = isset($data['R']) && $data['R'] !== '' ? $data['R'] : 0;
+				$leave = isset($data['L']) && $data['L'] !== '' ? $data['L'] : 0;
+				$holiday = isset($data['H']) && $data['H'] !== '' ? $data['H'] : 0;
+				$r_days = isset($scheduledDaysByPid[$pid]) ? (int) $scheduledDaysByPid[$pid] : 0;
+				if ($r_days == 0) {
+					$r_days = 22;
+				}
+				$absent = function_exists('days_absent_helper') ? days_absent_helper($present, $r_days) : max(0, $r_days - $present);
+				$per = function_exists('per_present_helper') ? per_present_helper($present, $r_days) : ($r_days > 0 ? round(($present / $r_days) * 100, 1) : 0);
+				$duty_date = isset($data['duty_date']) ? $data['duty_date'] : $valid_range;
+				$record = array(
+					isset($data['fullname']) ? $data['fullname'] : '',
+					isset($data['job']) ? $data['job'] : '',
+					isset($data['department_id']) ? $data['department_id'] : '',
+					$duty_date,
+					$off,
+					$request,
+					$leave,
+					$holiday,
+					$r_days,
+					$present,
+					$absent,
+					$per,
+				);
+				fputcsv($fh, $record);
+			}
+			unset($batch, $pids, $scheduledDaysByPid);
 		}
+
+		fclose($fh);
 		exit;
 	}
 	//data importing

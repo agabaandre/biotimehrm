@@ -175,21 +175,21 @@ class Reports extends MX_Controller
 
 	public function attendance_aggregate()
 	{
-		// Handle CSV export
+		// Handle CSV export (streamed, no full load)
 		$csv = request_fields('csv');
 		if ($csv) {
-			$search = request_fields();
-			$group_by = (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
-			$month_year = request_fields('duty_date');
-			
-			if (empty($month_year)) {
-				$month_year = date('Y-m');
-				$search['district'] = $_SESSION['district'];
-			}
-			
-			$search['duty_date'] = $month_year;
-			$records = $this->reports_mdl->attendance_aggregates($search, null, null, $group_by);
-			$this->export_aggregates_csv($records, $group_by);
+			$filters = $this->_aggregate_filters_from_request();
+			$group_by = (!empty(request_fields('group_by'))) ? request_fields('group_by') : 'district';
+			$this->export_aggregates_csv_stream($filters, $group_by);
+			return;
+		}
+
+		// Handle PDF export (streamed)
+		$pdf = request_fields('pdf');
+		if ($pdf) {
+			$filters = $this->_aggregate_filters_from_request();
+			$group_by = (!empty(request_fields('group_by'))) ? request_fields('group_by') : 'district';
+			$this->attendance_aggregate_pdf($filters, $group_by);
 			return;
 		}
 
@@ -419,45 +419,198 @@ class Reports extends MX_Controller
 
 		render_csv_data($exportable, "attendance_aggregates_" . time(), false);
 	}
+
+	/**
+	 * Build filters array for aggregate report from request (GET/POST).
+	 */
+	private function _aggregate_filters_from_request()
+	{
+		$filters = array();
+		$filters['district'] = request_fields('district');
+		$filters['facility_name'] = request_fields('facility_name');
+		$filters['region'] = request_fields('region');
+		$filters['institution_type'] = request_fields('institution_type');
+		$filters['duty_date'] = request_fields('duty_date');
+		$filters = array_filter($filters, function ($v) { return $v !== '' && $v !== null && $v !== array(); });
+		if (empty($filters['duty_date'])) {
+			$filters['duty_date'] = date('Y-m');
+		}
+		if (is_string($filters['duty_date'])) {
+			$filters['duty_date'] = array($filters['duty_date']);
+		}
+		return $filters;
+	}
+
+	/**
+	 * Stream CSV export for attendance aggregates (batch fetch, no full load).
+	 */
+	public function export_aggregates_csv_stream($filters, $grouped_by)
+	{
+		$batch_size = 200;
+		$total = $this->reports_mdl->countAttendanceAggregatesAjax($filters, $grouped_by, '');
+		$filename = 'attendance_aggregates_' . date('Y-m-d_His') . '.csv';
+		header('Content-Type: text/csv');
+		header('Content-Disposition: attachment; filename="' . $filename . '"');
+		$fh = fopen('php://output', 'w');
+		ini_set('max_execution_time', 0);
+
+		$header = array(
+			str_replace('_', ' ', strtoupper($grouped_by)),
+			'DUTY DATE',
+			'PRESENT',
+			'LEAVE',
+			'OFFICIAL REQUEST',
+			'OFF DUTY',
+			'HOLIDAY',
+			'ABSENT',
+			'% ACCOUNTED',
+			'% ABSENTEESM'
+		);
+		fputcsv($fh, $header);
+
+		$total_present = 0;
+		$total_leave = 0;
+		$total_official = 0;
+		$total_off = 0;
+		$total_holiday = 0;
+		$total_absent = 0;
+		$total_attendance_rate = 0;
+		$total_absentism_rate = 0;
+		$count = 0;
+
+		for ($start = 0; $start < $total; $start += $batch_size) {
+			$records = $this->reports_mdl->fetchAttendanceAggregatesAjax($filters, $grouped_by, $start, $batch_size, '');
+			if (empty($records)) {
+				break;
+			}
+			foreach ($records as $row) {
+				$supposed_days = isset($row->days_supposed) ? $row->days_supposed : 0;
+				$days_worked = $supposed_days - (isset($row->days_absent) ? $row->days_absent : 0);
+				if ($supposed_days > 0) {
+					$attendance_rate = number_format(($days_worked / $supposed_days) * 100, 1);
+					$absentism_rate = number_format((isset($row->days_absent) ? $row->days_absent : 0) / $supposed_days * 100, 1);
+					$present = number_format((isset($row->present) ? $row->present : 0) / $supposed_days * 100, 1);
+					$on_leave = number_format((isset($row->own_leave) ? $row->own_leave : 0) / $supposed_days * 100, 1);
+					$official = number_format((isset($row->official) ? $row->official : 0) / $supposed_days * 100, 1);
+					$off = number_format((isset($row->off) ? $row->off : 0) / $supposed_days * 100, 1);
+					$holiday = number_format((isset($row->holiday) ? $row->holiday : 0) / $supposed_days * 100, 1);
+					$absent = number_format((isset($row->absent) ? $row->absent : 0) / $supposed_days * 100, 1);
+				} else {
+					$attendance_rate = $absentism_rate = $present = $on_leave = $official = $off = $holiday = $absent = 0;
+				}
+				$group_val = isset($row->{$grouped_by}) ? $row->{$grouped_by} : 'N/A';
+				fputcsv($fh, array($group_val, $row->duty_date ?? '', $present, $on_leave, $official, $off, $holiday, $absent, $attendance_rate, $absentism_rate));
+				$total_present += (float) $present;
+				$total_leave += (float) $on_leave;
+				$total_official += (float) $official;
+				$total_off += (float) $off;
+				$total_holiday += (float) $holiday;
+				$total_absent += (float) $absent;
+				$total_attendance_rate += (float) $attendance_rate;
+				$total_absentism_rate += (float) $absentism_rate;
+				$count++;
+			}
+			unset($records);
+		}
+
+		$avg_divisor = $count > 0 ? $count : 1;
+		fputcsv($fh, array(
+			'Averages:',
+			'Duty Date:',
+			number_format($total_present / $avg_divisor, 1),
+			number_format($total_leave / $avg_divisor, 1),
+			number_format($total_official / $avg_divisor, 1),
+			number_format($total_off / $avg_divisor, 1),
+			number_format($total_holiday / $avg_divisor, 1),
+			number_format($total_absent / $avg_divisor, 1),
+			number_format($total_attendance_rate / $avg_divisor, 1),
+			number_format($total_absentism_rate / $avg_divisor, 1)
+		));
+		fclose($fh);
+		exit;
+	}
+
+	/**
+	 * Stream PDF export for attendance aggregates (batch fetch, chunked WriteHTML).
+	 */
+	public function attendance_aggregate_pdf($filters, $grouped_by)
+	{
+		$this->load->library('M_pdf');
+		$batch_size = 200;
+		$total = $this->reports_mdl->countAttendanceAggregatesAjax($filters, $grouped_by, '');
+		$period_label = is_array($filters['duty_date']) ? implode(', ', $filters['duty_date']) : (isset($filters['duty_date']) ? $filters['duty_date'] : date('Y-m'));
+		$filename = 'attendance_aggregates_' . date('Y-m-d_His') . '.pdf';
+		ini_set('max_execution_time', 0);
+
+		$this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+		date_default_timezone_set('Africa/Kampala');
+		$this->m_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b> | Source: iHRIS - HRM Attend ' . base_url());
+
+		$header_data = array(
+			'grouped_by' => $grouped_by,
+			'period_label' => $period_label,
+		);
+		$header_html = $this->load->view('attendance_aggregate_pdf_header', $header_data, true);
+		$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+		$row_no = 1;
+		for ($start = 0; $start < $total; $start += $batch_size) {
+			$records = $this->reports_mdl->fetchAttendanceAggregatesAjax($filters, $grouped_by, $start, $batch_size, '');
+			if (empty($records)) {
+				break;
+			}
+			$rows_data = array(
+				'records' => $records,
+				'grouped_by' => $grouped_by,
+				'start_row_no' => $row_no,
+			);
+			$rows_html = $this->load->view('attendance_aggregate_pdf_rows', $rows_data, true);
+			$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+			$row_no += count($records);
+			unset($records, $rows_data, $rows_html);
+		}
+
+		$footer_html = $this->load->view('attendance_aggregate_pdf_footer', array(), true);
+		$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
+		$this->m_pdf->pdf->Output($filename, 'I');
+	}
+
 	public function person_attendance_all()
 	{
 		$search = request_fields();
 		$year = request_fields('year');
 		$month = request_fields('month');
 		$csv = request_fields('csv');
-
+		$pdf = request_fields('pdf');
 
 		if (empty($year)) {
 			$year = date('Y');
 			$month = date('m');
-
 			$search['year'] = $year;
 			$search['month'] = $month;
 			$search['district'] = $_SESSION['district'];
 		}
 
-
 		flash_form();
 
-		$valid_rangeto = $year . "-" . $month;
-
+		$valid_rangeto = $year . '-' . $month;
 		$search['duty_date'] = $valid_rangeto;
 
 		$totals = $this->reports_mdl->count_person_attendance($search);
-		$route = "reports/attendance_aggregate";
+		$route = 'reports/person_attendance_all';
 		$per_page = (request_fields('rows')) ? request_fields('rows') : 140;
 		$segment = 3;
 		$page = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
 
 		$data['links'] = paginate($route, $totals, $per_page, $segment);
 		$data['records'] = $this->reports_mdl->person_attendance_all($search, $per_page, $page);
-		// dd($data['records']);
-		$data['csv'] = $this->reports_mdl->person_attendance_all($search);
-
 
 		if ($csv) {
-
-			$this->export_attendance_all_csv($data['csv'], $month, $year);
+			$this->export_attendance_all_csv_stream($search, $month, $year);
+			return;
+		}
+		if ($pdf) {
+			$this->person_attendance_all_pdf($search, $month, $year);
 			return;
 		}
 
@@ -528,5 +681,112 @@ class Reports extends MX_Controller
 
 		array_push($exportable, $rowfoot);
 		render_csv_data($exportable, "person_attendance_all" . time(), false);
+	}
+
+	/**
+	 * Stream CSV/Excel export for person attendance all (batch fetch, no full load).
+	 */
+	public function export_attendance_all_csv_stream($search, $month, $year)
+	{
+		$batch_size = 200;
+		$total = $this->reports_mdl->count_person_attendance($search);
+		$month_days = cal_days_in_month(CAL_GREGORIAN, (int) $month, (int) $year);
+		$filename = 'person_attendance_all_' . date('Y-m-d_His') . '.csv';
+		header('Content-Type: text/csv');
+		header('Content-Disposition: attachment; filename="' . $filename . '"');
+		$fh = fopen('php://output', 'w');
+		ini_set('max_execution_time', 0);
+
+		fputcsv($fh, array('NAME', 'DISTRICT', 'FACILITY', 'PERIOD', 'PRESENT', 'OFF DUTY', 'OFFICIAL REQUEST', 'LEAVE', 'HOLIDAY', 'ABSENT', '% ABSENTEESM'));
+
+		$p_total = $o_total = $r_total = $l_total = $h_total = $a_total = $ar_total = 0;
+		$count = 0;
+
+		for ($start = 0; $start < $total; $start += $batch_size) {
+			$batch = $this->reports_mdl->person_attendance_all($search, $batch_size, $start);
+			if (empty($batch)) {
+				break;
+			}
+			foreach ($batch as $row) {
+				$count++;
+				$p_total += isset($row->P) ? $row->P : 0;
+				$o_total += isset($row->O) ? $row->O : 0;
+				$r_total += isset($row->R) ? $row->R : 0;
+				$l_total += isset($row->L) ? $row->L : 0;
+				$h_total += isset($row->H) ? $row->H : 0;
+				$absent = $month_days - (isset($row->P) ? $row->P : 0) - (isset($row->O) ? $row->O : 0) - (isset($row->R) ? $row->R : 0) - (isset($row->L) ? $row->L : 0);
+				$abrate = $month_days > 0 ? number_format(($absent / $month_days) * 100, 1) : 0;
+				$a_total += $absent;
+				$ar_total += (float) $abrate;
+				fputcsv($fh, array(
+					isset($row->fullname) ? $row->fullname : '',
+					isset($row->district) ? $row->district : '',
+					isset($row->facility_name) ? $row->facility_name : '',
+					isset($row->duty_date) ? $row->duty_date : '',
+					isset($row->P) ? $row->P : 0,
+					isset($row->O) ? $row->O : 0,
+					isset($row->R) ? $row->R : 0,
+					isset($row->L) ? $row->L : 0,
+					isset($row->H) ? $row->H : 0,
+					$absent,
+					$abrate
+				));
+			}
+			unset($batch);
+		}
+
+		$avg_div = $count > 0 ? $count : 1;
+		fputcsv($fh, array(
+			'Averages', '', '', '',
+			round($p_total / $avg_div, 0), round($o_total / $avg_div, 0), round($r_total / $avg_div, 0),
+			round($l_total / $avg_div, 0), round($h_total / $avg_div, 0), round($a_total / $avg_div, 0),
+			round($ar_total / $avg_div, 0)
+		));
+		fclose($fh);
+		exit;
+	}
+
+	/**
+	 * Stream PDF export for person attendance all (batch fetch, chunked WriteHTML).
+	 */
+	public function person_attendance_all_pdf($search, $month, $year)
+	{
+		$this->load->library('M_pdf');
+		$batch_size = 200;
+		$total = $this->reports_mdl->count_person_attendance($search);
+		$month_days = cal_days_in_month(CAL_GREGORIAN, (int) $month, (int) $year);
+		$period_label = date('F, Y', strtotime($year . '-' . $month . '-01'));
+		$filename = 'person_attendance_all_' . date('Y-m-d_His') . '.pdf';
+		ini_set('max_execution_time', 0);
+
+		$this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+		date_default_timezone_set('Africa/Kampala');
+		$this->m_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b> | Source: iHRIS - HRM Attend ' . base_url());
+
+		$header_data = array('period_label' => $period_label);
+		$header_html = $this->load->view('person_attendance_all_pdf_header', $header_data, true);
+		$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+		$row_no = 1;
+		for ($start = 0; $start < $total; $start += $batch_size) {
+			$batch = $this->reports_mdl->person_attendance_all($search, $batch_size, $start);
+			if (empty($batch)) {
+				break;
+			}
+			$rows_data = array(
+				'records' => $batch,
+				'month' => $month,
+				'year' => $year,
+				'start_row_no' => $row_no,
+			);
+			$rows_html = $this->load->view('person_attendance_all_pdf_rows', $rows_data, true);
+			$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+			$row_no += count($batch);
+			unset($batch, $rows_data, $rows_html);
+		}
+
+		$footer_html = $this->load->view('person_attendance_all_pdf_footer', array(), true);
+		$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
+		$this->m_pdf->pdf->Output($filename, 'I');
 	}
 }

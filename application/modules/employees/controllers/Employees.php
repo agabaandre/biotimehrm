@@ -571,189 +571,225 @@ class Employees extends MX_Controller
     //download it D save F.
     $this->ml_pdf->pdf->Output($filename, 'I');
   }
+  /**
+   * Print timesheet (monthly): stream by employee batches to avoid loading all data into memory.
+   */
   public function print_timesheet($month, $year, $employee, $job)
   {
     $this->load->library('ML_pdf');
     $date = $year . '-' . $month;
-    $data['year'] = $year;
-    $data['month'] = $month;
-    $data['date'] = $date;
     if (empty($date)) {
       $date = date('Y-m');
+      $month = date('m', strtotime($date));
+      $year = date('Y', strtotime($date));
     }
-    $data['workinghours'] = $this->empModel->fetch_TimeSheet($date, $perpage = FALSE, $page = FALSE, str_replace("emp", "", urldecode($employee)), $this->filters, str_replace("job", "", $job));
-
-    // Optimized: prefetch all clk_log rows for this month + set of employees,
-    // so the PDF view does not call gettimedata() per cell.
-    $pids = array();
-    foreach ($data['workinghours'] as $row) {
-      if (!empty($row['ihris_pid'])) {
-        $pids[] = $row['ihris_pid'];
-      }
-    }
-    $logs_by_pid_date = array();
-    if (!empty($pids)) {
-      $startDate = date('Y-m-01', strtotime($date . '-01'));
-      $endDate = date('Y-m-t', strtotime($date . '-01'));
-      $logs = $this->db
-        ->select('ihris_pid, date, time_in, time_out')
-        ->from('clk_log')
-        ->where_in('ihris_pid', $pids)
-        ->where('date >=', $startDate)
-        ->where('date <=', $endDate)
-        ->get()
-        ->result();
-
-      foreach ($logs as $log) {
-        $pid = (string)$log->ihris_pid;
-        $d = $log->date;
-        if (!isset($logs_by_pid_date[$pid])) {
-          $logs_by_pid_date[$pid] = array();
-        }
-        $logs_by_pid_date[$pid][$d] = $log;
-      }
-    }
-    $data['logs_by_pid_date'] = $logs_by_pid_date;
-    $this->load->library('ML_pdf');
+    $emp_filter = str_replace('emp', '', urldecode($employee));
+    $job_filter = str_replace('job', '', $job);
+    $batch_size = 40;
+    $total = $this->empModel->count_TimeSheet_employees($date, $emp_filter, $this->filters, $job_filter);
     $fac = $_SESSION['facility_name'];
-    $filename = $fac . " Timesheet_Report_" . $date . ".pdf";
-    ini_set('max_execution_time', 0);
-    $html = $this->load->view('print_timesheet', $data, true);
-    $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-    date_default_timezone_set("Africa/Kampala");
-    $this->ml_pdf->pdf->SetHTMLFooter("<p style='font-size:8px'>Printed/ Accessed on: " . date('d F,Y h:i A') . ", Source: iHRIS - HRM Attend " . base_url() . "</p>");
-    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+    $filename = $fac . ' Timesheet_Report_' . $date . '.pdf';
     ini_set('max_execution_time', 0);
 
-    // Chunked WriteHTML for monthly timesheet
-    $parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
-    $buffer = '';
-    $chunkLimit = 80000;
-    foreach ($parts as $part) {
-      $buffer .= $part;
-      if (strlen($buffer) >= $chunkLimit) {
-        $this->ml_pdf->pdf->WriteHTML($buffer);
-        $buffer = '';
+    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+    date_default_timezone_set('Africa/Kampala');
+    $this->ml_pdf->pdf->SetHTMLFooter('<p style="font-size:8px">Printed/ Accessed on: ' . date('d F,Y h:i A') . ', Source: iHRIS - HRM Attend ' . base_url() . '</p>');
+
+    // Header once (monthly: no date_from/date_to)
+    $header_data = array(
+      'year' => $year,
+      'month' => $month,
+      'date' => $date,
+      'date_from' => '',
+      'date_to' => '',
+      'dateList' => array(),
+    );
+    $header_html = $this->load->view('print_timesheet_header', $header_data, true);
+    $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+    $start_date = date('Y-m-01', strtotime($date . '-01'));
+    $end_date = date('Y-m-t', strtotime($date . '-01'));
+    $row_no = 1;
+    for ($offset = 0; $offset < $total; $offset += $batch_size) {
+      $batch = $this->empModel->fetch_TimeSheet($date, $offset, $batch_size, $emp_filter, $this->filters, $job_filter);
+      if (empty($batch)) {
+        break;
       }
+      $pids = array();
+      foreach ($batch as $row) {
+        if (!empty($row['ihris_pid'])) {
+          $pids[] = $row['ihris_pid'];
+        }
+      }
+      $logs_by_pid_date = array();
+      if (!empty($pids)) {
+        $logs = $this->db
+          ->select('ihris_pid, date, time_in, time_out')
+          ->from('clk_log')
+          ->where_in('ihris_pid', $pids)
+          ->where('date >=', $start_date)
+          ->where('date <=', $end_date)
+          ->get()
+          ->result();
+        foreach ($logs as $log) {
+          $pid = (string) $log->ihris_pid;
+          if (!isset($logs_by_pid_date[$pid])) {
+            $logs_by_pid_date[$pid] = array();
+          }
+          $logs_by_pid_date[$pid][$log->date] = $log;
+        }
+      }
+      $scheduledDaysByPid = $this->empModel->get_scheduled_days_for_month($pids, $date);
+      $rows_data = array(
+        'workinghours' => $batch,
+        'logs_by_pid_date' => $logs_by_pid_date,
+        'scheduledDaysByPid' => $scheduledDaysByPid,
+        'month' => $month,
+        'year' => $year,
+        'dateList' => array(),
+        'date_from' => '',
+        'date_to' => '',
+        'start_row_no' => $row_no,
+      );
+      $rows_html = $this->load->view('print_timesheet_rows', $rows_data, true);
+      $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+      $row_no += count($batch);
+      unset($batch, $pids, $logs_by_pid_date, $scheduledDaysByPid, $rows_data, $rows_html);
     }
-    if (trim($buffer) !== '') {
-      $this->ml_pdf->pdf->WriteHTML($buffer);
-    }
-    //download it D save F.
+
+    $footer_html = $this->load->view('print_timesheet_footer', array(), true);
+    $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
     $this->ml_pdf->pdf->Output($filename, 'I');
   }
+  /**
+   * CSV timesheet (monthly): stream by batches, full report with per-day columns like print.
+   */
   public function csv_timesheet($month, $year, $employee, $job)
   {
     $date = $year . '-' . $month;
-    $data['year'] = $year;
-    $data['month'] = $month;
-    $data['date'] = $date;
     if (empty($date)) {
       $date = date('Y-m');
+      $month = date('m', strtotime($date));
+      $year = date('Y', strtotime($date));
     }
-    ini_set('max_execution_time', 0);
-    $datas = $data['workinghours'] = $this->empModel->fetch_TimeSheet($date, $perpage = FALSE, $page = FALSE, str_replace("emp", "", urldecode($employee)), $this->filters, str_replace("job", "", $job));
+    $emp_filter = str_replace('emp', '', urldecode($employee));
+    $job_filter = str_replace('job', '', $job);
+    $batch_size = 40;
+    $total = $this->empModel->count_TimeSheet_employees($date, $emp_filter, $this->filters, $job_filter);
+    $month_days = cal_days_in_month(CAL_GREGORIAN, (int) $month, (int) $year);
+    $start_date = date('Y-m-01', strtotime($date . '-01'));
+    $end_date = date('Y-m-t', strtotime($date . '-01'));
 
-    // Optimized: prefetch all clk_log rows for this month + employees
-    $pids = array();
-    foreach ($datas as $row) {
-      if (!empty($row['ihris_pid'])) {
-        $pids[] = $row['ihris_pid'];
-      }
-    }
-    $logs_by_pid_date = array();
-    if (!empty($pids)) {
-      $startDate = date('Y-m-01', strtotime($date . '-01'));
-      $endDate = date('Y-m-t', strtotime($date . '-01'));
-      $logs = $this->db
-        ->select('ihris_pid, date, time_in, time_out')
-        ->from('clk_log')
-        ->where_in('ihris_pid', $pids)
-        ->where('date >=', $startDate)
-        ->where('date <=', $endDate)
-        ->get()
-        ->result();
-
-      foreach ($logs as $log) {
-        $pid = (string)$log->ihris_pid;
-        $d = $log->date;
-        if (!isset($logs_by_pid_date[$pid])) {
-          $logs_by_pid_date[$pid] = array();
-        }
-        $logs_by_pid_date[$pid][$d] = $log;
-      }
-    }
     $fac = $_SESSION['facility_name'];
-    $csv_file = $fac . " Attend_TimeLogs" . date('Y-m-d') . '_' . $_SESSION['facility'] . ".csv";
-    header("Content-Type: text/csv");
-    header("Content-Disposition: attachment; filename=\"$csv_file\"");
+    $csv_file = $fac . ' Timesheet_' . $date . '.csv';
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="' . $csv_file . '"');
     $fh = fopen('php://output', 'w');
-    $records = array(); //output each row of the data, format line as csv and write to file pointer
-    $month_days = cal_days_in_month(CAL_GREGORIAN, $month, $year); //days in a month
-    foreach ($datas as $data) {
-      $personhrs = array();
-      $days_worked = array();
-      for ($i = 1; $i <= $month_days; $i++) { // repeating td
-        $day = "day" . $i;  //changing day 
-        $date_d = $year . "-" . $month . "-" . (($i < 10) ? "0" . $i : $i);
-        $date = $year . "-" . $month;
-        //  print_r($hours_data);
-        $timedata = isset($logs_by_pid_date[$data['ihris_pid']][$date_d]) ? $logs_by_pid_date[$data['ihris_pid']][$date_d] : null;
-        if (!empty($timedata)) {
-          $starTime = @$timedata->time_in;
-          $endTime = @$timedata->time_out;
-          $initial_time = strtotime($starTime) / 3600;
-          $final_time = strtotime($endTime) / 3600;
-          if (empty($initial_time) || empty($final_time)) {
-            $hours_worked = 0;
-          } elseif ($initial_time == $final_time) {
-            $hours_worked = 0;
-          } else {
-            $hours_worked = round(($final_time - $initial_time), 1);
-          }
-          if ($hours_worked < 0) {
-            $hours_worked = $hours_worked * -1;
-          } elseif ($hours_worked == -0) {
-            $hours_worked = 0;
-          } else {
-            $hours_worked;
-          }
-          if (!empty($starTime)) {
-            $wdays = 1;
-            array_push($days_worked, $wdays);
-          }
-          array_push($personhrs, $hours_worked);
+    ini_set('max_execution_time', 0);
+
+    $header_row = array('#', 'Name', 'Position');
+    for ($d = 1; $d <= $month_days; $d++) {
+      $header_row[] = (string) $d;
+    }
+    $header_row[] = 'Hours';
+    $header_row[] = 'Days';
+    $header_row[] = '% Present';
+    fputcsv($fh, $header_row);
+
+    $row_no = 1;
+    for ($offset = 0; $offset < $total; $offset += $batch_size) {
+      $batch = $this->empModel->fetch_TimeSheet($date, $offset, $batch_size, $emp_filter, $this->filters, $job_filter);
+      if (empty($batch)) {
+        break;
+      }
+      $pids = array();
+      foreach ($batch as $row) {
+        if (!empty($row['ihris_pid'])) {
+          $pids[] = $row['ihris_pid'];
         }
       }
-
-
-      $roster = Modules::run('attendance/attrosta', $date, urlencode($data['ihris_pid']));
-      $day = $roster['Day'][0]->days;
-      $eve = $roster['Evening'][0]->days;
-      $night = $roster['Night'][0]->days;
-      $days_scheduled = $day + $eve + $night;
-
-      // print_r($data['fullname']);
-      $days = array("NAME" => $data['fullname'], "JOB" => $data['job'], "FACILITY" => $data['facility'], "DEPARTMENT" => $data['department'], "PERIOD" => $date, "DAYS WORKED" => array_sum($days_worked), "DAYS SCHEDULED" => $days_scheduled, "HOURS WORKED" => array_sum($personhrs));
-      array_push($records, $days);
-    }
-    $is_coloumn = true;
-    if (!empty($records)) {
-      foreach ($records as $record) {
-        if ($is_coloumn) {
-          fputcsv($fh, array_keys($record));
-          $is_coloumn = false;
+      $logs_by_pid_date = array();
+      if (!empty($pids)) {
+        $logs = $this->db
+          ->select('ihris_pid, date, time_in, time_out')
+          ->from('clk_log')
+          ->where_in('ihris_pid', $pids)
+          ->where('date >=', $start_date)
+          ->where('date <=', $end_date)
+          ->get()
+          ->result();
+        foreach ($logs as $log) {
+          $pid = (string) $log->ihris_pid;
+          if (!isset($logs_by_pid_date[$pid])) {
+            $logs_by_pid_date[$pid] = array();
+          }
+          $logs_by_pid_date[$pid][$log->date] = $log;
         }
-        fputcsv($fh, array_values($record));
       }
-      fclose($fh);
+      $scheduledDaysByPid = $this->empModel->get_scheduled_days_for_month($pids, $date);
+
+      foreach ($batch as $emp) {
+        $pid = isset($emp['ihris_pid']) ? $emp['ihris_pid'] : '';
+        $row = array(
+          $row_no++,
+          isset($emp['fullname']) ? trim($emp['fullname']) : '',
+          $this->_position_initials(isset($emp['job']) ? $emp['job'] : ''),
+        );
+        $personhrs = array();
+        for ($i = 1; $i <= $month_days; $i++) {
+          $date_d = $year . '-' . $month . '-' . ($i < 10 ? '0' . $i : $i);
+          $timedata = isset($logs_by_pid_date[$pid][$date_d]) ? $logs_by_pid_date[$pid][$date_d] : null;
+          $hrs = $this->_hours_from_log($timedata);
+          $row[] = $hrs !== 0 ? $hrs : '';
+          if ($hrs !== 0) {
+            $personhrs[] = $hrs;
+          }
+        }
+        $twdays = isset($scheduledDaysByPid[$pid]) ? (int) $scheduledDaysByPid[$pid] : 0;
+        $worked = count($personhrs);
+        $pct = $twdays > 0 ? round(($worked / $twdays) * 100, 0) : 0;
+        $row[] = array_sum($personhrs);
+        $row[] = $worked . '/' . $twdays;
+        $row[] = $pct . '%';
+        fputcsv($fh, $row);
+      }
+      unset($batch, $pids, $logs_by_pid_date, $scheduledDaysByPid);
     }
+    fclose($fh);
     exit;
   }
 
+  private function _position_initials($job)
+  {
+    $words = explode(' ', trim($job));
+    $letters = '';
+    foreach ($words as $w) {
+      $letters .= isset($w[0]) ? $w[0] : '';
+    }
+    return $letters;
+  }
+
+  private function _hours_from_log($timedata)
+  {
+    if (empty($timedata) || !is_object($timedata)) {
+      return 0;
+    }
+    $in = isset($timedata->time_in) ? $timedata->time_in : null;
+    $out = isset($timedata->time_out) ? $timedata->time_out : null;
+    if (!$in || !$out) {
+      return 0;
+    }
+    $ti = strtotime($in) / 3600;
+    $to = strtotime($out) / 3600;
+    if ($ti == $to) {
+      return 0;
+    }
+    $hrs = round($to - $ti, 1);
+    return $hrs < 0 ? -$hrs : $hrs;
+  }
+
   /**
-   * Print timesheet for a date range (max 31 days).
+   * Print timesheet for a date range (max 31 days). Streams by employee batches.
    */
   public function print_timesheet_range($date_from, $date_to, $employee, $job)
   {
@@ -766,87 +802,103 @@ class Employees extends MX_Controller
       $startDate = $endDate;
       $endDate = $tmp;
     }
-    $daysDiff = (int)floor((strtotime($endDate) - strtotime($startDate)) / 86400) + 1;
+    $daysDiff = (int) floor((strtotime($endDate) - strtotime($startDate)) / 86400) + 1;
     if ($daysDiff > 31) {
       $endDate = date('Y-m-d', strtotime($startDate . ' +30 days'));
-      $daysDiff = 31;
     }
 
-    $data = array();
-    $data['date_from'] = $startDate;
-    $data['date_to'] = $endDate;
-    $data['month'] = date('m', strtotime($startDate));
-    $data['year'] = date('Y', strtotime($startDate));
-
-    $data['workinghours'] = $this->empModel->fetch_TimeSheet(
-      $startDate, // date_range (not used heavily in model)
-      $perpage = FALSE,
-      $page = FALSE,
-      str_replace("emp", "", urldecode($employee)),
-      $this->filters,
-      str_replace("job", "", urldecode($job))
-    );
-
-    // Precompute scheduled days per employee for the range
-    $pids = array();
-    foreach ($data['workinghours'] as $row) {
-      if (!empty($row['ihris_pid'])) {
-        $pids[] = $row['ihris_pid'];
-      }
+    $dateList = array();
+    $s = new DateTime($startDate);
+    $e = new DateTime($endDate);
+    $e->modify('+1 day');
+    $period = new DatePeriod($s, new DateInterval('P1D'), $e);
+    foreach ($period as $d) {
+      $dateList[] = $d->format('Y-m-d');
     }
-    $scheduledDaysByPid = array();
-    if (!empty($pids)) {
-      $rows = $this->db
-        ->select('ihris_pid, schedule_id, COUNT(*) as days')
-        ->from('duty_rosta')
-        ->where_in('ihris_pid', $pids)
-        ->where_in('schedule_id', array(14, 15, 16))
-        ->where('duty_date >=', $startDate)
-        ->where('duty_date <=', $endDate)
-        ->group_by(array('ihris_pid', 'schedule_id'))
-        ->get()
-        ->result();
-      foreach ($rows as $r) {
-        $pid = (string)$r->ihris_pid;
-        $days = isset($r->days) ? (int)$r->days : 0;
-        if (!isset($scheduledDaysByPid[$pid])) {
-          $scheduledDaysByPid[$pid] = 0;
-        }
-        $scheduledDaysByPid[$pid] += $days;
-      }
+    if (count($dateList) > 31) {
+      $dateList = array_slice($dateList, 0, 31);
     }
-    $data['scheduledDaysByPid'] = $scheduledDaysByPid;
 
+    $emp_filter = str_replace('emp', '', urldecode($employee));
+    $job_filter = str_replace('job', '', urldecode($job));
+    $batch_size = 40;
+    $total = $this->empModel->count_TimeSheet_employees($startDate, $emp_filter, $this->filters, $job_filter);
     $fac = $_SESSION['facility_name'];
-    $filename = $fac . " Timesheet_Report_" . $startDate . "_to_" . $endDate . ".pdf";
+    $filename = $fac . ' Timesheet_Report_' . $startDate . '_to_' . $endDate . '.pdf';
     ini_set('max_execution_time', 0);
 
-    $html = $this->load->view('print_timesheet', $data, true);
-    $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-
     $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-    date_default_timezone_set("Africa/Kampala");
-    $this->ml_pdf->pdf->SetHTMLFooter("<p style='font-size:8px'>Printed/ Accessed on: " . date('d F,Y h:i A') . ", Source: iHRIS - HRM Attend " . base_url() . "</p>");
+    date_default_timezone_set('Africa/Kampala');
+    $this->ml_pdf->pdf->SetHTMLFooter('<p style="font-size:8px">Printed/ Accessed on: ' . date('d F,Y h:i A') . ', Source: iHRIS - HRM Attend ' . base_url() . '</p>');
 
-    // Chunked WriteHTML for range timesheet (avoid backtrack limit)
-    $parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
-    $buffer = '';
-    $chunkLimit = 80000;
-    foreach ($parts as $part) {
-      $buffer .= $part;
-      if (strlen($buffer) >= $chunkLimit) {
-        $this->ml_pdf->pdf->WriteHTML($buffer);
-        $buffer = '';
+    $month = date('m', strtotime($startDate));
+    $year = date('Y', strtotime($startDate));
+    $header_data = array(
+      'year' => $year,
+      'month' => $month,
+      'date' => $startDate,
+      'date_from' => $startDate,
+      'date_to' => $endDate,
+      'dateList' => $dateList,
+    );
+    $header_html = $this->load->view('print_timesheet_header', $header_data, true);
+    $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+    $row_no = 1;
+    for ($offset = 0; $offset < $total; $offset += $batch_size) {
+      $batch = $this->empModel->fetch_TimeSheet($startDate, $offset, $batch_size, $emp_filter, $this->filters, $job_filter);
+      if (empty($batch)) {
+        break;
       }
+      $pids = array();
+      foreach ($batch as $row) {
+        if (!empty($row['ihris_pid'])) {
+          $pids[] = $row['ihris_pid'];
+        }
+      }
+      $logs_by_pid_date = array();
+      if (!empty($pids)) {
+        $logs = $this->db
+          ->select('ihris_pid, date, time_in, time_out')
+          ->from('clk_log')
+          ->where_in('ihris_pid', $pids)
+          ->where('date >=', $startDate)
+          ->where('date <=', $endDate)
+          ->get()
+          ->result();
+        foreach ($logs as $log) {
+          $pid = (string) $log->ihris_pid;
+          if (!isset($logs_by_pid_date[$pid])) {
+            $logs_by_pid_date[$pid] = array();
+          }
+          $logs_by_pid_date[$pid][$log->date] = $log;
+        }
+      }
+      $scheduledDaysByPid = $this->empModel->get_scheduled_days_for_range($pids, $startDate, $endDate);
+      $rows_data = array(
+        'workinghours' => $batch,
+        'logs_by_pid_date' => $logs_by_pid_date,
+        'scheduledDaysByPid' => $scheduledDaysByPid,
+        'month' => $month,
+        'year' => $year,
+        'dateList' => $dateList,
+        'date_from' => $startDate,
+        'date_to' => $endDate,
+        'start_row_no' => $row_no,
+      );
+      $rows_html = $this->load->view('print_timesheet_rows', $rows_data, true);
+      $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+      $row_no += count($batch);
+      unset($batch, $pids, $logs_by_pid_date, $scheduledDaysByPid, $rows_data, $rows_html);
     }
-    if (trim($buffer) !== '') {
-      $this->ml_pdf->pdf->WriteHTML($buffer);
-    }
+
+    $footer_html = $this->load->view('print_timesheet_footer', array(), true);
+    $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
     $this->ml_pdf->pdf->Output($filename, 'I');
   }
 
   /**
-   * CSV timesheet summary for a date range (max 31 days).
+   * CSV timesheet for date range (max 31 days): stream by batches, full report with per-day columns.
    */
   public function csv_timesheet_range($date_from, $date_to, $employee, $job)
   {
@@ -857,103 +909,101 @@ class Employees extends MX_Controller
       $startDate = $endDate;
       $endDate = $tmp;
     }
-    $daysDiff = (int)floor((strtotime($endDate) - strtotime($startDate)) / 86400) + 1;
+    $daysDiff = (int) floor((strtotime($endDate) - strtotime($startDate)) / 86400) + 1;
     if ($daysDiff > 31) {
       $endDate = date('Y-m-d', strtotime($startDate . ' +30 days'));
-      $daysDiff = 31;
     }
 
-    ini_set('max_execution_time', 0);
-    $datas = $this->empModel->fetch_TimeSheet(
-      $startDate,
-      $perpage = FALSE,
-      $page = FALSE,
-      str_replace("emp", "", urldecode($employee)),
-      $this->filters,
-      str_replace("job", "", urldecode($job))
-    );
+    $dateList = array();
+    $s = new DateTime($startDate);
+    $e = new DateTime($endDate);
+    $e->modify('+1 day');
+    $period = new DatePeriod($s, new DateInterval('P1D'), $e);
+    foreach ($period as $d) {
+      $dateList[] = $d->format('Y-m-d');
+    }
+    if (count($dateList) > 31) {
+      $dateList = array_slice($dateList, 0, 31);
+    }
+
+    $emp_filter = str_replace('emp', '', urldecode($employee));
+    $job_filter = str_replace('job', '', urldecode($job));
+    $batch_size = 40;
+    $total = $this->empModel->count_TimeSheet_employees($startDate, $emp_filter, $this->filters, $job_filter);
 
     $fac = $_SESSION['facility_name'];
-    $csv_file = $fac . "_Timesheet_" . $startDate . "_to_" . $endDate . ".csv";
-    header("Content-Type: text/csv");
-    header("Content-Disposition: attachment; filename=\"$csv_file\"");
+    $csv_file = $fac . '_Timesheet_' . $startDate . '_to_' . $endDate . '.csv';
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="' . $csv_file . '"');
     $fh = fopen('php://output', 'w');
+    ini_set('max_execution_time', 0);
 
-    $pids = array();
-    foreach ($datas as $row) {
-      if (!empty($row['ihris_pid'])) {
-        $pids[] = $row['ihris_pid'];
-      }
+    $header_row = array('#', 'Name', 'Position');
+    foreach ($dateList as $dStr) {
+      $header_row[] = (string) (int) date('j', strtotime($dStr));
     }
+    $header_row[] = 'Hours';
+    $header_row[] = 'Days';
+    $header_row[] = '% Present';
+    fputcsv($fh, $header_row);
 
-    // Scheduled days per pid
-    $scheduledDaysByPid = array();
-    if (!empty($pids)) {
-      $rows = $this->db
-        ->select('ihris_pid, COUNT(*) as days')
-        ->from('duty_rosta')
-        ->where_in('ihris_pid', $pids)
-        ->where_in('schedule_id', array(14, 15, 16))
-        ->where('duty_date >=', $startDate)
-        ->where('duty_date <=', $endDate)
-        ->group_by('ihris_pid')
-        ->get()
-        ->result();
-      foreach ($rows as $r) {
-        $scheduledDaysByPid[(string)$r->ihris_pid] = (int)$r->days;
+    $row_no = 1;
+    for ($offset = 0; $offset < $total; $offset += $batch_size) {
+      $batch = $this->empModel->fetch_TimeSheet($startDate, $offset, $batch_size, $emp_filter, $this->filters, $job_filter);
+      if (empty($batch)) {
+        break;
       }
-    }
+      $pids = array();
+      foreach ($batch as $row) {
+        if (!empty($row['ihris_pid'])) {
+          $pids[] = $row['ihris_pid'];
+        }
+      }
+      $logs_by_pid_date = array();
+      if (!empty($pids)) {
+        $logs = $this->db
+          ->select('ihris_pid, date, time_in, time_out')
+          ->from('clk_log')
+          ->where_in('ihris_pid', $pids)
+          ->where('date >=', $startDate)
+          ->where('date <=', $endDate)
+          ->get()
+          ->result();
+        foreach ($logs as $log) {
+          $pid = (string) $log->ihris_pid;
+          if (!isset($logs_by_pid_date[$pid])) {
+            $logs_by_pid_date[$pid] = array();
+          }
+          $logs_by_pid_date[$pid][$log->date] = $log;
+        }
+      }
+      $scheduledDaysByPid = $this->empModel->get_scheduled_days_for_range($pids, $startDate, $endDate);
 
-    // Days worked + hours worked per pid from clk_log
-    $workStatsByPid = array(); // pid => ['days_worked'=>int, 'hours_worked'=>float]
-    if (!empty($pids)) {
-      $stats = $this->db->query("
-        SELECT ihris_pid,
-               COUNT(DISTINCT date) as days_worked,
-               SUM(CASE
-                     WHEN time_in IS NOT NULL AND time_out IS NOT NULL AND time_in != '' AND time_out != ''
-                     THEN ABS(TIMESTAMPDIFF(MINUTE, time_in, time_out)) / 60
-                     ELSE 0
-                   END) as hours_worked
-        FROM clk_log
-        WHERE ihris_pid IN (" . implode(',', array_map(array($this->db, 'escape'), $pids)) . ")
-          AND date >= " . $this->db->escape($startDate) . "
-          AND date <= " . $this->db->escape($endDate) . "
-        GROUP BY ihris_pid
-      ")->result();
-
-      foreach ($stats as $s) {
-        $workStatsByPid[(string)$s->ihris_pid] = array(
-          'days_worked' => (int)$s->days_worked,
-          'hours_worked' => round((float)$s->hours_worked, 1)
+      foreach ($batch as $emp) {
+        $pid = isset($emp['ihris_pid']) ? $emp['ihris_pid'] : '';
+        $row = array(
+          $row_no++,
+          isset($emp['fullname']) ? trim($emp['fullname']) : '',
+          $this->_position_initials(isset($emp['job']) ? $emp['job'] : ''),
         );
+        $personhrs = array();
+        foreach ($dateList as $date_d) {
+          $timedata = isset($logs_by_pid_date[$pid][$date_d]) ? $logs_by_pid_date[$pid][$date_d] : null;
+          $hrs = $this->_hours_from_log($timedata);
+          $row[] = $hrs !== 0 ? $hrs : '';
+          if ($hrs !== 0) {
+            $personhrs[] = $hrs;
+          }
+        }
+        $twdays = isset($scheduledDaysByPid[$pid]) ? (int) $scheduledDaysByPid[$pid] : 0;
+        $worked = count($personhrs);
+        $pct = $twdays > 0 ? round(($worked / $twdays) * 100, 0) : 0;
+        $row[] = array_sum($personhrs);
+        $row[] = $worked . '/' . $twdays;
+        $row[] = $pct . '%';
+        fputcsv($fh, $row);
       }
-    }
-
-    $records = array();
-    foreach ($datas as $row) {
-      $pid = (string)$row['ihris_pid'];
-      $scheduled = isset($scheduledDaysByPid[$pid]) ? (int)$scheduledDaysByPid[$pid] : 0;
-      $daysWorked = isset($workStatsByPid[$pid]) ? (int)$workStatsByPid[$pid]['days_worked'] : 0;
-      $hoursWorked = isset($workStatsByPid[$pid]) ? (float)$workStatsByPid[$pid]['hours_worked'] : 0.0;
-
-      $records[] = array(
-        "NAME" => $row['fullname'],
-        "JOB" => $row['job'],
-        "PERIOD" => $startDate . " to " . $endDate,
-        "DAYS WORKED" => $daysWorked,
-        "DAYS SCHEDULED" => $scheduled,
-        "HOURS WORKED" => $hoursWorked
-      );
-    }
-
-    $is_header = true;
-    foreach ($records as $rec) {
-      if ($is_header) {
-        fputcsv($fh, array_keys($rec));
-        $is_header = false;
-      }
-      fputcsv($fh, array_values($rec));
+      unset($batch, $pids, $logs_by_pid_date, $scheduledDaysByPid);
     }
     fclose($fh);
     exit;
@@ -1239,48 +1289,95 @@ class Employees extends MX_Controller
   }
 
 
-  public function printindividualTimeLogs($ihris_pid=FALSE, $from = false, $to = false, $flag=FALSE)
+  /**
+   * Print Individual Time Logs: stream by batches to avoid memory lock.
+   * Flag 1 = compact view, Flag 2 = detailed view (extra tables for leaves/requests/offs/duty days).
+   */
+  public function printindividualTimeLogs($ihris_pid = FALSE, $from = false, $to = false, $flag = FALSE)
   {
-    if ($from) {
-      // $from= str_replace('-','/',$from);
-      $from = date("Y-m-d", strtotime($from));
-      // $to= str_replace('-','/',$to);
-      $to = date("Y-m-d", strtotime($to));
-      $search_data2['date_from'] = $from;
-      $search_data2['date_to'] = $to;
-      //print_r($search_data2);
-    } else {
-      $search_data2['from'] = date('Y-m-') . '01';
-      $search_data2['to'] = date('Y-m-d');
+    $ihris_pid = $ihris_pid ? urldecode($ihris_pid) : '';
+    if (!$ihris_pid) {
+      show_error('Employee ID is required', 400);
+      return;
     }
+    if ($from && $to) {
+      $date_from = date('Y-m-d', strtotime($from));
+      $date_to = date('Y-m-d', strtotime($to));
+    } else {
+      $date_from = date('Y-m-') . '01';
+      $date_to = date('Y-m-d');
+    }
+
     $this->load->library('M_pdf');
-    $filename = "individual_timelogs_report_" . ".pdf";
+    $filename = 'individual_timelogs_report_' . date('Y-m-d') . '.pdf';
     ini_set('max_execution_time', 0);
-    $dbresult = $this->empModel->getEmployeeTimeLogs(urldecode($ihris_pid), 100000, 0, $search_data = NULL, $search_data2);
-    $data['timelogs'] = $dbresult['timelogs'];
-    $data['employee'] = $dbresult['employee'];
-    $data['leaves'] = $dbresult['leaves'];
-    $data['offs'] = $dbresult['offs'];
-    $data['workdays'] = $dbresult['dutydays'];
-    $data['requests'] = $dbresult['requests'];
-    $data['to'] = $search_data2['to'];
-    $data['from'] = $search_data2['from'];
-    $data['links'] = $this->pagination->create_links();
-    $data['title'] = "Health  Staff Individual Time Logs";
-    if ($flag == 1) {
-      $view = 'print_individual_time_logs';
-    } else {
-      $view = 'printdetailslog';
+
+    $meta = $this->empModel->get_employee_timelogs_meta($ihris_pid, $date_from, $date_to);
+    $employee = $meta['employee'];
+    $total_duty = count($meta['dutydays']);
+    $total_leaves = count($meta['leaves']);
+    $total_requests = count($meta['requests']);
+    $total_offs = count($meta['offs']);
+
+    $total = $this->empModel->count_employee_timelogs_range($ihris_pid, $date_from, $date_to);
+    $batch_size = 200;
+    $wdays_worked = 0;
+    $total_hours = 0.0;
+
+    $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+    date_default_timezone_set('Africa/Kampala');
+    $this->m_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;"> Source: iHRIS - HRM Attend ' . base_url());
+
+    $header_data = array(
+      'employee' => $employee,
+      'from' => $date_from,
+      'to' => $date_to,
+      'summary_label' => ($flag == 2) ? 'HOURS' : 'SUMMARY',
+    );
+    $header_html = $this->load->view('itl_print_header', $header_data, true);
+    $this->m_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+    for ($offset = 0; $offset < $total; $offset += $batch_size) {
+      $batch = $this->empModel->get_employee_timelogs_batch($ihris_pid, $date_from, $date_to, $offset, $batch_size);
+      if (empty($batch)) {
+        break;
+      }
+      foreach ($batch as $log) {
+        $wdays_worked++;
+        $ti = $log->time_in ? strtotime($log->time_in) / 3600 : 0;
+        $to_hr = $log->time_out ? strtotime($log->time_out) / 3600 : 0;
+        if ($ti != 0 && $to_hr != 0 && $ti != $to_hr) {
+          $total_hours += round($to_hr - $ti, 1);
+        }
+      }
+      $rows_data = array('timelogs' => $batch, 'start_row_no' => $wdays_worked - count($batch) + 1);
+      $rows_html = $this->load->view('itl_print_rows', $rows_data, true);
+      $this->m_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+      unset($batch, $rows_data, $rows_html);
     }
-    $html = $this->load->view($view, $data, true);
-    $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-    $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-    date_default_timezone_set("Africa/Kampala");
-    $this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>" . date('d F,Y h:i A') . "</b><br style='font-size: 9px !imporntant;'>" . " Source: iHRIS - HRM Attend " . base_url());
-    $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-    ini_set('max_execution_time', 0);
-    $this->m_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
-    //download it D save F.
+
+    if ($flag == 2) {
+      $footer_data = array(
+        'total_duty' => $total_duty,
+        'wdays_worked' => $wdays_worked,
+        'leaves' => $meta['leaves'],
+        'requests' => $meta['requests'],
+        'offs' => $meta['offs'],
+        'workdays' => $meta['dutydays'],
+      );
+      $footer_html = $this->load->view('itl_print_footer_detailed', $footer_data, true);
+    } else {
+      $footer_data = array(
+        'total_duty' => $total_duty,
+        'total_leaves' => $total_leaves,
+        'total_requests' => $total_requests,
+        'total_offs' => $total_offs,
+        'wdays_worked' => $wdays_worked,
+        'total_hours' => $total_hours,
+      );
+      $footer_html = $this->load->view('itl_print_footer', $footer_data, true);
+    }
+    $this->m_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
     $this->m_pdf->pdf->Output($filename, 'I');
   }
 }

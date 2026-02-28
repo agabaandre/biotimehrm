@@ -71,7 +71,7 @@
          </div>
          <!-- /.card -->
 
-         <div class="callout callout-warning">
+         <!-- <div class="callout callout-warning">
            <h5><i class="fas fa-file"></i>Attendance & Duty Roster Analysis</h5>
 
          </div>
@@ -90,10 +90,10 @@
 
 
 
-         </div>
+         </div> -->
          <!-- /.card -->
 
-         <div class="callout callout-danger">
+         <!-- <div class="callout callout-danger">
            <h5><i class="fas fa-file"></i> Other Reports</h5>
 
          </div>
@@ -130,7 +130,7 @@
 
 
 
-         </div>
+         </div> -->
          <!-- /.card -->
 
 

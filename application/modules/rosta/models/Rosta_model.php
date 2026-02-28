@@ -509,14 +509,13 @@ class Rosta_model extends CI_Model
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
-			$search = "and ihris_pid='$employee";
+			$search = " and ihris_pid=" . $this->db->escape($employee);
 		} else {
 			$search = "";
 		}
-		if (!empty($start)) {
-			$limits = " LIMIT $limit,$start";
-		} else {
-			$limits = " ";
+		$limits = " ";
+		if ($limit !== null && (int)$limit > 0) {
+			$limits = " LIMIT " . max(0, (int)$start) . "," . (int)$limit;
 		}
 		$query = $this->db->query("SELECT * from person_dut_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
 		$data = $query->result_array();
@@ -664,18 +663,12 @@ class Rosta_model extends CI_Model
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
-			$search = "and ihris_pid='$employee";
+			$search = " AND ihris_pid=" . $this->db->escape($employee);
 		} else {
 			$search = "";
 		}
-		if (!empty($start)) {
-			$limits = " LIMIT $limit,$start";
-		} else {
-			$limits = " ";
-		}
-		$query = $this->db->query("SELECT * from person_dut_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
-		$data = $query->num_rows();
-		return $data;
+		$query = $this->db->query("SELECT * FROM person_dut_final WHERE facility_id='$facility' AND duty_date='$valid_range' $search");
+		return $query->num_rows();
 	}
 	//import rota data
 	public function upload_rota($importdata)

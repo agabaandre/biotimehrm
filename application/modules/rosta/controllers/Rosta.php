@@ -494,57 +494,64 @@ class Rosta extends MX_Controller
 			->set_output(json_encode($response));
 	}
 
+	/**
+	 * Print Duty Roster (fetch_report): stream by employee batches.
+	 */
 	public function print_roster($year, $month, $empid = NULL)
 	{
-		$data['dates'] = $year . '-' . $month;
-		$date = $data['dates'];
+		$date = $year . '-' . $month;
 		if (empty($empid)) {
 			$empid = $this->input->get('empid');
 		}
 
-		$data['duties'] = $this->rosta_model->fetch_duty_roster($date, 0, 0, $this->filters, $empid);
-
-		$employee_ids = array();
-		foreach ($data['duties'] as $row) {
-			if (!empty($row['ihris_pid'])) {
-				$employee_ids[] = $row['ihris_pid'];
-			}
-		}
-		$data['schedules'] = $this->rosta_model->get_roster_schedules_bulk($date, $employee_ids);
-
-		$data['month'] = $month;
-		$data['year'] = $year;
+		$batch_size = 40;
+		$total = $this->rosta_model->count_duty_roster($date, $this->filters, $empid);
 		$this->load->library('ML_pdf');
-		$data['username'] = $this->username;
-		$data['checks'] = $this->checks;
-		$html = $this->load->view('rosta/duty_roster_printable', $data, true);
-		$filename = $_SESSION['facility_name'] . "_rota_report_" . date('F-Y', strtotime($date)) . ".pdf";
-		ini_set('max_execution_time', 0);
-		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		date_default_timezone_set("Africa/Kampala");
-		$this->ml_pdf->pdf->SetHTMLFooter("Printed / Accessed on: <b>" . date('d F,Y h:i A') . "</b>");
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		$filename = $_SESSION['facility_name'] . '_rota_report_' . date('F-Y', strtotime($date . '-01')) . '.pdf';
 		ini_set('max_execution_time', 0);
 
-		// Chunk HTML to avoid pcre.backtrack_limit errors
-		$parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
-		$buffer = '';
-		$chunkLimit = 80000;
-		foreach ($parts as $part) {
-			$buffer .= $part;
-			if (strlen($buffer) >= $chunkLimit) {
-				$this->ml_pdf->pdf->WriteHTML($buffer);
-				$buffer = '';
+		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		date_default_timezone_set('Africa/Kampala');
+		$this->ml_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b>');
+
+		$header_data = array('month' => $month, 'year' => $year);
+		$header_html = $this->load->view('duty_roster_printable_header', $header_data, true);
+		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+		$row_no = 1;
+		for ($offset = 0; $offset < $total; $offset += $batch_size) {
+			$batch = $this->rosta_model->fetch_duty_roster($date, $offset, $batch_size, $this->filters, $empid);
+			if (empty($batch)) {
+				break;
 			}
-		}
-		if (trim($buffer) !== '') {
-			$this->ml_pdf->pdf->WriteHTML($buffer);
+			$employee_ids = array();
+			foreach ($batch as $row) {
+				if (!empty($row['ihris_pid'])) {
+					$employee_ids[] = $row['ihris_pid'];
+				}
+			}
+			$schedules = $this->rosta_model->get_roster_schedules_bulk($date, $employee_ids);
+			$rows_data = array(
+				'duties' => $batch,
+				'schedules' => $schedules,
+				'month' => $month,
+				'year' => $year,
+				'start_row_no' => $row_no,
+			);
+			$rows_html = $this->load->view('duty_roster_printable_rows', $rows_data, true);
+			$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+			$row_no += count($batch);
+			unset($batch, $employee_ids, $schedules, $rows_data, $rows_html);
 		}
 
+		$footer_html = $this->load->view('duty_roster_printable_footer', array(), true);
+		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
 		$this->ml_pdf->pdf->Output($filename, 'I');
 	}
 
+	/**
+	 * CSV Duty Roster (fetch_report): stream by batches.
+	 */
 	public function roster_csv($year, $month, $empid = NULL)
 	{
 		$date = $year . '-' . $month;
@@ -552,22 +559,15 @@ class Rosta extends MX_Controller
 			$empid = $this->input->get('empid');
 		}
 
-		$duties = $this->rosta_model->fetch_duty_roster($date, 0, 0, $this->filters, $empid);
-
-		$employee_ids = array();
-		foreach ($duties as $row) {
-			if (!empty($row['ihris_pid'])) {
-				$employee_ids[] = $row['ihris_pid'];
-			}
-		}
-		$schedules = $this->rosta_model->get_roster_schedules_bulk($date, $employee_ids);
-
+		$batch_size = 40;
+		$total = $this->rosta_model->count_duty_roster($date, $this->filters, $empid);
 		$month_days = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
 
-		$csv_file = $_SESSION['facility'] . "_roster_report_" . date('Y-m-d') . ".csv";
-		header("Content-Type: text/csv");
-		header("Content-Disposition: attachment; filename=\"$csv_file\"");
+		$csv_file = $_SESSION['facility'] . '_roster_report_' . date('Y-m-d') . '.csv';
+		header('Content-Type: text/csv');
+		header('Content-Disposition: attachment; filename="' . $csv_file . '"');
 		$fh = fopen('php://output', 'w');
+		ini_set('max_execution_time', 0);
 
 		$header = array('NAME', 'POSITION');
 		for ($i = 1; $i <= $month_days; $i++) {
@@ -575,16 +575,33 @@ class Rosta extends MX_Controller
 		}
 		fputcsv($fh, $header);
 
-		foreach ($duties as $row) {
-			$pid = $row['ihris_pid'];
-			$line = array($row['fullname'], $row['job']);
-			for ($d = 1; $d <= $month_days; $d++) {
-				$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
-				$ymd = $year . '-' . $month . '-' . $dayStr;
-				$letter = isset($schedules[$pid][$ymd]) ? $schedules[$pid][$ymd] : '';
-				$line[] = $letter;
+		for ($offset = 0; $offset < $total; $offset += $batch_size) {
+			$batch = $this->rosta_model->fetch_duty_roster($date, $offset, $batch_size, $this->filters, $empid);
+			if (empty($batch)) {
+				break;
 			}
-			fputcsv($fh, $line);
+			$employee_ids = array();
+			foreach ($batch as $row) {
+				if (!empty($row['ihris_pid'])) {
+					$employee_ids[] = $row['ihris_pid'];
+				}
+			}
+			$schedules = $this->rosta_model->get_roster_schedules_bulk($date, $employee_ids);
+			foreach ($batch as $row) {
+				$pid = $row['ihris_pid'];
+				$line = array(
+					isset($row['fullname']) ? $row['fullname'] : '',
+					isset($row['job']) ? $row['job'] : '',
+				);
+				for ($d = 1; $d <= $month_days; $d++) {
+					$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
+					$ymd = $year . '-' . $month . '-' . $dayStr;
+					$letter = isset($schedules[$pid][$ymd]) ? $schedules[$pid][$ymd] : '';
+					$line[] = $letter;
+				}
+				fputcsv($fh, $line);
+			}
+			unset($batch, $employee_ids, $schedules);
 		}
 
 		fclose($fh);
@@ -651,76 +668,45 @@ class Rosta extends MX_Controller
 		echo Modules::run("templates/main", $data);
 		//$this->load->view('summary_report',$data);
 	}
-	//rosta summary csv
+	/**
+	 * CSV Roster Summary: stream by batches.
+	 */
 	public function bundleCsv($valid_range)
 	{
-		$sums = $this->rosta_model->fetch_summary($valid_range, $this->filters);
-		$csv_file = "Monthy_Attendance_Summary" . date('Y-m-d') . '_' . $_SESSION['facility'] . ".csv";
-		header("Content-Type: text/csv");
-		header("Content-Disposition: attachment; filename=\"$csv_file\"");
+		$empid = $this->input->get('empid');
+		$batch_size = 200;
+		$total = $this->rosta_model->countrosta_summary($valid_range, $this->filters, null, null, $empid);
+
+		$csv_file = 'Monthy_Attendance_Summary_' . date('Y-m-d') . '_' . $_SESSION['facility'] . '.csv';
+		header('Content-Type: text/csv');
+		header('Content-Disposition: attachment; filename="' . $csv_file . '"');
 		$fh = fopen('php://output', 'w');
-		$records = array(); //output each row of the data, format line as csv and write to file pointer
-		foreach ($sums as $sum) {
-			$name = $sum['fullname'] . ' ' . $sum['othername'];
-			$job = $sum['job'];
-			if (!empty($sum['D'])) {
-				$d = $sum['D'];
-			} else {
-				$d = 0;
+		ini_set('max_execution_time', 0);
+
+		fputcsv($fh, array('Name', 'Job', 'Day', 'Evening', 'Night', 'Offduty', 'Annual Leave', 'Study Leave', 'Maternity Leave', 'Other Leave', 'Total'));
+
+		for ($start = 0; $start < $total; $start += $batch_size) {
+			$batch = $this->rosta_model->fetch_summary($valid_range, $this->filters, $start, $batch_size, $empid);
+			if (empty($batch)) {
+				break;
 			}
-			if (!empty($sum['E'])) {
-				$e = $sum['E'];
-			} else {
-				$e = 0;;
+			foreach ($batch as $sum) {
+				$name = (isset($sum['fullname']) ? $sum['fullname'] : '') . ' ' . (isset($sum['othername']) ? $sum['othername'] : '');
+				$d = isset($sum['D']) && $sum['D'] !== '' ? $sum['D'] : 0;
+				$e = isset($sum['E']) && $sum['E'] !== '' ? $sum['E'] : 0;
+				$n = isset($sum['N']) && $sum['N'] !== '' ? $sum['N'] : 0;
+				$o = isset($sum['O']) && $sum['O'] !== '' ? $sum['O'] : 0;
+				$a = isset($sum['A']) && $sum['A'] !== '' ? $sum['A'] : 0;
+				$s = isset($sum['S']) && $sum['S'] !== '' ? $sum['S'] : 0;
+				$m = isset($sum['M']) && $sum['M'] !== '' ? $sum['M'] : 0;
+				$z = isset($sum['Z']) && $sum['Z'] !== '' ? $sum['Z'] : 0;
+				$total_row = $d + $e + $n + $o + $a + $s + $m + $z;
+				fputcsv($fh, array($name, isset($sum['job']) ? $sum['job'] : '', $d, $e, $n, $o, $a, $s, $m, $z, $total_row));
 			}
-			if (!empty($sum['N'])) {
-				$n = $sum['N'];
-			} else {
-				$n = 0;
-			}
-			if (!empty($sum['O'])) {
-				$o = $sum['O'];
-			} else {
-				$o = 0;
-			}
-			if (!empty($sum['A'])) {
-				$a = $sum['A'];
-			} else {
-				$a = 0;
-			}
-			$s = $sum['S'];
-			if (!empty($s)) {
-				$s = $s;
-			} else {
-				$s = 0;
-			}
-			$m = $sum['M'];
-			if (!empty($m)) {
-				$m;
-			} else {
-				$m = 0;
-			}
-			$z = $sum['Z'];
-			if (!empty($z)) {
-				$z;
-			} else {
-				$z = 0;
-			}
-			$total = $sum['D'] + $sum['E'] + $sum['N'] + $sum['O'] + $sum['A'] + $sum['S'] + $sum['M'] + $sum['Z'];
-			$days = array("Name" => $name, "Job" => $job, "Day" => $d,  "Evening" => $e, "Night" => $n, "Offduty" => $o, "Annual Leave" => $a, "Study Leave" => $s, "Maternity Leave" => $m, "Other Leave" => $z, "% Total" => $total);
-			array_push($records, $days);
+			unset($batch);
 		}
-		$is_coloumn = true;
-		if (!empty($records)) {
-			foreach ($records as $record) {
-				if ($is_coloumn) {
-					fputcsv($fh, array_keys($record));
-					$is_coloumn = false;
-				}
-				fputcsv($fh, array_values($record));
-			}
-			fclose($fh);
-		}
+
+		fclose($fh);
 		exit;
 	}
 	public function presence()
@@ -1173,134 +1159,157 @@ class Rosta extends MX_Controller
 			->set_content_type('application/json')
 			->set_output(json_encode($response));
 	}
+	/**
+	 * Print Monthly Attendance Form (actuals): stream by employee batches to avoid locking.
+	 */
 	public function print_actuals($year, $month, $empid = NULL)
 	{
-		$data['dates'] = $year . '-' . $month;
-		$date = $data['dates'];
+		$date = $year . '-' . $month;
 		$this->load->library('ML_pdf');
 		if (empty($empid)) {
 			$empid = $this->input->get('empid');
 		}
 
-		// Use the same filtered employees set as server-side table
-		$data['duties'] = $this->rosta_model->fetch_attendance_form($date, 0, 0, $this->filters, $empid);
-
-		// Prefetch schedules for all employees in this print
-		$employee_ids = array();
-		foreach ($data['duties'] as $row) {
-			if (!empty($row['ihris_pid'])) {
-				$employee_ids[] = $row['ihris_pid'];
-			}
-		}
-		$data['schedules'] = $this->rosta_model->get_attendance_schedules_bulk($date, $employee_ids);
-
-		$data['month'] = $month;
-		$data['year'] = $year;
-		$html = $this->load->view('actual_printable', $data, true);
-		$filename = $_SESSION['facility'] . "_actuals_report_" . date('F-Y', strtotime($date)) . ".pdf";
-		ini_set('max_execution_time', 0);
-		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		date_default_timezone_set("Africa/Kampala");
-		$this->ml_pdf->pdf->SetHTMLFooter("Printed / Accessed on: <b>" . date('d F,Y h:i A') . "</b>");
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		$batch_size = 40;
+		$total = $this->rosta_model->count_attendance_form($date, $this->filters, $empid);
+		$filename = $_SESSION['facility'] . '_actuals_report_' . date('F-Y', strtotime($date . '-01')) . '.pdf';
 		ini_set('max_execution_time', 0);
 
-		// Chunked WriteHTML to better handle large HTML
-		$parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
-		$buffer = '';
-		$chunkLimit = 80000;
-		foreach ($parts as $part) {
-			$buffer .= $part;
-			if (strlen($buffer) >= $chunkLimit) {
-				$this->ml_pdf->pdf->WriteHTML($buffer);
-				$buffer = '';
+		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		date_default_timezone_set('Africa/Kampala');
+		$this->ml_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b>');
+
+		$header_data = array('dates' => $date, 'month' => $month, 'year' => $year);
+		$header_html = $this->load->view('actual_printable_header', $header_data, true);
+		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+		$row_no = 1;
+		for ($offset = 0; $offset < $total; $offset += $batch_size) {
+			$batch = $this->rosta_model->fetch_attendance_form($date, $offset, $batch_size, $this->filters, $empid);
+			if (empty($batch)) {
+				break;
 			}
+			$employee_ids = array();
+			foreach ($batch as $row) {
+				if (!empty($row['ihris_pid'])) {
+					$employee_ids[] = $row['ihris_pid'];
+				}
+			}
+			$schedules = $this->rosta_model->get_attendance_schedules_bulk($date, $employee_ids);
+			$rows_data = array(
+				'duties' => $batch,
+				'schedules' => $schedules,
+				'month' => $month,
+				'year' => $year,
+				'start_row_no' => $row_no,
+			);
+			$rows_html = $this->load->view('actual_printable_rows', $rows_data, true);
+			$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+			$row_no += count($batch);
+			unset($batch, $employee_ids, $schedules, $rows_data, $rows_html);
 		}
-		if (trim($buffer) !== '') {
-			$this->ml_pdf->pdf->WriteHTML($buffer);
-		}
-		//download it D save F.
+
+		$footer_html = $this->load->view('actual_printable_footer', array(), true);
+		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
 		$this->ml_pdf->pdf->Output($filename, 'I');
 	}
 
 	/**
-	 * CSV export for Monthly Attendance Form (respects filters).
+	 * CSV export for Monthly Attendance Form: stream by batches (respects filters).
 	 */
 	public function actuals_csv($year, $month, $empid = NULL)
 	{
 		$date = $year . '-' . $month;
-
 		if (empty($empid)) {
 			$empid = $this->input->get('empid');
 		}
 
-		// Fetch filtered employees
-		$duties = $this->rosta_model->fetch_attendance_form($date, 0, 0, $this->filters, $empid);
-
-		// Prefetch schedules
-		$employee_ids = array();
-		foreach ($duties as $row) {
-			if (!empty($row['ihris_pid'])) {
-				$employee_ids[] = $row['ihris_pid'];
-			}
-		}
-		$schedules = $this->rosta_model->get_attendance_schedules_bulk($date, $employee_ids);
-
+		$batch_size = 40;
+		$total = $this->rosta_model->count_attendance_form($date, $this->filters, $empid);
 		$month_days = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
 
-		$csv_file = $_SESSION['facility'] . "_actuals_report_" . date('Y-m-d') . ".csv";
-		header("Content-Type: text/csv");
-		header("Content-Disposition: attachment; filename=\"$csv_file\"");
-
+		$csv_file = $_SESSION['facility'] . '_actuals_report_' . date('Y-m-d') . '.csv';
+		header('Content-Type: text/csv');
+		header('Content-Disposition: attachment; filename="' . $csv_file . '"');
 		$fh = fopen('php://output', 'w');
+		ini_set('max_execution_time', 0);
 
-		// Header row
 		$header = array('NAME', 'POSITION');
 		for ($i = 1; $i <= $month_days; $i++) {
 			$header[] = 'Day ' . $i;
 		}
 		fputcsv($fh, $header);
 
-		// Data rows
-		foreach ($duties as $row) {
-			$pid = $row['ihris_pid'];
-			$line = array();
-			$line[] = $row['fullname'];
-			$line[] = $row['job'];
-
-			for ($d = 1; $d <= $month_days; $d++) {
-				$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
-				$ymd = $year . '-' . $month . '-' . $dayStr;
-				$letter = isset($schedules[$pid][$ymd]) ? $schedules[$pid][$ymd] : '';
-				$line[] = $letter;
+		for ($offset = 0; $offset < $total; $offset += $batch_size) {
+			$batch = $this->rosta_model->fetch_attendance_form($date, $offset, $batch_size, $this->filters, $empid);
+			if (empty($batch)) {
+				break;
 			}
+			$employee_ids = array();
+			foreach ($batch as $row) {
+				if (!empty($row['ihris_pid'])) {
+					$employee_ids[] = $row['ihris_pid'];
+				}
+			}
+			$schedules = $this->rosta_model->get_attendance_schedules_bulk($date, $employee_ids);
 
-			fputcsv($fh, $line);
+			foreach ($batch as $row) {
+				$pid = $row['ihris_pid'];
+				$line = array(
+					isset($row['fullname']) ? $row['fullname'] : '',
+					isset($row['job']) ? $row['job'] : '',
+				);
+				for ($d = 1; $d <= $month_days; $d++) {
+					$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
+					$ymd = $year . '-' . $month . '-' . $dayStr;
+					$letter = isset($schedules[$pid][$ymd]) ? $schedules[$pid][$ymd] : '';
+					$line[] = $letter;
+				}
+				fputcsv($fh, $line);
+			}
+			unset($batch, $employee_ids, $schedules);
 		}
 
 		fclose($fh);
 		exit;
 	}
+	/**
+	 * Print Roster Summary: stream by batches.
+	 */
 	public function print_summary($date)
 	{
-		$data['dates'] = $date;
+		$empid = $this->input->get('empid');
 		$this->load->library('ML_pdf');
-		$data['sums'] = $this->rosta_model->fetch_summary($date, $this->filters);
-		$html = $this->load->view('printablesummary', $data, true);
+		$batch_size = 200;
+		$total = $this->rosta_model->countrosta_summary($date, $this->filters, null, null, $empid);
+		$period_label = date('F, Y', strtotime($date . '-01'));
 		$fac = $_SESSION['facility'];
-		$filename = $fac . "_summary_report_" . $date . ".pdf";
+		$filename = $fac . '_summary_report_' . $date . '.pdf';
 		ini_set('max_execution_time', 0);
-		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+
 		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		$this->ml_pdf->pdf->showWatermarkImage = true;
-		date_default_timezone_set("Africa/Kampala");
-		$this->ml_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>" . date('d F,Y h:i A') . "</b>");
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		$this->ml_pdf->showWatermarkImage = true;
-		ini_set('max_execution_time', 0);
-		$this->ml_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
-		//download it D save F.
+		date_default_timezone_set('Africa/Kampala');
+		$this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b>');
+
+		$header_data = array('period_label' => $period_label);
+		$header_html = $this->load->view('summary_printable_header', $header_data, true);
+		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+		$row_no = 1;
+		for ($start = 0; $start < $total; $start += $batch_size) {
+			$batch = $this->rosta_model->fetch_summary($date, $this->filters, $start, $batch_size, $empid);
+			if (empty($batch)) {
+				break;
+			}
+			$rows_data = array('sums' => $batch, 'start_row_no' => $row_no);
+			$rows_html = $this->load->view('summary_printable_rows', $rows_data, true);
+			$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+			$row_no += count($batch);
+			unset($batch, $rows_data, $rows_html);
+		}
+
+		$footer_html = $this->load->view('summary_printable_footer', array(), true);
+		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
 		$this->ml_pdf->pdf->Output($filename, 'I');
 	}
 	public function addEvent()

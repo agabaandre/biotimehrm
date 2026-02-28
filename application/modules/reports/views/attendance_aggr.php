@@ -145,6 +145,9 @@
 								<a href="#" id="aa_csv_link" style="font-size:12px;" class="btn bg-gray-dark color-pale">
 									<i class="fa fa-file"></i> Export CSV
 								</a>
+								<a href="#" id="aa_pdf_link" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank">
+									<i class="fa fa-file-pdf-o"></i> Export PDF
+								</a>
 					</div>
 						</div>
 					</form>
@@ -212,10 +215,10 @@ $(document).ready(function() {
 		};
 	}
 
-	function updateCsvLink() {
+	function buildExportParams(csvOrPdf) {
 		var f = getFilters();
 		var params = new URLSearchParams();
-		params.append('csv', '1');
+		params.append(csvOrPdf, '1');
 		params.append('group_by', f.group_by);
 		if (f.duty_date && f.duty_date.length > 0) {
 			f.duty_date.forEach(function(date) {
@@ -234,7 +237,11 @@ $(document).ready(function() {
 				params.append('institution_type[]', type);
 			});
 		}
-		$('#aa_csv_link').attr('href', baseUrl + 'reports/attendance_aggregate?' + params.toString());
+		return baseUrl + 'reports/attendance_aggregate?' + params.toString();
+	}
+	function updateExportLinks() {
+		$('#aa_csv_link').attr('href', buildExportParams('csv'));
+		$('#aa_pdf_link').attr('href', buildExportParams('pdf'));
 	}
 
 	function updateGroupByLabel() {
@@ -308,7 +315,7 @@ $(document).ready(function() {
 	// Apply filters button
 	$('#aa_apply').on('click', function() {
 		updateGroupByLabel();
-		updateCsvLink();
+		updateExportLinks();
 		table.ajax.reload();
 	});
 
@@ -320,12 +327,12 @@ $(document).ready(function() {
 
 	// Initialize
 	updateGroupByLabel();
-	updateCsvLink();
+	updateExportLinks();
 	initTable();
 
 	// Update CSV link when filters change
 	$('#aa_duty_date, #aa_district, #aa_facility_name, #aa_region, #aa_institution_type').on('change', function() {
-		updateCsvLink();
+		updateExportLinks();
 	});
 });
 </script>

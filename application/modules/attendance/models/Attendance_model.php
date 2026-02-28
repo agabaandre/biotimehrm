@@ -256,10 +256,9 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$dep = "";
 		}
-		if (!empty($start)) {
-			$limits = " LIMIT $limit,$start";
-		} else {
-			$limits = " ";
+		$limits = " ";
+		if ($limit !== null && (int)$limit > 0) {
+			$limits = " LIMIT " . max(0, (int)$start) . "," . (int)$limit;
 		}
 		$query = $this->db->query("SELECT * from person_att_final  WHERE duty_date='$valid_range' $facilityf $districtf $search $dep  $limits");
 		$data = $query->result_array();
@@ -315,15 +314,32 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$dep = "";
 		}
-		if (!empty($start)) {
-			$limits = " LIMIT $limit,$start";
-		} else {
-			$limits = " ";
-		}
-		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search $dep  $limits");
-		$data = $query->num_rows();
-		return $data;
+		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search $dep");
+		return $query->num_rows();
 	} //summary
+
+	/**
+	 * Get scheduled days per employee for a month (Day+Evening+Night, schedule_id 14,15,16).
+	 * Returns array ihris_pid => total_days. Avoids N×attrosta calls in summary PDF/CSV.
+	 */
+	public function get_scheduled_days_for_month($pids, $year_month)
+	{
+		if (empty($pids) || empty($year_month)) {
+			return array();
+		}
+		$this->db->select('ihris_pid, COUNT(*) AS days');
+		$this->db->from('duty_rosta');
+		$this->db->where_in('ihris_pid', $pids);
+		$this->db->where_in('schedule_id', array(14, 15, 16));
+		$this->db->where("DATE_FORMAT(duty_date, '%Y-%m') = ", $year_month);
+		$this->db->group_by('ihris_pid');
+		$q = $this->db->get();
+		$out = array();
+		foreach ($q->result() as $r) {
+			$out[(string) $r->ihris_pid] = (int) $r->days;
+		}
+		return $out;
+	}
 	public function attrosta($valid_range, $person)
 	{
 		$day = $this->db->query("select count(ihris_pid) as days from duty_rosta where schedule_id=14 and DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') ='$valid_range' and ihris_pid='$person'")->result();

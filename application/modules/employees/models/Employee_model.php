@@ -1064,6 +1064,24 @@ class Employee_model extends CI_Model
 
         return $this->db->query($sql)->result_array();
     }
+    /**
+     * Count employees for timesheet (same filters as fetch_TimeSheet). Used for streaming print.
+     */
+    public function count_TimeSheet_employees($date_range, $employee = FALSE, $filters = FALSE, $job = NULL)
+    {
+        $search = "";
+        if (!empty($employee)) {
+            $search = "and ihrisdata.ihris_pid='$employee'";
+        }
+        $jsearch = "";
+        if (!empty($job)) {
+            $jsearch = "and ihrisdata.job like '$job' ";
+        }
+        $sql = "SELECT COUNT(DISTINCT ihrisdata.ihris_pid) AS cnt FROM ihrisdata WHERE $filters $search $jsearch";
+        $row = $this->db->query($sql)->row();
+        return isset($row->cnt) ? (int) $row->cnt : 0;
+    }
+
     public function fetch_TimeSheet($date_range = FALSE, $start = FALSE, $limit = FALSE, $employee = FALSE, $filters=FALSE, $job = NULL)
     {
         $month = $this->input->post('month');
@@ -1083,17 +1101,63 @@ class Employee_model extends CI_Model
         } else {
             $jsearch = "";
         }
-        if (!empty($start)) {
-            $limit = "LIMIT $limit,$start";
-        } else {
-            $limit = "";
+        // Support limit/offset for streaming: when limit is numeric and > 0, add LIMIT clause (offset can be 0).
+        $limit_sql = "";
+        if ($limit !== FALSE && $limit !== NULL && (int)$limit > 0) {
+            $limit_sql = "LIMIT " . (int)$limit . ", " . max(0, (int)$start);
         }
         $facility = $_SESSION['facility'];
         $all = $this->db->query("SELECT DISTINCT ihrisdata.ihris_pid,
                 CONCAT(COALESCE(ihrisdata.surname,''),' ',COALESCE(ihrisdata.firstname,''),' ',COALESCE(ihrisdata.othername,'')) AS fullname,
-                ihrisdata.job FROM ihrisdata WHERE $filters $search $jsearch ORDER BY fullname ASC $limit");
+                ihrisdata.job FROM ihrisdata WHERE $filters $search $jsearch ORDER BY fullname ASC $limit_sql");
         $data = $all->result_array();
         return $data;
+    }
+
+    /**
+     * Get scheduled days per employee for a month (Day+Evening+Night, schedule_id 14,15,16).
+     * Returns array ihris_pid => total_days. Used to avoid N×attrosta calls in print.
+     */
+    public function get_scheduled_days_for_month($pids, $year_month)
+    {
+        if (empty($pids) || empty($year_month)) {
+            return array();
+        }
+        $this->db->select('ihris_pid, COUNT(*) AS days');
+        $this->db->from('duty_rosta');
+        $this->db->where_in('ihris_pid', $pids);
+        $this->db->where_in('schedule_id', array(14, 15, 16));
+        $this->db->where("DATE_FORMAT(duty_date, '%Y-%m') = ", $year_month);
+        $this->db->group_by('ihris_pid');
+        $q = $this->db->get();
+        $out = array();
+        foreach ($q->result() as $r) {
+            $out[(string) $r->ihris_pid] = (int) $r->days;
+        }
+        return $out;
+    }
+
+    /**
+     * Get scheduled days per employee for a date range (schedule_id 14,15,16).
+     */
+    public function get_scheduled_days_for_range($pids, $start_date, $end_date)
+    {
+        if (empty($pids) || empty($start_date) || empty($end_date)) {
+            return array();
+        }
+        $this->db->select('ihris_pid, COUNT(*) AS days');
+        $this->db->from('duty_rosta');
+        $this->db->where_in('ihris_pid', $pids);
+        $this->db->where_in('schedule_id', array(14, 15, 16));
+        $this->db->where('duty_date >=', $start_date);
+        $this->db->where('duty_date <=', $end_date);
+        $this->db->group_by('ihris_pid');
+        $q = $this->db->get();
+        $out = array();
+        foreach ($q->result() as $r) {
+            $out[(string) $r->ihris_pid] = (int) $r->days;
+        }
+        return $out;
     }
     //get employees
     public function count_employeeTimelogs($ihris_pid, $date = NULL)
@@ -1203,6 +1267,85 @@ class Employee_model extends CI_Model
         $qry = $this->db->get('duty_rosta');
         $data['dutydays'] = $qry->result();
         return $data;
+    }
+
+    /**
+     * Count clk_log rows for one employee in a date range (for streaming print).
+     */
+    public function count_employee_timelogs_range($ihris_pid, $date_from, $date_to)
+    {
+        $date_from = date('Y-m-d', strtotime($date_from));
+        $date_to = date('Y-m-d', strtotime($date_to));
+        $this->db->where('ihris_pid', $ihris_pid);
+        $this->db->where('date >=', $date_from);
+        $this->db->where('date <=', $date_to);
+        return $this->db->count_all_results('clk_log');
+    }
+
+    /**
+     * Fetch one batch of timelogs for streaming (clk_log only).
+     */
+    public function get_employee_timelogs_batch($ihris_pid, $date_from, $date_to, $offset, $limit)
+    {
+        $date_from = date('Y-m-d', strtotime($date_from));
+        $date_to = date('Y-m-d', strtotime($date_to));
+        $this->db->where('ihris_pid', $ihris_pid);
+        $this->db->where('date >=', $date_from);
+        $this->db->where('date <=', $date_to);
+        $this->db->order_by('date', 'ASC');
+        $this->db->limit($limit, $offset);
+        $q = $this->db->get('clk_log');
+        return $q->result();
+    }
+
+    /**
+     * Fetch employee + leaves, offs, requests, dutydays for a date range (no clk_log). Used once for print header/footer.
+     */
+    public function get_employee_timelogs_meta($ihris_pid, $date_from, $date_to)
+    {
+        $date_from = date('Y-m-d', strtotime($date_from));
+        $date_to = date('Y-m-d', strtotime($date_to));
+        $out = array('employee' => null, 'leaves' => array(), 'offs' => array(), 'requests' => array(), 'dutydays' => array());
+
+        $this->db->where('ihris_pid', $ihris_pid);
+        $out['employee'] = $this->db->get('ihrisdata')->row();
+
+        $pid = $out['employee'] ? $out['employee']->ihris_pid : $ihris_pid;
+
+        $this->db->where('ihris_pid', $pid);
+        $this->db->where('schedule_id', '25');
+        $this->db->where('date >=', $date_from);
+        $this->db->where('date <=', $date_to);
+        $out['leaves'] = $this->db->get('actuals')->result();
+
+        $this->db->where('ihris_pid', $pid);
+        $this->db->where_in('schedule_id', array('24', '27'));
+        $this->db->where('date >=', $date_from);
+        $this->db->where('date <=', $date_to);
+        $out['offs'] = $this->db->get('actuals')->result();
+
+        $this->db->where('ihris_pid', $pid);
+        $this->db->where('schedule_id', '23');
+        $this->db->where('date >=', $date_from);
+        $this->db->where('date <=', $date_to);
+        $out['requests'] = $this->db->get('actuals')->result();
+
+        $this->db->select('holidaydate');
+        $holidays = $this->db->get('public_holiday')->result();
+        $darray = array();
+        foreach ($holidays as $d) {
+            $darray[] = $d->holidaydate;
+        }
+        $this->db->where('ihris_pid', $pid);
+        $this->db->where('schedule_id', '14');
+        $this->db->where('duty_date >=', $date_from);
+        $this->db->where('duty_date <=', $date_to);
+        if (!empty($darray)) {
+            $this->db->where_not_in('duty_date', $darray);
+        }
+        $out['dutydays'] = $this->db->get('duty_rosta')->result();
+
+        return $out;
     }
 
     public function gettimedata($person_id, $date)
