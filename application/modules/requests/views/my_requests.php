@@ -1,5 +1,8 @@
          <?php
             $requests = Modules::run('requests/myRequests');
+            if (!is_array($requests)) {
+                $requests = [];
+            }
             $user = $this->session->get_userdata();
 ?>
 

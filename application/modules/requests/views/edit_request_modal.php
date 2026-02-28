@@ -48,11 +48,14 @@ $uri = $_SERVER['REQUEST_URI'];
 $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
  
 $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
- $linkquery=$url; // Outputs: Full URL
- // Outputs: Query String
+ $linkquery = $url ?: '';
+ if (!isset($request) || $request === null) {
+     return;
+ }
+ $entry_id_safe = is_object($request) && isset($request->entry_id) ? str_replace('|', '_', (string)$request->entry_id) : '';
 ?>
 <!-- Modal -->
-<div id="editModal<?php echo str_replace('|','_',$request->entry_id); ?>" class="modal fade" role="dialog">
+<div id="editModal<?php echo $entry_id_safe; ?>" class="modal fade" role="dialog">
   <div class="modal-dialog modal-lg">
 
     <div class="modal-content">

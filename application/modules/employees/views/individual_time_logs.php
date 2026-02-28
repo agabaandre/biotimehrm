@@ -85,6 +85,7 @@
         </div>
         <?php
         $totalDuty = 0;
+        $no = 0;
         foreach ($workdays as $workday) {
           $no++;
           date('j F,Y', strtotime($workday->duty_date)) . " ";
@@ -112,15 +113,17 @@
               ?>
                 <tr>
                   <td><?php echo $wdays; ?></td>
-                  <td><?php echo date('j F,Y', strtotime($timelog->date)); ?></td>
-                  <td><?php echo    date('H:i:s', strtotime($timelog->time_in)); ?></td>
-                  <td><?php if (!empty($time_out = $timelog->time_out)) {
-                        echo date('H:i:s', strtotime($time_out = $timelog->time_out));
-                      } ?></td>
+                  <td><?php echo ($timelog->date !== null && $timelog->date !== '') ? date('j F,Y', strtotime($timelog->date)) : '—'; ?></td>
+                  <td><?php echo ($timelog->time_in !== null && $timelog->time_in !== '') ? date('H:i:s', strtotime($timelog->time_in)) : '—'; ?></td>
+                  <td><?php if (!empty($timelog->time_out)) {
+                        echo date('H:i:s', strtotime($timelog->time_out));
+                      } else { echo '—'; } ?></td>
                   <td>
                     <?php
-                    $initial_time = strtotime($timelog->time_in) / 3600;
-                    $final_time = strtotime($timelog->time_out) / 3600;
+                    $time_in_str = $timelog->time_in ?? '';
+                    $time_out_str = $timelog->time_out ?? '';
+                    $initial_time = ($time_in_str !== '') ? (strtotime($time_in_str) / 3600) : 0;
+                    $final_time = ($time_out_str !== '') ? (strtotime($time_out_str) / 3600) : 0;
                     if (($initial_time) == 0 || ($final_time) == 0) {
                       $hours_worked = 0;
                     } elseif ($initial_time == $final_time) {

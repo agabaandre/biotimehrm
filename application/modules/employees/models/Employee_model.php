@@ -681,13 +681,13 @@ class Employee_model extends CI_Model
         if (!empty($search_data['name'])) {
             $ids = $this->getIds($search_data['name']);
             $emps = "'" . implode("','", $ids) . "'";
-            $namesearch = "and ihris_pid in ($emps)";
+            $namesearch = "AND k.pid IN ($emps)";
         } else {
             $namesearch = "";
         }
         if (!empty($search_data['job'])) {
-            $job = $search_data['job'];
-            $sjob = "AND job like'$job' ";
+            $job = $this->db->escape_like_str($search_data['job']);
+            $sjob = "AND k.job LIKE '$job'";
         } else {
             $sjob = "";
         }
@@ -696,7 +696,8 @@ class Employee_model extends CI_Model
         } else {
             $limit = "";
         }
-        $query = $this->db->query("SELECT k.*, SUM(k.time_diff) as m_timediff  from clk_diff k WHERE date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob GROUP BY pid, DATE_FORMAT(date, '%Y-%m') order by surname ASC, date ASC $limit");
+        /* MySQL 8 ONLY_FULL_GROUP_BY: select aggregates and ORDER BY columns from SELECT list */
+        $query = $this->db->query("SELECT k.pid, MAX(k.surname) AS surname, MAX(k.firstname) AS firstname, MAX(k.othername) AS othername, MAX(k.job) AS job, MAX(k.facility) AS facility, MAX(k.department) AS department, SUM(k.time_diff) AS m_timediff, DATE_FORMAT(k.date, '%Y-%m-01') AS date FROM clk_diff k WHERE k.date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob GROUP BY k.pid, DATE_FORMAT(k.date, '%Y-%m') ORDER BY surname ASC, date ASC $limit");
         $data = $query->result();
         return $data;
     }
@@ -790,7 +791,16 @@ class Employee_model extends CI_Model
 
         $limit = "LIMIT $start, $length";
 
-        $sql = "SELECT k.*, SUM(k.time_diff) as m_timediff, DATE_FORMAT(k.date, '%Y-%m-01') as date
+        /* MySQL 8 ONLY_FULL_GROUP_BY: all non-aggregated columns must be in GROUP BY or wrapped in aggregate. Order by SELECT list. */
+        $sql = "SELECT k.pid,
+                MAX(k.surname) AS surname,
+                MAX(k.firstname) AS firstname,
+                MAX(k.othername) AS othername,
+                MAX(k.job) AS job,
+                MAX(k.facility) AS facility,
+                MAX(k.department) AS department,
+                SUM(k.time_diff) AS m_timediff,
+                DATE_FORMAT(k.date, '%Y-%m-01') AS date
                 FROM clk_diff k
                 WHERE k.date BETWEEN '$date_from' AND '$date_to' 
                 AND $filter 
@@ -798,7 +808,7 @@ class Employee_model extends CI_Model
                 $sjob 
                 $searchClause
                 GROUP BY k.pid, DATE_FORMAT(k.date, '%Y-%m')
-                ORDER BY k.surname ASC, k.date ASC
+                ORDER BY surname ASC, date ASC
                 $limit";
         
         $query = $this->db->query($sql);
@@ -1048,7 +1058,7 @@ class Employee_model extends CI_Model
                 ihrisdata.job
             FROM ihrisdata
             $where
-            ORDER BY ihrisdata.surname ASC
+            ORDER BY fullname ASC
             LIMIT $start, $length
         ";
 
@@ -1079,13 +1089,9 @@ class Employee_model extends CI_Model
             $limit = "";
         }
         $facility = $_SESSION['facility'];
-        $all = $this->db->query("select distinct ihrisdata.ihris_pid,CONCAT(
-				COALESCE(surname,'','')
-				,' ',
-				COALESCE(firstname,'','')
-				,' ',
-				COALESCE(othername,'','')
-			) AS fullname,ihrisdata.job from ihrisdata where $filters $search $jsearch  order by surname ASC $limit");
+        $all = $this->db->query("SELECT DISTINCT ihrisdata.ihris_pid,
+                CONCAT(COALESCE(ihrisdata.surname,''),' ',COALESCE(ihrisdata.firstname,''),' ',COALESCE(ihrisdata.othername,'')) AS fullname,
+                ihrisdata.job FROM ihrisdata WHERE $filters $search $jsearch ORDER BY fullname ASC $limit");
         $data = $all->result_array();
         return $data;
     }

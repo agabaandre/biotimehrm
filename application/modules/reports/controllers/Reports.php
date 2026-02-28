@@ -118,7 +118,8 @@ class Reports extends MX_Controller
 		$this->load->library('pagination');
 		$config = array();
 		$config['base_url'] = base_url() . "employees/viewTimeLogs";
-		$config['total_rows'] = $this->db->query("SELECT pid FROM clk_diff WHERE facility_id='$facility' group by date_format(date,'%Y-%m')")->num_rows();
+		$count_row = $this->db->query("SELECT COUNT(DISTINCT DATE_FORMAT(date,'%Y-%m')) AS total FROM clk_diff WHERE facility_id=" . $this->db->escape($facility))->row();
+		$config['total_rows'] = isset($count_row->total) ? (int) $count_row->total : 0;
 		$config['per_page'] = 200; //records per page
 		$config['uri_segment'] = 3; //segment in url  
 		//pagination links styling

@@ -312,43 +312,57 @@ class Reports_mdl extends CI_Model
 
 	public function attendance_aggregates($filters = null, $limit = NULL, $start = NULL, $group_by = "district")
 	{
-
-
+		$group_by = $this->_aggregate_group_by_column($group_by);
 		if ($limit)
 			$this->db->limit($limit, $start);
 
 		$this->apply_aggregation_filter($filters);
 
-		$this->db->select("
-			job,
-			facility_name,
-			facility_type_name,
-			cadre,
-			gender,
-			duty_date,
-			district,
-			department_id,
-			region,
-			institution_type,
-			sum(P) as present,
-			sum(O) as off,
-			sum(L) as own_leave,
-			sum(R) as official,
-			sum(X) as absent,
-			sum(H) as holiday,
-			sum(base_line)   as days_supposed,
-			sum(base_line - (P+O+L+R)) as days_absent
-		");
+		/* MySQL 8 ONLY_FULL_GROUP_BY: non-grouped columns must be aggregated */
+		$select = $this->_aggregate_select_sql($group_by);
+		$this->db->select($select, false);
 
 		$this->db->from("person_att_final");
 		$this->db->group_by("duty_date");
-		$this->db->group_by("$group_by");
+		$this->db->group_by($group_by);
 		$this->db->order_by("duty_date", 'ASC');
-		$this->db->order_by("$group_by", 'ASC');
+		$this->db->order_by($group_by, 'ASC');
 
 		$data = $this->db->get()->result();
 
 		return $data;
+	}
+
+	/**
+	 * Whitelist group_by column for aggregation (MySQL 8 safe).
+	 */
+	private function _aggregate_group_by_column($group_by)
+	{
+		$allowed = array('district', 'facility_name', 'job', 'region', 'institution_type', 'department_id', 'cadre', 'gender', 'facility_type_name');
+		return in_array($group_by, $allowed) ? $group_by : 'district';
+	}
+
+	/**
+	 * Build SELECT for attendance aggregates (MySQL 8 ONLY_FULL_GROUP_BY).
+	 */
+	private function _aggregate_select_sql($group_by)
+	{
+		$dims = array('job', 'facility_name', 'facility_type_name', 'cadre', 'gender', 'district', 'department_id', 'region', 'institution_type');
+		$parts = array('duty_date', $group_by);
+		foreach ($dims as $d) {
+			if ($d !== 'duty_date' && $d !== $group_by) {
+				$parts[] = "MAX($d) AS $d";
+			}
+		}
+		$parts[] = "SUM(P) AS present";
+		$parts[] = "SUM(O) AS off";
+		$parts[] = "SUM(L) AS own_leave";
+		$parts[] = "SUM(R) AS official";
+		$parts[] = "SUM(X) AS absent";
+		$parts[] = "SUM(H) AS holiday";
+		$parts[] = "SUM(base_line) AS days_supposed";
+		$parts[] = "SUM(base_line - (P+O+L+R)) AS days_absent";
+		return implode(', ', $parts);
 	}
 
 	public function aggregate_group_count($column, $value, $period)
@@ -396,8 +410,8 @@ class Reports_mdl extends CI_Model
 	 */
 	public function countAttendanceAggregatesAjax($filters = null, $group_by = "district", $search = '')
 	{
-		// Build a subquery to count distinct groups
-		$this->db->select("COUNT(DISTINCT CONCAT(duty_date, '|', $group_by)) as cnt", false);
+		$group_by = $this->_aggregate_group_by_column($group_by);
+		$this->db->select("COUNT(DISTINCT CONCAT(duty_date, '|', " . $this->db->protect_identifiers($group_by) . ")) AS cnt", false);
 		$this->apply_aggregation_filter($filters);
 
 		// Apply search filter
@@ -422,9 +436,9 @@ class Reports_mdl extends CI_Model
 	 */
 	public function fetchAttendanceAggregatesAjax($filters = null, $group_by = "district", $start = 0, $length = 200, $search = '')
 	{
+		$group_by = $this->_aggregate_group_by_column($group_by);
 		$this->apply_aggregation_filter($filters);
 
-		// Apply search filter
 		if (!empty($search)) {
 			$this->db->group_start();
 			$this->db->like('job', $search);
@@ -435,32 +449,14 @@ class Reports_mdl extends CI_Model
 			$this->db->group_end();
 		}
 
-		$this->db->select("
-			job,
-			facility_name,
-			facility_type_name,
-			cadre,
-			gender,
-			duty_date,
-			district,
-			department_id,
-			region,
-			institution_type,
-			sum(P) as present,
-			sum(O) as off,
-			sum(L) as own_leave,
-			sum(R) as official,
-			sum(X) as absent,
-			sum(H) as holiday,
-			sum(base_line) as days_supposed,
-			sum(base_line - (P+O+L+R)) as days_absent
-		");
+		$select = $this->_aggregate_select_sql($group_by);
+		$this->db->select($select, false);
 
 		$this->db->from("person_att_final");
 		$this->db->group_by("duty_date");
-		$this->db->group_by("$group_by");
+		$this->db->group_by($group_by);
 		$this->db->order_by("duty_date", 'ASC');
-		$this->db->order_by("$group_by", 'ASC');
+		$this->db->order_by($group_by, 'ASC');
 		$this->db->limit($length, $start);
 
 		$query = $this->db->get();

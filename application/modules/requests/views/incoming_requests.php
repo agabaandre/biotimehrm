@@ -1,5 +1,8 @@
          <?php
           $requests = Modules::run('requests/getPending', NULL, NULL, 'Pending', NULL);
+          if (!is_array($requests)) {
+              $requests = [];
+          }
           $userdata = $this->session->get_userdata();
           $permissions = $userdata['permissions'];
 ?>
@@ -300,8 +303,12 @@
              </div>
 </section>
 
-<!-- Include the edit request modal -->
-<?php include('edit_request_modal.php'); ?>
+<!-- Include edit/clarify/accept/reject modals (one set per request so $request is defined) -->
+<?php if (!empty($requests)): ?>
+  <?php foreach ($requests as $request): ?>
+    <?php include('edit_request_modal.php'); ?>
+  <?php endforeach; ?>
+<?php endif; ?>
 
 <!-- DataTables Scripts -->
 <script src="<?php echo base_url('assets/plugins/datatables-responsive/js/dataTables.responsive.min.js'); ?>"></script>
