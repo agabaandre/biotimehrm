@@ -1318,19 +1318,21 @@ class Biotimejobs extends MX_Controller
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
 
-		$message = $this->biotimeSyncAttendanceUnified($date);
+		$this->biotimeSyncAttendanceUnified($date);
+       //  $this->db->query("CALL `clockin_users`();");
+
+       //  $message = " Checkin " . $this->db->affected_rows();
+
        //  $this->biotimeClockoutUnified();
+       // // $this->biotimeClockoutnight();
        //  $this->markAttendance();
+
        // $this->db->query("CALL `biotime_cache`();");
 
-        // Delete only this date's data to avoid full-table lock (reduces lock wait timeouts)
-        $day_start = $date . ' 00:00:00';
-        $day_end   = date('Y-m-d H:i:s', strtotime($date . ' +1 day') - 1);
-        $this->db->where('punch_time >=', $day_start);
-        $this->db->where('punch_time <=', $day_end);
-        $this->db->delete('biotime_data');
+        $this->db->query("TRUNCATE TABLE biotime_data");
 
-        $this->log(is_string($message) ? $message : 'Unified Sync: ' . (int)$message . ' logs');
+
+        $this->log($message);
     }
 
 
@@ -1347,14 +1349,17 @@ class Biotimejobs extends MX_Controller
     echo " Range: $startDate → $syncDate\n";
     echo "========================================\n";
 
+    $this->db->trans_start();
+
     /*
     |--------------------------------------------------------------------------
-    | 1️⃣ INSERT CLOCK-IN (short transaction to reduce lock time)
+    | 1️⃣ INSERT CLOCK-IN
     |--------------------------------------------------------------------------
     */
-    $sqlClockIn = "
+
+   $sqlClockIn = "
     INSERT INTO clk_log (entry_id, ihris_pid, date, time_in)
-    SELECT
+    SELECT 
         CONCAT(DATE(b.punch_time), i.ihris_pid) AS entry_id,
         i.ihris_pid,
         DATE(b.punch_time),
@@ -1368,21 +1373,19 @@ class Biotimejobs extends MX_Controller
     AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
     AND cl.entry_id IS NULL
     GROUP BY DATE(b.punch_time), i.ihris_pid
-    ";
-    $this->db->trans_start();
-    $this->db->query($sqlClockIn, [$startDate, $syncDate]);
-    $clockinInserted = $this->db->affected_rows();
-    $this->db->trans_complete();
+";
+
 
     /*
     |--------------------------------------------------------------------------
-    | 2️⃣ UPDATE CLOCK-OUT (separate short transaction)
+    | 2️⃣ UPDATE CLOCK-OUT
     |--------------------------------------------------------------------------
     */
+
     $sqlClockOut = "
         UPDATE clk_log cl
         JOIN (
-            SELECT
+            SELECT 
                 i.ihris_pid,
                 DATE(b.punch_time) AS log_date,
                 MAX(b.punch_time) AS last_punch
@@ -1398,45 +1401,43 @@ class Biotimejobs extends MX_Controller
         SET cl.time_out = punches.last_punch
         WHERE punches.last_punch > cl.time_in
     ";
-    $this->db->trans_start();
+
     $this->db->query($sqlClockOut, [$startDate, $syncDate]);
     $clockoutUpdated = $this->db->affected_rows();
-    $this->db->trans_complete();
+
 
     /*
     |--------------------------------------------------------------------------
-    | 3️⃣ NIGHT SHIFT CORRECTION (separate short transaction)
+    | 3️⃣ NIGHT SHIFT CORRECTION
     |--------------------------------------------------------------------------
     */
+
     $sqlNight = "
         UPDATE clk_log cl
         JOIN duty_rosta dr
             ON dr.ihris_pid = cl.ihris_pid
-            AND dr.duty_date = cl.date
         JOIN biotime_data b
             ON b.punch_time >= ?
             AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
         JOIN ihrisdata i
             ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
-            AND i.ihris_pid = cl.ihris_pid
         SET cl.time_out = b.punch_time
         WHERE dr.schedule_id = '16'
         AND cl.date = ?
         AND b.punch_time > cl.time_in
         AND TIMESTAMPDIFF(HOUR, cl.time_in, b.punch_time) <= 15
     ";
-    $this->db->trans_start();
+
     $this->db->query($sqlNight, [$startDate, $syncDate, $startDate]);
     $nightUpdated = $this->db->affected_rows();
-    $this->db->trans_complete();
+
 
     /*
     |--------------------------------------------------------------------------
-    | 4️⃣ POPULATE ACTUALS TABLE (separate short transaction)
+    | 4️⃣ POPULATE ACTUALS TABLE (Attendance Calendar)
     |--------------------------------------------------------------------------
     */
-    $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : 'NULL';
-    $sqlActuals = "
+$sqlActuals = "
     INSERT INTO actuals (
         entry_id,
         facility_id,
@@ -1448,29 +1449,30 @@ class Biotimejobs extends MX_Controller
         end,
         stream
     )
-    SELECT DISTINCT
+    SELECT DISTINCT 
         CONCAT(cl.date, id.ihris_pid) AS entry_id,
         id.facility_id,
-        COALESCE(id.department_id, id.department) AS department_id,
+        id.department AS department_id,
         id.ihris_pid,
         s.schedule_id,
         s.color,
         cl.date,
         DATE_ADD(cl.date, INTERVAL 1 DAY) AS end,
-        $stream_col AS stream
+        cl.source AS stream
     FROM ihrisdata id
-    JOIN clk_log cl
+    JOIN clk_log cl 
         ON id.ihris_pid = cl.ihris_pid
-    JOIN schedules s
+    JOIN schedules s 
         ON s.schedule_id = 22
-    LEFT JOIN actuals a
+    LEFT JOIN actuals a 
         ON a.entry_id = CONCAT(cl.date, id.ihris_pid)
     WHERE cl.date BETWEEN ? AND ?
       AND a.entry_id IS NULL
-    ";
-    $this->db->trans_start();
+";
+
     $this->db->query($sqlActuals, [$startDate, $syncDate]);
     $actualsUpdated = $this->db->affected_rows();
+
     $this->db->trans_complete();
 
     $total = $clockinInserted + $clockoutUpdated + $nightUpdated;

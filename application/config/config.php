@@ -23,9 +23,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
 | a PHP script and you can easily do that on your own.
 |
 */
-$root = (isset($_SERVER["HTTPS"]) ? "https://" : "http://") . $_SERVER["HTTP_HOST"];
-$root .= str_replace(basename($_SERVER["SCRIPT_NAME"]), "", $_SERVER["SCRIPT_NAME"]);
-$config["base_url"] = $root;
+// Safe for CLI/cron where HTTP_HOST and SCRIPT_NAME may be unset
+if (isset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME'])) {
+  $root = (isset($_SERVER["HTTPS"]) && ($_SERVER["HTTPS"] === 'on' || $_SERVER["HTTPS"] == 1) ? "https://" : "http://") . $_SERVER["HTTP_HOST"];
+  $root .= str_replace(basename($_SERVER["SCRIPT_NAME"]), "", $_SERVER["SCRIPT_NAME"]);
+  $config["base_url"] = $root;
+} else {
+  $config["base_url"] = '';
+}
 
 $https = false;
 if (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1) || isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
@@ -34,10 +39,11 @@ if (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] 
   $protocol = 'http://';
 }
 
-$dirname = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/';
-$root = $protocol . $_SERVER['HTTP_HOST'] . $dirname;
-
-$config["base_url"] = $root;
+if (isset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME'])) {
+  $dirname = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/';
+  $root = $protocol . $_SERVER['HTTP_HOST'] . $dirname;
+  $config["base_url"] = $root;
+}
 
 
 
