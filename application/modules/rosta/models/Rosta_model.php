@@ -907,6 +907,40 @@ class Rosta_model extends CI_Model
 	}
 
 	/**
+	 * Summary by schedule letter for Duty Roster (fetch_report). Same employee set as report.
+	 * Returns array letter => count. Uses duty_rosta + schedules (purpose 'r').
+	 */
+	public function get_duty_roster_summary_by_letter($valid_range, $filters, $employee = NULL)
+	{
+		$employee = !empty($employee) ? $employee : $this->input->post('empid');
+		$search = "";
+		if (!empty($employee)) {
+			$search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
+		}
+		$where = trim((string)$filters . ' ' . $search);
+		if ($where === '' || preg_match('/^\s*and\s*$/i', $where)) {
+			$where = '1=1';
+		} elseif (preg_match('/^\s*and\s+/i', $where)) {
+			$where = '1=1 ' . $where;
+		}
+		$facility = isset($_SESSION['facility']) ? $_SESSION['facility'] : $this->session->userdata('facility');
+		$sql = "SELECT schedules.letter, COUNT(*) AS cnt
+				FROM duty_rosta
+				JOIN schedules ON schedules.schedule_id = duty_rosta.schedule_id AND schedules.purpose = 'r'
+				WHERE duty_rosta.facility_id = ?
+				AND DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') = ?
+				AND duty_rosta.ihris_pid IN (SELECT ihris_pid FROM ihrisdata WHERE " . $where . ")
+				GROUP BY schedules.letter
+				ORDER BY schedules.letter";
+		$query = $this->db->query($sql, array($facility, $valid_range));
+		$out = array();
+		foreach ($query->result() as $row) {
+			$out[$row->letter] = (int) $row->cnt;
+		}
+		return $out;
+	}
+
+	/**
 	 * Create database indexes for better performance
 	 * This method should be called once during setup
 	 */

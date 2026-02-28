@@ -482,11 +482,14 @@ class Rosta extends MX_Controller
 			$data[] = $row;
 		}
 
+		$summary_by_letter = $this->rosta_model->get_duty_roster_summary_by_letter($date, $this->filters, $empid);
+
 		$response = array(
 			'draw' => $draw,
 			'recordsTotal' => $total,
 			'recordsFiltered' => $total,
-			'data' => $data
+			'data' => $data,
+			'summary' => $summary_by_letter
 		);
 
 		$this->output
@@ -543,6 +546,12 @@ class Rosta extends MX_Controller
 			$row_no += count($batch);
 			unset($batch, $employee_ids, $schedules, $rows_data, $rows_html);
 		}
+
+		$summary_by_letter = $this->rosta_model->get_duty_roster_summary_by_letter($date, $this->filters, $empid);
+		$key = Modules::run('schedules/getrosterKey');
+		$summary_data = array('summary' => $summary_by_letter, 'key' => $key);
+		$summary_html = $this->load->view('duty_roster_printable_summary', $summary_data, true);
+		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($summary_html, 'UTF-8', 'UTF-8'));
 
 		$footer_html = $this->load->view('duty_roster_printable_footer', array(), true);
 		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
@@ -602,6 +611,17 @@ class Rosta extends MX_Controller
 				fputcsv($fh, $line);
 			}
 			unset($batch, $employee_ids, $schedules);
+		}
+
+		$summary_by_letter = $this->rosta_model->get_duty_roster_summary_by_letter($date, $this->filters, $empid);
+		$key = Modules::run('schedules/getrosterKey');
+		fputcsv($fh, array());
+		fputcsv($fh, array('Summary by key (letters)'));
+		fputcsv($fh, array('Letter', 'Count'));
+		foreach ($key as $schedule) {
+			$letter = isset($schedule->letter) ? $schedule->letter : '';
+			$cnt = isset($summary_by_letter[$letter]) ? (int)$summary_by_letter[$letter] : 0;
+			fputcsv($fh, array($letter, $cnt));
 		}
 
 		fclose($fh);

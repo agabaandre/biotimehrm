@@ -136,6 +136,13 @@ if (count($duties) > 0) {
 							</div>
 						</div>
 						<table id="roster_table" class="table table-bordered table-striped table-condensed" style="width:100%; font-size:11px;"></table>
+						<div id="roster_summary_panel" class="callout callout-info" style="margin-top: 1em; display: none;">
+							<p class="mb-1" style="font-weight: bold;">Summary by key (letters)</p>
+							<table id="roster_summary_table" class="table table-sm table-bordered" style="max-width: 400px; font-size: 12px;">
+								<thead><tr><th>Letter</th><th class="text-right">Count</th></tr></thead>
+								<tbody id="roster_summary_body"></tbody>
+							</table>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -149,6 +156,8 @@ if (count($duties) > 0) {
 		$('.fixed-top').addClass('mini-navbar');
 	}
 
+	var rosterKey = <?php echo json_encode(isset($colors) ? $colors : array()); ?>;
+
 	$(document).ready(function() {
 		var baseUrl = '<?php echo base_url(); ?>';
 		var month = '<?php echo $month; ?>';
@@ -156,6 +165,19 @@ if (count($duties) > 0) {
 		var monthDays = <?php echo (int)cal_days_in_month(CAL_GREGORIAN, $month, $year); ?>;
 		var rosterTable = null;
 		var tableColumns = null;
+
+		function updateRosterSummaryPanel(summary) {
+			var tbody = $('#roster_summary_body');
+			tbody.empty();
+			if (rosterKey && rosterKey.length && summary) {
+				rosterKey.forEach(function(s) {
+					var letter = s.letter || '';
+					var cnt = summary[letter] != null ? summary[letter] : 0;
+					tbody.append('<tr><td>' + letter + '</td><td class="text-right">' + cnt + '</td></tr>');
+				});
+				$('#roster_summary_panel').show();
+			}
+		}
 
 		function getDaysInMonth(monthNum, yearNum) {
 			var m = parseInt(monthNum, 10);
@@ -250,6 +272,10 @@ if (count($duties) > 0) {
 							d.year = $('#roster_year').val() || year;
 							d.empid = $('#roster_empid').val() || '';
 							d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+						},
+						dataSrc: function(json) {
+							if (json && json.summary) updateRosterSummaryPanel(json.summary);
+							return json && json.data ? json.data : [];
 						}
 					},
 					columns: tableColumns,
@@ -284,6 +310,10 @@ if (count($duties) > 0) {
 					d.year = $('#roster_year').val() || year;
 					d.empid = $('#roster_empid').val() || '';
 					d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+				},
+				dataSrc: function(json) {
+					if (json && json.summary) updateRosterSummaryPanel(json.summary);
+					return json && json.data ? json.data : [];
 				}
 			},
 			columns: tableColumns,
