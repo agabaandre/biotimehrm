@@ -780,6 +780,40 @@ class Rosta_model extends CI_Model
 	}
 
 	/**
+	 * Summary by schedule letter for Monthly Attendance Form (actuals).
+	 * Returns array letter => count for the given month, same employee set as the report.
+	 */
+	public function get_attendance_actuals_summary_by_letter($valid_range, $filters, $employee = NULL)
+	{
+		$employee = !empty($employee) ? $employee : $this->input->post('empid');
+		$search = "";
+		if (!empty($employee)) {
+			$search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
+		}
+		$where = trim((string)$filters . ' ' . $search);
+		if ($where === '' || preg_match('/^\s*and\s*$/i', $where)) {
+			$where = '1=1';
+		} elseif (preg_match('/^\s*and\s+/i', $where)) {
+			$where = '1=1 ' . $where;
+		}
+		$facility = isset($_SESSION['facility']) ? $_SESSION['facility'] : $this->session->userdata('facility');
+		$sql = "SELECT schedules.letter, COUNT(*) AS cnt
+				FROM actuals
+				JOIN schedules ON schedules.schedule_id = actuals.schedule_id AND schedules.purpose = 'a'
+				WHERE actuals.facility_id = ?
+				AND DATE_FORMAT(actuals.date, '%Y-%m') = ?
+				AND actuals.ihris_pid IN (SELECT ihris_pid FROM ihrisdata WHERE " . $where . ")
+				GROUP BY schedules.letter
+				ORDER BY schedules.letter";
+		$query = $this->db->query($sql, array($facility, $valid_range));
+		$out = array();
+		foreach ($query->result() as $row) {
+			$out[$row->letter] = (int) $row->cnt;
+		}
+		return $out;
+	}
+
+	/**
 	 * Server-side helpers for Duty Roster Report (fetch_report)
 	 */
 	public function count_duty_roster($valid_range, $filters, $employee = NULL)

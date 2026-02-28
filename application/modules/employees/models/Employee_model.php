@@ -1071,13 +1071,19 @@ class Employee_model extends CI_Model
     {
         $search = "";
         if (!empty($employee)) {
-            $search = "and ihrisdata.ihris_pid='$employee'";
+            $search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
         }
         $jsearch = "";
         if (!empty($job)) {
-            $jsearch = "and ihrisdata.job like '$job' ";
+            $jsearch = " AND ihrisdata.job LIKE " . $this->db->escape('%' . $job . '%');
         }
-        $sql = "SELECT COUNT(DISTINCT ihrisdata.ihris_pid) AS cnt FROM ihrisdata WHERE $filters $search $jsearch";
+        $where = trim((string)$filters . ' ' . $search . ' ' . $jsearch);
+        if ($where === '' || preg_match('/^\s*and\s*$/i', $where)) {
+            $where = '1=1';
+        } elseif (preg_match('/^\s*and\s+/i', $where)) {
+            $where = '1=1 ' . $where;
+        }
+        $sql = "SELECT COUNT(DISTINCT ihrisdata.ihris_pid) AS cnt FROM ihrisdata WHERE $where";
         $row = $this->db->query($sql)->row();
         return isset($row->cnt) ? (int) $row->cnt : 0;
     }
@@ -1094,22 +1100,26 @@ class Employee_model extends CI_Model
         }
         $search = "";
         if (!empty($employee)) {
-            $search = "and ihrisdata.ihris_pid='$employee'";
+            $search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
         }
+        $jsearch = "";
         if (!empty($job)) {
-            $jsearch = "and ihrisdata.job like '$job' ";
-        } else {
-            $jsearch = "";
+            $jsearch = " AND ihrisdata.job LIKE " . $this->db->escape('%' . $job . '%');
         }
-        // Support limit/offset for streaming: when limit is numeric and > 0, add LIMIT clause (offset can be 0).
+        // Support limit/offset for streaming: MySQL LIMIT is offset, row_count.
         $limit_sql = "";
         if ($limit !== FALSE && $limit !== NULL && (int)$limit > 0) {
-            $limit_sql = "LIMIT " . (int)$limit . ", " . max(0, (int)$start);
+            $limit_sql = " LIMIT " . max(0, (int)$start) . ", " . (int)$limit;
         }
-        $facility = $_SESSION['facility'];
+        $where = trim((string)$filters . ' ' . $search . ' ' . $jsearch);
+        if ($where === '' || preg_match('/^\s*and\s*$/i', $where)) {
+            $where = '1=1';
+        } elseif (preg_match('/^\s*and\s+/i', $where)) {
+            $where = '1=1 ' . $where;
+        }
         $all = $this->db->query("SELECT DISTINCT ihrisdata.ihris_pid,
                 CONCAT(COALESCE(ihrisdata.surname,''),' ',COALESCE(ihrisdata.firstname,''),' ',COALESCE(ihrisdata.othername,'')) AS fullname,
-                ihrisdata.job FROM ihrisdata WHERE $filters $search $jsearch ORDER BY fullname ASC $limit_sql");
+                ihrisdata.job FROM ihrisdata WHERE $where ORDER BY fullname ASC $limit_sql");
         $data = $all->result_array();
         return $data;
     }

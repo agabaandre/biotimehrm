@@ -141,6 +141,13 @@ if (count($duties) > 0) {
 						
 						</div>
 						<table id="attfrom_table" class="table table-bordered table-striped table-condensed" style="width:100%; font-size:11px;"></table>
+						<div id="attfrom_summary_panel" class="callout callout-info" style="margin-top: 1em; display: none;">
+							<p class="mb-1" style="font-weight: bold;">Summary by key</p>
+							<table id="attfrom_summary_table" class="table table-sm table-bordered" style="max-width: 500px; font-size: 12px;">
+								<thead><tr><th>Code</th><th>Description</th><th class="text-right">Count</th></tr></thead>
+								<tbody id="attfrom_summary_body"></tbody>
+							</table>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -153,11 +160,27 @@ if (count($duties) > 0) {
 		$('.fixed-top').addClass('mini-navbar');
 	}
 
+	var attendanceKey = <?php echo json_encode(isset($colors) ? $colors : array()); ?>;
+
 	$(document).ready(function() {
 		var baseUrl = '<?php echo base_url(); ?>';
 		var month = '<?php echo $month; ?>';
 		var year = '<?php echo $year; ?>';
 		var monthDays = <?php echo (int)cal_days_in_month(CAL_GREGORIAN, $month, $year); ?>;
+
+		function updateSummaryPanel(summary) {
+			var tbody = $('#attfrom_summary_body');
+			tbody.empty();
+			if (attendanceKey && attendanceKey.length && summary) {
+				attendanceKey.forEach(function(s) {
+					var letter = s.letter || '';
+					var label = s.schedule || letter;
+					var cnt = summary[letter] != null ? summary[letter] : 0;
+					tbody.append('<tr><td>' + letter + '</td><td>' + (label || '') + '</td><td class="text-right">' + cnt + '</td></tr>');
+				});
+				$('#attfrom_summary_panel').show();
+			}
+		}
 
 		function buildColumns() {
 			var cols = [];
@@ -206,6 +229,12 @@ if (count($duties) > 0) {
 					d.year = $('#year').val() || year;
 					d.empid = $('select[name="empid"]').val() || '';
 					d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+				},
+				dataSrc: function(json) {
+					if (json && json.summary) {
+						updateSummaryPanel(json.summary);
+					}
+					return json && json.data ? json.data : [];
 				}
 			},
 			columns: buildColumns(),
