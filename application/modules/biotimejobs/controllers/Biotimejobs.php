@@ -1333,6 +1333,26 @@ class Biotimejobs extends MX_Controller
         $this->log(is_string($message) ? $message : 'Unified Sync: ' . (int)$message . ' logs');
     }
 
+    /**
+     * Run unified clock-in for each day in a date range (used to batch days in fetch_daily_attendance).
+     * @param string $start_date Y-m-d
+     * @param string $end_date Y-m-d (inclusive)
+     */
+    public function biotimeClockinRange($start_date, $end_date)
+    {
+        $cursor = strtotime($start_date);
+        $end_ts = strtotime($end_date . ' 23:59:59');
+        while ($cursor <= $end_ts) {
+            $day = date('Y-m-d', $cursor);
+            $this->biotimeSyncAttendanceUnified($day, null, null);
+            $day_start = $day . ' 00:00:00';
+            $day_end   = date('Y-m-d H:i:s', strtotime($day . ' +1 day') - 1);
+            $this->db->where('punch_time >=', $day_start);
+            $this->db->where('punch_time <=', $day_end);
+            $this->db->delete('biotime_data');
+            $cursor = strtotime('+1 day', $cursor);
+        }
+    }
 
     public function biotimeSyncAttendanceUnified($date = null, $facility_name = null, $terminal_sn = null)
 {
@@ -1907,25 +1927,7 @@ class Biotimejobs extends MX_Controller
                     
                     $console("  ✓ Fetched: {$fetch_result['records_fetched']} | Saved: {$fetch_result['records_saved']}", 'success');
                     
-                    // Process clock data for this date (retry only on lock wait; do not retry on SQL/syntax errors)
-                    for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
-                        try {
-                            $this->biotimeClockin($dates, $facility ?: null, $terminal_sn ?: null);
-                            break;
-                        } catch (Exception $e) {
-                            $is_lock_wait = (strpos($e->getMessage(), 'Lock wait timeout exceeded') !== false);
-                            if ($is_lock_wait && $attempt < $max_retries) {
-                                $console("  ⚠ Clockin lock wait, retry $attempt/$max_retries in {$retry_delay_seconds}s...", 'warning');
-                                sleep($retry_delay_seconds);
-                                continue;
-                            }
-                            throw $e;
-                        } catch (Error $e) {
-                            // ONLY_FULL_GROUP_BY etc. - do not retry
-                            throw $e;
-                        }
-                    }
-                    
+                    // Clock-in is run once after all machines are synced (in fetch_daily_attendance), not per day per machine
                     $this->log("fetch_time_history() processed date $dates: " . $fetch_result['records_saved'] . " records saved");
                 } else {
                     $error_msg = "Failed to fetch data for date $dates: " . $fetch_result['message'];
@@ -2059,6 +2061,7 @@ class Biotimejobs extends MX_Controller
             
             $result['machines_total'] = count($machines);
             $machines_processed = 0;
+            $sync_date_range_start = null; // track earliest start date across machines that were synced (for clock-in after all machines)
             
             $console("Found " . $result['machines_total'] . " machine(s) to sync", 'info');
             $console("", 'info');
@@ -2147,7 +2150,11 @@ class Biotimejobs extends MX_Controller
                         $console("Starting sync...", 'info');
                         $this->log("fetch_daily_attendance() starting sync for device $device ($facility) from $start to $end_date");
                         
-                        // Fetch time history for this machine (with console output)
+                        if ($sync_date_range_start === null || strtotime($start) < strtotime($sync_date_range_start)) {
+                            $sync_date_range_start = $start;
+                        }
+                        
+                        // Fetch time history for this machine (no clock-in here; clock-in runs once after all machines)
                         $fetch_result = $this->fetch_time_history($start, $end_date, $device, $facility, FALSE, NULL, $output_console);
                         
                         if ($fetch_result['status'] === 'success') {
@@ -2184,6 +2191,45 @@ class Biotimejobs extends MX_Controller
                 }
                 
                 $result['machine_results'][] = $machine_result;
+                $console("", 'info');
+            }
+            
+            // Run unified clock-in once after all machines are synced, in chunks (10 days if range > 10, else 3)
+            if ($sync_date_range_start !== null && $machines_processed > 0) {
+                $total_days = (int) ceil((strtotime($end_date . ' 23:59:59') - strtotime($sync_date_range_start)) / 86400) + 1;
+                $chunk_size = ($total_days > 10) ? 10 : 3;
+                $console("", 'info');
+                $console("═══════════════════════════════════════════════════════", 'info');
+                $console("  UNIFIED CLOCK-IN (all synced facilities)", 'info');
+                $console("  Date range: $sync_date_range_start → $end_date ($total_days days, chunk size: $chunk_size)", 'info');
+                $console("═══════════════════════════════════════════════════════", 'info');
+                $cursor = strtotime($sync_date_range_start);
+                $end_ts = strtotime($end_date . ' 23:59:59');
+                $chunk_num = 0;
+                $days_for_clockin = 0;
+                while ($cursor <= $end_ts) {
+                    $chunk_start = date('Y-m-d', $cursor);
+                    $chunk_end_ts = strtotime("+{$chunk_size} days", $cursor) - 1;
+                    if ($chunk_end_ts > $end_ts) {
+                        $chunk_end_ts = $end_ts;
+                    }
+                    $chunk_end = date('Y-m-d', $chunk_end_ts);
+                    $chunk_num++;
+                    try {
+                        $this->biotimeClockinRange($chunk_start, $chunk_end);
+                        $chunk_days = (int) ceil((strtotime($chunk_end . ' 23:59:59') - strtotime($chunk_start)) / 86400) + 1;
+                        $days_for_clockin += $chunk_days;
+                        $console("  ✓ Chunk $chunk_num: $chunk_start → $chunk_end ($chunk_days day(s))", 'success');
+                    } catch (Exception $e) {
+                        $console("  ✗ Chunk $chunk_num ($chunk_start → $chunk_end) failed: " . $e->getMessage(), 'error');
+                        $this->log("fetch_daily_attendance() clock-in chunk failed: " . $e->getMessage());
+                    } catch (Error $e) {
+                        $console("  ✗ Chunk $chunk_num ($chunk_start → $chunk_end) error: " . $e->getMessage(), 'error');
+                        $this->log("fetch_daily_attendance() clock-in chunk error: " . $e->getMessage());
+                    }
+                    $cursor = strtotime("+{$chunk_size} days", $cursor);
+                }
+                $console("  ✓ Unified clock-in completed for $days_for_clockin day(s) in $chunk_num chunk(s)", 'success');
                 $console("", 'info');
             }
             
