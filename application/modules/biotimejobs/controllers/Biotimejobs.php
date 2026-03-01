@@ -1313,12 +1313,12 @@ class Biotimejobs extends MX_Controller
     }
 
 
-    public function biotimeClockin($date=FALSE)
+    public function biotimeClockin($date = FALSE, $facility_name = null, $terminal_sn = null)
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
 
-		$message = $this->biotimeSyncAttendanceUnified($date);
+		$message = $this->biotimeSyncAttendanceUnified($date, $facility_name, $terminal_sn);
        //  $this->biotimeClockoutUnified();
        //  $this->markAttendance();
        // $this->db->query("CALL `biotime_cache`();");
@@ -1334,26 +1334,27 @@ class Biotimejobs extends MX_Controller
     }
 
 
-    public function biotimeSyncAttendanceUnified($date = null)
+    public function biotimeSyncAttendanceUnified($date = null, $facility_name = null, $terminal_sn = null)
 {
     ignore_user_abort(true);
     ini_set('max_execution_time', 0);
 
     $syncDate  = $date ?? date('Y-m-d');
     $startDate = date('Y-m-d', strtotime('-1 day', strtotime($syncDate)));
+    $facilityLabel = $facility_name ? " [{$facility_name}]" : '';
 
     echo "\n========================================\n";
-    echo " Unified Attendance Sync\n";
+    echo " Unified Attendance Sync{$facilityLabel}\n";
     echo " Range: $startDate → $syncDate\n";
     echo "========================================\n";
 
     /*
     |--------------------------------------------------------------------------
-    | 1️⃣ REPLACE INTO CLOCK-IN (procedure-style, one day per transaction)
+    | 1️⃣ REPLACE INTO CLOCK-IN (by area: biotime_data.area_alias / biotime_devices.area_name, facility_id from area_code)
     |--------------------------------------------------------------------------
     */
-    // Procedure-style REPLACE: entry_id, ihris_pid, facility_id, time_in, date, location, source, facility
-    // Grouped so one row per (date, ihris_pid) with MIN(punch_time) as time_in; NOT IN scoped to same day to reduce lock
+    // Join biotime_devices (b.terminal_sn = d.sn) for area_code → facility_id, area_name → facility; optional filter by terminal to reduce scan
+    $terminalFilter = $terminal_sn ? ' AND b.terminal_sn = ?' : '';
     $sqlClockInOneDay = "
     REPLACE INTO clk_log (
         entry_id,
@@ -1378,15 +1379,17 @@ class Biotimejobs extends MX_Controller
         SELECT
             DATE(b.punch_time) AS log_date,
             i.ihris_pid,
-            MAX(i.facility_id) AS facility_id,
+            SUBSTRING_INDEX(GROUP_CONCAT(d.area_code ORDER BY b.punch_time), ',', 1) AS facility_id,
             MIN(b.punch_time) AS time_in,
-            MAX(b.area_alias) AS location,
-            MAX(i.facility) AS facility
+            SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(b.area_alias, d.area_name) ORDER BY b.punch_time), ',', 1) AS location,
+            SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(d.area_name, b.area_alias) ORDER BY b.punch_time), ',', 1) AS facility
         FROM biotime_data b
+        JOIN biotime_devices d ON b.terminal_sn = d.sn
         JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
         WHERE b.punch_time >= ?
         AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
         AND CONCAT(DATE(b.punch_time), i.ihris_pid) NOT IN (SELECT entry_id FROM clk_log WHERE date = ?)
+        {$terminalFilter}
         GROUP BY DATE(b.punch_time), i.ihris_pid
     ) grp
     ";
@@ -1395,8 +1398,12 @@ class Biotimejobs extends MX_Controller
     $syncEnd = strtotime($syncDate . ' 23:59:59');
     while ($cursor <= $syncEnd) {
         $day = date('Y-m-d', $cursor);
+        $params = [$day, $day, $day];
+        if ($terminal_sn) {
+            $params[] = $terminal_sn;
+        }
         $this->db->trans_start();
-        $this->db->query($sqlClockInOneDay, [$day, $day, $day]);
+        $this->db->query($sqlClockInOneDay, $params);
         $clockinInserted += $this->db->affected_rows();
         $this->db->trans_complete();
         $cursor = strtotime('+1 day', $cursor);
@@ -1404,9 +1411,10 @@ class Biotimejobs extends MX_Controller
 
     /*
     |--------------------------------------------------------------------------
-    | 2️⃣ UPDATE CLOCK-OUT (one day per transaction to minimize lock scope)
+    | 2️⃣ UPDATE CLOCK-OUT (one day per transaction; optional filter by terminal)
     |--------------------------------------------------------------------------
     */
+    $clockoutTerminalFilter = $terminal_sn ? ' AND b.terminal_sn = ?' : '';
     $sqlClockOutOneDay = "
         UPDATE clk_log cl
         JOIN (
@@ -1419,6 +1427,7 @@ class Biotimejobs extends MX_Controller
                 ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
             WHERE b.punch_time >= ?
             AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
+            {$clockoutTerminalFilter}
             GROUP BY i.ihris_pid, DATE(b.punch_time)
         ) punches
         ON punches.ihris_pid = cl.ihris_pid
@@ -1432,8 +1441,13 @@ class Biotimejobs extends MX_Controller
     $syncEnd = strtotime($syncDate . ' 23:59:59');
     while ($cursor <= $syncEnd) {
         $day = date('Y-m-d', $cursor);
+        $params = [$day, $day];
+        if ($terminal_sn) {
+            $params[] = $terminal_sn;
+        }
+        $params[] = $day; // WHERE cl.date = ?
         $this->db->trans_start();
-        $this->db->query($sqlClockOutOneDay, [$day, $day, $day]);
+        $this->db->query($sqlClockOutOneDay, $params);
         $clockoutUpdated += $this->db->affected_rows();
         $this->db->trans_complete();
         $cursor = strtotime('+1 day', $cursor);
@@ -1471,6 +1485,7 @@ class Biotimejobs extends MX_Controller
     | 4️⃣ POPULATE ACTUALS TABLE (one day per transaction to minimize lock scope)
     |--------------------------------------------------------------------------
     */
+    // Use cl.facility_id (area_code from biotime_devices) for consistency with clock-in
     $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : 'NULL';
     $sqlActualsOneDay = "
     INSERT INTO actuals (
@@ -1486,7 +1501,7 @@ class Biotimejobs extends MX_Controller
     )
     SELECT DISTINCT
         CONCAT(cl.date, id.ihris_pid) AS entry_id,
-        id.facility_id,
+        cl.facility_id,
         COALESCE(id.department_id, id.department) AS department_id,
         id.ihris_pid,
         s.schedule_id,
@@ -1518,13 +1533,13 @@ class Biotimejobs extends MX_Controller
 
     $total = $clockinInserted + $clockoutUpdated + $nightUpdated;
 
-    echo "\nClock-in Inserted : $clockinInserted\n";
-    echo "Clock-out Updated : $clockoutUpdated\n";
-    echo "Night Corrected   : $nightUpdated\n";
-    echo "Actuals Updated   : $actualsUpdated\n";
-    echo "Total Affected    : $total\n";
+    echo "\nClock-in Inserted : $clockinInserted{$facilityLabel}\n";
+    echo "Clock-out Updated : $clockoutUpdated{$facilityLabel}\n";
+    echo "Night Corrected   : $nightUpdated{$facilityLabel}\n";
+    echo "Actuals Updated   : $actualsUpdated{$facilityLabel}\n";
+    echo "Total Affected    : $total{$facilityLabel}\n";
 
-    $this->log("Unified Sync + Actuals: $total logs, $actualsUpdated actuals");
+    $this->log("Unified Sync + Actuals: $total logs, $actualsUpdated actuals" . ($facility_name ? " [$facility_name]" : ''));
 
     return $total;
 }
@@ -1895,7 +1910,7 @@ class Biotimejobs extends MX_Controller
                     // Process clock data for this date (retry only on lock wait; do not retry on SQL/syntax errors)
                     for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
                         try {
-                            $this->biotimeClockin($dates);
+                            $this->biotimeClockin($dates, $facility ?: null, $terminal_sn ?: null);
                             break;
                         } catch (Exception $e) {
                             $is_lock_wait = (strpos($e->getMessage(), 'Lock wait timeout exceeded') !== false);
