@@ -573,8 +573,19 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             'records_fetched' => 0,
             'records_saved' => 0,
             'clock_log_merged' => 0,
-            'errors' => array()
+            'errors' => array(),
+            'timing' => array(
+                'pg_query_s' => 0,
+                'lookups_s' => 0,
+                'history_s' => 0,
+                'aggregate_s' => 0,
+                'clk_log_s' => 0,
+                'actuals_s' => 0,
+                'night_s' => 0,
+                'total_s' => 0
+            )
         );
+        $time_total_start = microtime(true);
 
         try {
             // Not writing to biotime_data; no delete needed. Data goes to biotime_data_history for archiving.
@@ -591,6 +602,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 throw new Exception("PostgreSQL connection failed: " . ($err ? $err['message'] : 'Unknown'));
             }
 
+            $t0 = microtime(true);
             $conditions = "punch_time >= '$start_date' AND punch_time <= '$end_date'";
             if (!empty($terminal_sn)) {
                 $conditions .= " AND terminal_sn = '" . pg_escape_string($pg_conn, $terminal_sn) . "'";
@@ -603,33 +615,67 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 throw new Exception("PostgreSQL query failed: " . pg_last_error($pg_conn));
             }
             $total_rows = pg_num_rows($pg_result);
+            $result['timing']['pg_query_s'] = round(microtime(true) - $t0, 3);
             $result['records_fetched'] = $total_rows;
             if ($total_rows == 0) {
                 pg_close($pg_conn);
                 $result['status'] = 'success';
                 $result['message'] = 'No records for range';
+                $result['timing']['total_s'] = round(microtime(true) - $time_total_start, 3);
                 return $result;
             }
 
+            $t1 = microtime(true);
             $emp_to_pid = array();
-            $q = $this->db->query("SELECT card_number, ipps, ihris_pid FROM ihrisdata");
+            $pid_to_department = array();
+            $dept_col = $this->db->field_exists('department_id', 'ihrisdata') ? 'department_id' : 'department';
+            $q = $this->db->query("SELECT card_number, ipps, ihris_pid, " . $dept_col . " AS dept FROM ihrisdata");
             if ($q && $q->num_rows() > 0) {
                 foreach ($q->result() as $r) {
+                    $pid = $r->ihris_pid;
                     if (!empty($r->card_number)) {
-                        $emp_to_pid[$r->card_number] = $r->ihris_pid;
+                        $emp_to_pid[$r->card_number] = $pid;
                     }
                     if (!empty($r->ipps)) {
-                        $emp_to_pid[$r->ipps] = $r->ihris_pid;
+                        $emp_to_pid[$r->ipps] = $pid;
+                    }
+                    if ($pid !== null && $pid !== '') {
+                        $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
                     }
                 }
             }
             $devices = array();
-            $q2 = $this->db->query("SELECT sn, area_code, area_name FROM biotime_devices");
+            $has_night_col = $this->db->field_exists('has_night', 'biotime_devices');
+            $q2 = $this->db->query("SELECT sn, area_code, area_name" . ($has_night_col ? ", COALESCE(has_night, 0) AS has_night" : "") . " FROM biotime_devices");
             if ($q2 && $q2->num_rows() > 0) {
                 foreach ($q2->result() as $r) {
-                    $devices[$r->sn] = array('facility_id' => $r->area_code, 'facility' => $r->area_name);
+                    $devices[$r->sn] = array(
+                        'facility_id' => $r->area_code,
+                        'facility' => $r->area_name,
+                        'has_night' => ($has_night_col && !empty($r->has_night)) ? 1 : 0
+                    );
                 }
             }
+            $run_night_correction = false;
+            if (!empty($terminal_sn)) {
+                $run_night_correction = isset($devices[$terminal_sn]) && !empty($devices[$terminal_sn]['has_night']);
+            } else {
+                foreach ($devices as $d) {
+                    if (!empty($d['has_night'])) {
+                        $run_night_correction = true;
+                        break;
+                    }
+                }
+            }
+            $schedule_id = 22;
+            $schedule_color = '';
+            $sq = $this->db->query("SELECT schedule_id, color FROM schedules WHERE schedule_id = ? LIMIT 1", array(22));
+            if ($sq && $sq->num_rows() > 0) {
+                $sr = $sq->row();
+                $schedule_id = $sr->schedule_id;
+                $schedule_color = isset($sr->color) ? $sr->color : '';
+            }
+            $result['timing']['lookups_s'] = round(microtime(true) - $t1, 3);
 
             $batch = array();
             $inserted_count = 0;
@@ -637,7 +683,13 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             $night_merged = 0;
             $actuals_merged = 0;
             $batch_num = 0;
-            $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : "'BIO-TIME'";
+            $time_history = 0;
+            $time_agg = 0;
+            $time_clk = 0;
+            $time_actuals = 0;
+            $time_night = 0;
+            $night_every_n = 5;
+            $night_pending_times = array();
 
             while ($row = pg_fetch_assoc($pg_result)) {
                 $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
@@ -653,33 +705,87 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
 
                 if (count($batch) >= $batch_size) {
                     $batch_num++;
+                    $this->db->trans_start();
+                    $tb = microtime(true);
                     if ($this->db->insert_batch('biotime_data_history', $batch)) {
                         $inserted_count += count($batch);
                     }
+                    $time_history += microtime(true) - $tb;
+
+                    $ta = microtime(true);
                     $agg = $this->_aggregate_batch_for_clk_log($batch, $emp_to_pid, $devices);
+                    $time_agg += microtime(true) - $ta;
+
                     if (!empty($agg)) {
+                        $tc = microtime(true);
                         $n = $this->_upsert_clk_log_batch($agg);
                         $clock_merged += $n;
-                        $actuals_merged += $this->_insert_actuals_for_batch($agg, $stream_col);
+                        $time_clk += microtime(true) - $tc;
+
+                        $tac = microtime(true);
+                        $actuals_merged += $this->_insert_actuals_for_batch($agg, $pid_to_department, $schedule_id, $schedule_color);
+                        $time_actuals += microtime(true) - $tac;
                     }
-                    $night_merged += $this->_apply_night_correction_batch($batch);
+                    if ($run_night_correction) {
+                        $batch_times = $this->_batch_punch_time_range($batch);
+                        if (!empty($batch_times)) {
+                            $night_pending_times[] = $batch_times;
+                        }
+                        if ($night_every_n > 0 && count($night_pending_times) >= $night_every_n) {
+                            $tn = microtime(true);
+                            $night_merged += $this->_apply_night_correction_range($night_pending_times);
+                            $time_night += microtime(true) - $tn;
+                            $night_pending_times = array();
+                        }
+                    }
+                    $this->db->trans_complete();
                     $batch = array();
                 }
             }
 
             if (!empty($batch)) {
+                $this->db->trans_start();
+                $tb = microtime(true);
                 if ($this->db->insert_batch('biotime_data_history', $batch)) {
                     $inserted_count += count($batch);
                 }
+                $time_history += microtime(true) - $tb;
+
+                $ta = microtime(true);
                 $agg = $this->_aggregate_batch_for_clk_log($batch, $emp_to_pid, $devices);
+                $time_agg += microtime(true) - $ta;
+
                 if (!empty($agg)) {
+                    $tc = microtime(true);
                     $clock_merged += $this->_upsert_clk_log_batch($agg);
-                    $actuals_merged += $this->_insert_actuals_for_batch($agg, $stream_col);
+                    $time_clk += microtime(true) - $tc;
+
+                    $tac = microtime(true);
+                    $actuals_merged += $this->_insert_actuals_for_batch($agg, $pid_to_department, $schedule_id, $schedule_color);
+                    $time_actuals += microtime(true) - $tac;
                 }
-                $night_merged += $this->_apply_night_correction_batch($batch);
+                if ($run_night_correction) {
+                    $batch_times = $this->_batch_punch_time_range($batch);
+                    if (!empty($batch_times)) {
+                        $night_pending_times[] = $batch_times;
+                    }
+                    if (!empty($night_pending_times)) {
+                        $tn = microtime(true);
+                        $night_merged += $this->_apply_night_correction_range($night_pending_times);
+                        $time_night += microtime(true) - $tn;
+                    }
+                }
+                $this->db->trans_complete();
             }
 
             pg_close($pg_conn);
+
+            $result['timing']['history_s'] = round($time_history, 3);
+            $result['timing']['aggregate_s'] = round($time_agg, 3);
+            $result['timing']['clk_log_s'] = round($time_clk, 3);
+            $result['timing']['actuals_s'] = round($time_actuals, 3);
+            $result['timing']['night_s'] = round($time_night, 3);
+            $result['timing']['total_s'] = round(microtime(true) - $time_total_start, 3);
 
             $result['records_saved'] = $inserted_count;
             $result['clock_log_merged'] = $clock_merged;
@@ -781,49 +887,49 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
     }
 
     /**
-     * Insert into actuals for the (date, ihris_pid) entries just merged into clk_log so every clock-in is reflected in actuals.
-     * Uses INSERT IGNORE so if the record already exists (e.g. from another device or a prior run) we skip without error.
-     * @param array $agg Aggregated rows from _aggregate_batch_for_clk_log (log_date, ihris_pid, ...)
-     * @param string $stream_col SQL fragment for stream column (e.g. 'cl.source' or "'BIO-TIME'")
+     * Insert into actuals for the (date, ihris_pid) entries just merged into clk_log. Uses preloaded lookups
+     * to avoid heavy JOINs; single INSERT IGNORE with VALUES for speed.
+     * @param array $agg Aggregated rows from _aggregate_batch_for_clk_log (log_date, ihris_pid, facility_id, ...)
+     * @param array $pid_to_department Map ihris_pid => department_id (or department)
+     * @param string|int $schedule_id Schedule ID (e.g. 22)
+     * @param string $schedule_color Color for schedule
      * @return int Number of actuals inserted (skipped duplicates do not count)
      */
-    protected function _insert_actuals_for_batch($agg, $stream_col = "'BIO-TIME'")
+    protected function _insert_actuals_for_batch($agg, $pid_to_department, $schedule_id = 22, $schedule_color = '')
     {
         if (empty($agg)) {
             return 0;
         }
-        $entry_ids = array();
+        $stream = 'BIO-TIME';
+        $values = array();
+        $params = array();
         foreach ($agg as $r) {
-            $entry_ids[] = $r['log_date'] . $r['ihris_pid'];
+            $entry_id = $r['log_date'] . $r['ihris_pid'];
+            $dept = isset($pid_to_department[$r['ihris_pid']]) ? $pid_to_department[$r['ihris_pid']] : null;
+            $end_date = date('Y-m-d', strtotime($r['log_date'] . ' +1 day'));
+            $values[] = '(?, ?, ?, ?, ?, ?, ?, ?, ?)';
+            $params[] = $entry_id;
+            $params[] = isset($r['facility_id']) ? $r['facility_id'] : '';
+            $params[] = $dept;
+            $params[] = $r['ihris_pid'];
+            $params[] = $schedule_id;
+            $params[] = $schedule_color;
+            $params[] = $r['log_date'];
+            $params[] = $end_date;
+            $params[] = $stream;
         }
-        $placeholders = implode(',', array_fill(0, count($entry_ids), '?'));
-        $this->db->trans_start();
-        $this->db->query("
-            INSERT IGNORE INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end, stream)
-            SELECT CONCAT(cl.date, cl.ihris_pid), cl.facility_id, COALESCE(id.department_id, id.department), cl.ihris_pid, s.schedule_id, s.color, cl.date, DATE_ADD(cl.date, INTERVAL 1 DAY), {$stream_col}
-            FROM clk_log cl
-            JOIN ihrisdata id ON id.ihris_pid = cl.ihris_pid
-            JOIN schedules s ON s.schedule_id = 22
-            LEFT JOIN actuals a ON a.entry_id = CONCAT(cl.date, cl.ihris_pid)
-            WHERE a.entry_id IS NULL
-            AND CONCAT(cl.date, cl.ihris_pid) IN ($placeholders)
-        ", $entry_ids);
-        $n = $this->db->affected_rows();
-        $this->db->trans_complete();
-        return $n;
+        $sql = "INSERT IGNORE INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end, stream) VALUES " . implode(', ', $values);
+        $this->db->query($sql, $params);
+        return $this->db->affected_rows();
     }
 
     /**
-     * Apply night-shift correction for one batch: set clk_log.time_out from next-day punches in this batch (schedule 16).
-     * Scoped to batch time range to avoid long locks; run after each batch during streaming.
-     * @param array $batch Batch rows with 'punch_time' (Y-m-d H:i:s)
-     * @return int Affected rows
+     * Return min/max punch_time for a batch (for night correction range).
+     * @param array $batch Batch rows with 'punch_time'
+     * @return array|null ['min'=>..., 'max'=>...] or null if empty
      */
-    protected function _apply_night_correction_batch($batch)
+    protected function _batch_punch_time_range($batch)
     {
-        if (empty($batch)) {
-            return 0;
-        }
         $times = array();
         foreach ($batch as $r) {
             if (!empty($r['punch_time'])) {
@@ -831,10 +937,60 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             }
         }
         if (empty($times)) {
+            return null;
+        }
+        return array('min' => min($times), 'max' => max($times));
+    }
+
+    /**
+     * Apply night-shift correction for a combined time range (multiple batches).
+     * Single UPDATE for the whole range to reduce MySQL round-trips. Caller holds transaction.
+     * @param array $ranges Array of ['min'=>..., 'max'=>...] from _batch_punch_time_range
+     * @return int Affected rows
+     */
+    protected function _apply_night_correction_range($ranges)
+    {
+        if (empty($ranges)) {
             return 0;
         }
-        $batch_min = min($times);
-        $batch_max = max($times);
+        $global_min = $ranges[0]['min'];
+        $global_max = $ranges[0]['max'];
+        foreach ($ranges as $r) {
+            if (isset($r['min']) && $r['min'] < $global_min) {
+                $global_min = $r['min'];
+            }
+            if (isset($r['max']) && $r['max'] > $global_max) {
+                $global_max = $r['max'];
+            }
+        }
+        $this->db->query("
+            UPDATE clk_log cl
+            INNER JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date AND dr.schedule_id = '16'
+            INNER JOIN (
+                SELECT i.ihris_pid, DATE_SUB(DATE(b.punch_time), INTERVAL 1 DAY) AS log_date, MAX(b.punch_time) AS punch_time
+                FROM biotime_data_history b
+                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+                WHERE b.punch_time >= ? AND b.punch_time <= ?
+                GROUP BY i.ihris_pid, log_date
+            ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date
+            SET cl.time_out = sub.punch_time
+            WHERE sub.punch_time > cl.time_in
+            AND TIMESTAMPDIFF(HOUR, cl.time_in, sub.punch_time) <= 15
+        ", array($global_min, $global_max));
+        return $this->db->affected_rows();
+    }
+
+    /**
+     * Apply night-shift correction for one batch (schedule 16). Used when not batching night in stream.
+     * @param array $batch Batch rows with 'punch_time'
+     * @return int Affected rows
+     */
+    protected function _apply_night_correction_batch($batch)
+    {
+        $range = $this->_batch_punch_time_range($batch);
+        if (!$range) {
+            return 0;
+        }
         $this->db->trans_start();
         $this->db->query("
             UPDATE clk_log cl
@@ -849,7 +1005,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             SET cl.time_out = sub.punch_time
             WHERE sub.punch_time > cl.time_in
             AND TIMESTAMPDIFF(HOUR, cl.time_in, sub.punch_time) <= 15
-        ", array($batch_min, $batch_max));
+        ", array($range['min'], $range['max']));
         $n = $this->db->affected_rows();
         $this->db->trans_complete();
         return $n;

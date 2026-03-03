@@ -1826,6 +1826,7 @@ class Biotimejobs extends MX_Controller
                     $result['status'] = $r['status'];
                     $result['message'] = $r['message'];
                     $result['total_records'] = isset($r['records_saved']) ? (int) $r['records_saved'] : 0;
+                    $result['timing'] = isset($r['timing']) ? $r['timing'] : array();
                     if ($output_console && !empty($r['clock_log_merged'])) {
                         $console("Clock-log merged: " . $r['clock_log_merged'], 'info');
                     }
@@ -1834,6 +1835,10 @@ class Biotimejobs extends MX_Controller
                     }
                     if ($output_console && isset($r['actuals_merged']) && $r['actuals_merged'] > 0) {
                         $console("Actuals (from clock-in): " . $r['actuals_merged'], 'info');
+                    }
+                    if ($output_console && !empty($r['timing'])) {
+                        $t = $r['timing'];
+                        $console("Time — total: " . ($t['total_s'] ?? 0) . "s | PG: " . ($t['pg_query_s'] ?? 0) . "s | lookups: " . ($t['lookups_s'] ?? 0) . "s | history: " . ($t['history_s'] ?? 0) . "s | agg: " . ($t['aggregate_s'] ?? 0) . "s | clk_log: " . ($t['clk_log_s'] ?? 0) . "s | actuals: " . ($t['actuals_s'] ?? 0) . "s | night: " . ($t['night_s'] ?? 0) . "s", 'info');
                     }
                     return $result;
                 } catch (Exception $e) {
