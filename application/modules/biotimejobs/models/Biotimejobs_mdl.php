@@ -707,7 +707,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                     $batch_num++;
                     $this->db->trans_start();
                     $tb = microtime(true);
-                    if ($this->db->insert_batch('biotime_data_history', $batch)) {
+                    if ($this->_insert_biotime_history_batch($batch)) {
                         $inserted_count += count($batch);
                     }
                     $time_history += microtime(true) - $tb;
@@ -746,7 +746,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             if (!empty($batch)) {
                 $this->db->trans_start();
                 $tb = microtime(true);
-                if ($this->db->insert_batch('biotime_data_history', $batch)) {
+                if ($this->_insert_biotime_history_batch($batch)) {
                     $inserted_count += count($batch);
                 }
                 $time_history += microtime(true) - $tb;
@@ -921,6 +921,35 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         $sql = "INSERT IGNORE INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end, stream) VALUES " . implode(', ', $values);
         $this->db->query($sql, $params);
         return $this->db->affected_rows();
+    }
+
+    /**
+     * Insert batch into biotime_data_history using explicit column list to avoid duplicate-column errors.
+     * Columns: emp_code, terminal_sn, area_alias, longitude, latitude, punch_state, punch_time.
+     * @param array $batch Array of rows with those keys
+     * @return bool Success
+     */
+    protected function _insert_biotime_history_batch($batch)
+    {
+        if (empty($batch)) {
+            return true;
+        }
+        $cols = array('emp_code', 'terminal_sn', 'area_alias', 'longitude', 'latitude', 'punch_state', 'punch_time');
+        $values = array();
+        $params = array();
+        foreach ($batch as $r) {
+            $values[] = '(?, ?, ?, ?, ?, ?, ?)';
+            $params[] = isset($r['emp_code']) ? $r['emp_code'] : '';
+            $params[] = isset($r['terminal_sn']) ? $r['terminal_sn'] : '';
+            $params[] = isset($r['area_alias']) ? $r['area_alias'] : '';
+            $params[] = isset($r['longitude']) ? $r['longitude'] : null;
+            $params[] = isset($r['latitude']) ? $r['latitude'] : null;
+            $params[] = isset($r['punch_state']) ? $r['punch_state'] : '';
+            $params[] = isset($r['punch_time']) ? $r['punch_time'] : null;
+        }
+        $sql = 'INSERT INTO biotime_data_history (' . implode(', ', $cols) . ') VALUES ' . implode(', ', $values);
+        $this->db->query($sql, $params);
+        return true;
     }
 
     /**
