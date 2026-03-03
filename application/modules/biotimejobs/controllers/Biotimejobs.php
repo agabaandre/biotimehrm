@@ -1788,7 +1788,7 @@ class Biotimejobs extends MX_Controller
      * Fetch time history with streaming: clock-in/clock-out merged into clk_log per batch as we fetch.
      * One call per device for the full range; no separate aggregation step. Run biotimeNightAndActualsOnly after all devices.
      *
-     * Strategy: Clock-in/out are applied per batch (e.g. 500 rows) as we read from PostgreSQL, so we avoid
+     * Strategy: Clock-in/out are applied per batch (e.g. 20 rows) as we read from PostgreSQL, so we avoid
      * one large aggregation over biotime_data at the end. Drawbacks: (1) Night correction and actuals still
      * run once after all devices (they need full day/range data). (2) Per-record would be slower (many more
      * DB round-trips); per-batch is a balance of throughput and latency.
@@ -1822,7 +1822,7 @@ class Biotimejobs extends MX_Controller
             $delay = 5;
             for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
                 try {
-                    $r = $this->biotimejobs_mdl->fetch_time_history_with_clocking($start_ts, $end_ts, $terminal_sn, FALSE, 500);
+                    $r = $this->biotimejobs_mdl->fetch_time_history_with_clocking($start_ts, $end_ts, $terminal_sn, FALSE, 20);
                     $result['status'] = $r['status'];
                     $result['message'] = $r['message'];
                     $result['total_records'] = isset($r['records_saved']) ? (int) $r['records_saved'] : 0;
@@ -1837,13 +1837,16 @@ class Biotimejobs extends MX_Controller
                     }
                     return $result;
                 } catch (Exception $e) {
-                    $is_lock = (strpos($e->getMessage(), 'Lock wait timeout exceeded') !== false);
-                    if ($is_lock && $attempt < $max_retries) {
-                        $console("Lock wait, retry $attempt/$max_retries in {$delay}s...", 'warning');
-                        sleep($delay);
+                    $msg = $e->getMessage();
+                    $is_lock = (strpos($msg, 'Lock wait timeout exceeded') !== false);
+                    $is_deadlock = (strpos($msg, 'Deadlock found') !== false);
+                    if (($is_lock || $is_deadlock) && $attempt < $max_retries) {
+                        $reason = $is_deadlock ? 'Deadlock' : 'Lock wait';
+                        $console("$reason, retry $attempt/$max_retries in {$delay}s...", 'warning');
+                        sleep($delay + (int)(rand(0, 3))); // small jitter to avoid repeated collision
                         continue;
                     }
-                    $result['message'] = $e->getMessage();
+                    $result['message'] = $msg;
                     return $result;
                 }
             }

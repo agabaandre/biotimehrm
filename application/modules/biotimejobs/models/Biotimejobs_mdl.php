@@ -562,10 +562,10 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
      * @param string $end_date End date/time Y-m-d H:i:s
      * @param string|bool $terminal_sn Terminal serial (false = all)
      * @param string|bool $empcode Employee code filter (false = all)
-     * @param int $batch_size Rows per batch (default 500)
+     * @param int $batch_size Rows per batch (default 20; smaller reduces deadlock risk)
      * @return array status, message, records_fetched, records_saved, clock_log_merged, errors
      */
-    public function fetch_time_history_with_clocking($start_date, $end_date, $terminal_sn = FALSE, $empcode = FALSE, $batch_size = 500)
+    public function fetch_time_history_with_clocking($start_date, $end_date, $terminal_sn = FALSE, $empcode = FALSE, $batch_size = 20)
     {
         $result = array(
             'status' => 'error',
@@ -658,11 +658,8 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                     }
                     $agg = $this->_aggregate_batch_for_clk_log($batch, $emp_to_pid, $devices);
                     if (!empty($agg)) {
-                        $n = $this->_upsert_clk_log_batch($agg);
-                        $clock_merged += $n;
-                        $actuals_merged += $this->_insert_actuals_for_batch($agg, $stream_col);
+                        $this->_apply_batch_clocking_with_retry($agg, $batch, $stream_col, $clock_merged, $night_merged, $actuals_merged);
                     }
-                    $night_merged += $this->_apply_night_correction_batch($batch);
                     $batch = array();
                 }
             }
@@ -673,10 +670,8 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 }
                 $agg = $this->_aggregate_batch_for_clk_log($batch, $emp_to_pid, $devices);
                 if (!empty($agg)) {
-                    $clock_merged += $this->_upsert_clk_log_batch($agg);
-                    $actuals_merged += $this->_insert_actuals_for_batch($agg, $stream_col);
+                    $this->_apply_batch_clocking_with_retry($agg, $batch, $stream_col, $clock_merged, $night_merged, $actuals_merged);
                 }
-                $night_merged += $this->_apply_night_correction_batch($batch);
             }
 
             pg_close($pg_conn);
@@ -703,6 +698,37 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             }
         }
         return $result;
+    }
+
+    /**
+     * Run clk_log upsert, actuals insert, and night correction for a batch with deadlock retry.
+     * @param array $agg aggregated rows for clk_log
+     * @param array $batch raw batch for night correction
+     * @param string $stream_col stream literal
+     * @param int $clock_merged accumulated count (by reference)
+     * @param int $night_merged accumulated count (by reference)
+     * @param int $actuals_merged accumulated count (by reference)
+     */
+    protected function _apply_batch_clocking_with_retry($agg, $batch, $stream_col, &$clock_merged, &$night_merged, &$actuals_merged)
+    {
+        $max_attempts = 3;
+        for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+            try {
+                $n = $this->_upsert_clk_log_batch($agg);
+                $clock_merged += $n;
+                $actuals_merged += $this->_insert_actuals_for_batch($agg, $stream_col);
+                $night_merged += $this->_apply_night_correction_batch($batch);
+                return;
+            } catch (Exception $e) {
+                $msg = $e->getMessage();
+                $is_retryable = (strpos($msg, 'Deadlock found') !== false) || (strpos($msg, 'Lock wait timeout exceeded') !== false);
+                if ($is_retryable && $attempt < $max_attempts) {
+                    usleep(100000 * (1 + rand(0, 20))); // 100–2100 ms jitter
+                    continue;
+                }
+                throw $e;
+            }
+        }
     }
 
     /**
