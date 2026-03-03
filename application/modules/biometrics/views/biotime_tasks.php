@@ -114,7 +114,7 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">
-              <i class="fas fa-server"></i> Attendance Sync - Machines
+              <i class="fas fa-server"></i> Attendance Sync - By Area (area_name = area_alias)
             </h3>
             <div class="card-tools">
               <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -127,11 +127,9 @@
               <table id="machinesTable" class="table table-bordered table-striped" style="width:100%">
                 <thead class="thead-dark">
                   <tr>
-                    <th>Serial Number</th>
-                    <th>Facility</th>
+                    <th>Area Name</th>
                     <th>Last Sync</th>
-                    <th>Number of Records</th>
-                    <th>IP Address</th>
+                    <th>Machines</th>
                     <th>Status</th>
                     <th>Manual Sync</th>
                   </tr>
@@ -158,13 +156,13 @@
         </button>
       </div>
       <div class="modal-body">
-        <form id="syncForm" action="<?php echo base_url('biotimejobs/custom_logs'); ?>" method="GET">
+        <form id="syncForm" action="<?php echo base_url('biotimejobs/sync_area'); ?>" method="GET">
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label for="terminal_sn" class="font-weight-bold">Terminal Serial Number</label>
-                <input type="text" name="terminal_sn" id="terminal_sn" class="form-control" readonly>
-                <small class="form-text text-muted">Machine identifier</small>
+                <label for="area_name" class="font-weight-bold">Area Name</label>
+                <input type="text" name="area_name" id="area_name" class="form-control" readonly>
+                <small class="form-text text-muted">Area (area_name in biotime_devices = area_alias in PostgreSQL)</small>
               </div>
             </div>
             <div class="col-md-3">
@@ -210,7 +208,7 @@
 
           <div class="alert alert-info">
             <i class="fas fa-info-circle"></i>
-            <strong>Note:</strong> This will sync data from the selected machine. Large datasets may take several minutes to process.
+            <strong>Note:</strong> This will sync attendance data for the selected area (all machines in that area). Large datasets may take several minutes.
             <br><i class="fas fa-calendar-alt"></i> <strong>Date Range Limit:</strong> Maximum 30 days between start and end dates.
           </div>
         </form>
@@ -408,27 +406,25 @@
 
 <script>
 $(document).ready(function() {
-    // Initialize DataTable with server-side processing
+    // Initialize DataTable with server-side processing (areas, not machines)
     var table = $('#machinesTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
-            url: '<?php echo base_url("biometrics/getMachinesAjax"); ?>',
+            url: '<?php echo base_url("biometrics/getAreasAjax"); ?>',
             type: 'POST',
             data: function(d) {
                 d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
             }
         },
         columns: [
-            { data: 0, orderable: true }, // Serial Number
-            { data: 1, orderable: true }, // Facility
-            { data: 2, orderable: true }, // Last Sync
-            { data: 3, orderable: true }, // Number of Records
-            { data: 4, orderable: true }, // IP Address
-            { data: 5, orderable: false }, // Status (not sortable)
-            { data: 6, orderable: false }  // Manual Sync (not sortable)
+            { data: 0, orderable: true },  // Area Name
+            { data: 1, orderable: true },  // Last Sync
+            { data: 2, orderable: true },  // Machines
+            { data: 3, orderable: false }, // Status
+            { data: 4, orderable: false }  // Manual Sync
         ],
-        order: [[2, 'desc']], // Sort by last sync date by default
+        order: [[1, 'desc']], // Sort by last sync date by default
         pageLength: 20,
         lengthMenu: [[10, 20, 25, 50, 100], [10, 20, 25, 50, 100]],
         responsive: true,
@@ -437,20 +433,19 @@ $(document).ready(function() {
              '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         language: {
             processing: '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i><span class="sr-only">Loading...</span>',
-            search: "Search machines:",
-            lengthMenu: "Show _MENU_ machines per page",
-            info: "Showing _START_ to _END_ of _TOTAL_ machines",
-            infoEmpty: "No machines found",
-            infoFiltered: "(filtered from _MAX_ total machines)"
+            search: "Search areas:",
+            lengthMenu: "Show _MENU_ areas per page",
+            info: "Showing _START_ to _END_ of _TOTAL_ areas",
+            infoEmpty: "No areas found",
+            infoFiltered: "(filtered from _MAX_ total areas)"
         }
     });
 
-    // Handle sync button clicks from DataTable
-    $(document).on('click', '.sync-machine', function() {
-        var sn = $(this).data('sn');
-        $('#terminal_sn').val(sn);
+    // Handle sync button clicks from DataTable (by area)
+    $(document).on('click', '.sync-area-btn', function() {
+        var areaName = $(this).data('area');
+        $('#area_name').val(areaName);
         
-        // Set default dates: end date = today, start date = 30 days ago
         var endDate = new Date().toISOString().split('T')[0];
         var startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
@@ -461,9 +456,7 @@ $(document).ready(function() {
         $('#sync_type').val('attendance');
         $('#batch_size').val('500');
         
-        // Validate and show info
         validateDateRange();
-        
         $('#syncModal').modal('show');
     });
     
@@ -707,13 +700,12 @@ $(document).ready(function() {
     $('#syncForm').on('submit', function(e) {
         e.preventDefault();
         
-        // Validate required fields
-        var terminal_sn = $('#terminal_sn').val();
+        var area_name = $('#area_name').val();
         var start_date = $('#start_date').val();
         var end_date = $('#end_date').val();
         
-        if (!terminal_sn) {
-            alert('Terminal Serial Number is required');
+        if (!area_name) {
+            alert('Area Name is required');
             return false;
         }
         
@@ -722,7 +714,6 @@ $(document).ready(function() {
             return false;
         }
         
-        // Validate date range before submission
         if (!validateDateRange()) {
             return false;
         }
@@ -731,14 +722,12 @@ $(document).ready(function() {
         var sync_type = $('#sync_type').val();
         var batch_size = $('#batch_size').val();
         
-        // Show terminal modal
         $('#syncModal').modal('hide');
         $('#terminalModal').modal('show');
         
-        // Clear and initialize terminal
         $('#terminal-output').empty();
-        addTerminalLine('=== Sync Process Started ===', 'info');
-        addTerminalLine('Terminal SN: ' + terminal_sn, 'info');
+        addTerminalLine('=== Sync Process Started (by Area) ===', 'info');
+        addTerminalLine('Area: ' + area_name, 'info');
         addTerminalLine('Start Date: ' + start_date, 'info');
         addTerminalLine('End Date: ' + end_date, 'info');
         var daysRange = Math.ceil((new Date(end_date) - new Date(start_date)) / (1000 * 60 * 60 * 24)) + 1;
@@ -748,13 +737,10 @@ $(document).ready(function() {
         addTerminalLine('', 'info');
         addTerminalLine('Connecting to BioTime server...', 'info');
         
-        // Log sync parameters to console
-        console.group('🔄 Sync Request');
-        console.log('Terminal SN:', terminal_sn);
+        console.group('🔄 Sync Request (Area)');
+        console.log('Area Name:', area_name);
         console.log('Start Date:', start_date);
         console.log('End Date:', end_date);
-        console.log('Sync Type:', sync_type);
-        console.log('Batch Size:', batch_size);
         console.log('Form Data:', formData);
         console.groupEnd();
         

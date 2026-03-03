@@ -70,6 +70,59 @@ public function getMachinesCount($search = '') {
     }
 }
 
+/**
+ * Count distinct areas (area_name) for Attendance Sync table.
+ */
+public function getAreasCount($search = '') {
+    try {
+        $this->db->select('area_name');
+        $this->db->from('biotime_devices');
+        $this->db->group_by('area_name');
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('area_name', $search);
+            $this->db->group_end();
+        }
+        return $this->db->get()->num_rows();
+    } catch (Exception $e) {
+        log_message('error', 'getAreasCount error: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+/**
+ * Get distinct areas with MAX(last_activity) and machine count for Attendance Sync table.
+ */
+public function getAreasPaginated($start, $length, $search = '', $order = null) {
+    try {
+        $this->db->select('area_name, MAX(last_activity) AS last_activity, COUNT(*) AS machine_count');
+        $this->db->from('biotime_devices');
+        $this->db->group_by('area_name');
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('area_name', $search);
+            $this->db->group_end();
+        }
+        if ($order && isset($order['column']) && isset($order['dir'])) {
+            $columns = ['area_name', 'last_activity', 'machine_count'];
+            $columnIndex = intval($order['column']);
+            if ($columnIndex >= 0 && $columnIndex < count($columns)) {
+                $this->db->order_by($columns[$columnIndex], $order['dir']);
+            } else {
+                $this->db->order_by('last_activity', 'desc');
+            }
+        } else {
+            $this->db->order_by('last_activity', 'desc');
+        }
+        $this->db->limit($length, $start);
+        $query = $this->db->get();
+        return $query ? $query->result() : array();
+    } catch (Exception $e) {
+        log_message('error', 'getAreasPaginated error: ' . $e->getMessage());
+        return array();
+    }
+}
+
 public function getMachinesPaginated($start, $length, $search = '', $order = null) {
     try {
         $this->db->select('*');

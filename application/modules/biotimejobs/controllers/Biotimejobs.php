@@ -607,6 +607,62 @@ class Biotimejobs extends MX_Controller
     }
 
     /**
+     * Sync attendance by area (area_name = area_alias in PG). Used by biometrics/tasks view.
+     * GET: area_name, start_date, end_date. Runs fetch_time_history_streaming for that area.
+     */
+    public function sync_area()
+    {
+        header('Content-Type: application/json');
+        try {
+            $area_name = trim((string) $this->input->get('area_name'));
+            $start_date_input = $this->input->get('start_date');
+            $end_date_input = $this->input->get('end_date');
+            if (empty($area_name)) {
+                echo json_encode(array('status' => 'error', 'message' => 'area_name is required'));
+                return;
+            }
+            if (empty($end_date_input)) {
+                $end_date = date('Y-m-d');
+            } else {
+                $end_date = date('Y-m-d', strtotime($end_date_input));
+                if ($end_date === '1970-01-01' || $end_date === false) {
+                    echo json_encode(array('status' => 'error', 'message' => 'Invalid end_date'));
+                    return;
+                }
+            }
+            if (empty($start_date_input)) {
+                $start_date = date('Y-m-d', strtotime('-30 days', strtotime($end_date)));
+            } else {
+                $start_date = date('Y-m-d', strtotime($start_date_input));
+                if ($start_date === '1970-01-01' || $start_date === false) {
+                    echo json_encode(array('status' => 'error', 'message' => 'Invalid start_date'));
+                    return;
+                }
+            }
+            if (strtotime($start_date) > strtotime($end_date)) {
+                echo json_encode(array('status' => 'error', 'message' => 'Start date must be before or equal to end date'));
+                return;
+            }
+            $result = $this->fetch_time_history_streaming($start_date, $end_date, $area_name, $area_name, false);
+            $response = array(
+                'status' => $result['status'],
+                'message' => $result['message'],
+                'total_records' => isset($result['total_records']) ? (int) $result['total_records'] : 0,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'parameters' => array('area_name' => $area_name, 'start_date' => $start_date, 'end_date' => $end_date)
+            );
+            if (!empty($result['timing'])) {
+                $response['timing'] = $result['timing'];
+            }
+            echo json_encode($response);
+        } catch (Exception $e) {
+            echo json_encode(array('status' => 'error', 'message' => $e->getMessage()));
+        } catch (Error $e) {
+            echo json_encode(array('status' => 'error', 'message' => $e->getMessage()));
+        }
+    }
+
+    /**
      * Custom logs endpoint for frontend - syncs individual machines
      * Supports async background processing with proper JSON responses
      * 
@@ -1796,12 +1852,12 @@ class Biotimejobs extends MX_Controller
      *
      * @param string $start_date Start date Y-m-d
      * @param string $end_date End date Y-m-d
-     * @param string|bool $terminal_sn Terminal serial (false = all)
+     * @param string|bool $area_alias Area name (matches area_name in biotime_devices and area_alias in PG; false = all areas)
      * @param string|bool $facility Facility name (for logging)
      * @param bool $output_console Whether to echo progress
      * @return array status, message, total_records
      */
-    public function fetch_time_history_streaming($start_date, $end_date, $terminal_sn = FALSE, $facility = FALSE, $output_console = TRUE)
+    public function fetch_time_history_streaming($start_date, $end_date, $area_alias = FALSE, $facility = FALSE, $output_console = TRUE)
     {
         ignore_user_abort(true);
         set_time_limit(0);
@@ -1822,7 +1878,7 @@ class Biotimejobs extends MX_Controller
             $delay = 5;
             for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
                 try {
-                    $r = $this->biotimejobs_mdl->fetch_time_history_with_clocking($start_ts, $end_ts, $terminal_sn, FALSE, 50);
+                    $r = $this->biotimejobs_mdl->fetch_time_history_with_clocking($start_ts, $end_ts, $area_alias, FALSE, 50);
                     $result['status'] = $r['status'];
                     $result['message'] = $r['message'];
                     $result['total_records'] = isset($r['records_saved']) ? (int) $r['records_saved'] : 0;
@@ -2109,46 +2165,48 @@ class Biotimejobs extends MX_Controller
             }
             
             $console("═══════════════════════════════════════════════════════", 'info');
-            $console("  DAILY ATTENDANCE SYNC - MACHINES", 'info');
+            $console("  DAILY ATTENDANCE SYNC - BY AREA (area_name = area_alias)", 'info');
             $console("═══════════════════════════════════════════════════════", 'info');
             $console("End Date: $end_date", 'info');
-            $console("Max Days Per Machine: $max_days", 'info');
+            $console("Max Days Per Area: $max_days", 'info');
             if ($specific_device) {
-                $console("Specific Device: $specific_device", 'info');
+                $console("Specific Device (filter to its area only): $specific_device", 'info');
             }
             $console("", 'info');
             
-            // Build query for machines
-            $query = "SELECT * FROM biotime_devices";
+            // Distinct area_name from biotime_devices (area_name matches area_alias on PostgreSQL; one area can have multiple machines)
+            $query = "SELECT area_name, MAX(last_activity) AS last_activity FROM biotime_devices";
             if (!empty($specific_device)) {
                 $query .= " WHERE sn = " . $this->db->escape($specific_device);
             }
-            $query .= " ORDER BY sn ASC";
+            $query .= " GROUP BY area_name ORDER BY area_name ASC";
+            $areas = $this->db->query($query)->result();
             
-            $machines = $this->db->query($query)->result();
-            
-            if (empty($machines)) {
-                throw new Exception("No machines found in database");
+            if (empty($areas)) {
+                throw new Exception("No areas found in biotime_devices");
             }
             
-            $result['machines_total'] = count($machines);
+            $result['machines_total'] = count($areas);
             $machines_processed = 0;
-            $sync_date_range_start = null; // track earliest start date across machines that were synced (for clock-in after all machines)
+            $sync_date_range_start = null;
             
-            $console("Found " . $result['machines_total'] . " machine(s) to sync", 'info');
+            $console("Found " . $result['machines_total'] . " area(s) to sync (area_name = area_alias in PG)", 'info');
             $console("", 'info');
             
-            foreach ($machines as $machine_index => $machine) {
-        $device = $machine->sn;
-                $facility = isset($machine->area_name) ? $machine->area_name : 'Unknown';
-                $machine_num = $machine_index + 1;
+            foreach ($areas as $area_index => $area_row) {
+                $area_name = isset($area_row->area_name) ? $area_row->area_name : '';
+                if ($area_name === '') {
+                    continue;
+                }
+                $area_num = $area_index + 1;
+                $facility = $area_name;
                 
                 $console("─────────────────────────────────────────────────────", 'info');
-                $console("MACHINE [$machine_num/{$result['machines_total']}]: $device", 'info');
+                $console("AREA [$area_num/{$result['machines_total']}]: $area_name", 'info');
                 $console("Facility: $facility", 'info');
                 
                 $machine_result = array(
-                    'device' => $device,
+                    'device' => $area_name,
                     'facility' => $facility,
                     'status' => 'error',
                     'records' => 0,
@@ -2156,12 +2214,10 @@ class Biotimejobs extends MX_Controller
                 );
                 
                 try {
-                    // Get start date from last_activity or use default
-                    $last_activity = isset($machine->last_activity) && !empty($machine->last_activity) 
-                        ? $machine->last_activity 
+                    $last_activity = isset($area_row->last_activity) && !empty($area_row->last_activity)
+                        ? $area_row->last_activity
                         : NULL;
                     
-                    // Extract date part from last_activity (in case it's a datetime)
                     if ($last_activity) {
                         $last_activity_date = date('Y-m-d', strtotime($last_activity));
                         if ($last_activity_date === '1970-01-01' || $last_activity_date === FALSE) {
@@ -2171,26 +2227,18 @@ class Biotimejobs extends MX_Controller
                         $last_activity_date = NULL;
                     }
                     
-                    // Determine start date
                     if ($last_activity_date) {
-                        // Use last_activity date, subtract one day to ensure we don't miss data
                         $start_timestamp = strtotime($last_activity_date . ' -1 day');
                         $start = date('Y-m-d', $start_timestamp);
                     } else {
-                        // No last_activity, use default (7 days ago)
                         $start = date('Y-m-d', strtotime('-7 days'));
                     }
                     
-                    // Convert dates to timestamps for comparison
                     $start_timestamp = strtotime($start);
-            $end_timestamp = strtotime($end_date);
-
-                    // Calculate the difference in days
-            $difference_seconds = $end_timestamp - $start_timestamp;
-            $difference_days = $difference_seconds / (60 * 60 * 24);
+                    $end_timestamp = strtotime($end_date);
+                    $difference_seconds = $end_timestamp - $start_timestamp;
+                    $difference_days = $difference_seconds / (60 * 60 * 24);
                     
-                    // Check if last_activity is beyond end_date.
-                    // NOTE: We allow same-date re-syncs because new punches can arrive throughout the day.
                     $last_activity_timestamp = $last_activity_date ? strtotime($last_activity_date) : 0;
                     $end_date_timestamp = strtotime($end_date);
                     $is_already_synced = $last_activity_timestamp > $end_date_timestamp;
@@ -2198,36 +2246,30 @@ class Biotimejobs extends MX_Controller
                     $console("Date Range: $start to $end_date ($difference_days days)", 'info');
                     $console("Last Activity: " . ($last_activity ?: 'Never'), 'info');
                     
-                    // Determine if we should sync
                     if ($is_already_synced) {
-                        // Machine is already synced up to or beyond end_date
                         $machine_result['status'] = 'skipped';
                         $machine_result['message'] = "Already up to date (last activity: $last_activity_date > end date: $end_date)";
                         $console("✓ Skipped: Already up to date (last activity: $last_activity_date)", 'info');
-                        $this->log("fetch_daily_attendance() skipped device $device: already up to date");
+                        $this->log("fetch_daily_attendance() skipped area $area_name: already up to date");
                     } elseif ($difference_days < 0) {
-                        // Negative range shouldn't happen, but handle it
                         $machine_result['status'] = 'skipped';
                         $machine_result['message'] = "Invalid date range (start date after end date)";
                         $console("⚠ Skipped: Invalid date range", 'warning');
-                        $this->log("fetch_daily_attendance() skipped device $device: invalid date range");
+                        $this->log("fetch_daily_attendance() skipped area $area_name: invalid date range");
                     } elseif ($difference_days > $max_days) {
-                        // Date range exceeds maximum
                         $machine_result['status'] = 'skipped';
                         $machine_result['message'] = "Date range too large ($difference_days days, max: $max_days)";
                         $console("⚠ Skipped: Date range too large ($difference_days days, max: $max_days)", 'warning');
-                        $this->log("fetch_daily_attendance() skipped device $device: date range too large ($difference_days days)");
+                        $this->log("fetch_daily_attendance() skipped area $area_name: date range too large ($difference_days days)");
                     } else {
-                        // Proceed with sync
                         $console("Starting sync...", 'info');
-                        $this->log("fetch_daily_attendance() starting sync for device $device ($facility) from $start to $end_date");
+                        $this->log("fetch_daily_attendance() starting sync for area $area_name from $start to $end_date");
                         
                         if ($sync_date_range_start === null || strtotime($start) < strtotime($sync_date_range_start)) {
                             $sync_date_range_start = $start;
                         }
                         
-                        // Streaming fetch: clock-in/clock-out merged into clk_log per batch as we fetch (no big aggregation at end)
-                        $fetch_result = $this->fetch_time_history_streaming($start, $end_date, $device, $facility, $output_console);
+                        $fetch_result = $this->fetch_time_history_streaming($start, $end_date, $area_name, $facility, $output_console);
                         
                         if ($fetch_result['status'] === 'success') {
                             $machine_result['status'] = 'success';
@@ -2236,30 +2278,29 @@ class Biotimejobs extends MX_Controller
                             $result['total_records'] += $fetch_result['total_records'];
                             $machines_processed++;
                             
-                            // Update last_activity for this machine (use current timestamp so same-day incremental syncs work)
-                            $this->db->where('sn', $device);
+                            $this->db->where('area_name', $area_name);
                             $this->db->update('biotime_devices', array('last_activity' => date('Y-m-d H:i:s')));
                             
                             $console("✓ Sync completed: {$fetch_result['total_records']} records", 'success');
-                            $this->log("fetch_daily_attendance() completed for device $device: " . $fetch_result['total_records'] . " records");
+                            $this->log("fetch_daily_attendance() completed for area $area_name: " . $fetch_result['total_records'] . " records");
                         } else {
                             $machine_result['message'] = $fetch_result['message'];
-                            $result['errors'][] = "Device $device: " . $fetch_result['message'];
+                            $result['errors'][] = "Area $area_name: " . $fetch_result['message'];
                             $console("✗ Sync failed: " . $fetch_result['message'], 'error');
-                            $this->log("fetch_daily_attendance() failed for device $device: " . $fetch_result['message']);
+                            $this->log("fetch_daily_attendance() failed for area $area_name: " . $fetch_result['message']);
                         }
                     }
                     
                 } catch (Exception $e) {
                     $machine_result['message'] = "Error: " . $e->getMessage();
-                    $result['errors'][] = "Device $device: " . $e->getMessage();
+                    $result['errors'][] = "Area $area_name: " . $e->getMessage();
                     $console("✗ Exception: " . $e->getMessage(), 'error');
-                    $this->log("fetch_daily_attendance() exception for device $device: " . $e->getMessage());
+                    $this->log("fetch_daily_attendance() exception for area $area_name: " . $e->getMessage());
                 } catch (Error $e) {
                     $machine_result['message'] = "Fatal Error: " . $e->getMessage();
-                    $result['errors'][] = "Device $device: " . $e->getMessage();
+                    $result['errors'][] = "Area $area_name: " . $e->getMessage();
                     $console("✗ Fatal Error: " . $e->getMessage(), 'error');
-                    $this->log("fetch_daily_attendance() fatal error for device $device: " . $e->getMessage());
+                    $this->log("fetch_daily_attendance() fatal error for area $area_name: " . $e->getMessage());
                 }
                 
                 $result['machine_results'][] = $machine_result;

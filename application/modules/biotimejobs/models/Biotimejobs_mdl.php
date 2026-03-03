@@ -560,12 +560,12 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
      *
      * @param string $start_date Start date/time Y-m-d H:i:s
      * @param string $end_date End date/time Y-m-d H:i:s
-     * @param string|bool $terminal_sn Terminal serial (false = all)
+     * @param string|bool $area_alias Area name (matches area_name in biotime_devices; PG column is area_alias). False = all areas.
      * @param string|bool $empcode Employee code filter (false = all)
      * @param int $batch_size Rows per batch (default 50)
      * @return array status, message, records_fetched, records_saved, clock_log_merged, errors
      */
-    public function fetch_time_history_with_clocking($start_date, $end_date, $terminal_sn = FALSE, $empcode = FALSE, $batch_size = 50)
+    public function fetch_time_history_with_clocking($start_date, $end_date, $area_alias = FALSE, $empcode = FALSE, $batch_size = 50)
     {
         $result = array(
             'status' => 'error',
@@ -604,8 +604,8 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
 
             $t0 = microtime(true);
             $conditions = "punch_time >= '$start_date' AND punch_time <= '$end_date'";
-            if (!empty($terminal_sn)) {
-                $conditions .= " AND terminal_sn = '" . pg_escape_string($pg_conn, $terminal_sn) . "'";
+            if (!empty($area_alias)) {
+                $conditions .= " AND area_alias = '" . pg_escape_string($pg_conn, $area_alias) . "'";
             }
             if (!empty($empcode)) {
                 $conditions .= " AND emp_code = '" . pg_escape_string($pg_conn, $empcode) . "'";
@@ -649,16 +649,19 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             $q2 = $this->db->query("SELECT sn, area_code, area_name" . ($has_night_col ? ", COALESCE(has_night, 0) AS has_night" : "") . " FROM biotime_devices");
             if ($q2 && $q2->num_rows() > 0) {
                 foreach ($q2->result() as $r) {
-                    $devices[$r->sn] = array(
-                        'facility_id' => $r->area_code,
-                        'facility' => $r->area_name,
-                        'has_night' => ($has_night_col && !empty($r->has_night)) ? 1 : 0
-                    );
+                    $an = isset($r->area_name) ? $r->area_name : '';
+                    if ($an !== '' && !isset($devices[$an])) {
+                        $devices[$an] = array(
+                            'facility_id' => isset($r->area_code) ? $r->area_code : '',
+                            'facility' => $an,
+                            'has_night' => ($has_night_col && !empty($r->has_night)) ? 1 : 0
+                        );
+                    }
                 }
             }
             $run_night_correction = false;
-            if (!empty($terminal_sn)) {
-                $run_night_correction = isset($devices[$terminal_sn]) && !empty($devices[$terminal_sn]['has_night']);
+            if (!empty($area_alias)) {
+                $run_night_correction = isset($devices[$area_alias]) && !empty($devices[$area_alias]['has_night']);
             } else {
                 foreach ($devices as $d) {
                     if (!empty($d['has_night'])) {
@@ -823,8 +826,8 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             if (!$pid) {
                 continue;
             }
-            $ts = isset($r['terminal_sn']) ? $r['terminal_sn'] : '';
-            $dev = isset($devices[$ts]) ? $devices[$ts] : array('facility_id' => '', 'facility' => '');
+            $area = isset($r['area_alias']) ? $r['area_alias'] : '';
+            $dev = isset($devices[$area]) ? $devices[$area] : array('facility_id' => '', 'facility' => '');
             $facility_id = $dev['facility_id'];
             $facility = $dev['facility'];
             $location = isset($r['area_alias']) && $r['area_alias'] !== '' ? $r['area_alias'] : $facility;

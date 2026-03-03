@@ -498,6 +498,71 @@ class Biometrics extends MX_Controller{
                 </button>';
     }
 
+    /**
+     * Server-side DataTable: distinct areas (area_name) for Attendance Sync - uses area-based sync.
+     */
+    public function getAreasAjax() {
+        $draw = (int) $this->input->post('draw');
+        try {
+            $start = (int) $this->input->post('start');
+            $length = (int) $this->input->post('length');
+            $search_val = $this->input->post('search');
+            $search = (is_array($search_val) && isset($search_val['value'])) ? trim((string) $search_val['value']) : '';
+            $order_post = $this->input->post('order');
+            $order = (!empty($order_post) && isset($order_post[0])) ? $order_post[0] : null;
+
+            if (!isset($this->biometrics_mdl)) {
+                $this->load->model('biometrics_model', 'biometrics_mdl');
+            }
+
+            $recordsTotal = $this->biometrics_mdl->getAreasCount('');
+            $recordsFiltered = $this->biometrics_mdl->getAreasCount($search);
+            $areas = $this->biometrics_mdl->getAreasPaginated($start, $length, $search, $order);
+
+            $data = array();
+            if (!empty($areas) && is_array($areas)) {
+                foreach ($areas as $area) {
+                    $area_name = isset($area->area_name) ? $area->area_name : '';
+                    $lastActivity = isset($area->last_activity) ? $area->last_activity : null;
+                    $status = $this->getMachineStatus($lastActivity);
+                    $data[] = array(
+                        $area_name,
+                        isset($area->last_activity) ? $area->last_activity : '',
+                        isset($area->machine_count) ? (int) $area->machine_count : 0,
+                        $status,
+                        $this->getAreaSyncButton($area_name)
+                    );
+                }
+            }
+
+            $response = array(
+                'draw' => $draw,
+                'recordsTotal' => $recordsTotal ? (int) $recordsTotal : 0,
+                'recordsFiltered' => $recordsFiltered ? (int) $recordsFiltered : 0,
+                'data' => $data
+            );
+        } catch (Exception $e) {
+            log_message('error', 'getAreasAjax: ' . $e->getMessage());
+            $response = array('draw' => $draw, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array(), 'error' => $e->getMessage());
+        } catch (Error $e) {
+            log_message('error', 'getAreasAjax Fatal: ' . $e->getMessage());
+            $response = array('draw' => $draw, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array(), 'error' => $e->getMessage());
+        }
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    }
+
+    private function getAreaSyncButton($area_name) {
+        $area_name = htmlspecialchars($area_name, ENT_QUOTES, 'UTF-8');
+        return '<button type="button" class="btn btn-primary btn-sm sync-area-btn" data-area="' . $area_name . '">
+                    <i class="fas fa-sync"></i> Sync
+                </button>';
+    }
+
     public function get_new_users(){
         return $this->biometrics_mdl->get_new_users();
     }
