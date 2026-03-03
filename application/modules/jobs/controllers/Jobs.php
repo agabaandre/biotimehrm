@@ -94,6 +94,7 @@ class Jobs extends MX_Controller {
             if ((time() - filemtime($this->lockFile)) > 1800) {
                 unlink($this->lockFile); // Remove stale lock
             } else {
+                log_message('info', 'Jobs master: heavy jobs locked, skipping scheduled tasks');
                 echo "Heavy jobs locked. Skipping heavy tasks.\n";
                 $jobsToRun = []; // Prevent execution
             }
@@ -124,10 +125,6 @@ class Jobs extends MX_Controller {
             echo "\nRunning attendance fetch (no lock)...\n";
             $this->run('biotimejobs fetch_daily_attendance');
         }
-		  if ($hour % 3 == 0 && $minute == 0) {
-            echo "\nRunning attendance fetch (no lock)...\n";
-            $this->run('biotimejobs markAttendance');
-        }
 
         echo "\n============================================\n";
         echo " JOBS MASTER COMPLETED\n";
@@ -136,10 +133,13 @@ class Jobs extends MX_Controller {
 
     /* ============================================================
      * EXECUTE JOB COMMAND
+     * Logs job name for easy follow-up in case of errors.
      * ============================================================ */
     private function run($command)
     {
+        log_message('info', 'Jobs: starting job [' . $command . ']');
         shell_exec("/usr/bin/php index.php $command");
+        log_message('info', 'Jobs: completed job [' . $command . ']');
     }
 
     /* ============================================================
