@@ -386,10 +386,10 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
      * @param string $end_date End date/time in Y-m-d H:i:s format
      * @param string|bool $terminal_sn Terminal serial number (default: FALSE = all terminals)
      * @param string|bool $empcode Employee code filter (default: FALSE = all employees)
-     * @param int $batch_size Batch size for inserts (default: 1000)
+     * @param int $batch_size Batch size for inserts (default: 2500; larger = fewer round-trips, faster)
      * @return array Result array with status, message, records_saved, and statistics
      */
-    public function fetch_time_history($start_date, $end_date, $terminal_sn = FALSE, $empcode = FALSE, $batch_size = 1000)
+    public function fetch_time_history($start_date, $end_date, $terminal_sn = FALSE, $empcode = FALSE, $batch_size = 2500)
     {
         $result = array(
             'status' => 'error',

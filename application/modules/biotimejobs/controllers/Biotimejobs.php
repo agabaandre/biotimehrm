@@ -1355,214 +1355,159 @@ class Biotimejobs extends MX_Controller
     }
 
     public function biotimeSyncAttendanceUnified($date = null, $facility_name = null, $terminal_sn = null)
-{
-    ignore_user_abort(true);
-    ini_set('max_execution_time', 0);
+    {
+        ignore_user_abort(true);
+        ini_set('max_execution_time', 0);
 
-    $syncDate  = $date ?? date('Y-m-d');
-    $startDate = date('Y-m-d', strtotime('-1 day', strtotime($syncDate)));
-    $facilityLabel = $facility_name ? " [{$facility_name}]" : '';
+        $syncDate    = $date ?? date('Y-m-d');
+        $startDate   = date('Y-m-d', strtotime('-1 day', strtotime($syncDate)));
+        $facilityLabel = $facility_name ? " [{$facility_name}]" : '';
 
-    echo "\n========================================\n";
-    echo " Unified Attendance Sync{$facilityLabel}\n";
-    echo " Range: $startDate → $syncDate\n";
-    echo "========================================\n";
+        echo "\n========================================\n";
+        echo " Unified Attendance Sync{$facilityLabel}\n";
+        echo " Range: $startDate → $syncDate\n";
+        echo "========================================\n";
 
-    /*
-    |--------------------------------------------------------------------------
-    | 1️⃣ REPLACE INTO CLOCK-IN (by area: biotime_data.area_alias / biotime_devices.area_name, facility_id from area_code)
-    |--------------------------------------------------------------------------
-    */
-    // Join biotime_devices (b.terminal_sn = d.sn) for area_code → facility_id, area_name → facility; optional filter by terminal to reduce scan
-    $terminalFilter = $terminal_sn ? ' AND b.terminal_sn = ?' : '';
-    $sqlClockInOneDay = "
-    REPLACE INTO clk_log (
-        entry_id,
-        ihris_pid,
-        facility_id,
-        time_in,
-        date,
-        location,
-        source,
-        facility
-    )
-    SELECT
-        CONCAT(grp.log_date, grp.ihris_pid),
-        grp.ihris_pid,
-        grp.facility_id,
-        grp.time_in,
-        grp.log_date,
-        grp.location,
-        'BIO-TIME',
-        grp.facility
-    FROM (
-        SELECT
-            DATE(b.punch_time) AS log_date,
-            i.ihris_pid,
-            SUBSTRING_INDEX(GROUP_CONCAT(d.area_code ORDER BY b.punch_time), ',', 1) AS facility_id,
-            MIN(b.punch_time) AS time_in,
-            SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(b.area_alias, d.area_name) ORDER BY b.punch_time), ',', 1) AS location,
-            SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(d.area_name, b.area_alias) ORDER BY b.punch_time), ',', 1) AS facility
-        FROM biotime_data b
-        JOIN biotime_devices d ON b.terminal_sn = d.sn
-        JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
-        WHERE b.punch_time >= ?
-        AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
-        AND CONCAT(DATE(b.punch_time), i.ihris_pid) NOT IN (SELECT entry_id FROM clk_log WHERE date = ?)
-        {$terminalFilter}
-        GROUP BY DATE(b.punch_time), i.ihris_pid
-    ) grp
-    ";
-    $clockinInserted = 0;
-    $cursor = strtotime($startDate);
-    $syncEnd = strtotime($syncDate . ' 23:59:59');
-    while ($cursor <= $syncEnd) {
-        $day = date('Y-m-d', $cursor);
-        $params = [$day, $day, $day];
+        $terminalFilter = $terminal_sn ? ' AND b.terminal_sn = ?' : '';
+        $aggParams = [$startDate, $syncDate];
         if ($terminal_sn) {
-            $params[] = $terminal_sn;
+            $aggParams[] = $terminal_sn;
         }
-        $this->db->trans_start();
-        $this->db->query($sqlClockInOneDay, $params);
-        $clockinInserted += $this->db->affected_rows();
-        $this->db->trans_complete();
-        $cursor = strtotime('+1 day', $cursor);
-    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | 2️⃣ UPDATE CLOCK-OUT (one day per transaction; optional filter by terminal)
-    |--------------------------------------------------------------------------
-    */
-    $clockoutTerminalFilter = $terminal_sn ? ' AND b.terminal_sn = ?' : '';
-    $sqlClockOutOneDay = "
-        UPDATE clk_log cl
-        JOIN (
+        /*
+        |--------------------------------------------------------------------------
+        | 1️⃣ Single read from biotime_data → temp table (one pass for clock-in + clock-out)
+        | Index on biotime_data (terminal_sn, punch_time) speeds this query.
+        |--------------------------------------------------------------------------
+        */
+        $this->db->query("DROP TEMPORARY TABLE IF EXISTS _biotime_agg");
+        $this->db->query("
+            CREATE TEMPORARY TABLE _biotime_agg (
+                log_date DATE NOT NULL,
+                ihris_pid VARCHAR(224) NOT NULL,
+                facility_id VARCHAR(223) NOT NULL,
+                time_in DATETIME NOT NULL,
+                time_out DATETIME NULL,
+                location VARCHAR(100) NULL,
+                facility VARCHAR(100) NOT NULL,
+                PRIMARY KEY (log_date, ihris_pid)
+            ) ENGINE=MEMORY
+        ");
+        $sqlAgg = "
+            INSERT INTO _biotime_agg (log_date, ihris_pid, facility_id, time_in, time_out, location, facility)
             SELECT
+                DATE(b.punch_time),
                 i.ihris_pid,
-                DATE(b.punch_time) AS log_date,
-                MAX(b.punch_time) AS last_punch
+                SUBSTRING_INDEX(GROUP_CONCAT(d.area_code ORDER BY b.punch_time), ',', 1),
+                MIN(b.punch_time),
+                MAX(b.punch_time),
+                SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(b.area_alias, d.area_name) ORDER BY b.punch_time), ',', 1),
+                SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(d.area_name, b.area_alias) ORDER BY b.punch_time), ',', 1)
             FROM biotime_data b
-            JOIN ihrisdata i
-                ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+            JOIN biotime_devices d ON b.terminal_sn = d.sn
+            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
             WHERE b.punch_time >= ?
             AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
-            {$clockoutTerminalFilter}
-            GROUP BY i.ihris_pid, DATE(b.punch_time)
-        ) punches
-        ON punches.ihris_pid = cl.ihris_pid
-        AND punches.log_date = cl.date
-        SET cl.time_out = punches.last_punch
-        WHERE cl.date = ?
-        AND punches.last_punch > cl.time_in
-    ";
-    $clockoutUpdated = 0;
-    $cursor = strtotime($startDate);
-    $syncEnd = strtotime($syncDate . ' 23:59:59');
-    while ($cursor <= $syncEnd) {
-        $day = date('Y-m-d', $cursor);
-        $params = [$day, $day];
-        if ($terminal_sn) {
-            $params[] = $terminal_sn;
-        }
-        $params[] = $day; // WHERE cl.date = ?
+            {$terminalFilter}
+            GROUP BY DATE(b.punch_time), i.ihris_pid
+        ";
+        $this->db->query($sqlAgg, $aggParams);
+
+        /*
+        |--------------------------------------------------------------------------
+        | 2️⃣ One INSERT into clk_log with ON DUPLICATE KEY UPDATE (faster than REPLACE; less lock time)
+        |--------------------------------------------------------------------------
+        */
         $this->db->trans_start();
-        $this->db->query($sqlClockOutOneDay, $params);
-        $clockoutUpdated += $this->db->affected_rows();
+        $this->db->query("
+            INSERT INTO clk_log (entry_id, ihris_pid, facility_id, time_in, time_out, date, location, source, facility)
+            SELECT
+                CONCAT(a.log_date, a.ihris_pid),
+                a.ihris_pid,
+                a.facility_id,
+                a.time_in,
+                NULLIF(a.time_out, a.time_in),
+                a.log_date,
+                a.location,
+                'BIO-TIME',
+                a.facility
+            FROM _biotime_agg a
+            ON DUPLICATE KEY UPDATE
+                time_in = VALUES(time_in),
+                time_out = VALUES(time_out),
+                facility_id = VALUES(facility_id),
+                location = VALUES(location),
+                facility = VALUES(facility),
+                source = 'BIO-TIME'
+        ");
+        $clockinInserted = $this->db->affected_rows();
         $this->db->trans_complete();
-        $cursor = strtotime('+1 day', $cursor);
-    }
+        $rc = $this->db->query("SELECT COUNT(*) AS n FROM _biotime_agg WHERE time_out > time_in");
+        $clockoutUpdated = $rc && $rc->num_rows() ? (int) $rc->row()->n : 0;
 
-    /*
-    |--------------------------------------------------------------------------
-    | 3️⃣ NIGHT SHIFT CORRECTION (separate short transaction)
-    |--------------------------------------------------------------------------
-    */
-    $sqlNight = "
-        UPDATE clk_log cl
-        JOIN duty_rosta dr
-            ON dr.ihris_pid = cl.ihris_pid
-            AND dr.duty_date = cl.date
-        JOIN biotime_data b
-            ON b.punch_time >= ?
-            AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
-        JOIN ihrisdata i
-            ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
-            AND i.ihris_pid = cl.ihris_pid
-        SET cl.time_out = b.punch_time
-        WHERE dr.schedule_id = '16'
-        AND cl.date = ?
-        AND b.punch_time > cl.time_in
-        AND TIMESTAMPDIFF(HOUR, cl.time_in, b.punch_time) <= 15
-    ";
-    $this->db->trans_start();
-    $this->db->query($sqlNight, [$startDate, $syncDate, $startDate]);
-    $nightUpdated = $this->db->affected_rows();
-    $this->db->trans_complete();
-
-    /*
-    |--------------------------------------------------------------------------
-    | 4️⃣ POPULATE ACTUALS TABLE (one day per transaction to minimize lock scope)
-    |--------------------------------------------------------------------------
-    */
-    // Use cl.facility_id (area_code from biotime_devices) for consistency with clock-in
-    $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : 'NULL';
-    $sqlActualsOneDay = "
-    INSERT INTO actuals (
-        entry_id,
-        facility_id,
-        department_id,
-        ihris_pid,
-        schedule_id,
-        color,
-        date,
-        end,
-        stream
-    )
-    SELECT DISTINCT
-        CONCAT(cl.date, id.ihris_pid) AS entry_id,
-        cl.facility_id,
-        COALESCE(id.department_id, id.department) AS department_id,
-        id.ihris_pid,
-        s.schedule_id,
-        s.color,
-        cl.date,
-        DATE_ADD(cl.date, INTERVAL 1 DAY) AS end,
-        $stream_col AS stream
-    FROM ihrisdata id
-    JOIN clk_log cl
-        ON id.ihris_pid = cl.ihris_pid
-    JOIN schedules s
-        ON s.schedule_id = 22
-    LEFT JOIN actuals a
-        ON a.entry_id = CONCAT(cl.date, id.ihris_pid)
-    WHERE cl.date = ?
-      AND a.entry_id IS NULL
-    ";
-    $actualsUpdated = 0;
-    $cursor = strtotime($startDate);
-    $syncEnd = strtotime($syncDate . ' 23:59:59');
-    while ($cursor <= $syncEnd) {
-        $day = date('Y-m-d', $cursor);
+        /*
+        |--------------------------------------------------------------------------
+        | 3️⃣ Night shift correction (one UPDATE for range)
+        |--------------------------------------------------------------------------
+        */
         $this->db->trans_start();
-        $this->db->query($sqlActualsOneDay, [$day]);
-        $actualsUpdated += $this->db->affected_rows();
+        $this->db->query("
+            UPDATE clk_log cl
+            JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date
+            JOIN biotime_data b ON b.punch_time >= ? AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
+            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps) AND i.ihris_pid = cl.ihris_pid
+            SET cl.time_out = b.punch_time
+            WHERE dr.schedule_id = '16'
+            AND cl.date BETWEEN ? AND ?
+            AND b.punch_time > cl.time_in
+            AND TIMESTAMPDIFF(HOUR, cl.time_in, b.punch_time) <= 15
+        ", [$startDate, $syncDate, $startDate, $syncDate]);
+        $nightUpdated = $this->db->affected_rows();
         $this->db->trans_complete();
-        $cursor = strtotime('+1 day', $cursor);
+
+        /*
+        |--------------------------------------------------------------------------
+        | 4️⃣ Actuals: one INSERT for full range (after clk_log is populated)
+        |--------------------------------------------------------------------------
+        */
+        $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : 'NULL';
+        $this->db->trans_start();
+        $this->db->query("
+            INSERT INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end, stream)
+            SELECT DISTINCT
+                CONCAT(cl.date, id.ihris_pid),
+                cl.facility_id,
+                COALESCE(id.department_id, id.department),
+                id.ihris_pid,
+                s.schedule_id,
+                s.color,
+                cl.date,
+                DATE_ADD(cl.date, INTERVAL 1 DAY),
+                {$stream_col}
+            FROM ihrisdata id
+            JOIN clk_log cl ON id.ihris_pid = cl.ihris_pid
+            JOIN schedules s ON s.schedule_id = 22
+            LEFT JOIN actuals a ON a.entry_id = CONCAT(cl.date, id.ihris_pid)
+            WHERE cl.date BETWEEN ? AND ?
+            AND a.entry_id IS NULL
+        ", [$startDate, $syncDate]);
+        $actualsUpdated = $this->db->affected_rows();
+        $this->db->trans_complete();
+
+        $this->db->query("DROP TEMPORARY TABLE IF EXISTS _biotime_agg");
+
+        $total = $clockinInserted + $clockoutUpdated + $nightUpdated;
+
+        echo "\nClock-in Inserted : $clockinInserted{$facilityLabel}\n";
+        echo "Clock-out Updated : $clockoutUpdated{$facilityLabel}\n";
+        echo "Night Corrected   : $nightUpdated{$facilityLabel}\n";
+        echo "Actuals Updated   : $actualsUpdated{$facilityLabel}\n";
+        echo "Total Affected    : $total{$facilityLabel}\n";
+
+        $this->log("Unified Sync + Actuals: $total logs, $actualsUpdated actuals" . ($facility_name ? " [$facility_name]" : ''));
+
+        return $total;
     }
-
-    $total = $clockinInserted + $clockoutUpdated + $nightUpdated;
-
-    echo "\nClock-in Inserted : $clockinInserted{$facilityLabel}\n";
-    echo "Clock-out Updated : $clockoutUpdated{$facilityLabel}\n";
-    echo "Night Corrected   : $nightUpdated{$facilityLabel}\n";
-    echo "Actuals Updated   : $actualsUpdated{$facilityLabel}\n";
-    echo "Total Affected    : $total{$facilityLabel}\n";
-
-    $this->log("Unified Sync + Actuals: $total logs, $actualsUpdated actuals" . ($facility_name ? " [$facility_name]" : ''));
-
-    return $total;
-}
 	
     //rethink the clockin, clockin people as the data is fetched.
     public function biotimeClockout()
