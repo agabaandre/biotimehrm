@@ -552,4 +552,307 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         return $result;
     }
 
+    /**
+     * Fetch time history from PostgreSQL and merge clock-in/clock-out into clk_log as we stream (per batch).
+     * Avoids one big aggregation at the end; spreads load and keeps transactions short.
+     * Call biotimeNightAndActualsOnly() after all devices for any remaining actuals (optional; actuals are also inserted per batch).
+     * Streamed rows are archived to biotime_data_history. Every clock-in merged into clk_log is reflected in actuals per batch.
+     *
+     * @param string $start_date Start date/time Y-m-d H:i:s
+     * @param string $end_date End date/time Y-m-d H:i:s
+     * @param string|bool $terminal_sn Terminal serial (false = all)
+     * @param string|bool $empcode Employee code filter (false = all)
+     * @param int $batch_size Rows per batch (default 500)
+     * @return array status, message, records_fetched, records_saved, clock_log_merged, errors
+     */
+    public function fetch_time_history_with_clocking($start_date, $end_date, $terminal_sn = FALSE, $empcode = FALSE, $batch_size = 500)
+    {
+        $result = array(
+            'status' => 'error',
+            'message' => '',
+            'records_fetched' => 0,
+            'records_saved' => 0,
+            'clock_log_merged' => 0,
+            'errors' => array()
+        );
+
+        try {
+            // Not writing to biotime_data; no delete needed. Data goes to biotime_data_history for archiving.
+
+            $pg_host = isset($_ENV['PG_DB_HOST']) ? $_ENV['PG_DB_HOST'] : (getenv('PG_DB_HOST') ?: '172.27.1.101');
+            $pg_port = isset($_ENV['PG_PORT']) ? $_ENV['PG_PORT'] : (getenv('PG_PORT') ?: '7496');
+            $pg_db   = isset($_ENV['PG_DB_NAME']) ? $_ENV['PG_DB_NAME'] : (getenv('PG_DB_NAME') ?: 'biotime');
+            $pg_user = isset($_ENV['PG_USER']) ? $_ENV['PG_USER'] : (getenv('PG_USER') ?: 'postgres');
+            $pg_pass = isset($_ENV['PG_PASS']) ? $_ENV['PG_PASS'] : (getenv('PG_PASS') ?: 'attendee@2020');
+            $pg_conn_string = "host=$pg_host port=$pg_port dbname=$pg_db user=$pg_user password=$pg_pass connect_timeout=10";
+            $pg_conn = @pg_connect($pg_conn_string);
+            if (!$pg_conn) {
+                $err = error_get_last();
+                throw new Exception("PostgreSQL connection failed: " . ($err ? $err['message'] : 'Unknown'));
+            }
+
+            $conditions = "punch_time >= '$start_date' AND punch_time <= '$end_date'";
+            if (!empty($terminal_sn)) {
+                $conditions .= " AND terminal_sn = '" . pg_escape_string($pg_conn, $terminal_sn) . "'";
+            }
+            if (!empty($empcode)) {
+                $conditions .= " AND emp_code = '" . pg_escape_string($pg_conn, $empcode) . "'";
+            }
+            $pg_result = pg_query($pg_conn, "SELECT emp_code, terminal_sn, area_alias, punch_time FROM iclock_transaction WHERE $conditions ORDER BY punch_time ASC");
+            if (!$pg_result) {
+                throw new Exception("PostgreSQL query failed: " . pg_last_error($pg_conn));
+            }
+            $total_rows = pg_num_rows($pg_result);
+            $result['records_fetched'] = $total_rows;
+            if ($total_rows == 0) {
+                pg_close($pg_conn);
+                $result['status'] = 'success';
+                $result['message'] = 'No records for range';
+                return $result;
+            }
+
+            $emp_to_pid = array();
+            $q = $this->db->query("SELECT card_number, ipps, ihris_pid FROM ihrisdata");
+            if ($q && $q->num_rows() > 0) {
+                foreach ($q->result() as $r) {
+                    if (!empty($r->card_number)) {
+                        $emp_to_pid[$r->card_number] = $r->ihris_pid;
+                    }
+                    if (!empty($r->ipps)) {
+                        $emp_to_pid[$r->ipps] = $r->ihris_pid;
+                    }
+                }
+            }
+            $devices = array();
+            $q2 = $this->db->query("SELECT sn, area_code, area_name FROM biotime_devices");
+            if ($q2 && $q2->num_rows() > 0) {
+                foreach ($q2->result() as $r) {
+                    $devices[$r->sn] = array('facility_id' => $r->area_code, 'facility' => $r->area_name);
+                }
+            }
+
+            $batch = array();
+            $inserted_count = 0;
+            $clock_merged = 0;
+            $night_merged = 0;
+            $actuals_merged = 0;
+            $batch_num = 0;
+            $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : "'BIO-TIME'";
+
+            while ($row = pg_fetch_assoc($pg_result)) {
+                $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
+                $batch[] = array(
+                    'emp_code'     => isset($row['emp_code']) ? $row['emp_code'] : '',
+                    'terminal_sn'  => isset($row['terminal_sn']) ? $row['terminal_sn'] : '',
+                    'area_alias'   => isset($row['area_alias']) ? $row['area_alias'] : '',
+                    'longitude'    => NULL,
+                    'latitude'     => NULL,
+                    'punch_state'  => '',
+                    'punch_time'   => $datetime
+                );
+
+                if (count($batch) >= $batch_size) {
+                    $batch_num++;
+                    if ($this->db->insert_batch('biotime_data_history', $batch)) {
+                        $inserted_count += count($batch);
+                    }
+                    $agg = $this->_aggregate_batch_for_clk_log($batch, $emp_to_pid, $devices);
+                    if (!empty($agg)) {
+                        $n = $this->_upsert_clk_log_batch($agg);
+                        $clock_merged += $n;
+                        $actuals_merged += $this->_insert_actuals_for_batch($agg, $stream_col);
+                    }
+                    $night_merged += $this->_apply_night_correction_batch($batch);
+                    $batch = array();
+                }
+            }
+
+            if (!empty($batch)) {
+                if ($this->db->insert_batch('biotime_data_history', $batch)) {
+                    $inserted_count += count($batch);
+                }
+                $agg = $this->_aggregate_batch_for_clk_log($batch, $emp_to_pid, $devices);
+                if (!empty($agg)) {
+                    $clock_merged += $this->_upsert_clk_log_batch($agg);
+                    $actuals_merged += $this->_insert_actuals_for_batch($agg, $stream_col);
+                }
+                $night_merged += $this->_apply_night_correction_batch($batch);
+            }
+
+            pg_close($pg_conn);
+
+            $result['records_saved'] = $inserted_count;
+            $result['clock_log_merged'] = $clock_merged;
+            $result['night_corrected'] = $night_merged;
+            $result['actuals_merged'] = $actuals_merged;
+            $result['status'] = $inserted_count > 0 ? 'success' : 'error';
+            $result['message'] = "Fetched $total_rows, saved $inserted_count, clk_log $clock_merged, night $night_merged, actuals $actuals_merged";
+        } catch (Exception $e) {
+            $result['message'] = $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            log_message('error', 'fetch_time_history_with_clocking: ' . $e->getMessage());
+            if (isset($pg_conn) && $pg_conn) {
+                pg_close($pg_conn);
+            }
+        } catch (Error $e) {
+            $result['message'] = $e->getMessage();
+            $result['errors'][] = $e->getMessage();
+            log_message('error', 'fetch_time_history_with_clocking Error: ' . $e->getMessage());
+            if (isset($pg_conn) && $pg_conn) {
+                pg_close($pg_conn);
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Aggregate a batch of biotime rows into (log_date, ihris_pid) -> time_in, time_out, facility_id, facility, location.
+     */
+    protected function _aggregate_batch_for_clk_log($batch, $emp_to_pid, $devices)
+    {
+        $agg = array();
+        foreach ($batch as $r) {
+            $emp = isset($r['emp_code']) ? $r['emp_code'] : '';
+            $pid = isset($emp_to_pid[$emp]) ? $emp_to_pid[$emp] : null;
+            if (!$pid) {
+                continue;
+            }
+            $ts = isset($r['terminal_sn']) ? $r['terminal_sn'] : '';
+            $dev = isset($devices[$ts]) ? $devices[$ts] : array('facility_id' => '', 'facility' => '');
+            $facility_id = $dev['facility_id'];
+            $facility = $dev['facility'];
+            $location = isset($r['area_alias']) && $r['area_alias'] !== '' ? $r['area_alias'] : $facility;
+            $punch = isset($r['punch_time']) ? $r['punch_time'] : '';
+            if (!$punch) {
+                continue;
+            }
+            $log_date = date('Y-m-d', strtotime($punch));
+            $key = $log_date . "\t" . $pid;
+            if (!isset($agg[$key])) {
+                $agg[$key] = array(
+                    'log_date'    => $log_date,
+                    'ihris_pid'   => $pid,
+                    'time_in'     => $punch,
+                    'time_out'    => $punch,
+                    'facility_id'  => $facility_id,
+                    'facility'    => $facility,
+                    'location'    => $location
+                );
+            } else {
+                if (strtotime($punch) < strtotime($agg[$key]['time_in'])) {
+                    $agg[$key]['time_in'] = $punch;
+                }
+                if (strtotime($punch) > strtotime($agg[$key]['time_out'])) {
+                    $agg[$key]['time_out'] = $punch;
+                }
+            }
+        }
+        return array_values($agg);
+    }
+
+    /**
+     * Bulk upsert into clk_log (merge time_in/time_out with existing).
+     */
+    protected function _upsert_clk_log_batch($rows)
+    {
+        if (empty($rows)) {
+            return 0;
+        }
+        $values = array();
+        $params = array();
+        foreach ($rows as $r) {
+            $entry_id = $r['log_date'] . $r['ihris_pid'];
+            $time_out = $r['time_in'] === $r['time_out'] ? null : $r['time_out'];
+            $values[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $params[] = $entry_id;
+            $params[] = $r['ihris_pid'];
+            $params[] = $r['facility_id'];
+            $params[] = $r['time_in'];
+            $params[] = $time_out;
+            $params[] = $r['log_date'];
+            $params[] = $r['location'];
+            $params[] = 'BIO-TIME';
+            $params[] = $r['facility'];
+        }
+        $sql = "INSERT INTO clk_log (entry_id, ihris_pid, facility_id, time_in, time_out, date, location, source, facility) VALUES " . implode(', ', $values);
+        $sql .= " ON DUPLICATE KEY UPDATE time_in = LEAST(time_in, VALUES(time_in)), time_out = GREATEST(COALESCE(time_out, time_in), COALESCE(VALUES(time_out), VALUES(time_in))), facility_id = IF(VALUES(time_in) < time_in, VALUES(facility_id), facility_id), location = IF(VALUES(time_in) < time_in, VALUES(location), location), facility = IF(VALUES(time_in) < time_in, VALUES(facility), facility), source = 'BIO-TIME'";
+        $this->db->query($sql, $params);
+        return count($rows);
+    }
+
+    /**
+     * Insert into actuals for the (date, ihris_pid) entries just merged into clk_log so every clock-in is reflected in actuals.
+     * Uses INSERT IGNORE so if the record already exists (e.g. from another device or a prior run) we skip without error.
+     * @param array $agg Aggregated rows from _aggregate_batch_for_clk_log (log_date, ihris_pid, ...)
+     * @param string $stream_col SQL fragment for stream column (e.g. 'cl.source' or "'BIO-TIME'")
+     * @return int Number of actuals inserted (skipped duplicates do not count)
+     */
+    protected function _insert_actuals_for_batch($agg, $stream_col = "'BIO-TIME'")
+    {
+        if (empty($agg)) {
+            return 0;
+        }
+        $entry_ids = array();
+        foreach ($agg as $r) {
+            $entry_ids[] = $r['log_date'] . $r['ihris_pid'];
+        }
+        $placeholders = implode(',', array_fill(0, count($entry_ids), '?'));
+        $this->db->trans_start();
+        $this->db->query("
+            INSERT IGNORE INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end, stream)
+            SELECT CONCAT(cl.date, cl.ihris_pid), cl.facility_id, COALESCE(id.department_id, id.department), cl.ihris_pid, s.schedule_id, s.color, cl.date, DATE_ADD(cl.date, INTERVAL 1 DAY), {$stream_col}
+            FROM clk_log cl
+            JOIN ihrisdata id ON id.ihris_pid = cl.ihris_pid
+            JOIN schedules s ON s.schedule_id = 22
+            LEFT JOIN actuals a ON a.entry_id = CONCAT(cl.date, cl.ihris_pid)
+            WHERE a.entry_id IS NULL
+            AND CONCAT(cl.date, cl.ihris_pid) IN ($placeholders)
+        ", $entry_ids);
+        $n = $this->db->affected_rows();
+        $this->db->trans_complete();
+        return $n;
+    }
+
+    /**
+     * Apply night-shift correction for one batch: set clk_log.time_out from next-day punches in this batch (schedule 16).
+     * Scoped to batch time range to avoid long locks; run after each batch during streaming.
+     * @param array $batch Batch rows with 'punch_time' (Y-m-d H:i:s)
+     * @return int Affected rows
+     */
+    protected function _apply_night_correction_batch($batch)
+    {
+        if (empty($batch)) {
+            return 0;
+        }
+        $times = array();
+        foreach ($batch as $r) {
+            if (!empty($r['punch_time'])) {
+                $times[] = $r['punch_time'];
+            }
+        }
+        if (empty($times)) {
+            return 0;
+        }
+        $batch_min = min($times);
+        $batch_max = max($times);
+        $this->db->trans_start();
+        $this->db->query("
+            UPDATE clk_log cl
+            INNER JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date AND dr.schedule_id = '16'
+            INNER JOIN (
+                SELECT i.ihris_pid, DATE_SUB(DATE(b.punch_time), INTERVAL 1 DAY) AS log_date, MAX(b.punch_time) AS punch_time
+                FROM biotime_data_history b
+                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+                WHERE b.punch_time >= ? AND b.punch_time <= ?
+                GROUP BY i.ihris_pid, log_date
+            ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date
+            SET cl.time_out = sub.punch_time
+            WHERE sub.punch_time > cl.time_in
+            AND TIMESTAMPDIFF(HOUR, cl.time_in, sub.punch_time) <= 15
+        ", array($batch_min, $batch_max));
+        $n = $this->db->affected_rows();
+        $this->db->trans_complete();
+        return $n;
+    }
+
 }

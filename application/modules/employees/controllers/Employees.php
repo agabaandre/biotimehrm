@@ -311,8 +311,8 @@ class Employees extends MX_Controller
   public function viewTimeLogs()
   {
     // Default date range
-    $date_from = date("Y-m-d", strtotime("-1 month"));
-    $date_to = date('Y-m-d');
+      $date_from = date("Y-m-d", strtotime("-1 month"));
+      $date_to = date('Y-m-d');
     
     $data['date_from'] = $date_from;
     $data['date_to'] = $date_to;
@@ -734,7 +734,7 @@ class Employees extends MX_Controller
           isset($emp['fullname']) ? trim($emp['fullname']) : '',
           $this->_position_initials(isset($emp['job']) ? $emp['job'] : ''),
         );
-        $personhrs = array();
+      $personhrs = array();
         for ($i = 1; $i <= $month_days; $i++) {
           $date_d = $year . '-' . $month . '-' . ($i < 10 ? '0' . $i : $i);
           $timedata = isset($logs_by_pid_date[$pid][$date_d]) ? $logs_by_pid_date[$pid][$date_d] : null;

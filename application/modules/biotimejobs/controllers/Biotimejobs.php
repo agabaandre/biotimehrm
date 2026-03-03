@@ -589,8 +589,7 @@ class Biotimejobs extends MX_Controller
             $status = ($result['records_saved'] > 0) ? "successful" : "failed";
         $this->cronjob_register($process, $method, $status);
             
-            // Process clock-in/out data
-            $this->biotimeClockin();
+            // Clock-in/out: use fetch_daily_attendance (streaming) for full sync. This method only fetches to biotime_data to avoid double-processing.
             
         } catch (Exception $e) {
             $result['status'] = 'error';
@@ -620,7 +619,7 @@ class Biotimejobs extends MX_Controller
         try {
             // Get parameters
             $end_date_input = $this->input->get('end_date');
-            $terminal_sn = $this->input->get('terminal_sn');
+        $terminal_sn = $this->input->get('terminal_sn');
             $start_date_input = $this->input->get('start_date');
             $sync_type = $this->input->get('sync_type') ?: 'attendance';
             $batch_size = (int) ($this->input->get('batch_size') ?: 10);
@@ -1334,7 +1333,8 @@ class Biotimejobs extends MX_Controller
     }
 
     /**
-     * Run unified clock-in for each day in a date range (used to batch days in fetch_daily_attendance).
+     * Run unified clock-in for each day in a date range (legacy / manual use).
+     * NOT used by fetch_daily_attendance — that uses streaming + biotimeNightAndActualsOnly. Avoid calling both to prevent double processing.
      * @param string $start_date Y-m-d
      * @param string $end_date Y-m-d (inclusive)
      */
@@ -1354,6 +1354,58 @@ class Biotimejobs extends MX_Controller
         }
     }
 
+    /**
+     * Run only actuals for a date range (clk_log + night already applied during streaming in the model).
+     * Call after fetch_time_history_with_clocking for all devices. Night correction is done per-batch in the model to avoid deadlocks.
+     * @param string $start_date Y-m-d
+     * @param string $end_date Y-m-d (inclusive)
+     * @param bool $clear_biotime_data If true, delete from biotime_data for this range (legacy cleanup; streaming writes to biotime_data_history only)
+     * @return array [night_updated (0; done in model), actuals_updated]
+     */
+    public function biotimeNightAndActualsOnly($start_date, $end_date, $clear_biotime_data = true)
+    {
+        $start_dt = $start_date . ' 00:00:00';
+        $end_dt   = $end_date . ' 23:59:59';
+        $actualsUpdated = 0;
+
+        // Night correction is applied per-batch in fetch_time_history_with_clocking; no separate night UPDATE here (avoids deadlocks)
+
+        $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : 'NULL';
+        $this->db->trans_start();
+        $this->db->query("
+            INSERT INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end, stream)
+            SELECT DISTINCT
+                CONCAT(cl.date, id.ihris_pid),
+                cl.facility_id,
+                COALESCE(id.department_id, id.department),
+                id.ihris_pid,
+                s.schedule_id,
+                s.color,
+                cl.date,
+                DATE_ADD(cl.date, INTERVAL 1 DAY),
+                {$stream_col}
+            FROM ihrisdata id
+            JOIN clk_log cl ON id.ihris_pid = cl.ihris_pid
+            JOIN schedules s ON s.schedule_id = 22
+            LEFT JOIN actuals a ON a.entry_id = CONCAT(cl.date, id.ihris_pid)
+            WHERE cl.date BETWEEN ? AND ?
+            AND a.entry_id IS NULL
+        ", [$start_date, $end_date]);
+        $actualsUpdated = $this->db->affected_rows();
+        $this->db->trans_complete();
+
+        if ($clear_biotime_data) {
+            $this->db->where('punch_time >=', $start_dt);
+            $this->db->where('punch_time <=', $end_dt);
+            $this->db->delete('biotime_data');
+        }
+        return array('night_updated' => 0, 'actuals_updated' => $actualsUpdated);
+    }
+
+    /**
+     * Legacy unified sync: aggregate biotime_data → clk_log + night + actuals for a day.
+     * NOT used by fetch_daily_attendance (which uses streaming). Used by biotimeClockin / biotimeClockinRange only.
+     */
     public function biotimeSyncAttendanceUnified($date = null, $facility_name = null, $terminal_sn = null)
     {
         ignore_user_abort(true);
@@ -1733,6 +1785,75 @@ class Biotimejobs extends MX_Controller
         $this->db->replace("cronjob_register", $data);
     }
     /**
+     * Fetch time history with streaming: clock-in/clock-out merged into clk_log per batch as we fetch.
+     * One call per device for the full range; no separate aggregation step. Run biotimeNightAndActualsOnly after all devices.
+     *
+     * Strategy: Clock-in/out are applied per batch (e.g. 500 rows) as we read from PostgreSQL, so we avoid
+     * one large aggregation over biotime_data at the end. Drawbacks: (1) Night correction and actuals still
+     * run once after all devices (they need full day/range data). (2) Per-record would be slower (many more
+     * DB round-trips); per-batch is a balance of throughput and latency.
+     * Efficiency: Fewer long locks, no big temp table; same PG read, more but smaller MySQL writes.
+     *
+     * @param string $start_date Start date Y-m-d
+     * @param string $end_date End date Y-m-d
+     * @param string|bool $terminal_sn Terminal serial (false = all)
+     * @param string|bool $facility Facility name (for logging)
+     * @param bool $output_console Whether to echo progress
+     * @return array status, message, total_records
+     */
+    public function fetch_time_history_streaming($start_date, $end_date, $terminal_sn = FALSE, $facility = FALSE, $output_console = TRUE)
+    {
+        ignore_user_abort(true);
+        set_time_limit(0);
+        $console = function ($msg, $type = 'info') use ($output_console) {
+            if ($output_console) {
+                $p = ($type === 'success') ? '✓' : (($type === 'error') ? '✗' : '→');
+                echo '[' . date('Y-m-d H:i:s') . "] $p $msg\n";
+                if (ob_get_level() > 0) { ob_flush(); }
+                flush();
+            }
+        };
+        $result = array('status' => 'error', 'message' => '', 'total_records' => 0);
+        try {
+            $this->db->query("SET SESSION innodb_lock_wait_timeout = 120");
+            $start_ts = $start_date . ' 00:00:00';
+            $end_ts   = $end_date . ' 23:59:59';
+            $max_retries = 3;
+            $delay = 5;
+            for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
+                try {
+                    $r = $this->biotimejobs_mdl->fetch_time_history_with_clocking($start_ts, $end_ts, $terminal_sn, FALSE, 500);
+                    $result['status'] = $r['status'];
+                    $result['message'] = $r['message'];
+                    $result['total_records'] = isset($r['records_saved']) ? (int) $r['records_saved'] : 0;
+                    if ($output_console && !empty($r['clock_log_merged'])) {
+                        $console("Clock-log merged: " . $r['clock_log_merged'], 'info');
+                    }
+                    if ($output_console && !empty($r['night_corrected'])) {
+                        $console("Night corrected: " . $r['night_corrected'], 'info');
+                    }
+                    if ($output_console && isset($r['actuals_merged']) && $r['actuals_merged'] > 0) {
+                        $console("Actuals (from clock-in): " . $r['actuals_merged'], 'info');
+                    }
+                    return $result;
+                } catch (Exception $e) {
+                    $is_lock = (strpos($e->getMessage(), 'Lock wait timeout exceeded') !== false);
+                    if ($is_lock && $attempt < $max_retries) {
+                        $console("Lock wait, retry $attempt/$max_retries in {$delay}s...", 'warning');
+                        sleep($delay);
+                        continue;
+                    }
+                    $result['message'] = $e->getMessage();
+                    return $result;
+                }
+            }
+        } catch (Exception $e) {
+            $result['message'] = $e->getMessage();
+        }
+        return $result;
+    }
+
+    /**
      * Fetch time history for a date range, processing day by day
      * Uses PostgreSQL database for faster data retrieval
      * 
@@ -1883,8 +2004,8 @@ class Biotimejobs extends MX_Controller
                 }
                 
                 $result['daily_stats'][] = $daily_stat;
-                
-                // Increment current date by 1 day
+
+            // Increment current date by 1 day
             $currentDate = strtotime('+1 day', $currentDate);
             }
             
@@ -1921,11 +2042,12 @@ class Biotimejobs extends MX_Controller
     }
 
     /**
-     * Fetch daily attendance for all machines
-     * Processes each machine individually with proper error handling and console output
-     * 
+     * Fetch daily attendance for all machines (canonical daily sync).
+     * Uses only: fetch_time_history_streaming (model does clock-in/out + night + actuals per batch), then biotimeNightAndActualsOnly (actuals backfill + clear).
+     * Does NOT use: biotimeClockin, biotimeClockinRange, biotimeSyncAttendanceUnified, or the old day-by-day fetch_time_history.
+     *
      * @param string|bool $end_date End date in Y-m-d format (default: FALSE = current date)
-     * @param int $max_days Maximum number of days to sync per machine (default: 60)
+     * @param int $max_days Maximum number of days to sync per machine (default: 365)
      * @param string|bool $specific_device Specific device SN to sync (default: FALSE = all devices)
      * @param bool $output_console Whether to output console messages (default: true)
      * @return array Result array with status, message, and statistics per machine
@@ -2099,8 +2221,8 @@ class Biotimejobs extends MX_Controller
                             $sync_date_range_start = $start;
                         }
                         
-                        // Fetch time history for this machine (no clock-in here; clock-in runs once after all machines)
-                        $fetch_result = $this->fetch_time_history($start, $end_date, $device, $facility, FALSE, NULL, $output_console);
+                        // Streaming fetch: clock-in/clock-out merged into clk_log per batch as we fetch (no big aggregation at end)
+                        $fetch_result = $this->fetch_time_history_streaming($start, $end_date, $device, $facility, $output_console);
                         
                         if ($fetch_result['status'] === 'success') {
                             $machine_result['status'] = 'success';
@@ -2139,19 +2261,19 @@ class Biotimejobs extends MX_Controller
                 $console("", 'info');
             }
             
-            // Run unified clock-in once after all machines are synced, in chunks (10 days if range > 10, else 3)
+            // Night-shift correction + actuals only (clk_log already filled by streaming fetch); run in chunks
             if ($sync_date_range_start !== null && $machines_processed > 0) {
                 $total_days = (int) ceil((strtotime($end_date . ' 23:59:59') - strtotime($sync_date_range_start)) / 86400) + 1;
                 $chunk_size = ($total_days > 10) ? 10 : 3;
                 $console("", 'info');
                 $console("═══════════════════════════════════════════════════════", 'info');
-                $console("  UNIFIED CLOCK-IN (all synced facilities)", 'info');
-                $console("  Date range: $sync_date_range_start → $end_date ($total_days days, chunk size: $chunk_size)", 'info');
+                $console("  ACTUALS (clock-in/out + night applied during stream)", 'info');
+                $console("  Date range: $sync_date_range_start → $end_date (chunk size: $chunk_size)", 'info');
                 $console("═══════════════════════════════════════════════════════", 'info');
                 $cursor = strtotime($sync_date_range_start);
                 $end_ts = strtotime($end_date . ' 23:59:59');
                 $chunk_num = 0;
-                $days_for_clockin = 0;
+                $days_done = 0;
                 while ($cursor <= $end_ts) {
                     $chunk_start = date('Y-m-d', $cursor);
                     $chunk_end_ts = strtotime("+{$chunk_size} days", $cursor) - 1;
@@ -2161,20 +2283,20 @@ class Biotimejobs extends MX_Controller
                     $chunk_end = date('Y-m-d', $chunk_end_ts);
                     $chunk_num++;
                     try {
-                        $this->biotimeClockinRange($chunk_start, $chunk_end);
+                        $stats = $this->biotimeNightAndActualsOnly($chunk_start, $chunk_end, true);
                         $chunk_days = (int) ceil((strtotime($chunk_end . ' 23:59:59') - strtotime($chunk_start)) / 86400) + 1;
-                        $days_for_clockin += $chunk_days;
-                        $console("  ✓ Chunk $chunk_num: $chunk_start → $chunk_end ($chunk_days day(s))", 'success');
+                        $days_done += $chunk_days;
+                        $console("  ✓ Chunk $chunk_num: $chunk_start → $chunk_end (actuals: {$stats['actuals_updated']})", 'success');
                     } catch (Exception $e) {
                         $console("  ✗ Chunk $chunk_num ($chunk_start → $chunk_end) failed: " . $e->getMessage(), 'error');
-                        $this->log("fetch_daily_attendance() clock-in chunk failed: " . $e->getMessage());
+                        $this->log("fetch_daily_attendance() night/actuals chunk failed: " . $e->getMessage());
                     } catch (Error $e) {
                         $console("  ✗ Chunk $chunk_num ($chunk_start → $chunk_end) error: " . $e->getMessage(), 'error');
-                        $this->log("fetch_daily_attendance() clock-in chunk error: " . $e->getMessage());
+                        $this->log("fetch_daily_attendance() night/actuals chunk error: " . $e->getMessage());
                     }
                     $cursor = strtotime("+{$chunk_size} days", $cursor);
                 }
-                $console("  ✓ Unified clock-in completed for $days_for_clockin day(s) in $chunk_num chunk(s)", 'success');
+                $console("  ✓ Night + actuals completed for $days_done day(s) in $chunk_num chunk(s)", 'success');
                 $console("", 'info');
             }
             
