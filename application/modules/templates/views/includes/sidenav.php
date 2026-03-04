@@ -96,6 +96,11 @@
                <li class="nav-item"><a href="<?php echo base_url() ?>employees/district_employees" class="nav-link <?php echo ($this->uri->segment(1) == 'employees' && $this->uri->segment(2) == 'district_employees') ? 'active' : ''; ?>">
                    <i class="far fa-circle nav-icon"></i>
                    District Staff List</a></li>
+               <?php if (is_array($permissions) && (in_array('15', $permissions) || in_array(15, $permissions))) { ?>
+               <li class="nav-item"><a href="<?php echo base_url() ?>employees/all_ihris_staff" class="nav-link <?php echo ($this->uri->segment(1) == 'employees' && $this->uri->segment(2) == 'all_ihris_staff') ? 'active' : ''; ?>">
+                   <i class="far fa-circle nav-icon"></i>
+                   All iHRIS Staff</a></li>
+               <?php } ?>
                <?php if (($setting->deployment_type != "moh") && (in_array('45', $permissions))) { ?>
                  <li class="nav-item">
                    <a href="<?php echo base_url() ?>employees/createEmployee" class="nav-link <?php echo ($this->uri->segment(1) == 'employees' && $this->uri->segment(2) == 'createEmployee') ? 'active' : ''; ?>">

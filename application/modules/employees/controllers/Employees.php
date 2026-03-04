@@ -32,6 +32,60 @@ class Employees extends MX_Controller
   }
 
 
+  /**
+   * All iHRIS Staff (nationwide) with dropdown filters. Permission 15 required.
+   */
+  public function all_ihris_staff()
+  {
+    $perms = $this->session->userdata('permissions');
+    if (!is_array($perms) || (!in_array('15', $perms) && !in_array(15, $perms))) {
+      show_404();
+      return;
+    }
+    if ($this->input->is_ajax_request()) {
+      $this->_handleAllIhrisAjaxRequest();
+      return;
+    }
+    $data['filter_options'] = $this->empModel->get_all_ihris_filter_options();
+    $data['view'] = 'staff_all_ihris';
+    $data['uptitle'] = 'All iHRIS Staff';
+    $data['module'] = 'employees';
+    $data['can_mark_disabled'] = true;
+    echo Modules::run('templates/main', $data);
+  }
+
+  private function _handleAllIhrisAjaxRequest()
+  {
+    $draw = (int) $this->input->post('draw');
+    $start = (int) $this->input->post('start');
+    $length = (int) $this->input->post('length');
+    $search = $this->input->post('search')['value'] ?? '';
+    $order_column = (int) $this->input->post('order')[0]['column'];
+    $order_dir = $this->input->post('order')[0]['dir'] === 'desc' ? 'desc' : 'asc';
+    $district = $this->input->post('district');
+    $facility = $this->input->post('facility');
+    $job = $this->input->post('job');
+    $institution_type = $this->input->post('institution_type');
+    $facility_type = $this->input->post('facility_type');
+    $globalSearch = $this->input->post('globalSearch');
+    $include_inactive = (bool) $this->input->post('includeInactive');
+    $search = $globalSearch !== null && $globalSearch !== '' ? $globalSearch : $search;
+    if (is_string($facility) && $facility !== '') {
+      $facility = array_filter(explode(',', $facility));
+    }
+    if (is_string($job) && $job !== '') {
+      $job = array_filter(explode(',', $job));
+    }
+    $total_records = $this->empModel->all_ihris_staff_count($district, $facility, $job, $institution_type, $facility_type, $search, $include_inactive);
+    $data = $this->empModel->all_ihris_staff_ajax($district, $facility, $job, $institution_type, $facility_type, $start, $length, $search, $order_column, $order_dir, $include_inactive);
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'draw' => $draw,
+      'recordsTotal' => $total_records,
+      'recordsFiltered' => $total_records,
+      'data' => $data
+    ]));
+  }
+
   public function district_employees($csv = FALSE)
   {
     // Handle AJAX requests for pagination
