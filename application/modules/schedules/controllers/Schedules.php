@@ -127,6 +127,20 @@ class Schedules extends MX_Controller
 		echo Modules::run("templates/main", $data);
 	}
 
+	/**
+	 * Get schedules by purpose. Used by rosta and reasons modules.
+	 * @param string $purpose 'r' = roster (duty roster), 'a' = attendance; default 'r'
+	 * @return mixed
+	 */
+	public function getSchedules($purpose = 'r')
+	{
+		$purpose = ($purpose === 'a') ? 'a' : 'r';
+		if ($purpose === 'a') {
+			return $this->scheduleMdl->getattSchedules();
+		}
+		return $this->scheduleMdl->getrotaSchedules();
+	}
+
 	public function getrotaSchedules()
 	{
 

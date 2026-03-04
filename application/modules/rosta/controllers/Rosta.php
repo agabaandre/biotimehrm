@@ -1397,6 +1397,7 @@ class Rosta extends MX_Controller
 			show_404();
 			return;
 		}
+		@set_time_limit(300);
 		$month = $this->input->post('month');
 		$year  = $this->input->post('year');
 		$empid = $this->input->post('empid') ? trim($this->input->post('empid')) : '';
