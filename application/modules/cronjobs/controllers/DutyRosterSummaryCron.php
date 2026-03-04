@@ -96,7 +96,7 @@ class DutyRosterSummaryCron extends MX_Controller {
                     r.ihris_pid,
                     r.facility_id,
                     DATE_FORMAT(r.duty_date, '%Y-%m') AS yyyy_mm,
-                    DAY(LAST_DAY(r.duty_date)) AS month_days,
+                    DAY(LAST_DAY(MAX(r.duty_date))) AS month_days,
                     SUM(r.schedule_id = 14) AS D_ct,  -- Day
                     SUM(r.schedule_id = 15) AS E_ct,  -- Evening
                     SUM(r.schedule_id = 16) AS N_ct,  -- Night
