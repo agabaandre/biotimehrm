@@ -12,6 +12,9 @@
 .filter-row label { font-weight: 600; font-size: 0.875rem; }
 </style>
 
+<?php
+$filter_options = isset($filter_options) && is_array($filter_options) ? $filter_options : ['districts' => [], 'facilities' => [], 'jobs' => [], 'institution_types' => [], 'facility_types' => []];
+?>
 <section class="content">
   <div class="container-fluid">
     <div class="row mb-3">
@@ -206,7 +209,7 @@ $(document).ready(function() {
                 d.job = $('#filterJob').val() || '';
                 d.institution_type = $('#filterInstitutionType').val() || '';
                 d.facility_type = $('#filterFacilityType').val() || '';
-                d[csrfName] = csrfHash;
+                d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
             }
         },
         columns: [

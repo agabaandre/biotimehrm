@@ -450,37 +450,45 @@ class Employee_model extends CI_Model
     public function get_all_ihris_filter_options()
     {
         $opts = ['districts' => [], 'facilities' => [], 'jobs' => [], 'institution_types' => [], 'facility_types' => []];
+        if (!$this->db->table_exists('ihrisdata')) {
+            return $opts;
+        }
         $this->db->distinct();
         $this->db->select('district');
         $this->db->from('ihrisdata');
-        $this->db->where('district IS NOT NULL AND TRIM(COALESCE(district, "")) != ""');
+        $this->db->where('district IS NOT NULL');
+        $this->db->where('district !=', '');
         $this->db->order_by('district', 'asc');
         $q = $this->db->get();
-        if ($q->num_rows() > 0) {
+        if ($q && $q->num_rows() > 0) {
             foreach ($q->result() as $r) {
-                $opts['districts'][] = ['value' => $r->district, 'label' => $r->district];
+                if (trim((string) $r->district) !== '') {
+                    $opts['districts'][] = ['value' => $r->district, 'label' => $r->district];
+                }
             }
         }
         $this->db->distinct();
         $this->db->select('facility_id, facility');
         $this->db->from('ihrisdata');
-        $this->db->where('facility_id IS NOT NULL AND TRIM(COALESCE(facility_id, "")) != ""');
+        $this->db->where('facility_id IS NOT NULL');
+        $this->db->where('facility_id !=', '');
         $this->db->order_by('facility', 'asc');
         $q = $this->db->get();
-        if ($q->num_rows() > 0) {
+        if ($q && $q->num_rows() > 0) {
             foreach ($q->result() as $r) {
-                $opts['facilities'][] = ['value' => $r->facility_id, 'label' => $r->facility ?: $r->facility_id];
+                $opts['facilities'][] = ['value' => $r->facility_id, 'label' => trim($r->facility) !== '' ? $r->facility : $r->facility_id];
             }
         }
         $this->db->distinct();
         $this->db->select('job_id, job');
         $this->db->from('ihrisdata');
-        $this->db->where('job_id IS NOT NULL AND TRIM(COALESCE(job_id, "")) != ""');
+        $this->db->where('job_id IS NOT NULL');
+        $this->db->where('job_id !=', '');
         $this->db->order_by('job', 'asc');
         $q = $this->db->get();
-        if ($q->num_rows() > 0) {
+        if ($q && $q->num_rows() > 0) {
             foreach ($q->result() as $r) {
-                $opts['jobs'][] = ['value' => $r->job_id, 'label' => $r->job ?: $r->job_id];
+                $opts['jobs'][] = ['value' => $r->job_id, 'label' => trim($r->job) !== '' ? $r->job : $r->job_id];
             }
         }
         $col_inst = $this->db->field_exists('institution_type', 'ihrisdata') ? 'institution_type' : ($this->db->field_exists('institutiontype_name', 'ihrisdata') ? 'institutiontype_name' : null);
@@ -488,13 +496,16 @@ class Employee_model extends CI_Model
             $this->db->distinct();
             $this->db->select($col_inst);
             $this->db->from('ihrisdata');
-            $this->db->where($col_inst . ' IS NOT NULL AND TRIM(COALESCE(' . $col_inst . ', "")) != ""');
+            $this->db->where($col_inst . ' IS NOT NULL');
+            $this->db->where($col_inst . ' !=', '');
             $this->db->order_by($col_inst, 'asc');
             $q = $this->db->get();
-            if ($q->num_rows() > 0) {
+            if ($q && $q->num_rows() > 0) {
                 foreach ($q->result() as $r) {
                     $v = $r->{$col_inst};
-                    $opts['institution_types'][] = ['value' => $v, 'label' => $v];
+                    if (trim((string) $v) !== '') {
+                        $opts['institution_types'][] = ['value' => $v, 'label' => $v];
+                    }
                 }
             }
         }
@@ -503,13 +514,16 @@ class Employee_model extends CI_Model
             $this->db->distinct();
             $this->db->select($col_ft);
             $this->db->from('ihrisdata');
-            $this->db->where($col_ft . ' IS NOT NULL AND TRIM(COALESCE(' . $col_ft . ', "")) != ""');
+            $this->db->where($col_ft . ' IS NOT NULL');
+            $this->db->where($col_ft . ' !=', '');
             $this->db->order_by($col_ft, 'asc');
             $q = $this->db->get();
-            if ($q->num_rows() > 0) {
+            if ($q && $q->num_rows() > 0) {
                 foreach ($q->result() as $r) {
                     $v = $r->{$col_ft};
-                    $opts['facility_types'][] = ['value' => $v, 'label' => $v];
+                    if (trim((string) $v) !== '') {
+                        $opts['facility_types'][] = ['value' => $v, 'label' => $v];
+                    }
                 }
             }
         }

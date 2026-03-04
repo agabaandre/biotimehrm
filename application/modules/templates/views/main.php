@@ -59,6 +59,7 @@ require_once("includes/sidenav.php");
               if (isset($title)) $child_data['title'] = $title;
               if (isset($can_mark_disabled)) $child_data['can_mark_disabled'] = $can_mark_disabled;
               else $child_data['can_mark_disabled'] = (is_array($permissions) && (in_array('15', $permissions) || in_array(15, $permissions)));
+              if (isset($filter_options)) $child_data['filter_options'] = $filter_options;
               $this->load->view($module . "/" . $view, $child_data);
           ?>
 
