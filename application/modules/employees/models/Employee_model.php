@@ -450,9 +450,6 @@ class Employee_model extends CI_Model
      */
     public function set_staff_status($ihris_pid, $active)
     {
-        if (!$this->db->field_exists('is_active_employee', 'ihrisdata')) {
-            return false;
-        }
         $pid = is_string($ihris_pid) ? $ihris_pid : ('person|' . $ihris_pid);
         if (strpos($pid, 'person|') !== 0) {
             $pid = 'person|' . $pid;

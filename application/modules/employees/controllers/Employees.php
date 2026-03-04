@@ -180,7 +180,7 @@ class Employees extends MX_Controller
     $ok = $this->empModel->set_staff_status($ihris_pid, 0);
     $this->output->set_output(json_encode(array(
       'success' => $ok,
-      'message' => $ok ? 'Marked as Former Staff.' : 'Update failed or status column missing.',
+      'message' => $ok ? 'Marked as Former Staff.' : 'Update failed or is_active_employee column missing.',
       'status' => 0,
       'status_label' => 'Former Staff'
     )));
@@ -205,7 +205,7 @@ class Employees extends MX_Controller
     $ok = $this->empModel->set_staff_status($ihris_pid, 1);
     $this->output->set_output(json_encode(array(
       'success' => $ok,
-      'message' => $ok ? 'Marked as Active.' : 'Update failed or status column missing.',
+      'message' => $ok ? 'Marked as Active.' : 'Update failed or is_active_employee column missing.',
       'status' => 1,
       'status_label' => 'Active'
     )));
