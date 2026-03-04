@@ -24,7 +24,7 @@ class AttendanceSummaryCron extends MX_Controller {
           
             
             // Get the date range for processing: first day of previous month to today
-            $date_from = date('Y-m-01', strtotime('first day of -2 month'));
+            $date_from = date('Y-m-01', strtotime('first day of -7 month'));
             $date_to = date('Y-m-d'); // Today
             
             // No need to clear existing data, as ON DUPLICATE KEY will update

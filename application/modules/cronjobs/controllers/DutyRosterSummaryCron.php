@@ -311,7 +311,7 @@ class DutyRosterSummaryCron extends MX_Controller {
             return;
         }
         
-        $date_from = date('Y-m-01', strtotime('first day of last month'));
+        $date_from = date('Y-m-01', strtotime('first day of -7 month'));
         $date_to = date('Y-m-d');
         
         echo json_encode([
