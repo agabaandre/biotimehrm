@@ -228,9 +228,9 @@ $(document).ready(function() {
                 var pid = row.ihris_pid || '';
                 var pidEnc = (pid.indexOf('person|') === 0) ? pid : ('person|' + pid);
                 if (row.status === 0) {
-                    return '<button type="button" class="btn btn-sm btn-outline-success btn-mark-enabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-check mr-1"></i>Mark Active</button>';
+                    return '<button type="button" class="btn btn-xs btn-outline-success btn-mark-enabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-check" style="font-size:0.7rem"></i> Active</button>';
                 }
-                return '<button type="button" class="btn btn-sm btn-outline-warning btn-mark-disabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-minus mr-1"></i>Mark Disabled</button>';
+                return '<button type="button" class="btn btn-xs btn-outline-warning btn-mark-disabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-minus" style="font-size:0.7rem"></i> Disable</button>';
             }}
         ],
         order: [[3, 'asc']], // Sort by name by default
@@ -318,14 +318,19 @@ $(document).ready(function() {
     });
 
     // Mark as disabled / enabled (permission 15) — AJAX, update row without refresh
+    function parseJsonRes(res) {
+        if (typeof res === 'string') { try { return JSON.parse(res); } catch(e) { return {}; } }
+        return res || {};
+    }
     $('#staffTable').on('click', '.btn-mark-disabled', function() {
         var btn = $(this);
         var pid = btn.data('ihris-pid');
         if (!pid) return;
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Updating...');
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin" style="font-size:0.7rem"></i>');
         $.post(baseUrl + 'employees/setStaffDisabled', { ihris_pid: pid, [csrfName]: csrfHash })
             .done(function(res) {
-                if (res && res.success) {
+                var data = parseJsonRes(res);
+                if (data.success) {
                     var row = btn.closest('tr');
                     var rowData = table.row(row).data();
                     if (rowData) {
@@ -333,26 +338,27 @@ $(document).ready(function() {
                         rowData.status_label = 'Former Staff';
                         table.row(row).data(rowData).draw(false);
                     }
-                    if (typeof toastr !== 'undefined') toastr.success(res.message); else alert(res.message);
+                    $.notify(data.message || 'Marked as Former Staff.', 'success');
                 } else {
-                    if (typeof toastr !== 'undefined') toastr.error(res && res.message ? res.message : 'Failed'); else alert(res && res.message ? res.message : 'Failed');
+                    $.notify(data.message || 'Failed', 'error');
                 }
             })
             .fail(function() {
-                if (typeof toastr !== 'undefined') toastr.error('Request failed'); else alert('Request failed');
+                $.notify('Request failed', 'error');
             })
             .always(function() {
-                btn.prop('disabled', false).html('<i class="fas fa-user-minus mr-1"></i>Mark Disabled');
+                btn.prop('disabled', false).html('<i class="fas fa-user-minus" style="font-size:0.7rem"></i> Disable');
             });
     });
     $('#staffTable').on('click', '.btn-mark-enabled', function() {
         var btn = $(this);
         var pid = btn.data('ihris-pid');
         if (!pid) return;
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Updating...');
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin" style="font-size:0.7rem"></i>');
         $.post(baseUrl + 'employees/setStaffEnabled', { ihris_pid: pid, [csrfName]: csrfHash })
             .done(function(res) {
-                if (res && res.success) {
+                var data = parseJsonRes(res);
+                if (data.success) {
                     var row = btn.closest('tr');
                     var rowData = table.row(row).data();
                     if (rowData) {
@@ -360,16 +366,16 @@ $(document).ready(function() {
                         rowData.status_label = 'Active';
                         table.row(row).data(rowData).draw(false);
                     }
-                    if (typeof toastr !== 'undefined') toastr.success(res.message); else alert(res.message);
+                    $.notify(data.message || 'Marked as Active.', 'success');
                 } else {
-                    if (typeof toastr !== 'undefined') toastr.error(res && res.message ? res.message : 'Failed'); else alert(res && res.message ? res.message : 'Failed');
+                    $.notify(data.message || 'Failed', 'error');
                 }
             })
             .fail(function() {
-                if (typeof toastr !== 'undefined') toastr.error('Request failed'); else alert('Request failed');
+                $.notify('Request failed', 'error');
             })
             .always(function() {
-                btn.prop('disabled', false).html('<i class="fas fa-user-check mr-1"></i>Mark Active');
+                btn.prop('disabled', false).html('<i class="fas fa-user-check" style="font-size:0.7rem"></i> Active');
             });
     });
     
@@ -479,5 +485,17 @@ $(document).ready(function() {
   padding: 2rem;
   border-radius: 8px;
   text-align: center;
+}
+
+/* Compact status action buttons */
+#staffTable .btn-mark-disabled,
+#staffTable .btn-mark-enabled {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  line-height: 1.2;
+}
+#staffTable .btn-mark-disabled .fa,
+#staffTable .btn-mark-enabled .fa {
+  font-size: 0.65rem;
 }
 </style>
