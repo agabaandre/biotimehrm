@@ -68,7 +68,7 @@ class Employee_model extends CI_Model
     public function get_employees_ajax($filters, $start = 0, $length = 10, $search = '', $order_column = 0, $order_dir = 'asc', $globalSearch = '', $include_inactive = false)
     {
         $has_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
-        $select = 'ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, facility, district, nin, card_number, birth_date, cadre, gender, facility_id, ipps, email';
+        $select = 'ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, department_id, facility, district, district_id, nin, card_number, birth_date, cadre, gender, facility_id, ipps, email, is_incharge';
         if ($has_active) {
             $select .= ', is_active_employee';
         }
@@ -148,7 +148,12 @@ class Employee_model extends CI_Model
                 'job' => $row->job,
                 'employment_terms' => str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $row->employment_terms ?? ''))),
                 'status' => $status,
-                'status_label' => $status === 0 ? 'Former Staff' : 'Active'
+                'status_label' => $status === 0 ? 'Former Staff' : 'Active',
+                'is_incharge' => isset($row->is_incharge) ? (int) $row->is_incharge : 0,
+                'facility_id' => $row->facility_id ?? '',
+                'district_id' => $row->district_id ?? '',
+                'facility' => $row->facility ?? '',
+                'department_id' => $row->department_id ?? ''
             ];
         }
         

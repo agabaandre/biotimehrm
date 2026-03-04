@@ -114,6 +114,76 @@
   </div>
 </section>
 
+<!-- Incharge Assignment Modal -->
+<div class="modal fade" id="inchargeModal" tabindex="-1" role="dialog" aria-labelledby="inchargeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="inchargeModalLabel">
+          <i class="fas fa-user-plus mr-2"></i>Assign Incharge Role
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-4 text-center">
+            <div class="avatar-placeholder">
+              <i class="fas fa-user fa-3x text-muted"></i>
+            </div>
+            <h6 class="staff-name mt-2">Staff Name</h6>
+            <p class="text-muted staff-job">Job Title</p>
+            <p class="text-muted staff-facility">Facility</p>
+          </div>
+          <div class="col-md-8">
+            <form id="inchargeForm">
+              <input type="hidden" name="ihris_pid">
+              <input type="hidden" name="district_id">
+              <input type="hidden" name="facility_id[]">
+              <input type="hidden" name="department_id">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control" name="name" readonly>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Username (iHRIS ID)</label>
+                    <input type="text" class="form-control" name="username" readonly>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="text" class="form-control" name="password" readonly>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <input type="hidden" name="is_incharge" value="1">
+                  <button type="submit" class="btn btn-info">
+                    <i class="fas fa-user-plus mr-2"></i>Assign Incharge
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- DataTables Scripts -->
 <style>
   /* Employees page: make DataTables action buttons uniform + professional */
@@ -226,13 +296,20 @@ $(document).ready(function() {
             }},
             { data: null, className: 'text-center', orderable: false, responsivePriority: 1, render: function(data, type, row) {
                 if (type !== 'display') return '';
-                if (!canMarkDisabled) return '<span class="text-muted">—</span>';
                 var pid = row.ihris_pid || '';
                 var pidEnc = (pid.indexOf('person|') === 0) ? pid : ('person|' + pid);
-                if (row.status === 0) {
-                    return '<button type="button" class="btn btn-xs btn-outline-success btn-mark-enabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-check" style="font-size:0.7rem"></i> Active</button>';
+                var inchargeHtml = (row.is_incharge == 1)
+                    ? '<span class="badge badge-success">Already Incharge</span>'
+                    : '<button type="button" class="btn btn-xs btn-info assign-incharge" data-staff=\'' + JSON.stringify(row).replace(/'/g, '&#39;') + '\'><i class="fas fa-user-plus" style="font-size:0.7rem"></i> Assign</button>';
+                var statusHtml = '';
+                if (canMarkDisabled) {
+                    if (row.status === 0) {
+                        statusHtml = ' <button type="button" class="btn btn-xs btn-outline-success btn-mark-enabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-check" style="font-size:0.7rem"></i> Active</button>';
+                    } else {
+                        statusHtml = ' <button type="button" class="btn btn-xs btn-outline-warning btn-mark-disabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-minus" style="font-size:0.7rem"></i> Disable</button>';
+                    }
                 }
-                return '<button type="button" class="btn btn-xs btn-outline-warning btn-mark-disabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-minus" style="font-size:0.7rem"></i> Disable</button>';
+                return inchargeHtml + statusHtml || '<span class="text-muted">—</span>';
             }}
         ],
         order: [[3, 'asc']], // Sort by name by default
@@ -328,6 +405,57 @@ $(document).ready(function() {
     $('#refreshTable').on('click', function() {
         table.ajax.reload();
     });
+
+    // Assign incharge modal
+    $(document).on('click', '.assign-incharge', function() {
+        var staffJson = $(this).attr('data-staff');
+        if (!staffJson) return;
+        try {
+            var staffData = typeof staffJson === 'object' ? staffJson : JSON.parse(staffJson);
+            populateInchargeModal(staffData);
+            $('#inchargeModal').modal('show');
+        } catch (e) { console.error(e); }
+    });
+    $('#inchargeForm').on('submit', function(e) {
+        e.preventDefault();
+        submitInchargeForm();
+    });
+    function populateInchargeModal(staffData) {
+        $('.staff-name').text(staffData.fullname || '');
+        $('.staff-job').text(staffData.job || '');
+        $('.staff-facility').text(staffData.facility || '');
+        $('input[name="name"]').val(staffData.fullname || '');
+        $('input[name="username"]').val(staffData.ihris_pid || '');
+        $('input[name="email"]').val(staffData.email || '');
+        $('input[name="ihris_pid"]').val(staffData.ihris_pid || '');
+        $('input[name="district_id"]').val(staffData.district_id || '');
+        var facVal = (staffData.facility_id || '') + '_' + (staffData.facility || '');
+        $('input[name="facility_id[]"]').val(facVal);
+        $('input[name="department_id"]').val(staffData.department_id || '');
+        $('input[name="password"]').val('<?php echo Modules::run("svariables/getSettings")->default_password; ?>');
+    }
+    function submitInchargeForm() {
+        var formData = $('#inchargeForm').serialize();
+        var submitBtn = $('#inchargeForm button[type="submit"]');
+        var originalText = submitBtn.html();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
+        $.ajax({
+            url: baseUrl + 'auth/addUser',
+            method: 'POST',
+            data: formData + '&' + csrfName + '=' + encodeURIComponent(csrfHash),
+            success: function() {
+                $.notify('Incharge role assigned successfully.', 'success');
+                $('#inchargeModal').modal('hide');
+                table.ajax.reload();
+            },
+            error: function() {
+                $.notify('Error assigning incharge role. Please try again.', 'error');
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    }
 
     // Mark as disabled / enabled (permission 15) — AJAX, update row without refresh
     function parseJsonRes(res) {

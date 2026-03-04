@@ -463,7 +463,12 @@ private function _upsert_ihrisdata_batch($rows, $cols)
     $col_list = '`' . implode('`,`', $cols) . '`';
     $updates = array();
     foreach (array_diff($cols, array('ihris_pid')) as $c) {
-        $updates[] = "`$c`=VALUES(`$c`)";
+        // Preserve existing email in ihrisdata when API sends empty (e.g. after assign incharge)
+        if ($c === 'email') {
+            $updates[] = "`email`=IF(COALESCE(TRIM(VALUES(`email`)), '') = '', `email`, VALUES(`email`))";
+        } else {
+            $updates[] = "`$c`=VALUES(`$c`)";
+        }
     }
     $sql = "INSERT INTO ihrisdata ($col_list) VALUES " . implode(',', $values) . " ON DUPLICATE KEY UPDATE " . implode(', ', $updates);
     $this->db->query($sql, $params);
