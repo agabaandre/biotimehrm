@@ -29,7 +29,10 @@ class Svariables extends MX_Controller
 		}
 		
 		$postdata = $this->input->post();
-		if ($this->input->post('language')) {
+		// Run update when variables form is submitted (has id = setting row id)
+		if ($this->input->post('id') !== null && $this->input->post('id') !== '') {
+			$csrf_name = $this->security->get_csrf_token_name();
+			if (isset($postdata[$csrf_name])) unset($postdata[$csrf_name]);
 			$result = $this->svariables_mdl->update_variables($postdata);
 			if (strpos($result, 'Successful') !== false) {
 				$this->session->set_flashdata('success', 'Settings updated successfully!');
@@ -37,9 +40,8 @@ class Svariables extends MX_Controller
 				$this->session->set_flashdata('error', 'Failed to update settings. Please try again.');
 			}
 			redirect("svariables/index");
-		} else {
-			echo Modules::run('templates/main', $data);
 		}
+		echo Modules::run('templates/main', $data);
 	}
 	
 	/**
