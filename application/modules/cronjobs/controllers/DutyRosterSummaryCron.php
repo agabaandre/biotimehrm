@@ -54,8 +54,13 @@ class DutyRosterSummaryCron extends MX_Controller {
      * Generate duty roster summary data using the optimized query with upsert
      * Based on the logic from rosta_cron.php
      */
+    /**
+     * Reset AUTO_INCREMENT to a safe value (MAX(id)+1) to avoid "Failed to read auto-increment value" in InnoDB.
+     */
     public function _resetautoincrement() {
-        $this->db->query("ALTER TABLE person_dut_final AUTO_INCREMENT = 1");
+        $row = $this->db->query("SELECT IFNULL(MAX(id), 0) AS mx FROM person_dut_final")->row();
+        $next = (int) $row->mx + 1;
+        $this->db->query("ALTER TABLE person_dut_final AUTO_INCREMENT = " . $next);
     }
     private function _generateDutyRosterSummary($date_from, $date_to) {
         $this->_resetautoincrement();

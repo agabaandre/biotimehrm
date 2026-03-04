@@ -58,9 +58,19 @@ class AttendanceSummaryCron extends MX_Controller {
     }
 
     /**
+     * Reset AUTO_INCREMENT to a safe value (MAX(id)+1) to avoid "Failed to read auto-increment value" in InnoDB.
+     */
+    private function _resetAutoIncrement() {
+        $row = $this->db->query("SELECT IFNULL(MAX(id), 0) AS mx FROM person_att_final")->row();
+        $next = (int) $row->mx + 1;
+        $this->db->query("ALTER TABLE person_att_final AUTO_INCREMENT = " . $next);
+    }
+
+    /**
      * Generate attendance summary data using the optimized query with upsert
      */
     private function _generateAttendanceSummary($date_from, $date_to) {
+        $this->_resetAutoIncrement();
         $query = "
             INSERT INTO person_att_final (
                 entry_id, ihris_pid, fullname, othername, gender, facility_id, 
