@@ -1386,6 +1386,35 @@ class Rosta extends MX_Controller
 		echo $result ? '1' : '0';
 	}
 
+	/**
+	 * Auto-fill duty roster template: fill only empty cells for the selected month.
+	 * Weekends = Off duty (O), Weekdays = Duty (D). Does not override existing data.
+	 * Expects POST: month, year, empid (optional). Returns JSON.
+	 */
+	public function autoFillTabular()
+	{
+		if (!$this->input->is_ajax_request()) {
+			show_404();
+			return;
+		}
+		$month = $this->input->post('month');
+		$year  = $this->input->post('year');
+		$empid = $this->input->post('empid') ? trim($this->input->post('empid')) : '';
+		if (empty($month) || empty($year)) {
+			$this->output->set_content_type('application/json')->set_output(json_encode(array(
+				'success' => false,
+				'message' => 'Month and year are required.'
+			)));
+			return;
+		}
+		$result = $this->rosta_model->auto_fill_tabular_template($month, $year, $empid, $this->filters);
+		$this->output->set_content_type('application/json')->set_output(json_encode(array(
+			'success' => !$result['error'],
+			'inserted' => (int) $result['inserted'],
+			'message' => $result['message']
+		)));
+	}
+
 	public function excel_template()
 	{
 		$this->load->library('excel');

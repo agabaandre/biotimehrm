@@ -265,6 +265,140 @@ class Rosta_model extends CI_Model
 		}
 		return $schedules;
 	}
+
+	/**
+	 * Get schedule_id and color for a roster letter (purpose 'r'). Used by auto-fill template.
+	 * @param string $letter e.g. 'O' or 'D'
+	 * @return array|null ['schedule_id' => x, 'color' => '#hex'] or null if letter not found
+	 */
+	public function get_roster_schedule_and_color_by_letter($letter)
+	{
+		$letter = trim((string) $letter);
+		if ($letter === '') {
+			return null;
+		}
+		$this->db->select('schedule_id');
+		$this->db->from('schedules');
+		$this->db->where('purpose', 'r');
+		$this->db->where('letter', $letter);
+		$this->db->limit(1);
+		$q = $this->db->get();
+		if ($q->num_rows() === 0) {
+			return null;
+		}
+		$row = $q->row();
+		$sid = $row->schedule_id;
+		$colors = array(
+			'14' => '#297bb2',
+			'15' => '#245270',
+			'16' => '#2f446b',
+			'17' => '#d1a110',
+			'18' => '#B22222',
+			'19' => '#FF8C00',
+			'20' => '#9ACD32',
+			'21' => '#32CD32'
+		);
+		$color = isset($colors[(string)$sid]) ? $colors[(string)$sid] : '#999999';
+		return array('schedule_id' => $sid, 'color' => $color);
+	}
+
+	/**
+	 * Get all employee ihris_pid for tabular (same filters as count_tabs_optimized), no pagination.
+	 */
+	public function get_tab_employee_ids($filters = '', $employee = '')
+	{
+		$facility = $this->session->userdata['facility'];
+		$sql = "SELECT DISTINCT ihrisdata.ihris_pid FROM ihrisdata WHERE ihrisdata.facility_id = ?";
+		$params = array($facility);
+		if (!empty($filters)) {
+			$sql .= " AND " . $filters;
+		}
+		if (!empty($employee)) {
+			$sql .= " AND ihrisdata.ihris_pid = ?";
+			$params[] = $employee;
+		}
+		$sql .= " ORDER BY ihrisdata.surname ASC, ihrisdata.firstname ASC";
+		$query = $this->db->query($sql, $params);
+		$out = array();
+		foreach ($query->result() as $row) {
+			$out[] = $row->ihris_pid;
+		}
+		return $out;
+	}
+
+	/**
+	 * Auto-fill duty roster template: fill only empty cells for the month.
+	 * Weekends = Off duty (O), Weekdays = Duty (D). Does not override existing data.
+	 * @param string $month 01-12
+	 * @param string $year e.g. 2026
+	 * @param string $empid optional filter to one employee
+	 * @param string $filters optional WHERE fragment (same as tabular); if not passed, uses $this->filters
+	 * @return array ['inserted' => int, 'message' => string, 'error' => bool]
+	 */
+	public function auto_fill_tabular_template($month, $year, $empid = '', $filters = null)
+	{
+		$off = $this->get_roster_schedule_and_color_by_letter('O');
+		$day = $this->get_roster_schedule_and_color_by_letter('D');
+		if (!$off || !$day) {
+			return array(
+				'inserted' => 0,
+				'message' => 'Roster schedule letters "O" (off duty) and/or "D" (duty) not found in Duty Roster Schedules.',
+				'error' => true
+			);
+		}
+		$facility = $this->session->userdata['facility'];
+		$department = $this->session->userdata['department_id'];
+		$filters = $filters !== null ? $filters : (is_string($this->filters) ? $this->filters : '');
+		$employee_ids = $this->get_tab_employee_ids($filters, $empid);
+		if (empty($employee_ids)) {
+			return array('inserted' => 0, 'message' => 'No employees found for this facility/filters.', 'error' => false);
+		}
+		$month = str_pad((string)(int)$month, 2, '0', STR_PAD_LEFT);
+		$month_days = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
+		$date_from = $year . '-' . $month . '-01';
+		$placeholders = implode(',', array_fill(0, count($employee_ids), '?'));
+		$sql = "SELECT entry_id FROM duty_rosta WHERE facility_id = ? AND duty_date >= ? AND duty_date <= ? AND ihris_pid IN ($placeholders)";
+		$params = array_merge(array($facility, $date_from, $year . '-' . $month . '-' . str_pad($month_days, 2, '0', STR_PAD_LEFT)), $employee_ids);
+		$query = $this->db->query($sql, $params);
+		$existing = array();
+		foreach ($query->result() as $row) {
+			$existing[$row->entry_id] = true;
+		}
+		$inserted = 0;
+		$insert_sql = "INSERT IGNORE INTO duty_rosta (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, duty_date, `end`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+		foreach ($employee_ids as $pid) {
+			for ($d = 1; $d <= $month_days; $d++) {
+				$dayStr = str_pad($d, 2, '0', STR_PAD_LEFT);
+				$ymd = $year . '-' . $month . '-' . $dayStr;
+				$entry_id = $ymd . $pid;
+				if (isset($existing[$entry_id])) {
+					continue;
+				}
+				$dayOfWeek = (int) date('N', strtotime($ymd));
+				$is_weekend = ($dayOfWeek >= 6);
+				if ($is_weekend) {
+					$schedule_id = $off['schedule_id'];
+					$color = $off['color'];
+				} else {
+					$schedule_id = $day['schedule_id'];
+					$color = $day['color'];
+				}
+				$end = date('Y-m-d', strtotime($ymd . ' +1 day'));
+				$this->db->query($insert_sql, array($entry_id, $facility, $department, $pid, $schedule_id, $color, $ymd, $end));
+				if ($this->db->affected_rows() > 0) {
+					$inserted++;
+					$this->syncDutyRostaEntryToActuals($entry_id);
+				}
+				$existing[$entry_id] = true;
+			}
+		}
+		return array(
+			'inserted' => $inserted,
+			'message' => $inserted > 0 ? "Auto-filled $inserted empty cell(s). Weekends = Off (O), Weekdays = Duty (D). Existing data was not changed." : "No empty cells to fill. Existing data was not changed.",
+			'error' => false
+		);
+	}
+
 	public function countActuals($valid_range, $start = NULL, $limit = NULL, $employee = NULL, $filters=NULL)
 	{
 		$facility = $this->session->userdata['facility'];

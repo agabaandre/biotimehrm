@@ -126,6 +126,7 @@ if ($posted_timestamp > $current_timestamp) {
 										<div class="control-group">
 											<button type="button" id="tabular_apply" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-tasks" aria-hidden="true"></i>Apply</button>
 											<button type="button" id="sync_all_data" class="btn btn-warning" style="font-size:12px; margin-left:5px;" title="Sync all pending offline data"><i class="fa fa-cloud-upload" aria-hidden="true"></i> Sync All Data</button>
+											<button type="button" id="auto_fill_template" class="btn btn-info btn-sm" style="font-size:12px; margin-left:5px;" title="Fill empty cells: weekends = Off (O), weekdays = Duty (D). Does not change existing data."><i class="fa fa-magic" aria-hidden="true"></i> Auto-fill template</button>
 										</div>
 									</div>
 								</div>
@@ -1081,6 +1082,43 @@ if ($posted_timestamp > $current_timestamp) {
 			}
 		}, 30000);
 		
+		// Auto-fill template: fill empty cells only (weekends=O, weekdays=D)
+		$(document).on('click', '#auto_fill_template', function(e) {
+			e.preventDefault();
+			var $btn = $(this);
+			if (!OfflineStorage.isOnline()) {
+				$.notify('You must be online to auto-fill.', 'warn');
+				return;
+			}
+			var selMonth = $('#tabular_month').val() || month;
+			var selYear = $('#tabular_year').val() || year;
+			var empid = $('#tabular_empid').val() || '';
+			if (!confirm('Fill empty cells for ' + selYear + '-' + selMonth + '?\n\nWeekends → Off duty (O)\nWeekdays → Duty (D)\n\nExisting data will NOT be changed. Continue?')) {
+				return;
+			}
+			$btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Filling...');
+			$.post(baseUrl + 'rosta/autoFillTabular', {
+				month: selMonth,
+				year: selYear,
+				empid: empid,
+				'<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
+			}).done(function(res) {
+				var r = typeof res === 'string' ? JSON.parse(res) : res;
+				if (r.success) {
+					$.notify(r.message || 'Auto-fill complete.', 'success');
+					if (typeof tabularTable !== 'undefined' && tabularTable && tabularTable.ajax) {
+						tabularTable.ajax.reload(null, false);
+					}
+				} else {
+					$.notify(r.message || 'Auto-fill failed.', 'error');
+				}
+			}).fail(function() {
+				$.notify('Request failed. Try again.', 'error');
+			}).always(function() {
+				$btn.prop('disabled', false).html('<i class="fa fa-magic" aria-hidden="true"></i> Auto-fill template');
+			});
+		});
+
 		// Manual sync button - use event delegation to ensure it works
 		$(document).on('click', '#sync_all_data', function(e) {
 			e.preventDefault();
