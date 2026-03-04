@@ -3,6 +3,15 @@ $setting = isset($setting) ? $setting : new stdClass();
 $setting_array = is_object($setting) ? (array) $setting : $setting;
 $csrf_name = $this->security->get_csrf_token_name();
 $csrf_hash = $this->security->get_csrf_hash();
+// Collect visible fields (exclude id) and split into two columns
+$visible_fields = array();
+foreach ($setting_array as $key => $value) {
+  if ($key !== 'id') $visible_fields[$key] = $value;
+}
+$total = count($visible_fields);
+$half = (int) ceil($total / 2);
+$col1 = array_slice($visible_fields, 0, $half, true);
+$col2 = array_slice($visible_fields, $half, null, true);
 ?>
 <style>
 .svariables-page .page-header { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; }
@@ -43,7 +52,7 @@ $csrf_hash = $this->security->get_csrf_hash();
     <?php endif; ?>
 
     <div class="row">
-      <div class="col-lg-10 col-xl-8">
+      <div class="col-12">
         <div class="card">
           <div class="card-header">
             <i class="fas fa-sliders-h mr-2"></i>Settings
@@ -51,27 +60,46 @@ $csrf_hash = $this->security->get_csrf_hash();
           <div class="card-body">
             <?php echo form_open('svariables/index', array('class' => 'svariables-form', 'id' => 'svariablesForm')); ?>
               <input type="hidden" name="<?php echo $csrf_name; ?>" value="<?php echo $csrf_hash; ?>">
+              <?php if (isset($setting_array['id'])): ?>
+                <input type="hidden" name="id" value="<?php echo htmlspecialchars($setting_array['id'], ENT_QUOTES, 'UTF-8'); ?>">
+              <?php endif; ?>
 
-              <?php foreach ($setting_array as $key => $value): ?>
-                <?php
-                  $is_id = ($key === 'id');
-                  $label = ucwords(str_replace('_', ' ', $key));
-                  $value_esc = is_string($value) ? htmlspecialchars($value, ENT_QUOTES, 'UTF-8') : $value;
-                  $is_long = is_string($value) && strlen($value) > 80;
-                ?>
-                <?php if ($is_id): ?>
-                  <input type="hidden" name="id" value="<?php echo $value_esc; ?>">
-                <?php else: ?>
-                  <div class="form-group">
-                    <label class="form-label" for="var_<?php echo htmlspecialchars($key, ENT_QUOTES); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES); ?></label>
-                    <?php if ($is_long): ?>
-                      <textarea class="form-control" name="<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" id="var_<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" rows="3" placeholder="<?php echo htmlspecialchars($label, ENT_QUOTES); ?>"><?php echo $value_esc; ?></textarea>
-                    <?php else: ?>
-                      <input type="text" class="form-control" name="<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" id="var_<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" value="<?php echo $value_esc; ?>" placeholder="<?php echo htmlspecialchars($label, ENT_QUOTES); ?>">
-                    <?php endif; ?>
-                  </div>
-                <?php endif; ?>
-              <?php endforeach; ?>
+              <div class="row">
+                <div class="col-md-6">
+                  <?php foreach ($col1 as $key => $value): ?>
+                    <?php
+                      $label = ucwords(str_replace('_', ' ', $key));
+                      $value_esc = is_string($value) ? htmlspecialchars($value, ENT_QUOTES, 'UTF-8') : $value;
+                      $is_long = is_string($value) && strlen($value) > 80;
+                    ?>
+                    <div class="form-group">
+                      <label class="form-label" for="var_<?php echo htmlspecialchars($key, ENT_QUOTES); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES); ?></label>
+                      <?php if ($is_long): ?>
+                        <textarea class="form-control" name="<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" id="var_<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" rows="3" placeholder="<?php echo htmlspecialchars($label, ENT_QUOTES); ?>"><?php echo $value_esc; ?></textarea>
+                      <?php else: ?>
+                        <input type="text" class="form-control" name="<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" id="var_<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" value="<?php echo $value_esc; ?>" placeholder="<?php echo htmlspecialchars($label, ENT_QUOTES); ?>">
+                      <?php endif; ?>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+                <div class="col-md-6">
+                  <?php foreach ($col2 as $key => $value): ?>
+                    <?php
+                      $label = ucwords(str_replace('_', ' ', $key));
+                      $value_esc = is_string($value) ? htmlspecialchars($value, ENT_QUOTES, 'UTF-8') : $value;
+                      $is_long = is_string($value) && strlen($value) > 80;
+                    ?>
+                    <div class="form-group">
+                      <label class="form-label" for="var_<?php echo htmlspecialchars($key, ENT_QUOTES); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES); ?></label>
+                      <?php if ($is_long): ?>
+                        <textarea class="form-control" name="<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" id="var_<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" rows="3" placeholder="<?php echo htmlspecialchars($label, ENT_QUOTES); ?>"><?php echo $value_esc; ?></textarea>
+                      <?php else: ?>
+                        <input type="text" class="form-control" name="<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" id="var_<?php echo htmlspecialchars($key, ENT_QUOTES); ?>" value="<?php echo $value_esc; ?>" placeholder="<?php echo htmlspecialchars($label, ENT_QUOTES); ?>">
+                      <?php endif; ?>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              </div>
 
               <hr class="my-4">
               <div class="d-flex align-items-center">
