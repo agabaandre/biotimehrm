@@ -60,6 +60,13 @@ class Jobs extends MX_Controller {
         if ($hour == 7 && $minute == 40) $jobsToRun[] = 'biotimejobs biotime_employees';
 
         /* ----------------------------------------------------------
+         * 2b. IHRIS DATA SYNC (every 5 hours)
+         * ---------------------------------------------------------- */
+
+        if ($hour % 5 == 0 && $minute == 0)
+            $jobsToRun[] = 'biotimejobs get_ihrisdata';
+
+        /* ----------------------------------------------------------
          * 3️⃣ MONTHLY SYSTEM JOBS
          * ---------------------------------------------------------- */
 
@@ -74,10 +81,10 @@ class Jobs extends MX_Controller {
          * ---------------------------------------------------------- */
 
         if ($hour == 2 && $minute == 0 && $day % 5 == 0)
-            $jobsToRun[] = 'cronjobs DutyRosterSummaryCron updateDutyRosterSummary';
+            $jobsToRun[] = 'cronjobs/DutyRosterSummaryCron/updateDutyRosterSummary';
 
         if ($hour % 6 == 0 && $minute == 0)
-            $jobsToRun[] = 'cronjobs AttendanceSummaryCron updateAttendanceSummary';
+            $jobsToRun[] = 'cronjobs/AttendanceSummaryCron/updateAttendanceSummary';
 
         /* ----------------------------------------------------------
          * 5️⃣ DASHBOARD CACHE (Low impact)
@@ -134,11 +141,17 @@ class Jobs extends MX_Controller {
     /* ============================================================
      * EXECUTE JOB COMMAND
      * Logs job name for easy follow-up in case of errors.
+     * Uses URI path (slashes) so CodeIgniter CLI routes module/controller/method correctly.
+     * Runs from app root (FCPATH) so index.php and bootstrap are found.
      * ============================================================ */
     private function run($command)
     {
         log_message('info', 'Jobs: starting job [' . $command . ']');
-        shell_exec("/usr/bin/php index.php $command");
+        // Normalize to URI path (spaces -> slashes) for correct CLI routing
+        $uri = str_replace(' ', '/', $command);
+        $base = defined('FCPATH') ? FCPATH : (getcwd() . DIRECTORY_SEPARATOR);
+        $cmd = 'cd ' . escapeshellarg(rtrim($base, '/\\')) . ' && /usr/bin/php index.php ' . escapeshellarg($uri);
+        shell_exec($cmd);
         log_message('info', 'Jobs: completed job [' . $command . ']');
     }
 
