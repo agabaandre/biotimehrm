@@ -104,7 +104,7 @@ class AttendanceSummaryCron extends MX_Controller {
                     a.facility_id,
                     a.department_id,
                     DATE_FORMAT(a.`date`, '%Y-%m') AS yyyy_mm,
-                    DAY(LAST_DAY(a.`date`)) AS month_days,
+                    DAY(LAST_DAY(MAX(a.`date`))) AS month_days,
                     SUM(a.schedule_id = 22) AS P_ct,
                     SUM(a.schedule_id = 24) AS O_ct,
                     SUM(a.schedule_id = 25) AS L_ct,
