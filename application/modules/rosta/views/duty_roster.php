@@ -262,21 +262,10 @@ if ($posted_timestamp > $current_timestamp) {
 	</div>
 </div>
 </div>
-<script src="<?php echo base_url(); ?>assets/js/Lobibox.js"></script>
 <script type="text/javascript">
 	var url = window.location.href;
 	if (url == '<?php echo base_url(); ?>rosta/tabular') {
 		$('.fixed-top').addClass('mini-navbar');
-	}
-
-	// Notify helper: use Lobibox if available, else $.notify
-	function showLobiboxNotify(msg, type) {
-		type = type || 'info';
-		if (typeof Lobibox !== 'undefined' && Lobibox.notify) {
-			Lobibox.notify(type, { msg: msg, title: type === 'error' ? 'Error' : (type === 'success' ? 'Success' : 'Notice') });
-		} else {
-			$.notify(msg, type);
-		}
 	}
 
 		var tabSchedules = {};
@@ -1093,12 +1082,12 @@ if ($posted_timestamp > $current_timestamp) {
 			}
 		}, 30000);
 		
-		// Auto-fill template: fill empty cells only (weekends=O, weekdays=D)
+		// Auto-fill template: fill empty cells only (weekends=O, weekdays=D) — uses notify.js like rest of page
 		$(document).on('click', '#auto_fill_template', function(e) {
 			e.preventDefault();
 			var $btn = $(this);
 			if (!OfflineStorage.isOnline()) {
-				showLobiboxNotify('You must be online to auto-fill.', 'warning');
+				$.notify('You must be online to auto-fill.', 'warn');
 				return;
 			}
 			var selMonth = $('#tabular_month').val() || month;
@@ -1108,21 +1097,7 @@ if ($posted_timestamp > $current_timestamp) {
 				return;
 			}
 			$btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Filling...');
-			var progressBar = null;
-			var progressInterval = null;
-			if (typeof Lobibox !== 'undefined' && Lobibox.progress) {
-				progressBar = Lobibox.progress({
-					label: 'Auto-filling roster... Please wait.',
-					showProgressLabel: true,
-					title: 'Duty Roster Auto-fill'
-				});
-				var p = 0;
-				progressInterval = setInterval(function() {
-					p += Math.random() * 8 + 4;
-					if (p >= 90) p = 90;
-					if (progressBar && progressBar.setProgress) progressBar.setProgress(p);
-				}, 400);
-			}
+			var progressNotify = $.notify('Auto-filling roster... Please wait.', 'info');
 			$.post(baseUrl + 'rosta/autoFillTabular', {
 				month: selMonth,
 				year: selYear,
@@ -1131,25 +1106,28 @@ if ($posted_timestamp > $current_timestamp) {
 			}).done(function(res) {
 				var r;
 				try { r = typeof res === 'string' ? JSON.parse(res) : res; } catch (e) { r = { success: false, message: 'Invalid response.' }; }
-				if (progressInterval) clearInterval(progressInterval);
-				if (progressBar && progressBar.setProgress) { progressBar.setProgress(100); }
-				if (progressBar && progressBar.destroy) setTimeout(function() { progressBar.destroy(); }, 300);
+				try {
+					if (progressNotify && progressNotify.$el && progressNotify.$el.remove) progressNotify.$el.remove();
+					else if (progressNotify && typeof progressNotify.remove === 'function') progressNotify.remove();
+				} catch (e) {}
 				if (r.success) {
-					showLobiboxNotify(r.message || 'Auto-fill complete.', 'success');
+					$.notify(r.message || 'Auto-fill complete.', 'success');
 					if (typeof tabularTable !== 'undefined' && tabularTable && tabularTable.ajax) {
 						tabularTable.ajax.reload(null, false);
 					}
 				} else {
-					showLobiboxNotify(r.message || 'Auto-fill failed.', 'error');
+					$.notify(r.message || 'Auto-fill failed.', 'error');
 				}
 			}).fail(function(xhr) {
-				if (progressInterval) clearInterval(progressInterval);
-				if (progressBar && progressBar.destroy) progressBar.destroy();
+				try {
+					if (progressNotify && progressNotify.$el && progressNotify.$el.remove) progressNotify.$el.remove();
+					else if (progressNotify && typeof progressNotify.remove === 'function') progressNotify.remove();
+				} catch (e) {}
 				var msg = 'Request failed. Try again.';
 				if (xhr && xhr.responseText) {
 					try { var j = JSON.parse(xhr.responseText); if (j.message) msg = j.message; } catch (e) {}
 				} else if (xhr && xhr.status) { msg = 'Server error (' + xhr.status + ').'; }
-				showLobiboxNotify(msg, 'error');
+				$.notify(msg, 'error');
 			}).always(function() {
 				$btn.prop('disabled', false).html('<i class="fa fa-magic" aria-hidden="true"></i> Auto-fill template');
 			});
