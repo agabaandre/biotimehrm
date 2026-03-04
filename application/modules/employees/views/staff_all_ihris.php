@@ -269,7 +269,7 @@ $(document).ready(function() {
         $('#showingInfo').text('Showing ' + (info.recordsDisplayed ? (info.start + 1) + '–' + Math.min(info.end, info.recordsDisplayed) : 0) + ' of ' + info.recordsDisplayed);
     }
 
-    $('.select2-filter').select2({ theme: 'bootstrap', width: '100%' });
+    $('.select2-filter').select2({ theme: 'bootstrap', width: '100%', minimumResultsForSearch: 15, placeholder: 'All' });
 
     $('#filterForm').on('submit', function(e) { e.preventDefault(); table.ajax.reload(); });
     $('.select2-filter').on('change', function() { table.ajax.reload(); });

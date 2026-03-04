@@ -446,7 +446,7 @@ class Employee_model extends CI_Model
 
     /**
      * Get distinct filter options from ihrisdata for All iHRIS Staff page.
-     * Column names must match Biotimejobs get_ihrisdata mapping: district, facility_id, facility, job_id, job, institution_type, facility_type_id.
+     * Uses query builder and permissive WHERE so options populate from actual table columns.
      */
     public function get_all_ihris_filter_options()
     {
@@ -454,54 +454,91 @@ class Employee_model extends CI_Model
         if (!$this->db->table_exists('ihrisdata')) {
             return $opts;
         }
-        $tbl = $this->db->dbprefix . 'ihrisdata';
 
-        // Districts (column: district - same as get_ihrisdata mapping)
-        $q = $this->db->query("SELECT DISTINCT district FROM " . $tbl . " WHERE district IS NOT NULL AND TRIM(COALESCE(district,'')) != '' ORDER BY district ASC");
+        $add_non_empty = function (array &$list, $value, $label = null) {
+            if ($value === null || trim((string) $value) === '') {
+                return;
+            }
+            $lbl = $label !== null ? trim((string) $label) : trim((string) $value);
+            if ($lbl === '') {
+                $lbl = (string) $value;
+            }
+            $list[] = ['value' => $value, 'label' => $lbl];
+        };
+
+        // Districts
+        $this->db->reset_query();
+        $this->db->distinct();
+        $this->db->select('district');
+        $this->db->from('ihrisdata');
+        $this->db->order_by('district', 'asc');
+        $q = $this->db->get();
         if ($q && $q->num_rows() > 0) {
             foreach ($q->result() as $r) {
-                $opts['districts'][] = ['value' => $r->district, 'label' => $r->district];
+                $add_non_empty($opts['districts'], $r->district, $r->district);
             }
         }
 
+        // Facilities (facility_id, facility)
         $this->db->reset_query();
-        // Facilities (columns: facility_id, facility - same as get_ihrisdata)
-        $q = $this->db->query("SELECT DISTINCT facility_id, facility FROM " . $tbl . " WHERE facility_id IS NOT NULL AND TRIM(COALESCE(facility_id,'')) != '' ORDER BY facility ASC");
+        $this->db->distinct();
+        $this->db->select('facility_id, facility');
+        $this->db->from('ihrisdata');
+        $this->db->order_by('facility', 'asc');
+        $q = $this->db->get();
         if ($q && $q->num_rows() > 0) {
             foreach ($q->result() as $r) {
-                $label = (isset($r->facility) && trim((string) $r->facility) !== '') ? $r->facility : $r->facility_id;
-                $opts['facilities'][] = ['value' => $r->facility_id, 'label' => $label];
+                $val = isset($r->facility_id) ? $r->facility_id : '';
+                $lbl = (isset($r->facility) && trim((string) $r->facility) !== '') ? $r->facility : $val;
+                $add_non_empty($opts['facilities'], $val, $lbl);
             }
         }
 
+        // Jobs (job_id, job)
         $this->db->reset_query();
-        // Jobs (columns: job_id, job - same as get_ihrisdata)
-        $q = $this->db->query("SELECT DISTINCT job_id, job FROM " . $tbl . " WHERE job_id IS NOT NULL AND TRIM(COALESCE(job_id,'')) != '' ORDER BY job ASC");
+        $this->db->distinct();
+        $this->db->select('job_id, job');
+        $this->db->from('ihrisdata');
+        $this->db->order_by('job', 'asc');
+        $q = $this->db->get();
         if ($q && $q->num_rows() > 0) {
             foreach ($q->result() as $r) {
-                $label = (isset($r->job) && trim((string) $r->job) !== '') ? $r->job : $r->job_id;
-                $opts['jobs'][] = ['value' => $r->job_id, 'label' => $label];
+                $val = isset($r->job_id) ? $r->job_id : '';
+                $lbl = (isset($r->job) && trim((string) $r->job) !== '') ? $r->job : $val;
+                $add_non_empty($opts['jobs'], $val, $lbl);
             }
         }
 
-        $this->db->reset_query();
-        // Institution type (column in DB: institution_type - API institutiontype_name is mapped to institution_type in Biotimejobs _map_ihris_api_record_to_row)
-        if ($this->db->field_exists('institution_type', 'ihrisdata')) {
-            $q = $this->db->query("SELECT DISTINCT institution_type FROM " . $tbl . " WHERE institution_type IS NOT NULL AND TRIM(COALESCE(institution_type,'')) != '' ORDER BY institution_type ASC");
+        // Institution type (institution_type or institutiontype_name)
+        $col_inst = $this->db->field_exists('institution_type', 'ihrisdata') ? 'institution_type' : ($this->db->field_exists('institutiontype_name', 'ihrisdata') ? 'institutiontype_name' : null);
+        if ($col_inst) {
+            $this->db->reset_query();
+            $this->db->distinct();
+            $this->db->select($col_inst);
+            $this->db->from('ihrisdata');
+            $this->db->order_by($col_inst, 'asc');
+            $q = $this->db->get();
             if ($q && $q->num_rows() > 0) {
                 foreach ($q->result() as $r) {
-                    $opts['institution_types'][] = ['value' => $r->institution_type, 'label' => $r->institution_type];
+                    $v = $r->{$col_inst};
+                    $add_non_empty($opts['institution_types'], $v, $v);
                 }
             }
         }
 
-        $this->db->reset_query();
-        // Facility type (column: facility_type_id - same as get_ihrisdata)
-        if ($this->db->field_exists('facility_type_id', 'ihrisdata')) {
-            $q = $this->db->query("SELECT DISTINCT facility_type_id FROM " . $tbl . " WHERE facility_type_id IS NOT NULL AND TRIM(COALESCE(facility_type_id,'')) != '' ORDER BY facility_type_id ASC");
+        // Facility type (facility_type_id or facility_type)
+        $col_ft = $this->db->field_exists('facility_type_id', 'ihrisdata') ? 'facility_type_id' : ($this->db->field_exists('facility_type', 'ihrisdata') ? 'facility_type' : null);
+        if ($col_ft) {
+            $this->db->reset_query();
+            $this->db->distinct();
+            $this->db->select($col_ft);
+            $this->db->from('ihrisdata');
+            $this->db->order_by($col_ft, 'asc');
+            $q = $this->db->get();
             if ($q && $q->num_rows() > 0) {
                 foreach ($q->result() as $r) {
-                    $opts['facility_types'][] = ['value' => $r->facility_type_id, 'label' => $r->facility_type_id];
+                    $v = $r->{$col_ft};
+                    $add_non_empty($opts['facility_types'], $v, $v);
                 }
             }
         }
