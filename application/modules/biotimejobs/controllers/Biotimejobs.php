@@ -1763,76 +1763,76 @@ class Biotimejobs extends MX_Controller
        
     }
 
-    //every 30th day monthly
+    /**
+     * Rosta to attendance: populate actuals from duty_rosta (schedules 17–21), then set leave (25) and offduty (24).
+     * Runs monthly (e.g. from jobs master). Uses progress bar and more efficient queries.
+     */
     public function rostatoAttend()
     {
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        //To set custom month uncomment below and set  ymonth of choice
-        //$ymonth="2019-08"."-";   
         $ymonth = date('Y-m');
+        $totalSteps = 3;
+        $isCli = $this->input->is_cli_request();
 
-        //poplulate actuals
-        $query = $this->db->query("REPLACE
-  INTO actuals(
-      entry_id,
-      facility_id,
-      department_id,
-      ihris_pid,
-      schedule_id,
-      color,
-      actuals.date,
-      actuals.end
-  )
-  SELECT
-      entry_id,
-      facility_id,
-      department_id,
-      ihris_pid,
-      schedule_id,
-      color,
-      duty_rosta.duty_date,
-      duty_rosta.end
-  FROM
-      duty_rosta
-  WHERE
-      (duty_rosta.schedule_id IN(17, 18, 19, 20, 21) AND (
-          DATE_FORMAT(duty_rosta.duty_date, '%Y-%m') <= '$ymonth') AND duty_rosta.entry_id NOT IN(
-      SELECT
-          entry_id
-      FROM
-          actuals
-      ))");
-        $rowsnow = $this->db->affected_rows();
-        if ($query) {
-            echo $msg = $rowsnow . "  Attendance Records Marked";
-        } else {
+        $progress = function ($step, $label) use ($totalSteps, $isCli) {
+            $pct = (int) (($step / $totalSteps) * 100);
+            $barLen = 40;
+            $filled = (int) (($pct / 100) * $barLen);
+            $bar = str_repeat('█', $filled) . str_repeat('-', $barLen - $filled);
+            $line = "\r[$bar] {$pct}% | Step {$step}/{$totalSteps} | {$label}";
+            if ($isCli) {
+                echo $line;
+                if (function_exists('flush')) {
+                    flush();
+                }
+            }
+            log_message('info', 'rostatoAttend: ' . $label);
+        };
 
-            echo $msg = "Failed to Mark";
+        // Step 1: Insert from duty_rosta into actuals (only rows not already in actuals) – LEFT JOIN instead of NOT IN for efficiency
+        $progress(1, 'Insert duty_rosta → actuals');
+        $this->db->trans_start();
+        $sql1 = "INSERT INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end)
+                 SELECT dr.entry_id, dr.facility_id, dr.department_id, dr.ihris_pid, dr.schedule_id, dr.color, dr.duty_date, dr.end
+                 FROM duty_rosta dr
+                 LEFT JOIN actuals a ON a.entry_id = dr.entry_id
+                 WHERE dr.schedule_id IN (17, 18, 19, 20, 21)
+                   AND DATE_FORMAT(dr.duty_date, '%Y-%m') <= " . $this->db->escape($ymonth) . "
+                   AND a.entry_id IS NULL";
+        $query1 = $this->db->query($sql1);
+        $inserted = $this->db->affected_rows();
+        $this->db->trans_complete();
+        $msg1 = $query1 ? ($inserted . " attendance records marked") : "Failed to insert duty_rosta → actuals";
+        if ($isCli) {
+            echo "\n  → " . $msg1 . "\n";
         }
-        $this->log($msg);
+        $this->log('rostatoAttend: ' . $msg1);
 
-
-        $query = $this->db->query("Update actuals set schedule_id='25', color='#29910d' WHERE schedule_id IN(18,19,20,21)");
-
-        $rowsnow = $this->db->affected_rows();
-        if ($query) {
-            echo $msg = "" . $rowsnow . "  Leave records recognised by attendance";
-        } else {
-
-            echo $msg = "No leave records found";
+        // Step 2: Mark leave (schedule 25)
+        $progress(2, 'Mark leave (25)');
+        $this->db->query("UPDATE actuals SET schedule_id = '25', color = '#29910d' WHERE schedule_id IN ('18','19','20','21')");
+        $leaveRows = $this->db->affected_rows();
+        $msg2 = $leaveRows . " leave records recognised";
+        if ($isCli) {
+            echo "\n  → " . $msg2 . "\n";
         }
+        $this->log('rostatoAttend: ' . $msg2);
 
-        $query = $this->db->query("Update actuals set schedule_id='24', color='#d1a110' WHERE schedule_id='17'");
-
-        $rowsnow = $this->db->affected_rows();
-        if ($query) {
-            echo $msg = "" . $rowsnow . "  Offduty records recognised by attendance";
-        } else {
-
-            echo $msg = "No Off duty records found";
+        // Step 3: Mark offduty (schedule 24)
+        $progress(3, 'Mark offduty (24)');
+        $this->db->query("UPDATE actuals SET schedule_id = '24', color = '#d1a110' WHERE schedule_id = '17'");
+        $offdutyRows = $this->db->affected_rows();
+        $msg3 = $offdutyRows . " offduty records recognised";
+        if ($isCli) {
+            echo "\n  → " . $msg3 . "\n";
         }
-        $this->log($msg);
+        $this->log('rostatoAttend: ' . $msg3);
+
+        if ($isCli) {
+            echo "\r[" . str_repeat('█', 40) . "] 100% | Step 3/3 | Done\n";
+        }
+        log_message('info', 'rostatoAttend: completed. Inserted=' . $inserted . ', leave=' . $leaveRows . ', offduty=' . $offdutyRows);
     }
 
     public function cronjob_register($process, $method, $status)
