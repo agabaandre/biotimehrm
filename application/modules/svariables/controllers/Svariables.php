@@ -34,7 +34,7 @@ class Svariables extends MX_Controller
 			$csrf_name = $this->security->get_csrf_token_name();
 			if (isset($postdata[$csrf_name])) unset($postdata[$csrf_name]);
 			$result = $this->svariables_mdl->update_variables($postdata);
-			if (strpos($result, 'Successful') !== false) {
+			if ($result) {
 				$this->session->set_flashdata('success', 'Settings updated successfully!');
 			} else {
 				$this->session->set_flashdata('error', 'Failed to update settings. Please try again.');
@@ -45,30 +45,40 @@ class Svariables extends MX_Controller
 	}
 	
 	/**
-	 * Handle AJAX requests for updating variables
+	 * Handle AJAX requests for updating variables. CSRF is validated then stripped before DB update.
 	 */
 	private function _handleAjaxRequest() {
-		// Validate CSRF token
-		if (!$this->security->get_csrf_hash() || $this->input->post($this->security->get_csrf_token_name()) !== $this->security->get_csrf_hash()) {
-			echo json_encode(['status' => 'error', 'message' => 'Invalid security token']);
+		$csrf_name = $this->security->get_csrf_token_name();
+		$csrf_hash = $this->security->get_csrf_hash();
+		if (!$csrf_hash || $this->input->post($csrf_name) !== $csrf_hash) {
+			$this->output->set_content_type('application/json')->set_output(json_encode([
+				'status' => 'error',
+				'message' => 'Invalid security token. Please refresh the page and try again.',
+				'csrf_name' => $csrf_name,
+				'csrf_hash' => $this->security->get_csrf_hash()
+			]));
 			return;
 		}
-		
+
 		$postdata = $this->input->post();
+		unset($postdata[$csrf_name]);
 		$result = $this->svariables_mdl->update_variables($postdata);
-		
-		if (strpos($result, 'Successful') !== false) {
-			echo json_encode([
-				'status' => 'success', 
+
+		$new_hash = $this->security->get_csrf_hash();
+		if ($result) {
+			$this->output->set_content_type('application/json')->set_output(json_encode([
+				'status' => 'success',
 				'message' => 'Settings updated successfully!',
-				'csrf_token' => $this->security->get_csrf_hash()
-			]);
+				'csrf_name' => $csrf_name,
+				'csrf_hash' => $new_hash
+			]));
 		} else {
-			echo json_encode([
-				'status' => 'error', 
+			$this->output->set_content_type('application/json')->set_output(json_encode([
+				'status' => 'error',
 				'message' => 'Failed to update settings. Please try again.',
-				'csrf_token' => $this->security->get_csrf_hash()
-			]);
+				'csrf_name' => $csrf_name,
+				'csrf_hash' => $new_hash
+			]));
 		}
 	}
 	public function getSettings()

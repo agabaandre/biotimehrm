@@ -103,7 +103,7 @@ $col2 = array_slice($visible_fields, $half, null, true);
 
               <hr class="my-4">
               <div class="d-flex align-items-center">
-                <button type="submit" class="btn btn-primary btn-save">
+                <button type="submit" class="btn btn-primary btn-save" id="svariablesSubmitBtn">
                   <i class="fas fa-save mr-1"></i> Save changes
                 </button>
                 <span class="text-muted small ml-3">Click Save to apply updates.</span>
@@ -115,3 +115,52 @@ $col2 = array_slice($visible_fields, $half, null, true);
     </div>
   </div>
 </section>
+
+<script>
+(function() {
+  var form = document.getElementById('svariablesForm');
+  var btn = document.getElementById('svariablesSubmitBtn');
+  if (!form || !btn) return;
+
+  var csrfName = '<?php echo addslashes($csrf_name); ?>';
+  var baseUrl = '<?php echo addslashes(base_url()); ?>';
+
+  function updateCsrfInput(name, hash) {
+    var input = form.querySelector('input[name="' + name + '"]');
+    if (input) input.value = hash;
+  }
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+
+    var formData = new FormData(form);
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', baseUrl + 'svariables/index');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.onload = function() {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+      var res = {};
+      try { res = JSON.parse(xhr.responseText || '{}'); } catch (err) { res = { status: 'error', message: 'Invalid response.' }; }
+      if (res.csrf_name && res.csrf_hash) updateCsrfInput(res.csrf_name, res.csrf_hash);
+      if (res.status === 'success') {
+        if (typeof $.notify === 'function') $.notify(res.message || 'Settings updated successfully!', 'success');
+        else alert(res.message);
+      } else {
+        if (typeof $.notify === 'function') $.notify(res.message || 'Failed to update settings.', 'error');
+        else alert(res.message || 'Failed to update settings.');
+      }
+    };
+    xhr.onerror = function() {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+      if (typeof $.notify === 'function') $.notify('Request failed. Please try again.', 'error');
+      else alert('Request failed. Please try again.');
+    };
+    xhr.send(formData);
+  });
+})();
+</script>
