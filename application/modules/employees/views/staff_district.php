@@ -430,7 +430,7 @@
 <script>
 $(document).ready(function() {
     var baseUrl = '<?php echo base_url(); ?>';
-    var canMarkDisabled = <?php echo (is_array($this->session->userdata('permissions')) && in_array('15', $this->session->userdata('permissions'))) ? 'true' : 'false'; ?>;
+    var canMarkDisabled = <?php echo !empty($can_mark_disabled) ? 'true' : 'false'; ?>;
     var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
     var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 
@@ -489,6 +489,7 @@ $(document).ready(function() {
                 data: null,
                 className: 'text-center',
                 orderable: false,
+                responsivePriority: 1,
                 render: function(data, type, row) {
                     var pid = row.ihris_pid || '';
                     var pidEnc = (pid.indexOf('person|') === 0) ? pid : ('person|' + pid);
@@ -520,23 +521,23 @@ $(document).ready(function() {
                 text: '<i class="fas fa-copy"></i> Copy',
                 className: 'btn btn-secondary btn-sm',
                 exportOptions: {
-                    columns: ':visible'
-                    }
-            },
-            {
-                extend: 'csv',
-                text: '<i class="fas fa-file-csv"></i> CSV',
-                className: 'btn btn-success btn-sm',
-                exportOptions: {
-                    columns: ':visible'
+                    columns: ':visible:not(:last-child)'
                 }
             },
             {
-                extend: 'excel',
-                text: '<i class="fas fa-file-excel"></i> Excel',
-                className: 'btn btn-info btn-sm',
-                exportOptions: {
-                    columns: ':visible'
+                text: '<i class="fas fa-file-csv"></i> Export all CSV',
+                className: 'btn btn-success btn-sm btn-export-all-csv',
+                action: function() {
+                    var q = '?search=' + encodeURIComponent($('#globalSearch').val() || '') + '&includeInactive=' + ($('#includeInactive').val() || 0);
+                    window.location = baseUrl + 'employees/export_district_staff_csv' + q;
+                }
+            },
+            {
+                text: '<i class="fas fa-file-excel"></i> Export all Excel',
+                className: 'btn btn-info btn-sm btn-export-all-excel',
+                action: function() {
+                    var q = '?search=' + encodeURIComponent($('#globalSearch').val() || '') + '&includeInactive=' + ($('#includeInactive').val() || 0);
+                    window.location = baseUrl + 'employees/export_district_staff_excel' + q;
                 }
             },
             {
@@ -544,7 +545,7 @@ $(document).ready(function() {
                 text: '<i class="fas fa-file-pdf"></i> PDF',
                 className: 'btn btn-danger btn-sm',
                 exportOptions: {
-                    columns: ':visible'
+                    columns: ':visible:not(:last-child)'
                 }
             },
             {
@@ -552,7 +553,7 @@ $(document).ready(function() {
                 text: '<i class="fas fa-print"></i> Print',
                 className: 'btn btn-warning btn-sm',
                 exportOptions: {
-                    columns: ':visible'
+                    columns: ':visible:not(:last-child)'
                 }
             },
             {
