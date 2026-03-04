@@ -326,12 +326,12 @@ try {
       }); //form submit
 
 
-      //Submit user update
+      //Submit user update (include CSRF token so POST is not 403 Forbidden)
       $(".update_user").submit(function(e) {
         e.preventDefault();
         $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
         var formData = new FormData(this);
-        console.log(formData);
+        formData.append('<?php echo $this->security->get_csrf_token_name(); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
         var url = "<?php echo base_url(); ?>auth/updateUser";
         $.ajax({
           url: url,
@@ -340,26 +340,20 @@ try {
           processData: false,
           data: formData,
           success: function(result) {
-
             console.log(result);
-
             setTimeout(function() {
-
               $('.status').html(result);
-
               $.notify(result, 'info');
-
               $('.status').html('');
-
               $('.clear').click();
-
             }, 3000);
-
-
+          },
+          error: function(xhr) {
+            $('.status').html('');
+            var msg = (xhr.status === 403) ? 'Update blocked (session or security token). Please refresh the page and try again.' : ('Update failed: ' + (xhr.statusText || xhr.responseText || 'Unknown error'));
+            $.notify(msg, 'error');
           }
-        }); //ajax
-
-
+        });
       }); //form submit
 
 

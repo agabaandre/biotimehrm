@@ -47,9 +47,56 @@ class Rosta_model extends CI_Model
 	/*Delete event */
 	public function deleteEvent()
 	{
+		$entry_id = isset($_GET['id']) ? $_GET['id'] : '';
 		$sql = "DELETE FROM duty_rosta WHERE entry_id = ?";
-		$this->db->query($sql, array($_GET['id']));
-		return ($this->db->affected_rows() != 1) ? false : true;
+		$this->db->query($sql, array($entry_id));
+		$deleted = $this->db->affected_rows();
+		if ($deleted === 1 && $entry_id !== '') {
+			$this->syncDutyRostaEntryToActualsDelete($entry_id);
+		}
+		return $deleted === 1;
+	}
+
+	/**
+	 * Sync a single duty_rosta row to actuals during tabular capture (same logic as rostatoAttend).
+	 * Only for schedules 17,18,19,20,21. Applies conversion: 18-21 → leave (25), 17 → offduty (24).
+	 * When the row already exists in actuals, updates date/end from duty_rosta so event changes (e.g. drag) stay in sync.
+	 * @param string $entry_id duty_rosta.entry_id (duty_date + ihris_pid)
+	 * @return bool true if sync ran without error
+	 */
+	public function syncDutyRostaEntryToActuals($entry_id)
+	{
+		if (empty($entry_id)) {
+			return false;
+		}
+		// 1) Insert from duty_rosta into actuals if not present (schedules 17–21 only)
+		$this->db->query("INSERT IGNORE INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, `end`)
+			SELECT dr.entry_id, dr.facility_id, dr.department_id, dr.ihris_pid, dr.schedule_id, dr.color, dr.duty_date, dr.`end`
+			FROM duty_rosta dr
+			LEFT JOIN actuals a ON a.entry_id = dr.entry_id
+			WHERE dr.entry_id = ? AND dr.schedule_id IN ('17','18','19','20','21') AND a.entry_id IS NULL", array($entry_id));
+		// 2) Apply schedule conversion: leave (18–21) → 25, offduty (17) → 24
+		$this->db->query("UPDATE actuals SET schedule_id = '25', color = '#29910d' WHERE entry_id = ? AND schedule_id IN ('18','19','20','21')", array($entry_id));
+		$this->db->query("UPDATE actuals SET schedule_id = '24', color = '#d1a110' WHERE entry_id = ? AND schedule_id = '17'", array($entry_id));
+		// 3) Keep date/end in sync when duty_rosta event changes (e.g. drag to another day)
+		$this->db->query("UPDATE actuals a
+			INNER JOIN duty_rosta dr ON dr.entry_id = a.entry_id
+			SET a.date = dr.duty_date, a.`end` = dr.`end`
+			WHERE a.entry_id = ? AND dr.schedule_id IN ('17','18','19','20','21')", array($entry_id));
+		return true;
+	}
+
+	/**
+	 * Remove actuals row when duty_rosta entry is deleted from tabular (keeps actuals in sync).
+	 */
+	public function syncDutyRostaEntryToActualsDelete($entry_id)
+	{
+		if (empty($entry_id)) {
+			return false;
+		}
+		$this->db->where('entry_id', $entry_id);
+		$this->db->delete('actuals');
+		return true;
 	}
 	/*Update  event */
 	public function dragUpdateEvent()

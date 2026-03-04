@@ -1356,14 +1356,36 @@ class Rosta extends MX_Controller
 	public function addEvent()
 	{
 		$result = $this->rosta_model->addEvent();
+		$entry_id = $this->input->post('start') . $this->input->post('hpid');
+		if (!empty($entry_id)) {
+			$this->rosta_model->syncDutyRostaEntryToActuals($entry_id);
+		}
 		echo $result;
 	}
-	
+
 	public function updateEvent()
 	{
 		$result = $this->rosta_model->updateEvent();
+		$entry_id = $this->input->post('id');
+		if ($result && !empty($entry_id)) {
+			$this->rosta_model->syncDutyRostaEntryToActuals($entry_id);
+		}
 		echo $result ? '1' : '0';
 	}
+
+	/**
+	 * Drag-update duty_rosta date/end; then sync to actuals so actuals date/end stay in sync.
+	 */
+	public function dragUpdateEvent()
+	{
+		$result = $this->rosta_model->dragUpdateEvent();
+		$entry_id = $this->input->post('id');
+		if ($result && !empty($entry_id)) {
+			$this->rosta_model->syncDutyRostaEntryToActuals($entry_id);
+		}
+		echo $result ? '1' : '0';
+	}
+
 	public function excel_template()
 	{
 		$this->load->library('excel');
