@@ -307,10 +307,14 @@ class Rosta_model extends CI_Model
 	 */
 	public function get_tab_employee_ids($filters = '', $employee = '')
 	{
-		$facility = $this->session->userdata['facility'];
+		$facility = isset($this->session->userdata['facility']) ? $this->session->userdata['facility'] : null;
+		if (empty($facility)) {
+			return array();
+		}
 		$sql = "SELECT DISTINCT ihrisdata.ihris_pid FROM ihrisdata WHERE ihrisdata.facility_id = ?";
 		$params = array($facility);
-		if (!empty($filters)) {
+		$filters = is_string($filters) ? trim($filters) : '';
+		if ($filters !== '') {
 			$sql .= " AND " . $filters;
 		}
 		if (!empty($employee)) {
@@ -346,9 +350,12 @@ class Rosta_model extends CI_Model
 				'error' => true
 			);
 		}
-		$facility = $this->session->userdata['facility'];
-		$department = $this->session->userdata['department_id'];
-		$filters = $filters !== null ? $filters : (is_string($this->filters) ? $this->filters : '');
+		$facility = isset($this->session->userdata['facility']) ? $this->session->userdata['facility'] : null;
+		$department = isset($this->session->userdata['department_id']) ? $this->session->userdata['department_id'] : null;
+		if (empty($facility)) {
+			return array('inserted' => 0, 'message' => 'Facility not set in session.', 'error' => true);
+		}
+		$filters = $filters !== null ? (is_string($filters) ? trim($filters) : '') : (is_string($this->filters) ? trim($this->filters) : '');
 		$employee_ids = $this->get_tab_employee_ids($filters, $empid);
 		if (empty($employee_ids)) {
 			return array('inserted' => 0, 'message' => 'No employees found for this facility/filters.', 'error' => false);

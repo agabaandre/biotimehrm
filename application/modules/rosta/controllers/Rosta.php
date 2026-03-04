@@ -1398,22 +1398,33 @@ class Rosta extends MX_Controller
 			return;
 		}
 		@set_time_limit(300);
-		$month = $this->input->post('month');
-		$year  = $this->input->post('year');
-		$empid = $this->input->post('empid') ? trim($this->input->post('empid')) : '';
-		if (empty($month) || empty($year)) {
-			$this->output->set_content_type('application/json')->set_output(json_encode(array(
+		header('Content-Type: application/json; charset=utf-8');
+		try {
+			$month = $this->input->post('month');
+			$year  = $this->input->post('year');
+			$empid = $this->input->post('empid') ? trim($this->input->post('empid')) : '';
+			if (empty($month) || empty($year)) {
+				echo json_encode(array(
+					'success' => false,
+					'message' => 'Month and year are required.'
+				));
+				return;
+			}
+			$filters = isset($this->filters) && is_string($this->filters) ? trim($this->filters) : '';
+			$result = $this->rosta_model->auto_fill_tabular_template($month, $year, $empid, $filters);
+			echo json_encode(array(
+				'success' => !$result['error'],
+				'inserted' => (int) $result['inserted'],
+				'message' => $result['message']
+			));
+		} catch (Exception $e) {
+			log_message('error', 'autoFillTabular: ' . $e->getMessage());
+			echo json_encode(array(
 				'success' => false,
-				'message' => 'Month and year are required.'
-			)));
-			return;
+				'inserted' => 0,
+				'message' => 'Server error: ' . $e->getMessage()
+			));
 		}
-		$result = $this->rosta_model->auto_fill_tabular_template($month, $year, $empid, $this->filters);
-		$this->output->set_content_type('application/json')->set_output(json_encode(array(
-			'success' => !$result['error'],
-			'inserted' => (int) $result['inserted'],
-			'message' => $result['message']
-		)));
 	}
 
 	public function excel_template()
