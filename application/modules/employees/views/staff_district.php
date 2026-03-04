@@ -260,14 +260,14 @@
                   <i class="fas fa-info-circle mr-1"></i> Searches across all employee fields including name, ID, NIN, phone, email, department, job, facility, etc.
                 </small>
               </div>
-              <div class="col-12">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="includeInactive" value="1">
-                  <label class="form-check-label" for="includeInactive">
+              <div class="col-12 mt-3 pt-3" style="border-top: 1px solid #dee2e6;">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="includeInactive" value="1" style="width: 1.1em; height: 1.1em; margin-top: 0.15em;">
+                  <label class="form-check-label font-weight-bold" for="includeInactive" style="margin-left: 0.25em;">
                     Include inactive (Former Staff)
                   </label>
                 </div>
-                <small class="form-text text-muted">When unchecked, only active employees are shown.</small>
+                <small class="form-text text-muted d-block mt-1">When unchecked, only active employees are shown.</small>
               </div>
             </form>
             </div>

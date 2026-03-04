@@ -211,6 +211,154 @@ class Employees extends MX_Controller
     )));
   }
 
+  /**
+   * Stream all staff as CSV (respects current filters, GET: search, includeInactive). Export all rows.
+   */
+  public function export_staff_csv()
+  {
+    $search = $this->input->get('search');
+    $include_inactive = (bool) $this->input->get('includeInactive');
+    $total = $this->empModel->get_employees_count($this->filters, (string) $search, $include_inactive);
+    $filename = 'staff_' . date('Y-m-d_His') . '.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache');
+    $fh = fopen('php://output', 'w');
+    fprintf($fh, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM for Excel
+    $header = array('#', 'Staff ID', 'NIN', 'Full Name', 'Gender', 'Birth Date', 'IPPS', 'Card #', 'Phone', 'Email', 'Department', 'Job', 'Terms', 'Status');
+    fputcsv($fh, $header);
+    $batch_size = 500;
+    $row_no = 1;
+    for ($offset = 0; $offset < $total; $offset += $batch_size) {
+      $batch = $this->empModel->get_employees_export_batch($this->filters, (string) $search, $include_inactive, $offset, $batch_size);
+      foreach ($batch as $row) {
+        array_unshift($row, $row_no++);
+        fputcsv($fh, $row);
+      }
+      if (ob_get_level()) {
+        ob_flush();
+        flush();
+      }
+    }
+    fclose($fh);
+    exit;
+  }
+
+  /**
+   * Stream all staff as Excel (CSV with .xls extension for Excel). GET: search, includeInactive.
+   */
+  public function export_staff_excel()
+  {
+    $search = $this->input->get('search');
+    $include_inactive = (bool) $this->input->get('includeInactive');
+    $total = $this->empModel->get_employees_count($this->filters, (string) $search, $include_inactive);
+    $filename = 'staff_' . date('Y-m-d_His') . '.xls';
+    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache');
+    $fh = fopen('php://output', 'w');
+    fprintf($fh, chr(0xEF).chr(0xBB).chr(0xBF));
+    $header = array('#', 'Staff ID', 'NIN', 'Full Name', 'Gender', 'Birth Date', 'IPPS', 'Card #', 'Phone', 'Email', 'Department', 'Job', 'Terms', 'Status');
+    fputcsv($fh, $header, "\t");
+    $batch_size = 500;
+    $row_no = 1;
+    for ($offset = 0; $offset < $total; $offset += $batch_size) {
+      $batch = $this->empModel->get_employees_export_batch($this->filters, (string) $search, $include_inactive, $offset, $batch_size);
+      foreach ($batch as $row) {
+        array_unshift($row, $row_no++);
+        fputcsv($fh, $row, "\t");
+      }
+      if (ob_get_level()) {
+        ob_flush();
+        flush();
+      }
+    }
+    fclose($fh);
+    exit;
+  }
+
+  /**
+   * Stream all district staff as CSV. GET: search, includeInactive, job, facility.
+   */
+  public function export_district_staff_csv()
+  {
+    $search = $this->input->get('search');
+    $include_inactive = (bool) $this->input->get('includeInactive');
+    $job = $this->input->get('job');
+    $facility = $this->input->get('facility');
+    if (is_string($job) && $job !== '') {
+      $job = array_filter(explode(',', $job));
+    }
+    if (is_string($facility) && $facility !== '') {
+      $facility = array_filter(explode(',', $facility));
+    }
+    $total = $this->empModel->get_district_employees_export_count($_SESSION['district'], $job, $facility, (string) $search, $include_inactive);
+    $filename = 'district_staff_' . date('Y-m-d_His') . '.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache');
+    $fh = fopen('php://output', 'w');
+    fprintf($fh, chr(0xEF).chr(0xBB).chr(0xBF));
+    $header = array('#', 'Staff ID', 'NIN', 'Full Name', 'Gender', 'Birth Date', 'Phone', 'Email', 'Facility', 'Department', 'Job', 'Terms', 'Card #', 'Status');
+    fputcsv($fh, $header);
+    $batch_size = 500;
+    $row_no = 1;
+    for ($offset = 0; $offset < $total; $offset += $batch_size) {
+      $batch = $this->empModel->get_district_employees_export_batch($_SESSION['district'], $job, $facility, (string) $search, $include_inactive, $offset, $batch_size);
+      foreach ($batch as $row) {
+        array_unshift($row, $row_no++);
+        fputcsv($fh, $row);
+      }
+      if (ob_get_level()) {
+        ob_flush();
+        flush();
+      }
+    }
+    fclose($fh);
+    exit;
+  }
+
+  /**
+   * Stream all district staff as Excel (CSV with .xls). GET: search, includeInactive, job, facility.
+   */
+  public function export_district_staff_excel()
+  {
+    $search = $this->input->get('search');
+    $include_inactive = (bool) $this->input->get('includeInactive');
+    $job = $this->input->get('job');
+    $facility = $this->input->get('facility');
+    if (is_string($job) && $job !== '') {
+      $job = array_filter(explode(',', $job));
+    }
+    if (is_string($facility) && $facility !== '') {
+      $facility = array_filter(explode(',', $facility));
+    }
+    $total = $this->empModel->get_district_employees_export_count($_SESSION['district'], $job, $facility, (string) $search, $include_inactive);
+    $filename = 'district_staff_' . date('Y-m-d_His') . '.xls';
+    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache');
+    $fh = fopen('php://output', 'w');
+    fprintf($fh, chr(0xEF).chr(0xBB).chr(0xBF));
+    $header = array('#', 'Staff ID', 'NIN', 'Full Name', 'Gender', 'Birth Date', 'Phone', 'Email', 'Facility', 'Department', 'Job', 'Terms', 'Card #', 'Status');
+    fputcsv($fh, $header, "\t");
+    $batch_size = 500;
+    $row_no = 1;
+    for ($offset = 0; $offset < $total; $offset += $batch_size) {
+      $batch = $this->empModel->get_district_employees_export_batch($_SESSION['district'], $job, $facility, (string) $search, $include_inactive, $offset, $batch_size);
+      foreach ($batch as $row) {
+        array_unshift($row, $row_no++);
+        fputcsv($fh, $row, "\t");
+      }
+      if (ob_get_level()) {
+        ob_flush();
+        flush();
+      }
+    }
+    fclose($fh);
+    exit;
+  }
+
   public function index()
   {
     // Handle AJAX requests for server-side pagination

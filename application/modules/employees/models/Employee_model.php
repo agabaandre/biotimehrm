@@ -154,6 +154,160 @@ class Employee_model extends CI_Model
         
         return $formatted_data;
     }
+
+    /**
+     * Fetch a batch of staff for streaming export (same filters as get_employees_ajax). Returns array of row arrays.
+     */
+    public function get_employees_export_batch($filters, $globalSearch, $include_inactive, $offset, $limit = 500)
+    {
+        $has_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
+        $select = 'ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, facility, district, nin, card_number, birth_date, cadre, gender, facility_id, ipps, email';
+        if ($has_active) {
+            $select .= ', is_active_employee';
+        }
+        $this->db->select($select);
+        $this->db->from('ihrisdata');
+        $this->db->where($filters);
+        if (!$include_inactive && $has_active) {
+            $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
+        }
+        if (!empty($globalSearch)) {
+            $this->db->group_start();
+            $this->db->like('ihris_pid', $globalSearch);
+            $this->db->or_like('surname', $globalSearch);
+            $this->db->or_like('firstname', $globalSearch);
+            $this->db->or_like('othername', $globalSearch);
+            $this->db->or_like('job', $globalSearch);
+            $this->db->or_like('facility', $globalSearch);
+            $this->db->or_like('department', $globalSearch);
+            $this->db->or_like('nin', $globalSearch);
+            $this->db->or_like('card_number', $globalSearch);
+            $this->db->or_like('mobile', $globalSearch);
+            $this->db->or_like('telephone', $globalSearch);
+            $this->db->or_like('email', $globalSearch);
+            $this->db->or_like('ipps', $globalSearch);
+            $this->db->group_end();
+        }
+        $this->db->order_by('surname', 'asc');
+        $this->db->limit($limit, $offset);
+        $query = $this->db->get();
+        $result = $query->result();
+        $rows = [];
+        foreach ($result as $row) {
+            $active = ($has_active && isset($row->is_active_employee)) ? (int) $row->is_active_employee : 1;
+            $rows[] = [
+                str_replace('person|', '', $row->ihris_pid),
+                $row->nin,
+                trim($row->surname . ' ' . $row->firstname . ' ' . ($row->othername ?? '')),
+                $row->gender,
+                $row->birth_date,
+                (!is_null($row->ipps) && is_numeric($row->ipps)) ? ((int)$row->ipps * 1) : 'N/A',
+                $row->card_number,
+                !empty($row->mobile) ? $row->mobile : ($row->telephone ?? 'N/A'),
+                $row->email ?? 'N/A',
+                $row->department,
+                $row->job,
+                str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $row->employment_terms ?? ''))),
+                $active === 0 ? 'Former Staff' : 'Active'
+            ];
+        }
+        return $rows;
+    }
+
+    /**
+     * Fetch a batch of district staff for streaming export. Returns array of row arrays.
+     */
+    public function get_district_employees_export_batch($district, $job, $facility, $search, $include_inactive, $offset, $limit = 500)
+    {
+        $has_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
+        $select = 'ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, facility, facility_id, district, nin, card_number, birth_date, gender, email';
+        if ($has_active) {
+            $select .= ', is_active_employee';
+        }
+        $this->db->select($select);
+        $this->db->from('ihrisdata');
+        $this->db->where('district', $district);
+        if (!$include_inactive && $has_active) {
+            $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
+        }
+        if (!empty($job)) {
+            $this->db->where_in('job_id', $job);
+        }
+        if (!empty($facility)) {
+            $this->db->where_in('facility_id', $facility);
+        }
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('ihris_pid', $search);
+            $this->db->or_like('surname', $search);
+            $this->db->or_like('firstname', $search);
+            $this->db->or_like('othername', $search);
+            $this->db->or_like('job', $search);
+            $this->db->or_like('facility', $search);
+            $this->db->or_like('department', $search);
+            $this->db->or_like('nin', $search);
+            $this->db->or_like('card_number', $search);
+            $this->db->group_end();
+        }
+        $this->db->order_by('surname', 'asc');
+        $this->db->limit($limit, $offset);
+        $query = $this->db->get();
+        $result = $query->result();
+        $rows = [];
+        foreach ($result as $row) {
+            $active = ($has_active && isset($row->is_active_employee)) ? (int) $row->is_active_employee : 1;
+            $rows[] = [
+                str_replace('person|', '', $row->ihris_pid),
+                $row->nin,
+                trim($row->surname . ' ' . $row->firstname . ' ' . ($row->othername ?? '')),
+                $row->gender,
+                $row->birth_date,
+                !empty($row->mobile) ? $row->mobile : ($row->telephone ?? 'N/A'),
+                $row->email ?? 'N/A',
+                $row->facility,
+                $row->department,
+                $row->job,
+                str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $row->employment_terms ?? ''))),
+                $row->card_number,
+                $active === 0 ? 'Former Staff' : 'Active'
+            ];
+        }
+        return $rows;
+    }
+
+    /**
+     * Count district staff for export (same filters as get_district_employees_export_batch including search).
+     */
+    public function get_district_employees_export_count($district, $job, $facility, $search, $include_inactive)
+    {
+        $has_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
+        $this->db->from('ihrisdata');
+        $this->db->where('district', $district);
+        if (!$include_inactive && $has_active) {
+            $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
+        }
+        if (!empty($job)) {
+            $this->db->where_in('job_id', $job);
+        }
+        if (!empty($facility)) {
+            $this->db->where_in('facility_id', $facility);
+        }
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('ihris_pid', $search);
+            $this->db->or_like('surname', $search);
+            $this->db->or_like('firstname', $search);
+            $this->db->or_like('othername', $search);
+            $this->db->or_like('job', $search);
+            $this->db->or_like('facility', $search);
+            $this->db->or_like('department', $search);
+            $this->db->or_like('nin', $search);
+            $this->db->or_like('card_number', $search);
+            $this->db->group_end();
+        }
+        return $this->db->count_all_results();
+    }
+
     public function district_employees($district, $job, $facility, $count = FALSE, $start=FALSE, $limit=FALSE, $csv=FALSE, $include_inactive = false)
     {
         $has_active = $this->db->field_exists('is_active_employee', 'ihrisdata');

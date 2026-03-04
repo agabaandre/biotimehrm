@@ -46,14 +46,14 @@
                          <i class="fas fa-info-circle mr-1"></i> Searches across all employee fields including name, ID, NIN, phone, email, department, job, etc.
                        </small>
                      </div>
-                     <div class="col-12">
-                       <div class="form-check">
-                         <input class="form-check-input" type="checkbox" id="includeInactive" value="1">
-                         <label class="form-check-label" for="includeInactive">
+                     <div class="col-12 mt-3 pt-3" style="border-top: 1px solid #dee2e6;">
+                       <div class="form-check form-check-inline">
+                         <input class="form-check-input" type="checkbox" id="includeInactive" value="1" style="width: 1.1em; height: 1.1em; margin-top: 0.15em;">
+                         <label class="form-check-label font-weight-bold" for="includeInactive" style="margin-left: 0.25em;">
                            Include inactive (Former Staff)
                          </label>
                        </div>
-                       <small class="form-text text-muted">When unchecked, only active employees are shown.</small>
+                       <small class="form-text text-muted d-block mt-1">When unchecked, only active employees are shown.</small>
                      </div>
                    </form>
           </div>
@@ -167,7 +167,7 @@
 <script>
 $(document).ready(function() {
     var baseUrl = '<?php echo base_url(); ?>';
-    var canMarkDisabled = <?php echo (is_array($this->session->userdata('permissions')) && in_array('15', $this->session->userdata('permissions'))) ? 'true' : 'false'; ?>;
+    var canMarkDisabled = <?php echo !empty($can_mark_disabled) ? 'true' : 'false'; ?>;
     var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
     var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 
@@ -216,14 +216,15 @@ $(document).ready(function() {
             { data: 'department' },
             { data: 'job' },
             { data: 'employment_terms', className: 'text-center' },
-            { data: 'status_label', className: 'text-center', render: function(data, type, row) {
+            { data: 'status_label', className: 'text-center', responsivePriority: 2, render: function(data, type, row) {
                 if (type !== 'display') return data || (row.status === 0 ? 'Former Staff' : 'Active');
                 var label = data || (row.status === 0 ? 'Former Staff' : 'Active');
                 var badge = row.status === 0 ? 'badge-secondary' : 'badge-success';
                 return '<span class="badge ' + badge + '">' + (label ? String(label).replace(/</g,'&lt;') : '') + '</span>';
             }},
-            { data: null, className: 'text-center', orderable: false, render: function(data, type, row) {
-                if (type !== 'display' || !canMarkDisabled) return '';
+            { data: null, className: 'text-center', orderable: false, responsivePriority: 1, render: function(data, type, row) {
+                if (type !== 'display') return '';
+                if (!canMarkDisabled) return '<span class="text-muted">—</span>';
                 var pid = row.ihris_pid || '';
                 var pidEnc = (pid.indexOf('person|') === 0) ? pid : ('person|' + pid);
                 if (row.status === 0) {
@@ -245,31 +246,23 @@ $(document).ready(function() {
                 text: '<i class="fas fa-copy"></i> Copy',
                 className: 'btn btn-secondary btn-sm',
                 exportOptions: {
-                    columns: ':visible'
+                    columns: ':visible:not(:last-child)'
                 }
             },
             {
-                extend: 'csv',
-                text: '<i class="fas fa-file-csv"></i> CSV',
-                className: 'btn btn-success btn-sm',
-                exportOptions: {
-                    columns: ':visible'
+                text: '<i class="fas fa-file-csv"></i> Export all CSV',
+                className: 'btn btn-success btn-sm btn-export-all-csv',
+                action: function() {
+                    var q = '?search=' + encodeURIComponent($('#globalSearch').val() || '') + '&includeInactive=' + ($('#includeInactive').is(':checked') ? 1 : 0);
+                    window.location = baseUrl + 'employees/export_staff_csv' + q;
                 }
             },
             {
-                extend: 'excel',
-                text: '<i class="fas fa-file-excel"></i> Excel',
-                className: 'btn btn-info btn-sm',
-                exportOptions: {
-                    columns: ':visible'
-                }
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf"></i> PDF',
-                className: 'btn btn-danger btn-sm',
-                exportOptions: {
-                    columns: ':visible'
+                text: '<i class="fas fa-file-excel"></i> Export all Excel',
+                className: 'btn btn-info btn-sm btn-export-all-excel',
+                action: function() {
+                    var q = '?search=' + encodeURIComponent($('#globalSearch').val() || '') + '&includeInactive=' + ($('#includeInactive').is(':checked') ? 1 : 0);
+                    window.location = baseUrl + 'employees/export_staff_excel' + q;
                 }
             },
             {
@@ -277,7 +270,7 @@ $(document).ready(function() {
                 text: '<i class="fas fa-print"></i> Print',
                 className: 'btn btn-warning btn-sm',
                 exportOptions: {
-                    columns: ':visible'
+                    columns: ':visible:not(:last-child)'
                 }
             },
             {

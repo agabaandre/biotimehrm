@@ -52,7 +52,14 @@ require_once("includes/sidenav.php");
           </section>
 
           <?php
-              $this->load->view($module . "/" . $view);
+              $child_data = array();
+              if (isset($view)) $child_data['view'] = $view;
+              if (isset($module)) $child_data['module'] = $module;
+              if (isset($uptitle)) $child_data['uptitle'] = $uptitle;
+              if (isset($title)) $child_data['title'] = $title;
+              if (isset($can_mark_disabled)) $child_data['can_mark_disabled'] = $can_mark_disabled;
+              else $child_data['can_mark_disabled'] = (is_array($permissions) && (in_array('15', $permissions) || in_array(15, $permissions)));
+              $this->load->view($module . "/" . $view, $child_data);
           ?>
 
         </div> 
