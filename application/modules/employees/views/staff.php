@@ -47,13 +47,15 @@
                        </small>
                      </div>
                      <div class="col-12 mt-3 pt-3" style="border-top: 1px solid #dee2e6;">
-                       <div class="form-check form-check-inline">
-                         <input class="form-check-input" type="checkbox" id="includeInactive" value="1" style="width: 1.1em; height: 1.1em; margin-top: 0.15em;">
-                         <label class="form-check-label font-weight-bold" for="includeInactive" style="margin-left: 0.25em;">
-                           Include inactive (Former Staff)
-                         </label>
+                       <div class="d-flex align-items-center flex-wrap">
+                         <input type="hidden" id="includeInactive" value="0">
+                         <span class="font-weight-bold mr-2">Include inactive (Former Staff)</span>
+                         <button type="button" id="includeInactiveToggle" class="btn btn-sm btn-secondary include-inactive-toggle" role="switch" aria-checked="false" title="Toggle to show or hide former staff">
+                           <span class="toggle-off">Off</span>
+                           <span class="toggle-on d-none">On</span>
+                         </button>
                        </div>
-                       <small class="form-text text-muted d-block mt-1">When unchecked, only active employees are shown.</small>
+                       <small class="form-text text-muted d-block mt-1">When Off, only active employees are shown.</small>
                      </div>
                    </form>
           </div>
@@ -186,7 +188,7 @@ $(document).ready(function() {
                    type: 'POST',
                    data: function(d) {
                        d.globalSearch = $('#globalSearch').val();
-                       d.includeInactive = $('#includeInactive').is(':checked') ? 1 : 0;
+                       d.includeInactive = $('#includeInactive').val() || 0;
                        d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
                    }
                },
@@ -253,7 +255,7 @@ $(document).ready(function() {
                 text: '<i class="fas fa-file-csv"></i> Export all CSV',
                 className: 'btn btn-success btn-sm btn-export-all-csv',
                 action: function() {
-                    var q = '?search=' + encodeURIComponent($('#globalSearch').val() || '') + '&includeInactive=' + ($('#includeInactive').is(':checked') ? 1 : 0);
+                    var q = '?search=' + encodeURIComponent($('#globalSearch').val() || '') + '&includeInactive=' + ($('#includeInactive').val() || 0);
                     window.location = baseUrl + 'employees/export_staff_csv' + q;
                 }
             },
@@ -261,7 +263,7 @@ $(document).ready(function() {
                 text: '<i class="fas fa-file-excel"></i> Export all Excel',
                 className: 'btn btn-info btn-sm btn-export-all-excel',
                 action: function() {
-                    var q = '?search=' + encodeURIComponent($('#globalSearch').val() || '') + '&includeInactive=' + ($('#includeInactive').is(':checked') ? 1 : 0);
+                    var q = '?search=' + encodeURIComponent($('#globalSearch').val() || '') + '&includeInactive=' + ($('#includeInactive').val() || 0);
                     window.location = baseUrl + 'employees/export_staff_excel' + q;
                 }
             },
@@ -307,8 +309,18 @@ $(document).ready(function() {
                table.ajax.reload();
            });
 
-    // Reload when Include inactive is toggled
-    $('#includeInactive').on('change', function() {
+    // Include inactive toggle (visible switch)
+    function setIncludeInactiveValue(on) {
+        var val = on ? '1' : '0';
+        $('#includeInactive').val(val);
+        $('#includeInactiveToggle').attr('aria-checked', on ? 'true' : 'false')
+            .toggleClass('btn-secondary', !on).toggleClass('btn-success', on);
+        $('#includeInactiveToggle .toggle-off').toggleClass('d-none', on);
+        $('#includeInactiveToggle .toggle-on').toggleClass('d-none', !on);
+    }
+    $('#includeInactiveToggle').on('click', function() {
+        var isOn = $('#includeInactive').val() === '1';
+        setIncludeInactiveValue(!isOn);
         table.ajax.reload();
     });
     
@@ -498,4 +510,15 @@ $(document).ready(function() {
 #staffTable .btn-mark-enabled .fa {
   font-size: 0.65rem;
 }
+
+/* Include inactive toggle — always visible */
+.include-inactive-toggle {
+  min-width: 3.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+.include-inactive-toggle.btn-secondary { background-color: #6c757d; color: #fff; border-color: #6c757d; }
+.include-inactive-toggle.btn-success { color: #fff; }
 </style>
