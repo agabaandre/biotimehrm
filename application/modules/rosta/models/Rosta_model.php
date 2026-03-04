@@ -311,7 +311,8 @@ class Rosta_model extends CI_Model
 		if (empty($facility)) {
 			return array();
 		}
-		$sql = "SELECT DISTINCT ihrisdata.ihris_pid FROM ihrisdata WHERE ihrisdata.facility_id = ?";
+		// MySQL 8 ONLY_FULL_GROUP_BY: ORDER BY columns must be in SELECT when using DISTINCT
+		$sql = "SELECT DISTINCT ihrisdata.ihris_pid, ihrisdata.surname, ihrisdata.firstname FROM ihrisdata WHERE ihrisdata.facility_id = ?";
 		$params = array($facility);
 		$filters = is_string($filters) ? trim($filters) : '';
 		if ($filters !== '') {
