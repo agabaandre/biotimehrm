@@ -45,12 +45,13 @@ class Svariables extends MX_Controller
 	}
 	
 	/**
-	 * Handle AJAX requests for updating variables. CSRF is validated then stripped before DB update.
+	 * Handle AJAX requests for updating variables. CSRF validated then stripped before DB update.
 	 */
 	private function _handleAjaxRequest() {
 		$csrf_name = $this->security->get_csrf_token_name();
 		$csrf_hash = $this->security->get_csrf_hash();
-		if (!$csrf_hash || $this->input->post($csrf_name) !== $csrf_hash) {
+		$post_token = $this->input->post($csrf_name);
+		if (!$csrf_hash || $post_token === null || $post_token === '' || !hash_equals((string) $csrf_hash, (string) $post_token)) {
 			$this->output->set_content_type('application/json')->set_output(json_encode([
 				'status' => 'error',
 				'message' => 'Invalid security token. Please refresh the page and try again.',

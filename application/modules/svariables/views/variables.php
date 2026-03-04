@@ -117,50 +117,48 @@ $col2 = array_slice($visible_fields, $half, null, true);
 </section>
 
 <script>
-(function() {
-  var form = document.getElementById('svariablesForm');
-  var btn = document.getElementById('svariablesSubmitBtn');
-  if (!form || !btn) return;
+$(function() {
+  var $form = $('#svariablesForm');
+  var $btn = $('#svariablesSubmitBtn');
+  if (!$form.length || !$btn.length) return;
 
-  var csrfName = '<?php echo addslashes($csrf_name); ?>';
-  var baseUrl = '<?php echo addslashes(base_url()); ?>';
-
-  function updateCsrfInput(name, hash) {
-    var input = form.querySelector('input[name="' + name + '"]');
-    if (input) input.value = hash;
-  }
-
-  form.addEventListener('submit', function(e) {
+  $form.on('submit', function(e) {
     e.preventDefault();
-    var origHtml = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+    var origHtml = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Saving...');
 
-    var formData = new FormData(form);
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', baseUrl + 'svariables/index');
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    xhr.onload = function() {
-      btn.disabled = false;
-      btn.innerHTML = origHtml;
-      var res = {};
-      try { res = JSON.parse(xhr.responseText || '{}'); } catch (err) { res = { status: 'error', message: 'Invalid response.' }; }
-      if (res.csrf_name && res.csrf_hash) updateCsrfInput(res.csrf_name, res.csrf_hash);
-      if (res.status === 'success') {
-        if (typeof $.notify === 'function') $.notify(res.message || 'Settings updated successfully!', 'success');
-        else alert(res.message);
-      } else {
-        if (typeof $.notify === 'function') $.notify(res.message || 'Failed to update settings.', 'error');
-        else alert(res.message || 'Failed to update settings.');
+    var formData = new FormData(this);
+    formData.append('<?php echo $this->security->get_csrf_token_name(); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
+
+    $.ajax({
+      url: '<?php echo base_url(); ?>svariables/index',
+      method: 'POST',
+      contentType: false,
+      processData: false,
+      dataType: 'json',
+      data: formData,
+      success: function(res) {
+        if (typeof res !== 'object') { try { res = JSON.parse(res); } catch (err) { res = {}; } }
+        if (res.csrf_name && res.csrf_hash) {
+          $form.find('input[name="' + res.csrf_name + '"]').val(res.csrf_hash);
+        }
+        if (res.status === 'success') {
+          $.notify(res.message || 'Settings updated successfully!', 'success');
+        } else {
+          $.notify(res.message || 'Failed to update settings.', 'error');
+        }
+      },
+      error: function(xhr) {
+        var msg = (xhr.status === 403) ? 'Blocked (session or security token). Please refresh the page and try again.' : ('Request failed: ' + (xhr.responseText || xhr.statusText || 'Unknown error'));
+        $.notify(msg, 'error');
+        if (xhr.responseJSON && xhr.responseJSON.csrf_name && xhr.responseJSON.csrf_hash) {
+          $form.find('input[name="' + xhr.responseJSON.csrf_name + '"]').val(xhr.responseJSON.csrf_hash);
+        }
+      },
+      complete: function() {
+        $btn.prop('disabled', false).html(origHtml);
       }
-    };
-    xhr.onerror = function() {
-      btn.disabled = false;
-      btn.innerHTML = origHtml;
-      if (typeof $.notify === 'function') $.notify('Request failed. Please try again.', 'error');
-      else alert('Request failed. Please try again.');
-    };
-    xhr.send(formData);
+    });
   });
-})();
+});
 </script>
