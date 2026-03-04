@@ -396,7 +396,7 @@
                 <div class="col-md-6">
                   <div class="mb-3">
                     <label class="form-label">Email</label>
-                    <input type="email" class="form-control" name="email" readonly>
+                    <input type="email" class="form-control" name="email">
                   </div>
                   </div>
                 <div class="col-md-6">
