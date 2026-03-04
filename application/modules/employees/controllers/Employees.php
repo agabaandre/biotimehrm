@@ -80,11 +80,12 @@ class Employees extends MX_Controller
     $order_column = $this->input->post('order')[0]['column'];
     $order_dir = $this->input->post('order')[0]['dir'];
     
-    // Get global search
+    // Get global search and include inactive filter
     $globalSearch = $this->input->post('globalSearch');
+    $include_inactive = (bool) $this->input->post('includeInactive');
     
     // Get total count
-    $total_records = $this->empModel->get_employees_count($this->filters);
+    $total_records = $this->empModel->get_employees_count($this->filters, '', $include_inactive);
     
     // Get filtered data
     $data = $this->empModel->get_employees_ajax(
@@ -94,11 +95,12 @@ class Employees extends MX_Controller
       $search, 
       $order_column, 
       $order_dir,
-      $globalSearch
+      $globalSearch,
+      $include_inactive
     );
     
     // Get filtered count for search
-    $filtered_records = $this->empModel->get_employees_count($this->filters, $globalSearch);
+    $filtered_records = $this->empModel->get_employees_count($this->filters, $globalSearch, $include_inactive);
     
     // Prepare response
     $response = [
@@ -122,12 +124,13 @@ class Employees extends MX_Controller
     $order_column = $this->input->post('order')[0]['column'];
     $order_dir = $this->input->post('order')[0]['dir'];
     
-    // Get filters
+    // Get filters and include inactive
     $job = $this->input->post('job');
     $facility = $this->input->post('facility');
+    $include_inactive = (bool) $this->input->post('includeInactive');
     
     // Get total count
-    $total_records = $this->empModel->district_employees($_SESSION['district'], $job, $facility, 'count', 0, 0, FALSE);
+    $total_records = $this->empModel->district_employees($_SESSION['district'], $job, $facility, 'count', 0, 0, FALSE, $include_inactive);
     
     // Get filtered data
     $data = $this->empModel->district_employees_ajax(
@@ -138,7 +141,8 @@ class Employees extends MX_Controller
       $length, 
       $search, 
       $order_column, 
-      $order_dir
+      $order_dir,
+      $include_inactive
     );
     
     // Prepare response
@@ -156,6 +160,57 @@ class Employees extends MX_Controller
     $employee = $this->empModel->get_employee($id);
     return  $employee;
   }
+
+  /**
+   * Mark staff as disabled (Former Staff). Permission 15 required. AJAX: POST ihris_pid.
+   */
+  public function setStaffDisabled()
+  {
+    $this->output->set_content_type('application/json');
+    $perms = $this->session->userdata('permissions');
+    if (!is_array($perms) || !in_array('15', $perms)) {
+      $this->output->set_output(json_encode(array('success' => false, 'message' => 'Permission denied.', 'status' => null)));
+      return;
+    }
+    $ihris_pid = $this->input->post('ihris_pid');
+    if (empty($ihris_pid)) {
+      $this->output->set_output(json_encode(array('success' => false, 'message' => 'ihris_pid required.', 'status' => null)));
+      return;
+    }
+    $ok = $this->empModel->set_staff_status($ihris_pid, 0);
+    $this->output->set_output(json_encode(array(
+      'success' => $ok,
+      'message' => $ok ? 'Marked as Former Staff.' : 'Update failed or status column missing.',
+      'status' => 0,
+      'status_label' => 'Former Staff'
+    )));
+  }
+
+  /**
+   * Mark staff as enabled (Active). Permission 15 required. AJAX: POST ihris_pid.
+   */
+  public function setStaffEnabled()
+  {
+    $this->output->set_content_type('application/json');
+    $perms = $this->session->userdata('permissions');
+    if (!is_array($perms) || !in_array('15', $perms)) {
+      $this->output->set_output(json_encode(array('success' => false, 'message' => 'Permission denied.', 'status' => null)));
+      return;
+    }
+    $ihris_pid = $this->input->post('ihris_pid');
+    if (empty($ihris_pid)) {
+      $this->output->set_output(json_encode(array('success' => false, 'message' => 'ihris_pid required.', 'status' => null)));
+      return;
+    }
+    $ok = $this->empModel->set_staff_status($ihris_pid, 1);
+    $this->output->set_output(json_encode(array(
+      'success' => $ok,
+      'message' => $ok ? 'Marked as Active.' : 'Update failed or status column missing.',
+      'status' => 1,
+      'status_label' => 'Active'
+    )));
+  }
+
   public function index()
   {
     // Handle AJAX requests for server-side pagination

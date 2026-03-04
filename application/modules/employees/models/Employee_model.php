@@ -29,11 +29,14 @@ class Employee_model extends CI_Model
     /**
      * Get total count of employees for pagination
      */
-    public function get_employees_count($filters, $globalSearch = '')
+    public function get_employees_count($filters, $globalSearch = '', $include_inactive = false)
     {
         $this->db->select('COUNT(DISTINCT ihris_pid) as total');
         $this->db->from('ihrisdata');
         $this->db->where($filters);
+        if (!$include_inactive && $this->db->field_exists('is_active_employee', 'ihrisdata')) {
+            $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
+        }
         
         // Apply global search filter if provided
         if (!empty($globalSearch)) {
@@ -62,12 +65,19 @@ class Employee_model extends CI_Model
     /**
      * Get employees with AJAX support for DataTables (main employees page)
      */
-    public function get_employees_ajax($filters, $start = 0, $length = 10, $search = '', $order_column = 0, $order_dir = 'asc', $globalSearch = '')
+    public function get_employees_ajax($filters, $start = 0, $length = 10, $search = '', $order_column = 0, $order_dir = 'asc', $globalSearch = '', $include_inactive = false)
     {
-        // Build base query with proper indexing
-        $this->db->select('ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, facility, district, nin, card_number, birth_date, cadre, gender, facility_id, ipps, email');
+        $has_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
+        $select = 'ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, facility, district, nin, card_number, birth_date, cadre, gender, facility_id, ipps, email';
+        if ($has_active) {
+            $select .= ', is_active_employee';
+        }
+        $this->db->select($select);
         $this->db->from('ihrisdata');
         $this->db->where($filters);
+        if (!$include_inactive && $has_active) {
+            $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
+        }
         
         // Apply global search filter
         if (!empty($globalSearch)) {
@@ -103,10 +113,14 @@ class Employee_model extends CI_Model
             $this->db->group_end();
         }
         
-        // Apply ordering
-        $columns = ['ihris_pid', 'nin', 'surname', 'gender', 'birth_date', 'ipps', 'card_number', 'telephone', 'email', 'department', 'job', 'employment_terms'];
+        // Apply ordering (status column = is_active_employee)
+        $columns = ['ihris_pid', 'nin', 'surname', 'gender', 'birth_date', 'ipps', 'card_number', 'telephone', 'email', 'department', 'job', 'employment_terms', 'is_active_employee'];
         if (isset($columns[$order_column])) {
-            $this->db->order_by($columns[$order_column], $order_dir);
+            $order_col = $columns[$order_column];
+            if ($order_col === 'is_active_employee' && !$has_active) {
+                $order_col = 'surname';
+            }
+            $this->db->order_by($order_col, $order_dir);
         }
         
         // Apply pagination
@@ -115,9 +129,11 @@ class Employee_model extends CI_Model
         $query = $this->db->get();
         $result = $query->result();
         
-        // Format data for DataTables
+        // Format data for DataTables (status/status_label for display: 0 = Former Staff, 1 = Active)
         $formatted_data = [];
         foreach ($result as $row) {
+            $active = ($has_active && isset($row->is_active_employee)) ? (int) $row->is_active_employee : 1;
+            $status = $active; // 1 = active, 0 = former staff
             $formatted_data[] = [
                 'ihris_pid' => str_replace('person|', '', $row->ihris_pid),
                 'nin' => $row->nin,
@@ -130,18 +146,27 @@ class Employee_model extends CI_Model
                 'email' => $row->email ?? 'N/A',
                 'department' => $row->department,
                 'job' => $row->job,
-                'employment_terms' => str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $row->employment_terms ?? '')))
+                'employment_terms' => str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $row->employment_terms ?? ''))),
+                'status' => $status,
+                'status_label' => $status === 0 ? 'Former Staff' : 'Active'
             ];
         }
         
         return $formatted_data;
     }
-    public function district_employees($district, $job, $facility, $count = FALSE, $start=FALSE, $limit=FALSE, $csv=FALSE)
+    public function district_employees($district, $job, $facility, $count = FALSE, $start=FALSE, $limit=FALSE, $csv=FALSE, $include_inactive = false)
     {
-        // Use Query Builder for better performance and security
-        $this->db->select('ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, department_id, is_incharge, facility, facility_id, district, district_id, nin, card_number, birth_date, cadre, gender, email');
+        $has_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
+        $select = 'ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, department_id, is_incharge, facility, facility_id, district, district_id, nin, card_number, birth_date, cadre, gender, email';
+        if ($has_active) {
+            $select .= ', is_active_employee';
+        }
+        $this->db->select($select);
         $this->db->from('ihrisdata');
         $this->db->where('district', $district);
+        if (!$include_inactive && $has_active) {
+            $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
+        }
         
         // Apply job filter
         if (!empty($job)) {
@@ -172,12 +197,19 @@ class Employee_model extends CI_Model
     /**
      * Get district employees with AJAX support for DataTables
      */
-    public function district_employees_ajax($district, $job = NULL, $facility = NULL, $start = 0, $length = 10, $search = '', $order_column = 0, $order_dir = 'asc')
+    public function district_employees_ajax($district, $job = NULL, $facility = NULL, $start = 0, $length = 10, $search = '', $order_column = 0, $order_dir = 'asc', $include_inactive = false)
     {
-        // Build base query
-        $this->db->select('ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, department_id, is_incharge, facility, facility_id, district, district_id, nin, card_number, birth_date, cadre, gender, email');
+        $has_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
+        $select = 'ihris_pid, surname, employment_terms, firstname, othername, job, telephone, mobile, department, department_id, is_incharge, facility, facility_id, district, district_id, nin, card_number, birth_date, cadre, gender, email';
+        if ($has_active) {
+            $select .= ', is_active_employee';
+        }
+        $this->db->select($select);
         $this->db->from('ihrisdata');
         $this->db->where('district', $district);
+        if (!$include_inactive && $has_active) {
+            $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
+        }
         
         // Apply job filter
         if (!empty($job)) {
@@ -205,9 +237,13 @@ class Employee_model extends CI_Model
         }
         
         // Apply ordering
-        $columns = ['ihris_pid', 'nin', 'surname', 'gender', 'birth_date', 'telephone', 'email', 'facility', 'department', 'job', 'employment_terms', 'card_number'];
+        $columns = ['ihris_pid', 'nin', 'surname', 'gender', 'birth_date', 'telephone', 'email', 'facility', 'department', 'job', 'employment_terms', 'card_number', 'is_active_employee'];
         if (isset($columns[$order_column])) {
-            $this->db->order_by($columns[$order_column], $order_dir);
+            $order_col = $columns[$order_column];
+            if ($order_col === 'is_active_employee' && !$has_active) {
+                $order_col = 'surname';
+            }
+            $this->db->order_by($order_col, $order_dir);
         } else {
             $this->db->order_by('surname', 'asc');
         }
@@ -218,33 +254,31 @@ class Employee_model extends CI_Model
         $query = $this->db->get();
         $result = $query->result();
         
-        // Format data for DataTables
+        // Format data for DataTables (status/status_label: 0 = Former Staff, 1 = Active)
         $formatted_data = [];
         foreach ($result as $index => $staff) {
-            $fullname = trim($staff->surname . ' ' . $staff->firstname . ' ' . $staff->othername);
-            $phone = !empty($staff->mobile) ? $staff->mobile : $staff->telephone;
-            $employment_terms = str_replace("CContract", "Central Contract", 
-                           str_replace("LContract", "Local Contract", 
-                           str_replace("employment_terms|", "", $staff->employment_terms)));
-            
+            $active = ($has_active && isset($staff->is_active_employee)) ? (int) $staff->is_active_employee : 1;
+            $status = $active;
             $formatted_data[] = [
                 'DT_RowId' => 'row_' . str_replace('person|', '', $staff->ihris_pid),
                 'serial' => $start + $index + 1,
                 'ihris_pid' => str_replace('person|', '', $staff->ihris_pid),
                 'nin' => $staff->nin,
-                'fullname' => $fullname,
+                'fullname' => $fullname = trim($staff->surname . ' ' . $staff->firstname . ' ' . $staff->othername),
                 'gender' => $staff->gender,
                 'birth_date' => $staff->birth_date,
-                'phone' => $phone,
+                'phone' => !empty($staff->mobile) ? $staff->mobile : $staff->telephone,
                 'email' => $staff->email,
                 'facility' => $staff->facility,
                 'department' => $staff->department,
                 'job' => $staff->job,
-                'employment_terms' => $employment_terms,
+                'employment_terms' => str_replace("CContract", "Central Contract", str_replace("LContract", "Local Contract", str_replace("employment_terms|", "", $staff->employment_terms ?? ''))),
                 'card_number' => $staff->card_number,
                 'is_incharge' => $staff->is_incharge,
                 'facility_id' => $staff->facility_id,
-                'district_id' => $staff->district_id
+                'district_id' => $staff->district_id,
+                'status' => $status,
+                'status_label' => $status === 0 ? 'Former Staff' : 'Active'
             ];
         }
         
@@ -256,6 +290,24 @@ class Employee_model extends CI_Model
         $query = $this->db->get('ihrisdata');
         return $query->row();
     }
+
+    /**
+     * Set staff active state (0 = inactive/Former Staff, 1 = active). Uses is_active_employee in ihrisdata.
+     */
+    public function set_staff_status($ihris_pid, $active)
+    {
+        if (!$this->db->field_exists('is_active_employee', 'ihrisdata')) {
+            return false;
+        }
+        $pid = is_string($ihris_pid) ? $ihris_pid : ('person|' . $ihris_pid);
+        if (strpos($pid, 'person|') !== 0) {
+            $pid = 'person|' . $pid;
+        }
+        $this->db->where('ihris_pid', $pid);
+        $this->db->update('ihrisdata', array('is_active_employee' => (int) $active));
+        return $this->db->affected_rows() > 0;
+    }
+
     public function get_employee_clock($facility, $staffId)
     {
         $this->db->select('status');

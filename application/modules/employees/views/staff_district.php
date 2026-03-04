@@ -260,6 +260,15 @@
                   <i class="fas fa-info-circle mr-1"></i> Searches across all employee fields including name, ID, NIN, phone, email, department, job, facility, etc.
                 </small>
               </div>
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="includeInactive" value="1">
+                  <label class="form-check-label" for="includeInactive">
+                    Include inactive (Former Staff)
+                  </label>
+                </div>
+                <small class="form-text text-muted">When unchecked, only active employees are shown.</small>
+              </div>
             </form>
             </div>
         </div>
@@ -301,7 +310,8 @@
                     <th style="min-width: 120px;">Job</th>
                     <th style="width: 120px;">Terms</th>
                     <th style="width: 100px;">Card #</th>
-                    <th style="width: 120px;">Actions</th>
+                    <th style="width: 110px;">Status</th>
+                    <th style="width: 180px;">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -395,6 +405,9 @@
 <script>
 $(document).ready(function() {
     var baseUrl = '<?php echo base_url(); ?>';
+    var canMarkDisabled = <?php echo (is_array($this->session->userdata('permissions')) && in_array('15', $this->session->userdata('permissions'))) ? 'true' : 'false'; ?>;
+    var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
+    var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 
     // Declare table variable in wider scope
     var table;
@@ -414,6 +427,7 @@ $(document).ready(function() {
             type: 'POST',
             data: function(d) {
                 d.globalSearch = $('#globalSearch').val();
+                d.includeInactive = $('#includeInactive').is(':checked') ? 1 : 0;
                 d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
             }
         },
@@ -440,15 +454,31 @@ $(document).ready(function() {
             { data: 'job' },
             { data: 'employment_terms', className: 'text-center' },
             { data: 'card_number', className: 'text-center' },
+            { data: 'status_label', className: 'text-center', render: function(data, type, row) {
+                if (type !== 'display') return data || (row.status === 0 ? 'Former Staff' : 'Active');
+                var label = data || (row.status === 0 ? 'Former Staff' : 'Active');
+                var badge = row.status === 0 ? 'badge-secondary' : 'badge-success';
+                return '<span class="badge ' + badge + '">' + (label ? String(label).replace(/</g,'&lt;') : '') + '</span>';
+            }},
             { 
                 data: null,
                 className: 'text-center',
+                orderable: false,
                 render: function(data, type, row) {
-                    if (row.is_incharge == 1) {
-                        return '<span class="badge badge-success">Already Incharge</span>';
-                    } else {
-                        return '<button type="button" class="btn btn-sm btn-info assign-incharge" data-staff=\'' + JSON.stringify(row) + '\'><i class="fas fa-user-plus mr-1"></i>Assign</button>';
+                    var pid = row.ihris_pid || '';
+                    var pidEnc = (pid.indexOf('person|') === 0) ? pid : ('person|' + pid);
+                    var inchargeHtml = (row.is_incharge == 1)
+                        ? '<span class="badge badge-success">Already Incharge</span>'
+                        : '<button type="button" class="btn btn-sm btn-info assign-incharge" data-staff=\'' + JSON.stringify(row) + '\'><i class="fas fa-user-plus mr-1"></i>Assign</button>';
+                    var statusHtml = '';
+                    if (canMarkDisabled) {
+                        if (row.status === 0) {
+                            statusHtml = ' <button type="button" class="btn btn-sm btn-outline-success btn-mark-enabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-check mr-1"></i>Active</button>';
+                        } else {
+                            statusHtml = ' <button type="button" class="btn btn-sm btn-outline-warning btn-mark-disabled" data-ihris-pid="' + String(pidEnc).replace(/"/g,'&quot;') + '"><i class="fas fa-user-minus mr-1"></i>Disabled</button>';
+                        }
                     }
+                    return inchargeHtml + statusHtml;
                 }
             }
         ],
@@ -534,10 +564,71 @@ $(document).ready(function() {
         $('#globalSearch').val('');
         table.ajax.reload();
     });
+
+    // Reload when Include inactive is toggled
+    $('#includeInactive').on('change', function() {
+        table.ajax.reload();
+    });
     
     // Refresh table
     $('#refreshTable').on('click', function() {
         table.ajax.reload();
+    });
+
+    // Mark as disabled / enabled (permission 15) — AJAX, update row without refresh
+    $('#staffTable').on('click', '.btn-mark-disabled', function() {
+        var btn = $(this);
+        var pid = btn.data('ihris-pid');
+        if (!pid) return;
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>...');
+        $.post(baseUrl + 'employees/setStaffDisabled', { ihris_pid: pid, [csrfName]: csrfHash })
+            .done(function(res) {
+                if (res && res.success) {
+                    var row = btn.closest('tr');
+                    var rowData = table.row(row).data();
+                    if (rowData) {
+                        rowData.status = 0;
+                        rowData.status_label = 'Former Staff';
+                        table.row(row).data(rowData).draw(false);
+                    }
+                    if (typeof toastr !== 'undefined') toastr.success(res.message); else alert(res.message);
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(res && res.message ? res.message : 'Failed'); else alert(res && res.message ? res.message : 'Failed');
+                }
+            })
+            .fail(function() {
+                if (typeof toastr !== 'undefined') toastr.error('Request failed'); else alert('Request failed');
+            })
+            .always(function() {
+                btn.prop('disabled', false).html('<i class="fas fa-user-minus mr-1"></i>Disabled');
+            });
+    });
+    $('#staffTable').on('click', '.btn-mark-enabled', function() {
+        var btn = $(this);
+        var pid = btn.data('ihris-pid');
+        if (!pid) return;
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>...');
+        $.post(baseUrl + 'employees/setStaffEnabled', { ihris_pid: pid, [csrfName]: csrfHash })
+            .done(function(res) {
+                if (res && res.success) {
+                    var row = btn.closest('tr');
+                    var rowData = table.row(row).data();
+                    if (rowData) {
+                        rowData.status = 1;
+                        rowData.status_label = 'Active';
+                        table.row(row).data(rowData).draw(false);
+                    }
+                    if (typeof toastr !== 'undefined') toastr.success(res.message); else alert(res.message);
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(res && res.message ? res.message : 'Failed'); else alert(res && res.message ? res.message : 'Failed');
+                }
+            })
+            .fail(function() {
+                if (typeof toastr !== 'undefined') toastr.error('Request failed'); else alert('Request failed');
+            })
+            .always(function() {
+                btn.prop('disabled', false).html('<i class="fas fa-user-check mr-1"></i>Active');
+            });
     });
     
     // Handle incharge assignment

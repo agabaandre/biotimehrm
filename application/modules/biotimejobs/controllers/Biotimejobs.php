@@ -161,7 +161,7 @@ class Biotimejobs extends MX_Controller
     //     $this->update_ipps();
     // }
     //employees all enrolled users before creating new ones.
-	public function get_ihrisdata()
+	public function get_ihrisdata_old()
 {
     $http = new HttpUtils();
     $headers = [
@@ -208,6 +208,319 @@ class Biotimejobs extends MX_Controller
 }
 
 
+/**
+ * Draw a simple text progress bar.
+ * @param int $current Processed count
+ * @param int $total Total count (0 = unknown)
+ * @return string e.g. [████████--------] 50%
+ */
+private function _draw_progress_bar($current, $total)
+{
+    $total = (int) $total;
+    if ($total <= 0) {
+        return '[--------] ?%';
+    }
+    $pct = min(100, (int) (($current / $total) * 100));
+    $barLen = 40;
+    $filled = (int) (($pct / 100) * $barLen);
+    $bar = str_repeat('█', $filled) . str_repeat('-', $barLen - $filled);
+    return "[$bar] {$pct}%";
+}
+
+/**
+ * Fetch iHRIS data (paginated API), upsert into ihrisdata (no truncate). Then merge UCMB data (non-paginated).
+ * - Update existing by ihris_pid, insert new. status=1 and is_active_employee=1 for all synced rows.
+ * - After sync: set status=0 where surname LIKE 'delete%' OR firstname LIKE 'delete%'.
+ * Requires ihrisdata.status and ihrisdata.is_active_employee (add if missing).
+ */
+public function get_ihrisdata($page = 1, $batch_size = 100)
+{
+    $base_url = "https://hris.health.go.ug/apiv1/index.php/api/ihrisdatapaginated/92cfdef7-8f2c-433e-ba62-49fa7a243974";
+    $per_page = 200;
+    $total_pages = 0;
+    $total_records = 0;
+    $total_upserted = 0;
+    $current_page = $page;
+    $batch_data = array();
+    $start_time = microtime(true);
+    $is_cli = (php_sapi_name() === 'cli');
+    $has_status = $this->db->field_exists('status', 'ihrisdata');
+    $has_is_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
+    $upsert_cols = $this->_get_ihrisdata_upsert_columns($has_status, $has_is_active);
+
+    echo $is_cli ? "\n" : "";
+    echo "Fetching iHRIS data (upsert: update existing, insert new)...\n";
+    if (!$is_cli) {
+        echo "<pre>";
+    }
+    flush();
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
+
+    do {
+        $url = $base_url . "?page=" . $current_page . "&per_page=" . $per_page;
+        curl_setopt($ch, CURLOPT_URL, $url);
+        $result = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($http_code !== 200 || $result === false) {
+            $error = curl_error($ch);
+            log_message('error', "get_ihrisdata: page $current_page HTTP $http_code - $error");
+            sleep(2);
+            continue;
+        }
+
+        $response = json_decode($result, true);
+        if (!isset($response['status']) || $response['status'] !== 'SUCCESS') {
+            log_message('error', "get_ihrisdata: API error page $current_page - " . json_encode($response));
+            break;
+        }
+
+        if ($total_pages == 0 && isset($response['pagination'])) {
+            $total_pages = $response['pagination']['total_pages'];
+            $total_records = $response['pagination']['total_records'];
+            echo "Total records: " . number_format($total_records) . " | Pages: $total_pages | Page size: $per_page\n";
+            if (!$is_cli) {
+                echo "<br>";
+            }
+            flush();
+        }
+
+        $records_fetched = 0;
+        if (isset($response['data']) && is_array($response['data'])) {
+            $records_fetched = count($response['data']);
+            foreach ($response['data'] as $record) {
+                $row = $this->_map_ihris_api_record_to_row($record);
+                if ($has_status) {
+                    $row['status'] = 1;
+                }
+                if ($has_is_active) {
+                    $row['is_active_employee'] = 1;
+                }
+                $batch_data[] = $row;
+
+                if (count($batch_data) >= $batch_size) {
+                    $total_upserted += $this->_upsert_ihrisdata_batch($batch_data, $upsert_cols);
+                    $batch_data = array();
+                }
+            }
+        }
+
+        $has_next = isset($response['pagination']['has_next_page']) ? $response['pagination']['has_next_page'] : false;
+        $current_page++;
+
+        $processed = $total_upserted;
+        $progress_bar = $this->_draw_progress_bar($processed, $total_records);
+        $elapsed = microtime(true) - $start_time;
+        $rate = $processed > 0 ? $processed / $elapsed : 0;
+        $remaining = max(0, $total_records - $processed);
+        $eta_seconds = $rate > 0 ? round($remaining / $rate) : 0;
+        $eta_formatted = $eta_seconds > 0 ? sprintf("%dm %ds", floor($eta_seconds / 60), $eta_seconds % 60) : "calculating...";
+
+        if ($is_cli) {
+            printf("\rProgress: %s | Upserted: %s | ETA: %s   ", $progress_bar, number_format($total_upserted), $eta_formatted);
+        } else {
+            echo "<div style='font-family: monospace;'>Progress: $progress_bar | Upserted: " . number_format($total_upserted) . " | ETA: $eta_formatted</div>";
+            flush();
+        }
+
+        if ($records_fetched == 0) {
+            break;
+        }
+        usleep(100000);
+    } while ($has_next && ($total_pages == 0 || $current_page <= $total_pages));
+
+    if (!empty($batch_data)) {
+        $total_upserted += $this->_upsert_ihrisdata_batch($batch_data, $upsert_cols);
+    }
+
+    curl_close($ch);
+
+    // Mark status=0 for records where surname or firstname starts with 'delete'
+    if ($has_status) {
+        $this->db->query("UPDATE ihrisdata SET status = 0 WHERE (TRIM(COALESCE(surname,'')) LIKE 'delete%' OR TRIM(COALESCE(firstname,'')) LIKE 'delete%')");
+        $marked = $this->db->affected_rows();
+        if ($is_cli) {
+            echo "\n  Marked status=0 (delete*): " . $marked . " record(s)\n";
+        } else {
+            echo "<div>Marked status=0 (delete*): $marked record(s)</div>";
+        }
+    }
+
+    $elapsed_total = round(microtime(true) - $start_time, 2);
+    $final_progress = $this->_draw_progress_bar($total_upserted, $total_records);
+
+    if ($is_cli) {
+        echo "\n\n═══════════════════════════════════════════════════════════\n";
+        echo "  iHRIS paginated: COMPLETED | Upserted: " . number_format($total_upserted) . " | $final_progress | " . $elapsed_total . "s\n";
+        echo "═══════════════════════════════════════════════════════════\n";
+    } else {
+        echo "<br><div style='font-family: monospace; padding: 10px; background: #f0f0f0; border: 1px solid #ccc;'>";
+        echo "<strong>iHRIS paginated:</strong> COMPLETED | Upserted: " . number_format($total_upserted) . " | $final_progress | " . $elapsed_total . "s";
+        echo "</div>";
+    }
+    flush();
+
+    // Merge UCMB data (not paginated)
+    $ucmb_merged = $this->_merge_ucmbdata($is_cli, $has_status, $has_is_active);
+    if ($is_cli) {
+        echo "  UCMB merged: " . $ucmb_merged . " record(s)\n";
+    } else {
+        echo "<div>UCMB merged: $ucmb_merged record(s)</div></pre>";
+    }
+
+    $this->log("get_ihrisdata: upserted " . $total_upserted . ", UCMB merged " . $ucmb_merged);
+    $this->cronjob_register(2, "biotimejobs/get_ihrisdata", ($total_upserted > 0 || $ucmb_merged > 0) ? "successful" : "failed");
+    return $total_upserted + $ucmb_merged;
+}
+
+/**
+ * Map API payload (ihrisdatapaginated / UCMB) to ihrisdata row. All API fields represented.
+ * API: ihris_pid, district_id, district, dhis_facility_id, dhis_district_id, nin, card_number, ipps,
+ * facility_type_id, facility_id, facility, department_id, department, job_id, job, employment_terms,
+ * surname, firstname, othername, mobile, telephone, institutiontype_name, institution_type_id,
+ * last_update, gender, birth_date, cadre, email, region.
+ */
+private function _map_ihris_api_record_to_row($record)
+{
+    $rec = is_array($record) ? $record : (array) $record;
+    return array(
+        'ihris_pid'          => isset($rec['ihris_pid']) ? $rec['ihris_pid'] : null,
+        'district_id'        => isset($rec['district_id']) ? $rec['district_id'] : null,
+        'district'           => isset($rec['district']) ? $rec['district'] : null,
+        'dhis_facility_id'   => isset($rec['dhis_facility_id']) ? $rec['dhis_facility_id'] : null,
+        'dhis_district_id'   => isset($rec['dhis_district_id']) ? $rec['dhis_district_id'] : null,
+        'nin'                => isset($rec['nin']) ? $rec['nin'] : null,
+        'card_number'        => isset($rec['card_number']) ? $rec['card_number'] : null,
+        'ipps'               => isset($rec['ipps']) ? $rec['ipps'] : null,
+        'facility_type_id'   => isset($rec['facility_type_id']) ? $rec['facility_type_id'] : null,
+        'facility_id'        => isset($rec['facility_id']) ? $rec['facility_id'] : null,
+        'facility'           => isset($rec['facility']) ? $rec['facility'] : null,
+        'department_id'      => isset($rec['department_id']) ? $rec['department_id'] : null,
+        'department'         => isset($rec['department']) ? $rec['department'] : null,
+        'job_id'             => isset($rec['job_id']) ? $rec['job_id'] : null,
+        'job'                => isset($rec['job']) ? $rec['job'] : null,
+        'employment_terms'   => isset($rec['employment_terms']) ? $rec['employment_terms'] : null,
+        'surname'            => isset($rec['surname']) ? $rec['surname'] : null,
+        'firstname'          => isset($rec['firstname']) ? $rec['firstname'] : null,
+        'othername'          => isset($rec['othername']) ? $rec['othername'] : null,
+        'mobile'             => isset($rec['mobile']) ? $rec['mobile'] : null,
+        'telephone'          => isset($rec['telephone']) ? $rec['telephone'] : null,
+        'institution_type'   => isset($rec['institutiontype_name']) ? $rec['institutiontype_name'] : (isset($rec['institution_type']) ? $rec['institution_type'] : null),
+        'institution_type_id'=> isset($rec['institution_type_id']) ? $rec['institution_type_id'] : null,
+        'last_gen'           => isset($rec['last_update']) ? $rec['last_update'] : (isset($rec['last_gen']) ? $rec['last_gen'] : null),
+        'gender'             => isset($rec['gender']) ? $rec['gender'] : null,
+        'birth_date'         => isset($rec['birth_date']) ? $rec['birth_date'] : null,
+        'cadre'              => isset($rec['cadre']) ? $rec['cadre'] : null,
+        'email'              => isset($rec['email']) ? $rec['email'] : null,
+        'region'             => isset($rec['region']) ? $rec['region'] : null,
+    );
+}
+
+/**
+ * Return list of ihrisdata columns that exist in DB (for upsert). Only includes columns present in table.
+ */
+private function _get_ihrisdata_upsert_columns($has_status, $has_is_active)
+{
+    $candidates = array('ihris_pid', 'district_id', 'district', 'dhis_facility_id', 'dhis_district_id', 'nin', 'card_number', 'ipps', 'facility_type_id', 'facility_id', 'facility', 'department_id', 'department', 'job_id', 'job', 'employment_terms', 'surname', 'firstname', 'othername', 'mobile', 'telephone', 'institution_type', 'institution_type_id', 'last_gen', 'gender', 'birth_date', 'cadre', 'email', 'region');
+    $cols = array();
+    foreach ($candidates as $c) {
+        if ($this->db->field_exists($c, 'ihrisdata')) {
+            $cols[] = $c;
+        }
+    }
+    if ($has_status) {
+        $cols[] = 'status';
+    }
+    if ($has_is_active) {
+        $cols[] = 'is_active_employee';
+    }
+    return $cols;
+}
+
+/**
+ * Upsert one batch into ihrisdata (insert or update by ihris_pid). $cols = list of columns that exist in table.
+ */
+private function _upsert_ihrisdata_batch($rows, $cols)
+{
+    if (empty($rows) || empty($cols)) {
+        return 0;
+    }
+    $values = array();
+    $params = array();
+    foreach ($rows as $r) {
+        $placeholders = array();
+        foreach ($cols as $c) {
+            $placeholders[] = '?';
+            $params[] = isset($r[$c]) ? $r[$c] : null;
+        }
+        $values[] = '(' . implode(',', $placeholders) . ')';
+    }
+    $col_list = '`' . implode('`,`', $cols) . '`';
+    $updates = array();
+    foreach (array_diff($cols, array('ihris_pid')) as $c) {
+        $updates[] = "`$c`=VALUES(`$c`)";
+    }
+    $sql = "INSERT INTO ihrisdata ($col_list) VALUES " . implode(',', $values) . " ON DUPLICATE KEY UPDATE " . implode(', ', $updates);
+    $this->db->query($sql, $params);
+    return count($rows);
+}
+
+/**
+ * Fetch UCMB iHRIS data (non-paginated) and merge into ihrisdata (upsert). Sets status=1, is_active_employee=1.
+ */
+private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
+{
+    try {
+        $upsert_cols = $this->_get_ihrisdata_upsert_columns($has_status, $has_is_active);
+        $http = new HttpUtils();
+        $headers = array('Content-Type: application/json', 'Accept: application/json');
+        $response = $http->sendUCMBiHRISRequest('apiv1/index.php/api/ihrisdata', 'GET', $headers, array());
+        if (!is_array($response) && !is_object($response)) {
+            return 0;
+        }
+        $arr = is_array($response) ? $response : (isset($response->data) ? $response->data : array($response));
+        if (empty($arr)) {
+            return 0;
+        }
+        $total = count($arr);
+        $merged = 0;
+        $batch = array();
+        $batch_size = 100;
+        foreach ($arr as $i => $record) {
+            $row = $this->_map_ihris_api_record_to_row($record);
+            if ($has_status) {
+                $row['status'] = 1;
+            }
+            if ($has_is_active) {
+                $row['is_active_employee'] = 1;
+            }
+            $batch[] = $row;
+            if (count($batch) >= $batch_size) {
+                $merged += $this->_upsert_ihrisdata_batch($batch, $upsert_cols);
+                $batch = array();
+                if ($is_cli) {
+                    $pct = (int) ((($i + 1) / $total) * 100);
+                    printf("\r  UCMB: %s   ", $this->_draw_progress_bar($i + 1, $total));
+                    flush();
+                }
+            }
+        }
+        if (!empty($batch)) {
+            $merged += $this->_upsert_ihrisdata_batch($batch, $upsert_cols);
+        }
+        return $merged;
+    } catch (Exception $e) {
+        log_message('error', '_merge_ucmbdata: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+
     public function update_ipps()
     {
         // Select records where card_number is NULL and ipps is NOT NULL
@@ -224,33 +537,18 @@ class Biotimejobs extends MX_Controller
 
 
 
+    /**
+     * Fetch UCMB iHRIS data (non-paginated) and merge into ihrisdata (upsert). Can be called standalone or via get_ihrisdata.
+     */
     public function get_ucmbdata()
     {
-        $http = new HttpUtils();
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ];
-
-        $response = $http->sendUCMBiHRISRequest('apiv1/index.php/api/ihrisdata', "GET", $headers, []);
-
-        if ($response) {
-
-            foreach ($response as $data) {
-
-                $message = $this->db->replace('ihrisdata', $data);
-                ///dd($this->last->query);
-            }
-            $this->log($message);
-        }
-        $process = 2;
-        $method = "bioitimejobs/get_ihrisdata";
-        if (count($response) > 0) {
-            $status = "successful";
-        } else {
-            $status = "failed";
-        }
-        $this->cronjob_register($process, $method, $status);
+        $is_cli = (php_sapi_name() === 'cli');
+        $has_status = $this->db->field_exists('status', 'ihrisdata');
+        $has_is_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
+        $merged = $this->_merge_ucmbdata($is_cli, $has_status, $has_is_active);
+        $this->log("get_ucmbdata: merged $merged records");
+        $this->cronjob_register(2, "biotimejobs/get_ucmbdata", $merged > 0 ? "successful" : "failed");
+        return $merged;
     }
 
     public function get_Enrolled($page = FALSE)
