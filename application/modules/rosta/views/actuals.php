@@ -54,7 +54,7 @@ function isWeekend($date)
 												?>
 												<option><?php echo $yearToAdd; ?></option>
 											<?php } ?>
-												<?php } ?>
+											<?php } ?>
 										</select>
 									</div>
 								</div>
