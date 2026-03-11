@@ -361,120 +361,77 @@ try {
       $(".reset").submit(function(e) {
         e.preventDefault();
         $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
-        var formData = $(this).serialize();
-        console.log(formData);
+        var formData = $(this).serialize() + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo urlencode($this->security->get_csrf_hash()); ?>';
         var url = "<?php echo base_url(); ?>auth/resetPass";
         $.ajax({
           url: url,
           method: 'post',
           data: formData,
           success: function(result) {
-            // console.log(result);
             setTimeout(function() {
               $('.status').html(result);
               $.notify(result, 'info');
               $('.status').html('');
-
               $('.clear').click();
-
             }, 3000);
-
-
+          },
+          error: function(xhr) {
+            $('.status').html('');
+            var msg = (xhr.status === 403) ? 'Blocked (session or security token). Refresh the page and try again.' : ('Request failed: ' + (xhr.statusText || 'Unknown error'));
+            $.notify(msg, 'error');
           }
-        }); //ajax
-
-
-      }); //form submit
-
-
-      //block user
+        });
+      });
 
       $(".block").submit(function(e) {
-
         e.preventDefault();
-
-
         $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
-
-
-
-        var formData = $(this).serialize();
-
-        console.log(formData);
-
+        var formData = $(this).serialize() + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo urlencode($this->security->get_csrf_hash()); ?>';
         var url = "<?php echo base_url(); ?>auth/blockUser";
-
         $.ajax({
           url: url,
           method: 'post',
           data: formData,
           success: function(result) {
-
-            console.log(result);
-
             setTimeout(function() {
-
               $('.status').html(result);
-
               $.notify(result, 'info');
-
               $('.status').html('');
-
               $('.clear').click();
-
             }, 3000);
-
-
+          },
+          error: function(xhr) {
+            $('.status').html('');
+            var msg = (xhr.status === 403) ? 'Blocked (session or security token). Refresh the page and try again.' : ('Request failed: ' + (xhr.statusText || 'Unknown error'));
+            $.notify(msg, 'error');
           }
-        }); //ajax
-
-
-      }); //form submit
-
-
-      //block user
+        });
+      });
 
       $(".unblock").submit(function(e) {
-
         e.preventDefault();
-
-
         $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
-
-
-
-        var formData = $(this).serialize();
-
-        console.log(formData);
-
+        var formData = $(this).serialize() + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo urlencode($this->security->get_csrf_hash()); ?>';
         var url = "<?php echo base_url(); ?>auth/unblockUser";
-
         $.ajax({
           url: url,
           method: 'post',
           data: formData,
           success: function(result) {
-
-            console.log(result);
-
             setTimeout(function() {
-
               $('.status').html(result);
-
               $.notify(result, 'info');
-
               $('.status').html('');
-
               $('.clear').click();
-
             }, 3000);
-
-
+          },
+          error: function(xhr) {
+            $('.status').html('');
+            var msg = (xhr.status === 403) ? 'Blocked (session or security token). Refresh the page and try again.' : ('Request failed: ' + (xhr.statusText || 'Unknown error'));
+            $.notify(msg, 'error');
           }
-        }); //ajax
-
-
-      }); //form submit
+        });
+      });
 
 
     }); //doc ready

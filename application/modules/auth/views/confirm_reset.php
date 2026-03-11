@@ -1,5 +1,6 @@
 <div class="modal fade" id="reset<?php echo $user->user_id; ?>">
 <form class="reset" action="<?php echo base_url(); ?>auth/resetPass" method="post">
+	<input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 	<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-body">
