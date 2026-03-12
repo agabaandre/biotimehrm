@@ -1,45 +1,56 @@
-<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="UTF-8">
 	<title>Roster Summary</title>
 	<style>
-		body { font-family: Arial; font-size: 10pt; }
-		table { border-collapse: collapse; width: 100%; }
-		th, td { border: 1px solid #333; padding: 4px; text-align: left; }
-		th { background: #eee; font-weight: bold; }
-		td.num { text-align: right; }
-		tr:nth-child(even) { background: #f9f9f9; }
-		.report-title { font-size: 12pt; font-weight: bold; margin-bottom: 8px; }
-		table.header-layout { border: none; }
-		table.header-layout td { border: none; padding: 4px 8px; vertical-align: middle; }
+		body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 12px; }
+		.report-header { width: 100%; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #1a5276; }
+		.report-header td { vertical-align: middle; padding: 0; border: none; }
+		.report-header .logo-cell { width: 90px; padding-right: 14px; }
+		.report-header .logo-cell img { height: 70px; width: auto; display: block; }
+		.report-title { font-size: 14pt; font-weight: bold; color: #1a5276; margin: 0 0 2px 0; }
+		.report-subtitle { font-size: 11pt; color: #555; margin: 0; }
+		table.rs-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 6px; }
+		table.rs-table th, table.rs-table td { border: 0.5px solid #7f8c8d; padding: 6px 8px; vertical-align: middle; }
+		table.rs-table thead th { background: #1a5276; color: #fff; font-weight: bold; text-align: center; font-size: 8.5pt; }
+		table.rs-table thead th.text-left { text-align: left; }
+		table.rs-table tbody td { background: #fff; }
+		table.rs-table tbody tr:nth-child(even) td { background: #f4f6f7; }
+		table.rs-table .num { text-align: center; }
+		table.rs-table .name-col { text-align: left; }
 	</style>
 </head>
 <body>
-	<table class="header-layout" style="width: 100%; margin-bottom: 8px;">
+	<table class="report-header" cellpadding="0" cellspacing="0">
 		<tr>
-			<td style="width: 100px;"><?php if (!empty($moh_logo_path) && is_file($moh_logo_path)) { ?><img src="<?php echo $moh_logo_path; ?>" width="100px"><?php } else { ?><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"><?php } ?></td>
+			<td class="logo-cell">
+				<?php if (!empty($moh_logo_path) && is_file($moh_logo_path)) { ?>
+					<img src="<?php echo $moh_logo_path; ?>" alt="MOH">
+				<?php } else { ?>
+					<img src="<?php echo base_url(); ?>assets/img/MOH.png" alt="MOH">
+				<?php } ?>
+			</td>
 			<td>
-				<div class="report-title">MONTHLY ATTENDANCE TO DUTY SUMMARY</div>
-				<div style="margin-bottom: 4px;"><?php echo isset($facility_name) ? htmlspecialchars($facility_name) : ''; ?> — Period: <?php echo isset($period_label) ? htmlspecialchars($period_label) : ''; ?></div>
+				<p class="report-title">Monthly Attendance to Duty Summary</p>
+				<p class="report-subtitle"><?php echo isset($facility_name) ? htmlspecialchars($facility_name) : ''; ?> — <?php echo isset($period_label) ? htmlspecialchars($period_label) : ''; ?></p>
 			</td>
 		</tr>
 	</table>
-	<table>
+	<table class="rs-table">
 		<thead>
 			<tr>
-				<th>#</th>
-				<th>Name</th>
-				<th>Job</th>
-				<th class="num">Day</th>
-				<th class="num">Evening</th>
-				<th class="num">Night</th>
-				<th class="num">Off</th>
-				<th class="num">Annual</th>
-				<th class="num">Study</th>
-				<th class="num">Maternity</th>
-				<th class="num">Other</th>
-				<th class="num">Total</th>
+				<th style="width: 32px;">#</th>
+				<th class="text-left" style="width: 18%;">Name</th>
+				<th class="text-left" style="width: 14%;">Job</th>
+				<th class="num" style="width: 6%;">Day</th>
+				<th class="num" style="width: 6%;">Evening</th>
+				<th class="num" style="width: 6%;">Night</th>
+				<th class="num" style="width: 5%;">Off</th>
+				<th class="num" style="width: 6%;">Annual</th>
+				<th class="num" style="width: 5%;">Study</th>
+				<th class="num" style="width: 6%;">Maternity</th>
+				<th class="num" style="width: 5%;">Other</th>
+				<th class="num" style="width: 7%;">Total</th>
 			</tr>
 		</thead>
 		<tbody>

@@ -513,11 +513,18 @@ class Rosta extends MX_Controller
 		$filename = $_SESSION['facility_name'] . '_rota_report_' . date('F-Y', strtotime($date . '-01')) . '.pdf';
 		ini_set('max_execution_time', 0);
 
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		if (!empty($this->watermark) && is_file($this->watermark)) {
+			$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+			$this->ml_pdf->pdf->showWatermarkImage = true;
+		}
 		date_default_timezone_set('Africa/Kampala');
-		$this->ml_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b>');
+		$this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
 
-		$header_data = array('month' => $month, 'year' => $year);
+		$moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
+		$facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : '';
+		$summary_by_letter = $this->rosta_model->get_duty_roster_summary_by_letter($date, $this->filters, $empid);
+		$key = Modules::run('schedules/getrosterKey');
+		$header_data = array('month' => $month, 'year' => $year, 'moh_logo_path' => $moh_logo, 'facility_name' => $facility_name, 'summary' => $summary_by_letter, 'key' => $key);
 		$header_html = $this->load->view('duty_roster_printable_header', $header_data, true);
 		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
 
@@ -546,12 +553,6 @@ class Rosta extends MX_Controller
 			$row_no += count($batch);
 			unset($batch, $employee_ids, $schedules, $rows_data, $rows_html);
 		}
-
-		$summary_by_letter = $this->rosta_model->get_duty_roster_summary_by_letter($date, $this->filters, $empid);
-		$key = Modules::run('schedules/getrosterKey');
-		$summary_data = array('summary' => $summary_by_letter, 'key' => $key);
-		$summary_html = $this->load->view('duty_roster_printable_summary', $summary_data, true);
-		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($summary_html, 'UTF-8', 'UTF-8'));
 
 		$footer_html = $this->load->view('duty_roster_printable_footer', array(), true);
 		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
@@ -1233,14 +1234,22 @@ class Rosta extends MX_Controller
 
 		$batch_size = 40;
 		$total = $this->rosta_model->count_attendance_form($date, $this->filters, $empid);
-		$filename = $_SESSION['facility'] . '_actuals_report_' . date('F-Y', strtotime($date . '-01')) . '.pdf';
-		ini_set('max_execution_time', 0);
+		$fac = isset($_SESSION['facility']) ? $_SESSION['facility'] : 'Report';
+		$filename = $fac . '_actuals_report_' . date('F-Y', strtotime($date . '-01')) . '.pdf';
+		@set_time_limit(0);
 
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		if (!empty($this->watermark) && is_file($this->watermark)) {
+			$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+			$this->ml_pdf->pdf->showWatermarkImage = true;
+		}
 		date_default_timezone_set('Africa/Kampala');
-		$this->ml_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b>');
+		$this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
 
-		$header_data = array('dates' => $date, 'month' => $month, 'year' => $year);
+		$moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
+		$facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : $fac;
+		$summary_by_letter = $this->rosta_model->get_attendance_actuals_summary_by_letter($date, $this->filters, $empid);
+		$key = Modules::run('schedules/getattSchedules');
+		$header_data = array('dates' => $date, 'month' => $month, 'year' => $year, 'moh_logo_path' => $moh_logo, 'facility_name' => $facility_name, 'summary' => $summary_by_letter, 'key' => $key);
 		$header_html = $this->load->view('actual_printable_header', $header_data, true);
 		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
 
@@ -1269,12 +1278,6 @@ class Rosta extends MX_Controller
 			$row_no += count($batch);
 			unset($batch, $employee_ids, $schedules, $rows_data, $rows_html);
 		}
-
-		$summary_by_letter = $this->rosta_model->get_attendance_actuals_summary_by_letter($date, $this->filters, $empid);
-		$key = Modules::run('schedules/getattSchedules');
-		$summary_data = array('summary' => $summary_by_letter, 'key' => $key);
-		$summary_html = $this->load->view('actual_printable_summary', $summary_data, true);
-		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($summary_html, 'UTF-8', 'UTF-8'));
 
 		$footer_html = $this->load->view('actual_printable_footer', array(), true);
 		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));

@@ -6,14 +6,14 @@
 $summary = isset($summary) ? $summary : array();
 $key = isset($key) ? $key : array();
 ?>
-<table width="100%" class="items" style="font-size: 11pt; border-collapse: collapse; margin-top: 12px;" cellpadding="6">
+<table class="actuals-table" style="margin-top: 14px; font-size: 9pt;">
 	<thead>
-		<tr style="background: #EEEEEE;">
-			<th colspan="2" style="text-align: left; border: 1px solid #000;">Summary by key</th>
+		<tr>
+			<th colspan="2" class="text-left" style="background: #1a5276; color: #fff;">Summary by key</th>
 		</tr>
-		<tr style="background: #f5f5f5;">
-			<th style="text-align: left; border: 1px solid #000;">Code</th>
-			<th style="text-align: right; border: 1px solid #000;">Count</th>
+		<tr style="background: #e8eef1;">
+			<th class="text-left" style="width: 60%;">Code</th>
+			<th class="num" style="width: 40%;">Count</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -23,8 +23,8 @@ $key = isset($key) ? $key : array();
 			$cnt = isset($summary[$letter]) ? (int)$summary[$letter] : 0;
 		?>
 		<tr>
-			<td style="border: 1px solid #000;"><?php echo htmlspecialchars($letter . ' (' . $label . ')'); ?></td>
-			<td style="border: 1px solid #000; text-align: right;"><?php echo $cnt; ?></td>
+			<td class="name-col"><?php echo htmlspecialchars($letter . ' (' . $label . ')'); ?></td>
+			<td class="num"><?php echo $cnt; ?></td>
 		</tr>
 		<?php } ?>
 	</tbody>

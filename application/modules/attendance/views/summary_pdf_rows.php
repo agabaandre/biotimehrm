@@ -21,18 +21,18 @@ foreach ($sums as $sum) {
 	$name = (isset($sum['fullname']) ? $sum['fullname'] : '') . ' ' . (isset($sum['othername']) ? $sum['othername'] : '');
 ?>
 <tr>
-	<td><?php echo $no++; ?></td>
-	<td><?php echo htmlspecialchars(trim($name)); ?></td>
-	<td><?php echo htmlspecialchars(isset($sum['job']) ? $sum['job'] : ''); ?></td>
-	<td><?php echo htmlspecialchars(isset($sum['department_id']) ? $sum['department_id'] : ''); ?></td>
-	<td><?php echo $O; ?></td>
-	<td><?php echo $R; ?></td>
-	<td><?php echo $L; ?></td>
-	<td><?php echo $H; ?></td>
-	<td><?php echo $r_days; ?></td>
-	<td><?php echo $present; ?></td>
-	<td><?php echo $ab <= 0 ? 0 : $ab; ?></td>
-	<td><?php echo $per; ?></td>
+	<td class="num"><?php echo $no++; ?></td>
+	<td class="name-col"><?php echo htmlspecialchars(trim($name)); ?></td>
+	<td class="name-col"><?php echo htmlspecialchars(isset($sum['job']) ? $sum['job'] : ''); ?></td>
+	<td class="name-col"><?php echo htmlspecialchars(isset($sum['department_id']) ? $sum['department_id'] : ''); ?></td>
+	<td class="num"><?php echo $O; ?></td>
+	<td class="num"><?php echo $R; ?></td>
+	<td class="num"><?php echo $L; ?></td>
+	<td class="num"><?php echo $H; ?></td>
+	<td class="num"><?php echo $r_days; ?></td>
+	<td class="num"><?php echo $present; ?></td>
+	<td class="num"><?php echo $ab <= 0 ? 0 : $ab; ?></td>
+	<td class="num"><?php echo $per; ?></td>
 </tr>
 <?php
 }

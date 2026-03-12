@@ -16,18 +16,19 @@ foreach ($workinghours as $hours) {
 	$personhrs = array();
 	$pid = isset($hours['ihris_pid']) ? $hours['ihris_pid'] : '';
 ?>
-<tr>
-	<td class="cell" style="width:7%;"><?php echo $pple++; ?></td>
-	<td class='cost' style="text-align:left;"><?php echo isset($hours['fullname']) ? trim($hours['fullname']) : ''; ?></td>
-	<td class='cost'><?php
+<?php
 		$job = isset($hours['job']) ? $hours['job'] : '';
-		$words = explode(" ", $job);
-		$letters = "";
+		$job = str_replace(array('&#8230;', '…', "\xE2\x80\xA6"), '', $job);
+		$words = explode(' ', $job);
+		$letters = '';
 		foreach ($words as $word) {
 			$letters .= isset($word[0]) ? $word[0] : '';
 		}
-		echo $letters;
-	?></td>
+	?>
+<tr>
+	<td class="num"><?php echo $pple++; ?></td>
+	<td class="name-col"><?php echo isset($hours['fullname']) ? htmlspecialchars(trim($hours['fullname'])) : ''; ?></td>
+	<td class="name-col"><?php echo $letters; ?></td>
 	<?php
 	if (!empty($dateList)) {
 		foreach ($dateList as $date_d) {
@@ -45,7 +46,7 @@ foreach ($workinghours as $hours) {
 				$personhrs[] = $hours_worked;
 			}
 			?>
-			<td class="cell" data-label="Day<?php echo (int)date('j', strtotime($date_d)); ?>"><?php echo $hours_worked ? $hours_worked : ''; ?></td>
+			<td class="num" data-label="Day<?php echo (int)date('j', strtotime($date_d)); ?>"><?php echo $hours_worked ? $hours_worked : ''; ?></td>
 			<?php
 		}
 	} else {
@@ -66,14 +67,14 @@ foreach ($workinghours as $hours) {
 				$personhrs[] = $hours_worked;
 			}
 			?>
-			<td class="cell" data-label="Day<?php echo $i; ?>"><?php echo $hours_worked ? $hours_worked : ''; ?></td>
+			<td class="num" data-label="Day<?php echo $i; ?>"><?php echo $hours_worked ? $hours_worked : ''; ?></td>
 			<?php
 		}
 	}
 	$worked_days = count($personhrs);
 	?>
-	<td class="cell" style="width:6%;"><?php echo array_sum($personhrs); ?></td>
-	<td class="cell" style="width:6%;"><?php echo $worked_days; ?></td>
+	<td class="num"><?php echo array_sum($personhrs); ?></td>
+	<td class="num"><?php echo $worked_days; ?></td>
 </tr>
 <?php
 }

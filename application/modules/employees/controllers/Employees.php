@@ -916,34 +916,55 @@ class Employees extends MX_Controller
   }
   public function print_timelogs($datef, $datet, $person, $job)
   {
-    $data['logs'] = $this->empModel->timelogscsv($datef, $datet, str_replace("person", "", $person), str_replace("position-", "", urldecode(str_replace('_', ' ', $job))), $this->filters);
+    $name = str_replace('person', '', $person);
+    $job_clean = str_replace('position-', '', urldecode(str_replace('_', ' ', $job)));
+    $search_data = array(
+      'date_from' => $datef,
+      'date_to' => $datet,
+      'name' => $name,
+      'job' => $job_clean
+    );
     $this->load->library('ML_pdf');
-    $fac = $_SESSION['facility_name'];
-    $filename = $fac . " Staff_Timelog_Report_" . ".pdf";
-    ini_set('max_execution_time', 0);
-    $html = $this->load->view('print_time_logs', $data, true);
-    $PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-    date_default_timezone_set("Africa/Kampala");
-    $this->ml_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>" . date('d F,Y h:i A') . "</b><br style='font-size: 9px !imporntant;'>" . " Source: iHRIS - HRM Attend " . base_url());
-    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-    ini_set('max_execution_time', 0);
+    $batch_size = 80;
+    $total = $this->empModel->countTimeLogsAjax($search_data, $this->filters, '');
+    $fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Report';
+    $filename = $fac . '_Staff_Timelog_Report_' . date('Y-m-d') . '.pdf';
+    @set_time_limit(0);
 
-    // Chunked WriteHTML to avoid pcre.backtrack_limit issues for big timelog PDFs
-    $parts = preg_split('/(<\/tr>)/i', $PDFContent, -1, PREG_SPLIT_DELIM_CAPTURE);
-    $buffer = '';
-    $chunkLimit = 80000;
-    foreach ($parts as $part) {
-      $buffer .= $part;
-      if (strlen($buffer) >= $chunkLimit) {
-        $this->ml_pdf->pdf->WriteHTML($buffer);
-        $buffer = '';
+    if (!empty($this->watermark) && is_file($this->watermark)) {
+      $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+      $this->ml_pdf->pdf->showWatermarkImage = true;
+    }
+    date_default_timezone_set('Africa/Kampala');
+    $this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
+
+    $moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
+    $header_data = array(
+      'date_from' => $datef,
+      'date_to' => $datet,
+      'facility_name' => $fac,
+      'moh_logo_path' => $moh_logo
+    );
+    $header_html = $this->load->view('employees/print_timelogs_header', $header_data, true);
+    $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+    $row_no = 1;
+    for ($start = 0; $start < $total; $start += $batch_size) {
+      $batch = $this->empModel->fetchTimeLogsAjax($search_data, $this->filters, $start, $batch_size, '');
+      if (empty($batch)) {
+        break;
+      }
+      $rows_data = array('logs' => $batch, 'start_row_no' => $row_no);
+      $rows_html = $this->load->view('employees/print_timelogs_rows', $rows_data, true);
+      $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+      $row_no += count($batch);
+      unset($batch, $rows_data, $rows_html);
+      if (function_exists('gc_collect_cycles')) {
+        gc_collect_cycles();
       }
     }
-    if (trim($buffer) !== '') {
-      $this->ml_pdf->pdf->WriteHTML($buffer);
-    }
-    //download it D save F.
+    $footer_html = $this->load->view('employees/print_timelogs_footer', array(), true);
+    $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
     $this->ml_pdf->pdf->Output($filename, 'I');
   }
   /**
@@ -962,15 +983,18 @@ class Employees extends MX_Controller
     $job_filter = str_replace('job', '', $job);
     $batch_size = 40;
     $total = $this->empModel->count_TimeSheet_employees($date, $emp_filter, $this->filters, $job_filter);
-    $fac = $_SESSION['facility_name'];
-    $filename = $fac . ' Timesheet_Report_' . $date . '.pdf';
-    ini_set('max_execution_time', 0);
+    $fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Report';
+    $filename = $fac . '_Timesheet_Report_' . $date . '.pdf';
+    @set_time_limit(0);
 
-    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+    if (!empty($this->watermark) && is_file($this->watermark)) {
+      $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+      $this->ml_pdf->pdf->showWatermarkImage = true;
+    }
     date_default_timezone_set('Africa/Kampala');
-    $this->ml_pdf->pdf->SetHTMLFooter('<p style="font-size:8px">Printed/ Accessed on: ' . date('d F,Y h:i A') . ', Source: iHRIS - HRM Attend ' . base_url() . '</p>');
+    $this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
 
-    // Header once (monthly: no date_from/date_to)
+    $moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
     $header_data = array(
       'year' => $year,
       'month' => $month,
@@ -978,6 +1002,8 @@ class Employees extends MX_Controller
       'date_from' => '',
       'date_to' => '',
       'dateList' => array(),
+      'moh_logo_path' => $moh_logo,
+      'facility_name' => $fac,
     );
     $header_html = $this->load->view('print_timesheet_header', $header_data, true);
     $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
@@ -1194,14 +1220,18 @@ class Employees extends MX_Controller
     $job_filter = str_replace('job', '', urldecode($job));
     $batch_size = 40;
     $total = $this->empModel->count_TimeSheet_employees($startDate, $emp_filter, $this->filters, $job_filter);
-    $fac = $_SESSION['facility_name'];
-    $filename = $fac . ' Timesheet_Report_' . $startDate . '_to_' . $endDate . '.pdf';
-    ini_set('max_execution_time', 0);
+    $fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Report';
+    $filename = $fac . '_Timesheet_Report_' . $startDate . '_to_' . $endDate . '.pdf';
+    @set_time_limit(0);
 
-    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+    if (!empty($this->watermark) && is_file($this->watermark)) {
+      $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+      $this->ml_pdf->pdf->showWatermarkImage = true;
+    }
     date_default_timezone_set('Africa/Kampala');
-    $this->ml_pdf->pdf->SetHTMLFooter('<p style="font-size:8px">Printed/ Accessed on: ' . date('d F,Y h:i A') . ', Source: iHRIS - HRM Attend ' . base_url() . '</p>');
+    $this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
 
+    $moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
     $month = date('m', strtotime($startDate));
     $year = date('Y', strtotime($startDate));
     $header_data = array(
@@ -1211,6 +1241,8 @@ class Employees extends MX_Controller
       'date_from' => $startDate,
       'date_to' => $endDate,
       'dateList' => $dateList,
+      'moh_logo_path' => $moh_logo,
+      'facility_name' => $fac,
     );
     $header_html = $this->load->view('print_timesheet_header', $header_data, true);
     $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
@@ -1674,7 +1706,7 @@ class Employees extends MX_Controller
 
     $this->load->library('M_pdf');
     $filename = 'individual_timelogs_report_' . date('Y-m-d') . '.pdf';
-    ini_set('max_execution_time', 0);
+    @set_time_limit(0);
 
     $meta = $this->empModel->get_employee_timelogs_meta($ihris_pid, $date_from, $date_to);
     $employee = $meta['employee'];
@@ -1688,15 +1720,20 @@ class Employees extends MX_Controller
     $wdays_worked = 0;
     $total_hours = 0.0;
 
-    $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+    if (!empty($this->watermark) && is_file($this->watermark)) {
+      $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+      $this->m_pdf->pdf->showWatermarkImage = true;
+    }
     date_default_timezone_set('Africa/Kampala');
-    $this->m_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;"> Source: iHRIS - HRM Attend ' . base_url());
+    $this->m_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
 
+    $moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
     $header_data = array(
       'employee' => $employee,
       'from' => $date_from,
       'to' => $date_to,
       'summary_label' => ($flag == 2) ? 'HOURS' : 'SUMMARY',
+      'moh_logo_path' => $moh_logo,
     );
     $header_html = $this->load->view('itl_print_header', $header_data, true);
     $this->m_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));

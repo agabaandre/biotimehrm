@@ -568,19 +568,25 @@ class Reports extends MX_Controller
 	public function attendance_aggregate_pdf($filters, $grouped_by)
 	{
 		$this->load->library('M_pdf');
-		$batch_size = 200;
+		$batch_size = 80;
 		$total = $this->reports_mdl->countAttendanceAggregatesAjax($filters, $grouped_by, '');
 		$period_label = is_array($filters['duty_date']) ? implode(', ', $filters['duty_date']) : (isset($filters['duty_date']) ? $filters['duty_date'] : date('Y-m'));
 		$filename = 'attendance_aggregates_' . date('Y-m-d_His') . '.pdf';
 		ini_set('max_execution_time', 0);
 
-		$this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+		$watermark_path = FCPATH . 'assets/images/watermark.png';
+		if (!empty($watermark_path) && is_file($watermark_path)) {
+			$this->m_pdf->pdf->SetWatermarkImage($watermark_path);
+			$this->m_pdf->pdf->showWatermarkImage = true;
+		}
 		date_default_timezone_set('Africa/Kampala');
-		$this->m_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b> | Source: iHRIS - HRM Attend ' . base_url());
+		$this->m_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
 
+		$moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
 		$header_data = array(
 			'grouped_by' => $grouped_by,
 			'period_label' => $period_label,
+			'moh_logo_path' => $moh_logo,
 		);
 		$header_html = $this->load->view('attendance_aggregate_pdf_header', $header_data, true);
 		$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
@@ -863,7 +869,7 @@ class Reports extends MX_Controller
 	public function person_attendance_all_pdf($search, $month, $year)
 	{
 		$this->load->library('M_pdf');
-		$batch_size = 200;
+		$batch_size = 80;
 		$total = $this->reports_mdl->count_person_attendance($search);
 		$month_days = cal_days_in_month(CAL_GREGORIAN, (int) $month, (int) $year);
 		$period_label = date('F, Y', strtotime($year . '-' . $month . '-01'));
@@ -876,9 +882,11 @@ class Reports extends MX_Controller
 			$this->m_pdf->pdf->showWatermarkImage = true;
 		}
 		date_default_timezone_set('Africa/Kampala');
-		$this->m_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b> | Source: iHRIS - HRM Attend ' . base_url());
+		$this->m_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
 
-		$header_data = array('period_label' => $period_label);
+		$moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
+		$facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : '';
+		$header_data = array('period_label' => $period_label, 'moh_logo_path' => $moh_logo, 'facility_name' => $facility_name);
 		$header_html = $this->load->view('person_attendance_all_pdf_header', $header_data, true);
 		$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
 

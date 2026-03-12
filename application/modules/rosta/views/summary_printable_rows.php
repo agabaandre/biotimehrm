@@ -16,9 +16,9 @@ foreach ($sums as $sum) {
 	$total = $d + $e + $n + $o + $a + $s + $m + $z;
 ?>
 <tr>
-	<td><?php echo $row_no++; ?></td>
-	<td><?php echo htmlspecialchars(trim($name)); ?></td>
-	<td><?php echo htmlspecialchars(isset($sum['job']) ? $sum['job'] : ''); ?></td>
+	<td class="num"><?php echo $row_no++; ?></td>
+	<td class="name-col"><?php echo htmlspecialchars(trim($name)); ?></td>
+	<td class="name-col"><?php echo htmlspecialchars(isset($sum['job']) ? $sum['job'] : ''); ?></td>
 	<td class="num"><?php echo $d; ?></td>
 	<td class="num"><?php echo $e; ?></td>
 	<td class="num"><?php echo $n; ?></td>

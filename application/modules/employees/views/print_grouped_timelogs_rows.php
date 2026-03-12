@@ -10,13 +10,13 @@ foreach ($rows as $log) {
   $hours = number_format($log->m_timediff ?? 0, 2);
 ?>
 <tr>
-  <td><?php echo $row_no++; ?></td>
-  <td><?php echo htmlspecialchars($name); ?></td>
-  <td><?php echo htmlspecialchars($log->job ?? ''); ?></td>
-  <td><?php echo htmlspecialchars($log->facility ?? ''); ?></td>
-  <td><?php echo htmlspecialchars($log->department ?? ''); ?></td>
-  <td><?php echo htmlspecialchars($dateFormatted); ?></td>
-  <td><?php echo $hours; ?></td>
+  <td class="num"><?php echo $row_no++; ?></td>
+  <td class="name-col"><?php echo htmlspecialchars($name); ?></td>
+  <td class="name-col"><?php echo htmlspecialchars($log->job ?? ''); ?></td>
+  <td class="name-col"><?php echo htmlspecialchars($log->facility ?? ''); ?></td>
+  <td class="name-col"><?php echo htmlspecialchars($log->department ?? ''); ?></td>
+  <td class="name-col"><?php echo htmlspecialchars($dateFormatted); ?></td>
+  <td class="num"><?php echo $hours; ?></td>
 </tr>
 <?php
 }

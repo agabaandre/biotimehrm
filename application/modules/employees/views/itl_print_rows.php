@@ -19,11 +19,11 @@ foreach ($timelogs as $timelog) {
   }
 ?>
 <tr>
-  <td><?php echo $wdays; ?></td>
-  <td><?php echo $timelog->date ? date('j F, Y', strtotime($timelog->date)) : ''; ?></td>
-  <td><?php echo $timelog->time_in ? date('H:i:s', strtotime($timelog->time_in)) : ''; ?></td>
-  <td><?php echo $time_out ? date('H:i:s', strtotime($time_out)) : ''; ?></td>
-  <td><?php echo $hours_worked; ?> hr(s)</td>
+  <td class="num"><?php echo $wdays; ?></td>
+  <td class="name-col"><?php echo $timelog->date ? date('j F, Y', strtotime($timelog->date)) : ''; ?></td>
+  <td class="num"><?php echo $timelog->time_in ? date('H:i:s', strtotime($timelog->time_in)) : ''; ?></td>
+  <td class="num"><?php echo $time_out ? date('H:i:s', strtotime($time_out)) : ''; ?></td>
+  <td class="num"><?php echo $hours_worked; ?> hr(s)</td>
 </tr>
 <?php
 }

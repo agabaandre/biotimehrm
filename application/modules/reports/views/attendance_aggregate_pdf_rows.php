@@ -22,9 +22,9 @@ foreach ($records as $row) {
 	$group_val = isset($row->{$grouped_by}) ? $row->{$grouped_by} : 'N/A';
 ?>
 <tr>
-	<td><?php echo $row_no++; ?></td>
-	<td><?php echo htmlspecialchars($group_val); ?></td>
-	<td><?php echo htmlspecialchars($row->duty_date ?? ''); ?></td>
+	<td class="num"><?php echo $row_no++; ?></td>
+	<td class="name-col"><?php echo htmlspecialchars($group_val); ?></td>
+	<td class="name-col"><?php echo htmlspecialchars($row->duty_date ?? ''); ?></td>
 	<td class="num"><?php echo $present; ?>%</td>
 	<td class="num"><?php echo $off; ?>%</td>
 	<td class="num"><?php echo $official; ?>%</td>

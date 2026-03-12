@@ -13,11 +13,11 @@ foreach ($records as $row) {
 	$abrate = $month_days > 0 ? number_format(($absent / $month_days) * 100, 1) : 0;
 ?>
 <tr>
-	<td><?php echo $row_no++; ?></td>
-	<td><?php echo htmlspecialchars(isset($row->fullname) ? $row->fullname : ''); ?></td>
-	<td><?php echo htmlspecialchars(isset($row->district) ? $row->district : ''); ?></td>
-	<td><?php echo htmlspecialchars(isset($row->facility_name) ? $row->facility_name : ''); ?></td>
-	<td><?php echo htmlspecialchars(isset($row->duty_date) ? $row->duty_date : ''); ?></td>
+	<td class="num"><?php echo $row_no++; ?></td>
+	<td class="name-col"><?php echo htmlspecialchars(isset($row->fullname) ? $row->fullname : ''); ?></td>
+	<td class="name-col"><?php echo htmlspecialchars(isset($row->district) ? $row->district : ''); ?></td>
+	<td class="name-col"><?php echo htmlspecialchars(isset($row->facility_name) ? $row->facility_name : ''); ?></td>
+	<td class="name-col"><?php echo htmlspecialchars(isset($row->duty_date) ? $row->duty_date : ''); ?></td>
 	<td class="num"><?php echo $p; ?></td>
 	<td class="num"><?php echo $o; ?></td>
 	<td class="num"><?php echo $r; ?></td>

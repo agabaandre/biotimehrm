@@ -9,17 +9,13 @@
                 $totalHours = isset($total_hours) ? (float) $total_hours : 0;
                 $totalDutyDisplay = function_exists('totalDutys') ? totalDutys($totalDuty) : $totalDuty;
                 ?>
-                <tr><td colspan="4">Total Scheduled/Roster Days(D)</td><td><?php echo $totalDutyDisplay; ?> Days</td></tr>
-                <tr><td colspan="4">Total Leave Days(L)</td><td><?php echo $totalLeaves; ?> Days</td></tr>
-                <tr><td colspan="4">Total Official Request(R)</td><td><?php echo $totalRequests; ?> Days</td></tr>
-                <tr><td colspan="4">Total days Off Duty(O)</td><td><?php echo $toffs; ?> Days</td></tr>
-                <tr><td colspan="4" style="font-weight:bold;">TOTAL DAYS WORKED</td><td style="font-weight:bold;"><?php echo $wdays <= $totalDuty ? $wdays . ' Days out of ' . $totalDutyDisplay : $wdays . ' Days'; ?></td></tr>
-                <tr><td colspan="4" style="font-weight:bold;">TOTAL HOURS WORKED</td><td style="font-weight:bold;"><?php echo abs($totalHours); ?> Hours</td></tr>
+                <tr><td colspan="4">Total Scheduled/Roster Days (D)</td><td class="num"><?php echo $totalDutyDisplay; ?> Days</td></tr>
+                <tr><td colspan="4">Total Leave Days (L)</td><td class="num"><?php echo $totalLeaves; ?> Days</td></tr>
+                <tr><td colspan="4">Total Official Request (R)</td><td class="num"><?php echo $totalRequests; ?> Days</td></tr>
+                <tr><td colspan="4">Total days Off Duty (O)</td><td class="num"><?php echo $toffs; ?> Days</td></tr>
+                <tr><td colspan="4" style="font-weight:bold;">Total Days Worked</td><td class="num" style="font-weight:bold;"><?php echo $wdays <= $totalDuty ? $wdays . ' Days out of ' . $totalDutyDisplay : $wdays . ' Days'; ?></td></tr>
+                <tr><td colspan="4" style="font-weight:bold;">Total Hours Worked</td><td class="num" style="font-weight:bold;"><?php echo abs($totalHours); ?> Hours</td></tr>
               </tfoot>
             </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+</body>
+</html>

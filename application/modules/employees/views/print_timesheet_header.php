@@ -1,60 +1,57 @@
 <html>
 <head>
-	<title>Time Sheet</title>
+	<meta charset="UTF-8">
+	<title>Monthly Timesheet Attendance Report</title>
 	<style>
-		body { font-family: Arial; font-size: 12pt; max-width: 21cm; max-height: 29.7cm; }
-		p { margin: 0pt; }
-		table.items { border: 0.1mm solid #000000; }
-		td { vertical-align: top; }
-		.items td { border-left: 0.2mm solid #000000; border-right: 0.2mm solid #000000; }
-		table thead th { background-color: #EEEEEE; text-align: center; border: 0.1mm solid #000000; }
-		.items tr td { border: 0.2mm solid #000000; }
-		.items td.blanktotal { background-color: #EEEEEE; border: 0.1mm solid #000000; background-color: #FFFFFF; border: 0mm none #000000; border-top: 0.1mm solid #000000; border-right: 0.1mm solid #000000; }
-		.items td.totals { text-align: right; border: 0.1mm solid #000000; }
-		.items td.cost { text-align: "."center; }
-		.logo { margin-top: 0em; margin-left: 20%; margin-right: 20%; margin-bottom: 0.5em; }
-		.heading { margin-top: 0.4em; margin-left: 20%; margin-right: 10%; margin-bottom: 0.1em; }
-		.title { margin-top: 0.0em; margin-left: 30%; margin-right: 10%; margin-bottom: 0.1em; }
-		tr:nth-child(odd) { background-color: #e1f4f7; }
-		td { padding: 5px; }
+		body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #333; margin: 0; padding: 8px; width: 100%; }
+		.report-header { width: 100%; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #005662; }
+		.report-header td { vertical-align: middle; padding: 0; border: none; }
+		.report-header .logo-cell { width: 56px; padding-right: 10px; }
+		.report-header .logo-cell img { height: 42px; width: auto; display: block; max-width: 56px; }
+		.report-title { font-size: 13pt; font-weight: bold; color: #005662; margin: 0 0 2px 0; }
+		.report-subtitle { font-size: 10pt; color: #555; margin: 0; }
+		table.ts-table { width: 100% !important; max-width: 100%; border-collapse: collapse; font-size: 7pt; margin-top: 4px; table-layout: fixed; }
+		table.ts-table th, table.ts-table td { border: 0.5px solid #7f8c8d; padding: 2px 4px; vertical-align: middle; }
+		table.ts-table thead th { background: linear-gradient(135deg, #005662 0%, #20c198 100%) !important; color: #fff; font-weight: bold; text-align: center; font-size: 7pt; }
+		table.ts-table thead th.text-left { text-align: left; }
+		table.ts-table thead th.day-cell { width: 2%; min-width: 14px; }
+		table.ts-table thead th.total-col { width: 1.5%; min-width: 20px; background: linear-gradient(135deg, #005662 0%, #20c198 100%) !important; }
+		table.ts-table tbody td { background: #fff; text-align: center; font-size: 7pt; }
+		table.ts-table tbody td.name-col { text-align: left; }
+		table.ts-table tbody td.num { text-align: center; }
+		table.ts-table tbody tr:nth-child(even) td { background: #f4f6f7; }
 	</style>
 </head>
-<body>
-	<table width="100%" class="items" style="font-size: 12pt; border-collapse: collapse; " cellpadding="8">
+<body style="width: 100%;">
+	<?php
+	$dateList = isset($dateList) ? $dateList : array();
+	if (!empty($date_from) && !empty($date_to)) {
+		$period_label = (isset($date_from) && isset($date_to)) ? $date_from . ' to ' . $date_to : '';
+	} else {
+		$period_label = isset($year) && isset($month) ? date('F, Y', strtotime($year . '-' . $month . '-01')) : '';
+	}
+	?>
+	<table class="report-header" cellpadding="0" cellspacing="0">
+		<tr>
+			<td class="logo-cell">
+				<?php if (!empty($moh_logo_path) && is_file($moh_logo_path)) { ?>
+					<img src="<?php echo $moh_logo_path; ?>" alt="MOH">
+				<?php } else { ?>
+					<img src="<?php echo base_url(); ?>assets/img/MOH.png" alt="MOH">
+				<?php } ?>
+			</td>
+			<td>
+				<p class="report-title">Monthly Timesheet Attendance Report</p>
+				<p class="report-subtitle"><?php echo isset($facility_name) ? htmlspecialchars($facility_name) : ''; ?> — <?php echo $period_label; ?></p>
+			</td>
+		</tr>
+	</table>
+	<table class="ts-table" style="width: 100%;" cellspacing="0">
 		<thead>
-			<tr style="border-right: 0; border-left: 0; border-top: 0;">
-				<td colspan=3 style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></td>
-				<?php
-				$dateList = isset($dateList) ? $dateList : array();
-				if (!empty($date_from) && !empty($date_to)) {
-					$start = new DateTime($date_from);
-					$end = new DateTime($date_to);
-					if ($start > $end) { $tmp = $start; $start = $end; $end = $tmp; }
-					$endInc = clone $end;
-					$endInc->modify('+1 day');
-					$period = new DatePeriod($start, new DateInterval('P1D'), $endInc);
-					foreach ($period as $dt) { $dateList[] = $dt->format('Y-m-d'); }
-					if (count($dateList) > 31) { $dateList = array_slice($dateList, 0, 31); }
-					$allcols = count($dateList);
-				} else {
-					$allcols = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
-				}
-				?>
-				<td colspan=<?php echo $allcols; ?> style="border-right: 0; border-left: 0; border-top: 0;">
-					<h2>MONTHLY TIMESHEET ATTENDANCE REPORT <?php
-						echo $_SESSION['facility_name'];
-						if (!empty($date_from) && !empty($date_to)) {
-							echo "   " . $date_from . " to " . $date_to;
-						} else {
-							echo "   " . date('F, Y', strtotime($year . '-' . $month . '-01'));
-						}
-					?></h2>
-				</td>
-			</tr>
 			<tr>
-				<th>#</th>
-				<th>Name</th>
-				<th>Position</th>
+				<th style="width: 3%;">#</th>
+				<th class="text-left" style="width: 10%;">Name</th>
+				<th class="text-left" style="width: 8%;">Position</th>
 				<?php
 				if (!function_exists('_print_ts_is_weekend')) {
 					function _print_ts_is_weekend($date) {
@@ -64,22 +61,28 @@
 				}
 				if (!empty($dateList)) {
 					foreach ($dateList as $dStr) {
-						$color = (_print_ts_is_weekend($dStr) == 'yes') ? "#7a0404; color:#FFFFFF" : "";
+						$bg = (_print_ts_is_weekend($dStr) == 'yes') ? '#7a0404' : '';
+						$style = $bg ? 'background: #7a0404; color: #fff;' : '';
 						$label = (int) date('j', strtotime($dStr));
-						echo '<th class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: ' . $color . '">' . $label . '</th>';
+				?>
+				<th class="day-cell" style="<?php echo $style; ?>"><?php echo $label; ?></th>
+				<?php
 					}
 				} else {
 					$monthdays = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
 					for ($i = 1; $i < $monthdays + 1; $i++) {
-						$dy = $i < 10 ? "0" . $i : $i;
-						$wekday = $year . "-" . $month . "-" . $dy;
-						$color = (_print_ts_is_weekend($wekday) == 'yes') ? "#7a0404; color:#FFFFFF" : "";
-						echo '<th class="cell" style="padding:0px; text-align: center; border: 1px solid; background-color: ' . $color . '">' . $i . '</th>';
+						$dy = $i < 10 ? '0' . $i : $i;
+						$wekday = $year . '-' . $month . '-' . $dy;
+						$bg = (_print_ts_is_weekend($wekday) == 'yes') ? '#7a0404' : '';
+						$style = $bg ? 'background: #7a0404; color: #fff;' : '';
+				?>
+				<th class="day-cell" style="<?php echo $style; ?>"><?php echo $i; ?></th>
+				<?php
 					}
 				}
 				?>
-				<th class="cell" style="width:10%;">Hours</th>
-				<th class="cell" style="width:10%;">Days</th>
+				<th class="total-col">Hours</th>
+				<th class="total-col">Days</th>
 			</tr>
 		</thead>
 		<tbody>

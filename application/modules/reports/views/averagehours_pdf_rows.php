@@ -8,9 +8,9 @@ foreach ($sums as $sum) {
 	$avg = isset($sum['avg_hours']) ? $sum['avg_hours'] : '';
 ?>
 <tr>
-	<td><?php echo $row_no++; ?></td>
-	<td><?php echo htmlspecialchars($month_fmt); ?></td>
-	<td><?php echo htmlspecialchars($avg); ?></td>
+	<td class="num"><?php echo $row_no++; ?></td>
+	<td class="name-col"><?php echo htmlspecialchars($month_fmt); ?></td>
+	<td class="num"><?php echo htmlspecialchars($avg); ?></td>
 </tr>
 <?php
 }
