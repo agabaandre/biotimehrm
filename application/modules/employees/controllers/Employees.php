@@ -721,11 +721,11 @@ class Employees extends MX_Controller
 
     try {
       // Counts
-      $total_records = $this->empModel->countGroupedMonthlyTimeLogsAjax($search_data, $this->ufilters, '');
-      $filtered_records = $this->empModel->countGroupedMonthlyTimeLogsAjax($search_data, $this->ufilters, $search);
+      $total_records = $this->empModel->countGroupedMonthlyTimeLogsAjax($search_data, $this->filters, '');
+      $filtered_records = $this->empModel->countGroupedMonthlyTimeLogsAjax($search_data, $this->filters, $search);
 
       // Fetch data
-      $timelogs = $this->empModel->fetchGroupedMonthlyTimeLogsAjax($search_data, $this->ufilters, $start, $length, $search);
+      $timelogs = $this->empModel->fetchGroupedMonthlyTimeLogsAjax($search_data, $this->filters, $start, $length, $search);
 
       // Format data for DataTables
       $data = array();
@@ -773,6 +773,124 @@ class Employees extends MX_Controller
       exit;
     }
   }
+
+  /**
+   * CSV export for grouped monthly time logs: stream by batches (same filters as DataTable).
+   */
+  public function groupedTimeLogsCsv()
+  {
+    $date_from = trim((string) $this->input->get('date_from'));
+    $date_to = trim((string) $this->input->get('date_to'));
+    $name = trim((string) $this->input->get('name'));
+    $job = trim((string) $this->input->get('job'));
+    if (empty($date_from)) {
+      $date_from = date("Y-m-d", strtotime("-1 month"));
+    }
+    if (empty($date_to)) {
+      $date_to = date('Y-m-d');
+    }
+    $search_data = array('date_from' => $date_from, 'date_to' => $date_to, 'name' => $name, 'job' => $job);
+    @set_time_limit(0);
+    $batch_size = 80;
+    $total = $this->empModel->countGroupedMonthlyTimeLogsAjax($search_data, $this->filters, '');
+    $fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'export';
+    $csv_file = 'Grouped_TimeLogs_' . date('Y-m-d') . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $fac) . '.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $csv_file . '"');
+    header('Cache-Control: no-cache, must-revalidate');
+    $fh = fopen('php://output', 'w');
+    fputcsv($fh, array('#', 'Name', 'Position', 'Facility', 'Department', 'Date', 'Hours Worked'));
+    if (ob_get_level() > 0) {
+      ob_flush();
+    }
+    flush();
+    $row_no = 1;
+    for ($start = 0; $start < $total; $start += $batch_size) {
+      $batch = $this->empModel->fetchGroupedMonthlyTimeLogsAjax($search_data, $this->filters, $start, $batch_size, '');
+      if (empty($batch)) {
+        break;
+      }
+      foreach ($batch as $log) {
+        $dateStr = $log->date ?? '';
+        $dateFormatted = !empty($dateStr) ? date('F, Y', strtotime($dateStr)) : '';
+        $nameStr = trim(($log->surname ?? '') . ' ' . ($log->firstname ?? ''));
+        fputcsv($fh, array(
+          $row_no++,
+          $nameStr,
+          $log->job ?? '',
+          $log->facility ?? '',
+          $log->department ?? '',
+          $dateFormatted,
+          number_format($log->m_timediff ?? 0, 2)
+        ));
+      }
+      unset($batch);
+      if (ob_get_level() > 0) {
+        ob_flush();
+      }
+      flush();
+    }
+    fclose($fh);
+    exit;
+  }
+
+  /**
+   * PDF export for grouped monthly time logs: stream by batches.
+   */
+  public function print_grouped_timelogs()
+  {
+    $date_from = trim((string) $this->input->get('date_from'));
+    $date_to = trim((string) $this->input->get('date_to'));
+    $name = trim((string) $this->input->get('name'));
+    $job = trim((string) $this->input->get('job'));
+    if (empty($date_from)) {
+      $date_from = date("Y-m-d", strtotime("-1 month"));
+    }
+    if (empty($date_to)) {
+      $date_to = date('Y-m-d');
+    }
+    $search_data = array('date_from' => $date_from, 'date_to' => $date_to, 'name' => $name, 'job' => $job);
+    $this->load->library('ML_pdf');
+    $batch_size = 80;
+    $total = $this->empModel->countGroupedMonthlyTimeLogsAjax($search_data, $this->filters, '');
+    $fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Report';
+    $filename = $fac . '_Grouped_TimeLogs_' . date('Y-m-d') . '.pdf';
+    @set_time_limit(0);
+    if (!empty($this->watermark) && is_file($this->watermark)) {
+      $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+      $this->ml_pdf->pdf->showWatermarkImage = true;
+    }
+    date_default_timezone_set('Africa/Kampala');
+    $this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
+    $moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
+    $header_data = array(
+      'date_from' => $date_from,
+      'date_to' => $date_to,
+      'facility_name' => $fac,
+      'moh_logo_path' => $moh_logo
+    );
+    $header_html = $this->load->view('employees/print_grouped_timelogs_header', $header_data, true);
+    $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+    $row_no = 1;
+    for ($start = 0; $start < $total; $start += $batch_size) {
+      $batch = $this->empModel->fetchGroupedMonthlyTimeLogsAjax($search_data, $this->filters, $start, $batch_size, '');
+      if (empty($batch)) {
+        break;
+      }
+      $rows_data = array('rows' => $batch, 'start_row_no' => $row_no);
+      $rows_html = $this->load->view('employees/print_grouped_timelogs_rows', $rows_data, true);
+      $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+      $row_no += count($batch);
+      unset($batch, $rows_data, $rows_html);
+      if (function_exists('gc_collect_cycles')) {
+        gc_collect_cycles();
+      }
+    }
+    $footer_html = $this->load->view('employees/print_grouped_timelogs_footer', array(), true);
+    $this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
+    $this->ml_pdf->pdf->Output($filename, 'I');
+  }
+
   // public function testing(){
   //     $search_data=$this->input->post();
   //     $data['timelogs']=$this->empModel->getTimeLogs($config['per_page']=1,$page=1,$search_data);

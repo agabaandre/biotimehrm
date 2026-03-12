@@ -226,7 +226,7 @@ class 	Attendance_model extends CI_Model
 		return $rows;
 	}
 
-	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL,  $district = FALSE,$facility = FALSE, $employee = NULL, $department = FALSE, $endpoint=FALSE)
+	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL,  $district = FALSE,$facility = FALSE, $employee = NULL, $department = FALSE, $endpoint=FALSE, $search_like = '')
 	{
 		$facility_id = $_SESSION['facility'];
 
@@ -256,11 +256,16 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$dep = "";
 		}
+		$searchClause = "";
+		if ($search_like !== '' && trim($search_like) !== '') {
+			$like = $this->db->escape('%' . $this->db->escape_like_str(trim($search_like)) . '%');
+			$searchClause = " AND (fullname LIKE $like OR job LIKE $like OR department_id LIKE $like)";
+		}
 		$limits = " ";
 		if ($limit !== null && (int)$limit > 0) {
 			$limits = " LIMIT " . max(0, (int)$start) . "," . (int)$limit;
 		}
-		$query = $this->db->query("SELECT * from person_att_final  WHERE duty_date='$valid_range' $facilityf $districtf $search $dep  $limits");
+		$query = $this->db->query("SELECT * from person_att_final  WHERE duty_date='$valid_range' $facilityf $districtf $search $dep $searchClause $limits");
 		$data = $query->result_array();
 		return $data;
 	} //summary
@@ -301,7 +306,7 @@ class 	Attendance_model extends CI_Model
 		return $query->result_array();
 	}
 
-	public function countAttendanceSummary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $department = NULL)
+	public function countAttendanceSummary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $department = NULL, $search_like = '')
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
@@ -314,7 +319,12 @@ class 	Attendance_model extends CI_Model
 		} else {
 			$dep = "";
 		}
-		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search $dep");
+		$searchClause = "";
+		if ($search_like !== '' && trim($search_like) !== '') {
+			$like = $this->db->escape('%' . $this->db->escape_like_str(trim($search_like)) . '%');
+			$searchClause = " AND (fullname LIKE $like OR job LIKE $like OR department_id LIKE $like)";
+		}
+		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search $dep $searchClause");
 		return $query->num_rows();
 	} //summary
 

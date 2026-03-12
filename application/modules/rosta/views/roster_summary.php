@@ -1,217 +1,192 @@
 <style>
-	.cnumber {
-		width: 3%;
-	}
-
-	.cname {
-		text-align: left;
-		padding-left: 1.5em;
-		width: 30%;
-	}
-
+	.cnumber { width: 3%; }
+	.cname { text-align: left; padding-left: 1.5em; width: 30%; }
 	@media only screen and (max-width: 980px) {
-		.cnumber {
-			width: 100%;
-		}
-
-		.cname {
-			padding-left: 0em;
-			text-align: left;
-			width: 100%;
-		}
-
-		.print {
-			display: none;
-		}
+		.cnumber { width: 100%; }
+		.cname { padding-left: 0; text-align: left; width: 100%; }
+		.print { display: none; }
+	}
+	#rosterSummaryTable thead th:not(.rs-num-col) { white-space: nowrap; }
+	#rosterSummaryTable th.rs-num-col,
+	#rosterSummaryTable td.rs-num-col {
+		width: 56px;
+		min-width: 56px;
+		max-width: 56px;
+		text-align: center;
+		box-sizing: border-box;
+	}
+	#rosterSummaryTable thead th.rs-num-col {
+		white-space: normal;
+		word-wrap: break-word;
+		line-height: 1.2;
+		padding: 6px 4px;
 	}
 </style>
 <section class="content">
 	<div class="container-fluid">
-		<!-- Main row -->
 		<div class="row">
 			<div class="col-md-12">
 				<div class="callout callout-success">
-					<form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/summary" method="post">
+					<form id="rosterSummaryFiltersForm" class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>rosta/summary" method="post">
 						<input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 						<div class="row">
 							<div class="col-md-2">
 								<div class="control-group">
-									<input type="hidden" id="month" value="<?php echo $month; ?>">
-									<select class="form-control select2" name="month" onchange="this.form.submit()">
-										<option value="<?php echo $month; ?>"><?php echo strtoupper(date('F', mktime(0, 0, 0, $month, 10))) . "(Showing below)"; ?></option>
-										<option value="01">JANUARY</option>
-										<option value="02">FEBRUARY</option>
-										<option value="03">MARCH</option>
-										<option value="04">APRIL</option>
-										<option value="05">MAY</option>
-										<option value="06">JUNE</option>
-										<option value="07">JULY</option>
-										<option value="08">AUGUST</option>
-										<option value="09">SEPTEMBER</option>
-										<option value="10">OCTOBER</option>
-										<option value="11">NOVEMBER</option>
-										<option value="12">DECEMBER</option>
+									<label class="control-label">Month</label>
+									<select class="form-control select2" name="month" id="rs_month">
+										<?php for ($m = 1; $m <= 12; $m++) {
+											$v = sprintf('%02d', $m);
+											$sel = (isset($month) && $month == $v) ? ' selected' : '';
+											echo '<option value="' . $v . '"' . $sel . '>' . strtoupper(date('F', mktime(0, 0, 0, $m, 10))) . '</option>';
+										} ?>
 									</select>
 								</div>
 							</div>
 							<div class="col-md-2">
 								<div class="control-group">
-									<input type="hidden" id="year" value="<?php echo $year; ?>">
-									<select class="form-control select2" name="year" onchange="this.form.submit()">
-										<option><?php echo $year; ?></option>
-										<?php for ($i = -5; $i <= 25; $i++) {  ?>
-											<option><?php echo 2017 + $i; ?></option>
-										<?php }  ?>
+									<label class="control-label">Year</label>
+									<select class="form-control select2" name="year" id="rs_year">
+										<?php for ($i = -5; $i <= 25; $i++) {
+											$y = 2017 + $i;
+											$sel = (isset($year) && $year == $y) ? ' selected' : '';
+											echo '<option value="' . $y . '"' . $sel . '>' . $y . '</option>';
+										} ?>
 									</select>
 								</div>
 							</div>
 							<div class="col-md-4">
 								<div class="control-group">
-									<?php
-									$facility = $this->session->userdata['facility'];
-									//print_r($facility);
-									$employees = Modules::run("employees/get_employees"); ?>
-									<select class="form-control select2" name="empid" select2>
-										<option value="" selected disabled>Select Employee</option>
-										<?php foreach ($employees as $employee) {  ?>
-											<option value="<?php echo $employee->ihris_pid ?>"><?php echo $employee->surname . ' ' . $employee->firstname . ' ' . $employee->othername; ?></option>
-										<?php }  ?>
+									<label class="control-label">Employee</label>
+									<?php $employees = Modules::run("employees/get_employees"); ?>
+									<select class="form-control select2" name="empid" id="rs_empid">
+										<option value="">All</option>
+										<?php if (!empty($employees)) foreach ($employees as $employee) : ?>
+											<option value="<?php echo htmlspecialchars($employee->ihris_pid); ?>"
+												<?php echo (isset($empid) && $empid === $employee->ihris_pid) ? ' selected' : ''; ?>>
+												<?php echo htmlspecialchars($employee->surname . ' ' . $employee->firstname . ' ' . $employee->othername); ?></option>
+										<?php endforeach; ?>
 									</select>
 								</div>
 							</div>
 							<div class="col-md-4">
-								<div class="control-group">
-									<button type="submit" name="" class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
-									<?php
-									if (count($sums) > 0) {
-									?>
-										<a href="<?php echo base_url() ?>rosta/print_summary/<?php echo $year . "-" . $month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
-									<?php } ?>
-									<?php
-									if (count($sums) > 0) {
-									?>
-										<a href="<?php echo base_url(); ?>rosta/bundleCsv/<?php echo $year . "-" . $month; ?>" style="font-size:12px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
-									<?php } ?>
+								<div class="control-group" style="margin-top: 1.8em;">
+									<button type="button" id="rs_apply" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-filter"></i> Apply</button>
+									<a href="#" id="rs_print_link" style="font-size:12px; margin-left:8px;" class="btn bg-gray-dark color-pale print" target="_blank" rel="noopener"><i class="fa fa-print"></i> Print</a>
+									<a href="#" id="rs_csv_link" style="font-size:12px; margin-left:8px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
 								</div>
 							</div>
 						</div>
+					</form>
 				</div>
-				</form>
+
+				<div class="panel-body">
+					<div class="col-md-12" style="border: 0;">
+						<p id="roster_summary_title" style="font-size: 16px; font-weight:bold; margin:0 auto;">
+							DUTY ROSTER SUMMARY - <span id="rs_period_label"><?php echo isset($month) && isset($year) ? date('F, Y', strtotime($year . '-' . $month . '-01')) : date('F, Y'); ?></span>
+						</p>
+					</div>
+					<div class="table-responsive" style="margin-top: 10px;">
+						<table id="rosterSummaryTable" class="table table-striped table-bordered" style="width:100%;">
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Name</th>
+									<th>Job</th>
+									<th>Day</th>
+									<th>Evening</th>
+									<th>Night</th>
+									<th>Off</th>
+									<th>Annual</th>
+									<th>Study</th>
+									<th>Maternity</th>
+									<th>Other</th>
+									<th>Total</th>
+								</tr>
+							</thead>
+							<tbody></tbody>
+						</table>
+					</div>
+				</div>
 			</div>
 		</div>
-		<div class="panel-body">
-			<?php
-			//print_r($sums);   //raw data
-			?>
-			<div class="col-md-3" style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></div>
-			<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0;">
-				<p style="font-size: 16px; font-weight:bold; margin:0 auto; ">
-					<?php
-					if (count($sums) < 1) {
-						echo "<font color='red'> No Schedule Data</font>";
-					} else {
-					?>
-						MONTHLY ATTENDANCE TO DUTY SUMMARY
-						<?php
-						echo " - " . $sums[0]['facility'] . " ";
-						echo "              " . date('F, Y', strtotime($year . "-" . $month));
-						?>
-					<?php } ?>
-				</p>
-			</div>
-			<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-			<div id="table">
-				<div class="header-row tbrow">
-					<span class="cell tbprimary cnumber"># <b id="name"></b></span>
-					<span class="cell  cname">Name</span>
-					<span class="cell  cname">Job</span>
-					<span class="cell">Day</span>
-					<span class="cell">Evening</span>
-					<span class="cell">Night</span>
-					<span class="cell">Off</span>
-					<span class="cell">Annual</span>
-					<span class="cell">Study</span>
-					<span class="cell">Maternity</span>
-					<span class="cell">Other</span>
-					<span class="cell">Total</span>
-				</div>
-				<?php
-				$no = (!empty($this->uri->segment(3))) ? $this->uri->segment(3) : 1;
-				foreach ($sums as $sum) { ?>
-					<div class="table-row tbrow content">
-						<input type="radio" name="expand" class="fa fa-angle-double-down trigger">
-						<span class="cell tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no; ?>
-							<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['fullname']; ?></span></b>
-						</span>
-						<span class="cell cname" data-label="Name"><?php echo $sum['fullname'] . ' ' . $sum['othername']; ?></span>
-						<span class="cell cname" data-label="Job"><?php echo $sum['job']; ?></span>
-						<span class="cell" data-label="D"><?php $d = $sum['D'];
-															if (!empty($d)) {
-																echo $d;
-															} else {
-																echo 0;
-															} ?></span>
-						<span class="cell" data-label="E"><?php $e = $sum['E'];
-															if (!empty($e)) {
-																echo $e;
-															} else {
-																echo 0;
-															} ?></span>
-						<span class="cell" data-label="N"><?php $n = $sum['N'];
-															if (!empty($n)) {
-																echo $n;
-															} else {
-																echo 0;
-															} ?></span>
-						<span class="cell" data-label="O"><?php $o = $sum['O'];
-															if (!empty($o)) {
-																echo $o;
-															} else {
-																echo 0;
-															} ?></span>
-						<span class="cell" data-label="A"><?php $a = $sum['A'];
-															if (!empty($a)) {
-																echo $a;
-															} else {
-																echo 0;
-															} ?></span>
-						<span class="cell" data-label="S"><?php $s = $sum['S'];
-															if (!empty($s)) {
-																echo $s;
-															} else {
-																echo 0;
-															} ?></span>
-						<span class="cell" data-label="M"><?php $m = $sum['M'];
-															if (!empty($m)) {
-																echo $m;
-															} else {
-																echo 0;
-															} ?></span>
-						<span class="cell" data-label="Z"><?php $z = $sum['Z'];
-															if (!empty($z)) {
-																echo $d;
-															} else {
-																echo 0;
-															} ?></span>
-						<span class="cell" data-label="Z"><?php echo $sum['D'] + $sum['E'] + $sum['N'] + $sum['O'] + $sum['A'] + $sum['S'] + $sum['M'] + $sum['Z']; ?></span>
-					</div>
-				<?php
-					$no++;
-				} ?>
-			</div>
-			<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-			<script type="text/javascript">
-				var url = window.location.href;
-				if (url == '<?php echo base_url(); ?>rosta/summary') {
-					$('.sidebar-mini').addClass('sidebar-collapse');
+	</div>
+</section>
+
+<script type="text/javascript">
+(function() {
+	var baseUrl = '<?php echo base_url(); ?>';
+	var month = '<?php echo isset($month) ? addslashes($month) : date("m"); ?>';
+	var year = '<?php echo isset($year) ? addslashes($year) : date("Y"); ?>';
+
+	function updateExportLinks() {
+		var m = $('#rs_month').val() || month;
+		var y = $('#rs_year').val() || year;
+		var e = $('#rs_empid').val() || '';
+		var range = y + '-' + m;
+		var qs = e ? '?empid=' + encodeURIComponent(e) : '';
+		$('#rs_print_link').attr('href', baseUrl + 'rosta/print_summary/' + range + qs);
+		$('#rs_csv_link').attr('href', baseUrl + 'rosta/bundleCsv/' + range + qs);
+		$('#rs_period_label').text(new Date(y + '-' + m + '-01').toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+	}
+
+	$(document).ready(function() {
+		if (typeof $.fn.DataTable !== 'function') {
+			console.error('DataTables not loaded.');
+			return;
+		}
+		var rsTable = $('#rosterSummaryTable').DataTable({
+			processing: true,
+			serverSide: true,
+			searching: true,
+			ordering: true,
+			order: [[1, 'asc']],
+			pageLength: 30,
+			lengthMenu: [[15, 30, 50, 100, 200], [15, 30, 50, 100, 200]],
+			autoWidth: false,
+			ajax: {
+				url: baseUrl + 'rosta/summary_ajax',
+				type: 'POST',
+				data: function(d) {
+					d.month = $('#rs_month').val() || month;
+					d.year = $('#rs_year').val() || year;
+					d.empid = $('#rs_empid').val() || '';
+					d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
 				}
-				$('.csv').click(function(e) {
-					e.preventDefault();
-					$.ajax({
-						url: '<?php echo base_url(); ?>rosta/bundleCsv',
-						success: function(res) {
-							console.log(res);
-						}
-					})
-				})
-			</script>
+			},
+			columns: [
+				{ data: 0, orderable: false, width: '40px' },
+				{ data: 1, className: 'cname' },
+				{ data: 2, className: 'cname' },
+				{ data: 3, className: 'rs-num-col', width: '56px' },
+				{ data: 4, className: 'rs-num-col', width: '56px' },
+				{ data: 5, className: 'rs-num-col', width: '56px' },
+				{ data: 6, className: 'rs-num-col', width: '56px' },
+				{ data: 7, className: 'rs-num-col', width: '56px' },
+				{ data: 8, className: 'rs-num-col', width: '56px' },
+				{ data: 9, className: 'rs-num-col', width: '56px' },
+				{ data: 10, className: 'rs-num-col', width: '56px' },
+				{ data: 11, className: 'rs-num-col', width: '56px' }
+			]
+		});
+
+		$('#rs_apply').on('click', function() {
+			updateExportLinks();
+			rsTable.ajax.reload();
+		});
+
+		$('#rs_print_link, #rs_csv_link').on('click', function(e) {
+			updateExportLinks();
+			var href = $(this).attr('href');
+			if (!href || href === '#') return;
+			e.preventDefault();
+			if ($(this).attr('id') === 'rs_print_link') {
+				window.open(href, '_blank', 'noopener');
+			} else {
+				window.location.href = href;
+			}
+		});
+
+		updateExportLinks();
+	});
+})();
+</script>

@@ -1,141 +1,144 @@
+<?php
+$year = isset($year) ? $year : '';
+$base = base_url();
+$csrf_name = $this->security->get_csrf_token_name();
+$csrf_hash = $this->security->get_csrf_hash();
+$facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : '';
+?>
 <style>
-.cnumber{
-    width:3%;
-}
-.cname{
-    text-align: left;
-    padding-left:1.5em;
-    width:30%;
-}
-@media only screen and (max-width: 980px)  {
-    .cnumber{
-    width:100%;
-}
-    .cname{
-    padding-left:0em;
-    text-align: left;
-    width:100%;
-}
-.print{
-    display:none;
-}
-    	}
+	#averageHoursTable th.ah-num-col,
+	#averageHoursTable td.ah-num-col { width: 120px; text-align: center; }
+	#averageHoursTable thead th { padding: 8px 6px; }
 </style>
 <section class="content">
-     <div class="container-fluid">
-       <!-- Main row -->
-<div class="row">
-<div class="col-md-12">
-<div class="callout callout-success">
-             
-
-			 <form class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>reports/average_hours" method="post">
-			 <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-			 <div class="row">
-					 
-
-
-
-					 <div class="col-md-4">
-						 <div class="control-group">
-
-					          
-
-							 <select class="form-control select2" name="year" onchange="this.form.submit()">
-							         <option value="">ALL YEARS</option>
-									 <option ><?php $year=date('Y'); echo $year; ?></option>
-
-									 <?php for($i=-5;$i<=25;$i++){  ?>
-
-									 <option><?php echo 2017+$i; ?></option>
-
-									 <?php }  ?>
-							 </select>
-				
-						 </div>
-					 </div>
-					 	 <div class="col-md-4">
-
-						 <div class="control-group">
-
-							 <button type="submit" name=""  class="btn bg-gray-dark color-pale" style="font-size:12px;">Apply</button>
-				
-           
-			<a href="<?php echo base_url() ?>reports/print_average/<?php echo $this->input->post('year');?>" style="font-size:12px;" class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-print"></i>Print</a>
-				
-
-                </div>
-
-						 </div>
-
-					 </div>
-			 </div>
-				 </form>
-	  </div>
-
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-md-12">
+				<div class="callout callout-success">
+					<form id="averageHoursFiltersForm" class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo $base; ?>reports/average_hours" method="get">
+						<input type="hidden" name="<?php echo $csrf_name; ?>" value="<?php echo $csrf_hash; ?>">
+						<div class="row align-items-end">
+							<div class="form-group col-md-4 mb-2 mb-md-0">
+								<label class="mb-1">Year</label>
+								<select class="form-control select2" name="year" id="ah_year">
+									<option value="">All years</option>
+									<?php
+									$cy = (int) date('Y');
+									for ($i = -5; $i <= 25; $i++) {
+										$y = 2017 + $i;
+										$sel = ($year !== '' && (string) $y === (string) $year) ? ' selected' : '';
+										echo '<option value="' . $y . '"' . $sel . '>' . $y . '</option>';
+									}
+									?>
+								</select>
+							</div>
+							<div class="form-group col-md-4 mb-2 mb-md-0">
+								<button type="button" id="ah_apply" class="btn bg-gray-dark color-pale"><i class="fa fa-filter"></i> Apply</button>
+								<?php
+								$print_url = $base . 'reports/print_average?' . ($year !== '' ? 'year=' . rawurlencode($year) : '');
+								?>
+								<a href="<?php echo htmlspecialchars($print_url); ?>" id="ah_print_link" class="btn bg-gray-dark color-pale" target="_blank" rel="noopener" style="margin-left: 8px;"><i class="fa fa-print"></i> Print</a>
+							</div>
+						</div>
+					</form>
+				</div>
+				<div class="panel-body">
+					<p style="font-size: 16px; font-weight: bold; margin: 0 auto;">
+						MONTHLY STAFF AVERAGE WORKING HOURS — <?php echo htmlspecialchars($facility_name); ?>
+					</p>
+					<div class="table-responsive" style="margin-top: 10px;">
+						<table id="averageHoursTable" class="table table-striped table-bordered" style="width: 100%;">
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Month and Year</th>
+									<th class="ah-num-col">Average Hours</th>
+								</tr>
+							</thead>
+							<tbody></tbody>
+						</table>
+					</div>
+				</div>
 			</div>
-
-<div class="panel-body">
-<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-<?php 
-//print_r($sums);   //raw data
-?>
-<div class="col-md-3" style="border-right: 0; border-left: 0; border-top: 0;"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></div>
-	<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0;">
-		<p style="font-size: 16px; font-weight:bold; margin:0 auto; ">
-
-	MONTHLY STAFF AVERAGE WOKRING HOURS
-		<?php  echo " - ".$_SESSION['facility_name'];
-		?>
-
-	</p></div>
-<div id="table">
-<div class="header-row tbrow">
-    <span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
-    <span class="cell stcell   cname">Month and Year</span>
-	<span class="cell stcell">Average Hours</span>
-   
-	
-
-</div>
-<?php  $mydate=$year."-".$month ?>
-<?php 
-$no=1;
-
-foreach($sums as $sum) {?>
-<div class="table-row tbrow strow">
-    <input type="radio" name="expand" class="fa fa-angle-double-down trigger">
-    <span class="cell stcell  tbprimary" style="cursor:pointer;" data-label="#"><?php echo $no;?>
-	<b id="name">. &nbsp;<span onclick="$('.trigger').click();"><?php echo $sum['month_year'];?></span></b>
-</span>
-    <span class="cell stcell  cname" data-label="Month"><?php echo date("F, Y", strtotime($sum['month_year']));?></span>
-	<span class="cell stcell  cname" data-label="Hours"><?php echo $sum['avg_hours'] ?></span>
-    
-</div>
-<?php
-$no++; 
-} ?>
-</div>
-</div></div>
-<div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-</div>
-</div>
-</div>
+		</div>
+	</div>
 </section>
 
-
 <script type="text/javascript">
-var url=window.location.href;
-if(url=='<?php echo base_url(); ?>attendance/attendance_summary'){
-	$('.sidebar-mini').addClass('sidebar-collapse');
-}
-$('.csv').click(function(e){
-    e.preventDefault();
-    $.ajax({
-        url:'<?php echo base_url(); ?>attendance/attsums_csv',
-        success:function(res){
-            console.log(res);
-        }
-    })
-})
+(function() {
+	var baseUrl = '<?php echo addslashes($base); ?>';
+	var csrfTokenName = '<?php echo addslashes($csrf_name); ?>';
+	var csrfTokenHash = '<?php echo addslashes($csrf_hash); ?>';
+	var defaultYear = '<?php echo addslashes($year); ?>';
+
+	function getYear() {
+		var y = $('#ah_year').val();
+		return y !== null && y !== undefined ? y : defaultYear;
+	}
+
+	function updatePrintLink() {
+		var y = getYear();
+		var qs = y ? '?year=' + encodeURIComponent(y) : '';
+		$('#ah_print_link').attr('href', baseUrl + 'reports/print_average' + qs);
+	}
+
+	$(document).ready(function() {
+		if (typeof $.fn.DataTable !== 'function') {
+			console.error('DataTables not loaded.');
+			return;
+		}
+		var table = $('#averageHoursTable').DataTable({
+			processing: true,
+			serverSide: true,
+			searching: true,
+			ordering: true,
+			order: [[1, 'desc']],
+			pageLength: 20,
+			lengthMenu: [[10, 20, 50, 100, 200], [10, 20, 50, 100, 200]],
+			autoWidth: false,
+			ajax: {
+				url: baseUrl + 'reports/average_hours_ajax',
+				type: 'POST',
+				data: function(d) {
+					d[csrfTokenName] = csrfTokenHash;
+					d.year = getYear();
+				}
+			},
+			columns: [
+				{ data: 0, orderable: false, width: '50px' },
+				{ data: 1 },
+				{ data: 2, className: 'ah-num-col', width: '120px' }
+			],
+			dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+				 '<"row"<"col-sm-12"tr>>' +
+				 '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+			language: { processing: '<i class="fa fa-spinner fa-spin"></i> Loading...' }
+		});
+
+		$('#averageHoursFiltersForm').on('submit', function(e) {
+			e.preventDefault();
+			return false;
+		});
+
+		$('#ah_apply').on('click', function() {
+			updatePrintLink();
+			table.ajax.reload();
+		});
+
+		$('#ah_print_link').on('click', function(e) {
+			updatePrintLink();
+			var href = $(this).attr('href');
+			if (href && href !== '#') {
+				e.preventDefault();
+				window.open(href, '_blank', 'noopener');
+			}
+		});
+
+		$('#ah_year').on('change', function() {
+			updatePrintLink();
+		});
+
+		updatePrintLink();
+	});
+})();
 </script>

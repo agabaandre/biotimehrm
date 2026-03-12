@@ -102,73 +102,105 @@ class Reports extends MX_Controller
 
 	public function average_hours($syear = FALSE)
 	{
+		$year = $this->input->post('year');
+		if ($year === null || $year === '') {
+			$year = $this->input->get('year');
+		}
 		$data['title'] = 'Average Hours';
 		$data['uptitle'] = "Average Monthly Hours";
 		$data['view'] = 'average_hours';
 		$data['module'] = $this->module;
-		$facility = $_SESSION['facility'];
-
-		$year = $this->input->post('year');
-		if (!empty($year)) {
-			$fyear = $this->input->post('year');
-		} else {
-			$fyear = "";
-		}
-
-		$this->load->library('pagination');
-		$config = array();
-		$config['base_url'] = base_url() . "employees/viewTimeLogs";
-		$count_row = $this->db->query("SELECT COUNT(DISTINCT DATE_FORMAT(date,'%Y-%m')) AS total FROM clk_diff WHERE facility_id=" . $this->db->escape($facility))->row();
-		$config['total_rows'] = isset($count_row->total) ? (int) $count_row->total : 0;
-		$config['per_page'] = 200; //records per page
-		$config['uri_segment'] = 3; //segment in url  
-		//pagination links styling
-		$config['full_tag_open'] = '<ul class="pagination">';
-		$config['full_tag_close'] = '</ul>';
-		$config['attributes'] = ['class' => 'page-link'];
-		$config['first_link'] = false;
-		$config['last_link'] = false;
-		$config['first_tag_open'] = '<li class="page-item">';
-		$config['first_tag_close'] = '</li>';
-		$config['prev_link'] = '&laquo';
-		$config['prev_tag_open'] = '<li class="page-item">';
-		$config['prev_tag_close'] = '</li>';
-		$config['next_link'] = '&raquo';
-		$config['next_tag_open'] = '<li class="page-item">';
-		$config['next_tag_close'] = '</li>';
-		$config['last_tag_open'] = '<li class="page-item">';
-		$config['last_tag_close'] = '</li>';
-		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-		$config['num_tag_open'] = '<li class="page-item">';
-		$config['num_tag_close'] = '</li>';
-		$config['use_page_numbers'] = false;
-		$this->pagination->initialize($config);
-		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits 
-		$data['links'] = $this->pagination->create_links();
-		$data['sums'] = $this->reports_mdl->average_hours($fyear);
-
+		$data['year'] = $year !== null && $year !== '' ? $year : '';
+		$data['sums'] = array();
+		$data['links'] = '';
 		echo Modules::run('templates/main', $data);
 	}
-	public function print_average($syear = false)
-	{
 
+	/**
+	 * Server-side DataTables AJAX endpoint for average hours.
+	 */
+	public function average_hours_ajax()
+	{
+		$this->output->set_content_type('application/json');
+		$draw = (int) $this->input->post('draw');
+		$start = (int) $this->input->post('start');
+		$length = (int) $this->input->post('length');
+		$search = trim((string) $this->input->post('search')['value']);
+		$year = trim((string) $this->input->post('year'));
+
+		try {
+			$total = $this->reports_mdl->count_average_hours($year, '');
+			$filtered = $this->reports_mdl->count_average_hours($year, $search);
+			$rows = $this->reports_mdl->average_hours_fetch($year, $start, $length, $search);
+
+			$data = array();
+			$row_num = $start + 1;
+			foreach ($rows as $row) {
+				$month_fmt = !empty($row['month_year']) ? date('F, Y', strtotime($row['month_year'] . '-01')) : '';
+				$data[] = array(
+					$row_num++,
+					$month_fmt,
+					isset($row['avg_hours']) ? number_format((float) $row['avg_hours'], 2) : ''
+				);
+			}
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => $total,
+				'recordsFiltered' => $filtered,
+				'data' => $data
+			));
+		} catch (Throwable $e) {
+			log_message('error', 'average_hours_ajax: ' . $e->getMessage());
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => array(),
+				'error' => 'Failed to load data'
+			));
+		}
+	}
+
+	/**
+	 * PDF export for average hours (streamed batches, logo + watermark).
+	 */
+	public function print_average()
+	{
+		$year = trim((string) $this->input->get('year'));
 		$this->load->library('M_pdf');
-		$data['sums'] = $this->reports_mdl->average_hours($syear);
-		$html = $this->load->view('averagehours_pdf', $data, true);
-		$fac = $_SESSION['facility_name'];
-		$filename = $fac . "_Average_Hours" . "pdf";
-		ini_set('max_execution_time', 0);
-		$PDFContent = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-		$this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-		$this->m_pdf->pdf->showWatermarkImage = true;
-		date_default_timezone_set("Africa/Kampala");
-		$this->m_pdf->pdf->SetHTMLFooter("Printed/ Accessed on: <b>" . date('d F,Y h:i A') . "</b><br style='font-size: 9px !imporntant;'>" . "Source: iHRIS - HRM Attend " . base_url());
-		$this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-		$this->m_pdf->showWatermarkImage = true;
-		ini_set('max_execution_time', 0);
-		$this->m_pdf->pdf->WriteHTML($PDFContent); //ml_pdf because we loaded the library ml_pdf for landscape format not m_pdf
-		//download it D save F.
+		@set_time_limit(0);
+		$batch_size = 80;
+		$total = $this->reports_mdl->count_average_hours($year, '');
+		$fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Report';
+		$filename = $fac . '_Average_Hours_' . date('Y-m-d') . '.pdf';
+
+		$watermark_path = FCPATH . 'assets/images/watermark.png';
+		if (!empty($watermark_path) && is_file($watermark_path)) {
+			$this->m_pdf->pdf->SetWatermarkImage($watermark_path);
+			$this->m_pdf->pdf->showWatermarkImage = true;
+		}
+		date_default_timezone_set('Africa/Kampala');
+		$this->m_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
+
+		$moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
+		$header_data = array('facility_name' => $fac, 'moh_logo_path' => $moh_logo);
+		$header_html = $this->load->view('averagehours_pdf_header', $header_data, true);
+		$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+
+		$row_no = 1;
+		for ($start = 0; $start < $total; $start += $batch_size) {
+			$batch = $this->reports_mdl->average_hours_fetch($year, $start, $batch_size, '');
+			if (empty($batch)) {
+				break;
+			}
+			$rows_data = array('sums' => $batch, 'start_row_no' => $row_no);
+			$rows_html = $this->load->view('averagehours_pdf_rows', $rows_data, true);
+			$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
+			$row_no += count($batch);
+			unset($batch, $rows_data, $rows_html);
+		}
+		$footer_html = $this->load->view('averagehours_pdf_footer', array(), true);
+		$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
 		$this->m_pdf->pdf->Output($filename, 'I');
 	}
 
@@ -588,22 +620,15 @@ class Reports extends MX_Controller
 			$month = date('m');
 			$search['year'] = $year;
 			$search['month'] = $month;
-			$search['district'] = $_SESSION['district'];
+			if (!empty($_SESSION['district'])) {
+				$search['district'] = $_SESSION['district'];
+			}
 		}
 
 		flash_form();
 
 		$valid_rangeto = $year . '-' . $month;
 		$search['duty_date'] = $valid_rangeto;
-
-		$totals = $this->reports_mdl->count_person_attendance($search);
-		$route = 'reports/person_attendance_all';
-		$per_page = (request_fields('rows')) ? request_fields('rows') : 140;
-		$segment = 3;
-		$page = ($this->uri->segment($segment)) ? $this->uri->segment($segment) : 0;
-
-		$data['links'] = paginate($route, $totals, $per_page, $segment);
-		$data['records'] = $this->reports_mdl->person_attendance_all($search, $per_page, $page);
 
 		if ($csv) {
 			$this->export_attendance_all_csv_stream($search, $month, $year);
@@ -617,17 +642,98 @@ class Reports extends MX_Controller
 		$data['module'] = $this->module;
 		$data['search'] = (object) $search;
 		$data['period'] = $valid_rangeto;
+		$data['month'] = $month;
+		$data['year'] = $year;
 		$data['districts'] = $this->districts_mdl->get_all_Districts();
 		$data['facilities'] = $this->facilities_mdl->getAll();
+		$data['links'] = '';
+		$data['records'] = array();
 
 		$data['view'] = 'person_attendance_all';
-		$data['title'] = 'Attendance Form Summary';
-		$data['uptitle'] = 'Attendance Form Summary';
-
-
-		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "facility"];
+		$data['title'] = 'Person Attendance All';
+		$data['uptitle'] = 'Person Attendance All';
 
 		echo Modules::run('templates/main', $data);
+	}
+
+	/**
+	 * Server-side DataTables AJAX endpoint for person attendance all.
+	 */
+	public function person_attendance_all_ajax()
+	{
+		$this->output->set_content_type('application/json');
+
+		$draw = (int) $this->input->post('draw');
+		$start = (int) $this->input->post('start');
+		$length = (int) $this->input->post('length');
+		$search = trim((string) $this->input->post('search')['value']);
+		$month = trim((string) $this->input->post('month'));
+		$year = trim((string) $this->input->post('year'));
+		$district = trim((string) $this->input->post('district'));
+		$facility_name = trim((string) $this->input->post('facility_name'));
+
+		if (empty($year) || empty($month)) {
+			$year = date('Y');
+			$month = date('m');
+		}
+		$duty_date = $year . '-' . $month;
+		$filters = array('duty_date' => $duty_date);
+		if ($district !== '') {
+			$filters['district'] = $district;
+		}
+		if ($facility_name !== '') {
+			$filters['facility_name'] = $facility_name;
+		}
+
+		try {
+			$total_records = $this->reports_mdl->count_person_attendance($filters, '');
+			$filtered_records = $this->reports_mdl->count_person_attendance($filters, $search);
+			$rows = $this->reports_mdl->person_attendance_all($filters, $length, $start, $search);
+
+			$month_days = cal_days_in_month(CAL_GREGORIAN, (int) $month, (int) $year);
+			$data = array();
+			$row_num = $start + 1;
+			foreach ($rows as $row) {
+				$p = isset($row->P) ? (int) $row->P : 0;
+				$o = isset($row->O) ? (int) $row->O : 0;
+				$r = isset($row->R) ? (int) $row->R : 0;
+				$l = isset($row->L) ? (int) $row->L : 0;
+				$h = isset($row->H) ? (int) $row->H : 0;
+				$absent = $month_days - ($p + $o + $r + $l);
+				$abrate = $month_days > 0 ? number_format(($absent / $month_days) * 100, 1) : 0;
+				$data[] = array(
+					$row_num++,
+					isset($row->fullname) ? $row->fullname : '',
+					isset($row->district) ? $row->district : '',
+					isset($row->facility_name) ? $row->facility_name : '',
+					isset($row->duty_date) ? $row->duty_date : $duty_date,
+					$p,
+					$o,
+					$r,
+					$l,
+					$h,
+					$absent,
+					$abrate . '%'
+				);
+			}
+
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => $total_records,
+				'recordsFiltered' => $filtered_records,
+				'data' => $data
+			));
+			return;
+		} catch (Throwable $e) {
+			log_message('error', 'person_attendance_all_ajax: ' . $e->getMessage());
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => array(),
+				'error' => 'Failed to load data'
+			));
+		}
 	}
 
 	public function export_attendance_all_csv($data, $month, $year)
@@ -684,26 +790,29 @@ class Reports extends MX_Controller
 	}
 
 	/**
-	 * Stream CSV/Excel export for person attendance all (batch fetch, no full load).
+	 * Stream CSV export for person attendance all (batch fetch, flush to avoid DB locks).
 	 */
 	public function export_attendance_all_csv_stream($search, $month, $year)
 	{
-		$batch_size = 200;
-		$total = $this->reports_mdl->count_person_attendance($search);
+		@set_time_limit(0);
+		$batch_size = 80;
+		$total = $this->reports_mdl->count_person_attendance($search, '');
 		$month_days = cal_days_in_month(CAL_GREGORIAN, (int) $month, (int) $year);
 		$filename = 'person_attendance_all_' . date('Y-m-d_His') . '.csv';
-		header('Content-Type: text/csv');
+		header('Content-Type: text/csv; charset=UTF-8');
 		header('Content-Disposition: attachment; filename="' . $filename . '"');
+		header('Cache-Control: no-cache, must-revalidate');
 		$fh = fopen('php://output', 'w');
-		ini_set('max_execution_time', 0);
 
 		fputcsv($fh, array('NAME', 'DISTRICT', 'FACILITY', 'PERIOD', 'PRESENT', 'OFF DUTY', 'OFFICIAL REQUEST', 'LEAVE', 'HOLIDAY', 'ABSENT', '% ABSENTEESM'));
+		if (ob_get_level() > 0) ob_flush();
+		flush();
 
 		$p_total = $o_total = $r_total = $l_total = $h_total = $a_total = $ar_total = 0;
 		$count = 0;
 
 		for ($start = 0; $start < $total; $start += $batch_size) {
-			$batch = $this->reports_mdl->person_attendance_all($search, $batch_size, $start);
+			$batch = $this->reports_mdl->person_attendance_all($search, $batch_size, $start, '');
 			if (empty($batch)) {
 				break;
 			}
@@ -733,6 +842,8 @@ class Reports extends MX_Controller
 				));
 			}
 			unset($batch);
+			if (ob_get_level() > 0) ob_flush();
+			flush();
 		}
 
 		$avg_div = $count > 0 ? $count : 1;
@@ -759,7 +870,11 @@ class Reports extends MX_Controller
 		$filename = 'person_attendance_all_' . date('Y-m-d_His') . '.pdf';
 		ini_set('max_execution_time', 0);
 
-		$this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+		$watermark_path = FCPATH . 'assets/images/watermark.png';
+		if (!empty($watermark_path) && is_file($watermark_path)) {
+			$this->m_pdf->pdf->SetWatermarkImage($watermark_path);
+			$this->m_pdf->pdf->showWatermarkImage = true;
+		}
 		date_default_timezone_set('Africa/Kampala');
 		$this->m_pdf->pdf->SetHTMLFooter('Printed / Accessed on: <b>' . date('d F,Y h:i A') . '</b> | Source: iHRIS - HRM Attend ' . base_url());
 

@@ -12,7 +12,7 @@
 <body>
 	<table class="items" style="font-size: 12pt; border-collapse: collapse;" cellpadding="8" width="100%">
 		<tr>
-			<td colspan="2"><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></td>
+			<td colspan="2"><?php if (!empty($moh_logo_path) && is_file($moh_logo_path)) { ?><img src="<?php echo $moh_logo_path; ?>" width="100px"><?php } else { ?><img src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"><?php } ?></td>
 			<td colspan="10">
 				<h4>MONTHLY ATTENDANCE TO DUTY SUMMARY FOR <?php echo (isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : '') . ' ' . (isset($period_label) ? $period_label : (isset($dates) ? date('F, Y', strtotime($dates . '-01')) : date('F, Y'))); ?></h4>
 			</td>

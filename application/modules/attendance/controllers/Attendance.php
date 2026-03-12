@@ -40,72 +40,129 @@ class Attendance extends MX_Controller
 		$month = $this->input->get('month');
 		$year = $this->input->get('year');
 		$empid = $this->input->get('empid');
-		$dep="";
-		$facility="";
-		$district="";
-	
+		$dep = $this->input->get('department');
 
-		if (!empty($month)) {
+		if (!empty($month) && !empty($year)) {
 			$_SESSION['month'] = $month;
 			$_SESSION['year'] = $year;
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 		}
-		if (!empty($_SESSION['year'])) {
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+		if (!empty($_SESSION['year']) && !empty($_SESSION['month'])) {
 			$data['month'] = $_SESSION['month'];
 			$data['year'] = $_SESSION['year'];
 		} else {
 			$_SESSION['month'] = date('m');
 			$_SESSION['year'] = date('Y');
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 			$data['month'] = $_SESSION['month'];
 			$data['year'] = $_SESSION['year'];
 		}
-		$valid_range = $this->input->get('year') . "-" . $this->input->get('month');
-		if (empty($valid_range)) {
-			$valid_range = $date;
-		}
-		$data['dates'] = $date;
-		$config = array();
-		$config['base_url'] = base_url() . "attendance/attendance_summary";
-
-		$config['total_rows'] = $this->attendance_model->countAttendanceSummary($date, $this->filters, 0, 0, $empid, $dep);
-		$config['per_page'] = 30; //records per page
-		$config['uri_segment'] = 3; //segment in url
-		//pagination links styling
-		$config['full_tag_open'] = '<ul class="pagination">';
-		$config['full_tag_close'] = '</ul>';
-		$config['attributes'] = ['class' => 'page-link'];
-		$config['first_link'] = false;
-		$config['last_link'] = false;
-		$config['first_tag_open'] = '<li class="page-item">';
-		$config['first_tag_close'] = '</li>';
-		$config['prev_link'] = '&laquo';
-		$config['prev_tag_open'] = '<li class="page-item">';
-		$config['prev_tag_close'] = '</li>';
-		$config['next_link'] = '&raquo';
-		$config['next_tag_open'] = '<li class="page-item">';
-		$config['next_tag_close'] = '</li>';
-		$config['last_tag_open'] = '<li class="page-item">';
-		$config['last_tag_close'] = '</li>';
-		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-		$config['num_tag_open'] = '<li class="page-item">';
-		$config['num_tag_close'] = '</li>';
-		$config['use_page_numbers'] = false;
-		$this->pagination->initialize($config);
-		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits
-		$data['links'] = $this->pagination->create_links();
-		//attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL,  $district = FALSE,$facility = FALSE, $employee = NULL, $department = FALSE, $endpoint=FALSE)
-		$data['sums'] = $this->attendance_model->attendance_summary($date, $this->filters, $config['per_page'], $page, $district, $facility, $empid, $dep);
+		$data['empid'] = ($empid !== null && $empid !== '') ? $empid : '';
+		$data['department'] = ($dep !== null && $dep !== '') ? $dep : '';
+		$data['dates'] = $data['year'] . '-' . $data['month'];
+		$data['links'] = '';
+		$data['sums'] = array();
 		$data['view'] = 'attendance_summary';
 		$data['title'] = 'Attendance Form Summary';
 		$data['uptitle'] = 'Attendance Form Summary';
 		$data['module'] = $this->attendModule;
 		echo Modules::run('templates/main', $data);
 	}
+
 	/**
-	 * Print Attendance Summary: stream by batches to avoid locking.
+	 * Server-side DataTables AJAX endpoint for attendance summary.
+	 */
+	public function attendanceSummaryAjax()
+	{
+		$this->output->set_content_type('application/json');
+
+		$draw = (int) $this->input->post('draw');
+		$start = (int) $this->input->post('start');
+		$length = (int) $this->input->post('length');
+		$search = trim((string) $this->input->post('search')['value']);
+		$month = trim((string) $this->input->post('month'));
+		$year = trim((string) $this->input->post('year'));
+		$empid = trim((string) $this->input->post('empid'));
+		$department = trim((string) $this->input->post('department'));
+
+		if (empty($month) || empty($year)) {
+			$year = !empty($_SESSION['year']) ? $_SESSION['year'] : date('Y');
+			$month = !empty($_SESSION['month']) ? $_SESSION['month'] : date('m');
+		}
+		$valid_range = $year . '-' . $month;
+		$district = $facility = null;
+
+		try {
+			$total_records = $this->attendance_model->countAttendanceSummary($valid_range, $this->filters, 0, 0, $empid, $department, '');
+			$filtered_records = $this->attendance_model->countAttendanceSummary($valid_range, $this->filters, 0, 0, $empid, $department, $search);
+			$rows = $this->attendance_model->attendance_summary($valid_range, $this->filters, $start, $length, $district, $facility, $empid, $department, false, $search);
+
+			$pids = array();
+			foreach ($rows as $r) {
+				if (!empty($r['ihris_pid'])) {
+					$pids[] = $r['ihris_pid'];
+				}
+			}
+			$scheduledDaysByPid = array();
+			if (!empty($pids)) {
+				$scheduledDaysByPid = $this->attendance_model->get_scheduled_days_for_month($pids, $valid_range);
+			}
+
+			$data = array();
+			$row_num = $start + 1;
+			foreach ($rows as $sum) {
+				$present = isset($sum['P']) && $sum['P'] !== '' ? (int) $sum['P'] : 0;
+				$pid = isset($sum['ihris_pid']) ? $sum['ihris_pid'] : '';
+				$r_days = isset($scheduledDaysByPid[$pid]) ? (int) $scheduledDaysByPid[$pid] : 0;
+				if ($r_days == 0) {
+					$r_days = 22;
+				}
+				$absent = function_exists('days_absent_helper') ? days_absent_helper($present, $r_days) : max(0, $r_days - $present);
+				$per = function_exists('per_present_helper') ? per_present_helper($present, $r_days) : ($r_days > 0 ? round(($present / $r_days) * 100, 1) . ' %' : '0 %');
+				$fullname = isset($sum['fullname']) ? $sum['fullname'] : '';
+				$othername = isset($sum['othername']) ? $sum['othername'] : '';
+				$job = isset($sum['job']) ? character_limiter($sum['job'], 15) : '';
+				$dept = isset($sum['department_id']) ? character_limiter($sum['department_id'], 15) : '';
+				$O = isset($sum['O']) && $sum['O'] !== '' ? $sum['O'] : 0;
+				$R = isset($sum['R']) && $sum['R'] !== '' ? $sum['R'] : 0;
+				$L = isset($sum['L']) && $sum['L'] !== '' ? $sum['L'] : 0;
+				$H = isset($sum['H']) && $sum['H'] !== '' ? $sum['H'] : 0;
+
+				$data[] = array(
+					$row_num++,
+					$fullname . ' ' . $othername,
+					$job,
+					$dept,
+					$O,
+					$R,
+					$L,
+					$H,
+					$r_days,
+					$present,
+					$absent <= 0 ? 0 : $absent,
+					$per
+				);
+			}
+
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => $total_records,
+				'recordsFiltered' => $filtered_records,
+				'data' => $data
+			));
+			return;
+		} catch (Throwable $e) {
+			log_message('error', 'attendanceSummaryAjax: ' . $e->getMessage());
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => array(),
+				'error' => 'Failed to load attendance summary'
+			));
+		}
+	}
+
+	/**
+	 * Print Attendance Summary: stream by small batches to avoid DB locks and memory spikes.
 	 */
 	public function print_attsummary($date)
 	{
@@ -120,29 +177,34 @@ class Attendance extends MX_Controller
 		} elseif (!empty($_SESSION['year']) && !empty($_SESSION['month'])) {
 			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 		} else {
-			$date = date('Y-m');
+			$date = is_string($date) && strlen($date) >= 6 ? $date : date('Y-m');
 		}
 
-		$this->load->library('ML_pdf');
-		$batch_size = 200;
-		$total = $this->attendance_model->countAttendanceSummary($date, $this->filters, 0, 0, $empid, $dep);
-		$period_label = date('F, Y', strtotime($date . '-01'));
-		$fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Attendance';
-		$filename = "Attendance_Summary_" . $fac . ".pdf";
-		ini_set('max_execution_time', 0);
+		@set_time_limit(0);
+		try {
+			$this->load->library('ML_pdf');
+			$batch_size = 80;
+			$total = $this->attendance_model->countAttendanceSummary($date, $this->filters, 0, 0, $empid, $dep, '');
+			$period_label = date('F, Y', strtotime($date . '-01'));
+			$fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Attendance';
+			$filename = "Attendance_Summary_" . $fac . ".pdf";
 
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-		$this->ml_pdf->pdf->showWatermarkImage = true;
-		date_default_timezone_set('Africa/Kampala');
+			if (!empty($this->watermark) && is_file($this->watermark)) {
+				$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+				$this->ml_pdf->pdf->showWatermarkImage = true;
+			}
+			date_default_timezone_set('Africa/Kampala');
 		$this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
 
-		$header_data = array('dates' => $date, 'period_label' => $period_label);
+		$moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
+		$header_data = array('dates' => $date, 'period_label' => $period_label, 'moh_logo_path' => $moh_logo);
 		$header_html = $this->load->view('summary_pdf_header', $header_data, true);
 		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
+		unset($header_data, $header_html);
 
 		$row_no = 1;
 		for ($offset = 0; $offset < $total; $offset += $batch_size) {
-			$batch = $this->attendance_model->attendance_summary($date, $this->filters, $offset, $batch_size, $district, $facility, $empid, $dep);
+			$batch = $this->attendance_model->attendance_summary($date, $this->filters, $offset, $batch_size, $district, $facility, $empid, $dep, false, '');
 			if (empty($batch)) {
 				break;
 			}
@@ -162,14 +224,27 @@ class Attendance extends MX_Controller
 			$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
 			$row_no += count($batch);
 			unset($batch, $pids, $scheduledDaysByPid, $rows_data, $rows_html);
+			if (function_exists('gc_collect_cycles')) {
+				gc_collect_cycles();
+			}
 		}
 
 		$footer_html = $this->load->view('summary_pdf_footer', array(), true);
 		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
 		$this->ml_pdf->pdf->Output($filename, 'I');
+		} catch (Throwable $e) {
+			log_message('error', 'print_attsummary: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+			log_message('error', 'print_attsummary trace: ' . $e->getTraceAsString());
+			$this->output->set_status_header(500);
+			$msg = 'PDF generation failed. Please try again or contact support.';
+			if (defined('ENVIRONMENT') && ENVIRONMENT !== 'production') {
+				$msg .= ' [' . htmlspecialchars($e->getMessage()) . ']';
+			}
+			echo $msg;
+		}
 	}
 	/**
-	 * CSV export for Attendance Summary: stream by batches (no N×attrosta calls).
+	 * CSV export for Attendance Summary: stream to client in small batches to avoid DB locks.
 	 */
 	public function attsums_csv($valid_range, $month, $year)
 	{
@@ -180,20 +255,25 @@ class Attendance extends MX_Controller
 		}
 		$district = $facility = null;
 
-		$batch_size = 200;
-		$total = $this->attendance_model->countAttendanceSummary($valid_range, $this->filters, 0, 0, $empid, $dep);
-		$fac = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Attendance';
-		$csv_file = 'Monthly_Attendance_Summary_' . date('Y-m-d') . '_' . $fac . '.csv';
-		header('Content-Type: text/csv');
-		header('Content-Disposition: attachment; filename="' . $csv_file . '"');
+		@set_time_limit(0);
+		header('Content-Type: text/csv; charset=UTF-8');
+		header('Content-Disposition: attachment; filename="' . preg_replace('/[^a-zA-Z0-9_\-.]/', '_', 'Monthly_Attendance_Summary_' . date('Y-m-d') . '_' . (isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : 'Attendance') . '.csv') . '"');
+		header('Cache-Control: no-cache, must-revalidate');
+		header('Pragma: no-cache');
+
 		$fh = fopen('php://output', 'w');
-		ini_set('max_execution_time', 0);
+		$batch_size = 80;
+		$total = $this->attendance_model->countAttendanceSummary($valid_range, $this->filters, 0, 0, $empid, $dep, '');
 
 		$header_row = array('Name', 'Job', 'Department', 'Duty Date', 'Off Duty', 'Official Request', 'Leave', 'Holiday', 'Total Days Expected', 'Total Days Worked', 'Total Days Absent', '% Present');
 		fputcsv($fh, $header_row);
+		if (ob_get_level() > 0) {
+			ob_flush();
+		}
+		flush();
 
 		for ($offset = 0; $offset < $total; $offset += $batch_size) {
-			$batch = $this->attendance_model->attendance_summary($valid_range, $this->filters, $offset, $batch_size, $district, $facility, $empid, $dep);
+			$batch = $this->attendance_model->attendance_summary($valid_range, $this->filters, $offset, $batch_size, $district, $facility, $empid, $dep, false, '');
 			if (empty($batch)) {
 				break;
 			}
@@ -236,6 +316,10 @@ class Attendance extends MX_Controller
 				fputcsv($fh, $record);
 			}
 			unset($batch, $pids, $scheduledDaysByPid);
+			if (ob_get_level() > 0) {
+				ob_flush();
+			}
+			flush();
 		}
 
 		fclose($fh);

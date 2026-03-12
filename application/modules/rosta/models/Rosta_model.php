@@ -694,19 +694,24 @@ class Rosta_model extends CI_Model
 		$data = array('workedon' => $rowno, 'staffs' => $staffs);
 		return $data;
 	}
-	public function fetch_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL)
+	public function fetch_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $search_like = '')
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
-			$search = " and ihris_pid=" . $this->db->escape($employee);
+			$emp_clause = " AND ihris_pid=" . $this->db->escape($employee);
 		} else {
-			$search = "";
+			$emp_clause = "";
 		}
-		$limits = " ";
+		$search_sql = "";
+		if ($search_like !== '' && trim($search_like) !== '') {
+			$like = $this->db->escape('%' . $this->db->escape_like_str(trim($search_like)) . '%');
+			$search_sql = " AND (fullname LIKE " . $like . " OR job LIKE " . $like . " OR facility_name LIKE " . $like . ")";
+		}
+		$limits = "";
 		if ($limit !== null && (int)$limit > 0) {
 			$limits = " LIMIT " . max(0, (int)$start) . "," . (int)$limit;
 		}
-		$query = $this->db->query("SELECT * from person_dut_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search  $limits");
+		$query = $this->db->query("SELECT * FROM person_dut_final WHERE facility_id=" . $this->db->escape($facility) . " AND duty_date=" . $this->db->escape($valid_range) . $emp_clause . $search_sql . $limits);
 		$data = $query->result_array();
 		return $data;
 	} //summary
@@ -848,15 +853,20 @@ class Rosta_model extends CI_Model
 		$rows = $all->row();
 		return $rows->rows;
 	}
-	public function countrosta_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL)
+	public function countrosta_summary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $search_like = '')
 	{
 		$facility = $_SESSION['facility'];
 		if (!empty($employee)) {
-			$search = " AND ihris_pid=" . $this->db->escape($employee);
+			$emp_clause = " AND ihris_pid=" . $this->db->escape($employee);
 		} else {
-			$search = "";
+			$emp_clause = "";
 		}
-		$query = $this->db->query("SELECT * FROM person_dut_final WHERE facility_id='$facility' AND duty_date='$valid_range' $search");
+		$search_sql = "";
+		if ($search_like !== '' && trim($search_like) !== '') {
+			$like = $this->db->escape('%' . $this->db->escape_like_str(trim($search_like)) . '%');
+			$search_sql = " AND (fullname LIKE " . $like . " OR job LIKE " . $like . " OR facility_name LIKE " . $like . ")";
+		}
+		$query = $this->db->query("SELECT * FROM person_dut_final WHERE facility_id=" . $this->db->escape($facility) . " AND duty_date=" . $this->db->escape($valid_range) . $emp_clause . $search_sql);
 		return $query->num_rows();
 	}
 	//import rota data

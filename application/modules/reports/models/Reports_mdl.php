@@ -280,13 +280,53 @@ class Reports_mdl extends CI_Model
 
 	public function average_hours($fyear)
 	{
-		$facility = $this->db->escape($_SESSION['facility']);
+		return $this->average_hours_fetch($fyear, null, null, '');
+	}
 
+	/**
+	 * Count rows for average hours report (DataTables server-side).
+	 */
+	public function count_average_hours($fyear, $search = '')
+	{
+		$facility = $this->db->escape($_SESSION['facility']);
+		$filter = "";
 		if (!empty($fyear)) {
-			$fyear = $this->db->escape($fyear);
-			$filter = " AND DATE_FORMAT(date,'%Y') = $fyear";
-		} else {
-			$filter = "";
+			$filter = " AND DATE_FORMAT(date,'%Y') = " . $this->db->escape($fyear);
+		}
+		$having = "";
+		if ($search !== '' && trim($search) !== '') {
+			$like = $this->db->escape('%' . $this->db->escape_like_str(trim($search)) . '%');
+			$having = " HAVING (month_year LIKE $like)";
+		}
+		$sql = "SELECT COUNT(*) AS cnt FROM (
+			SELECT DATE_FORMAT(date,'%Y-%m') AS month_year
+			FROM clk_diff
+			WHERE facility_id = $facility $filter
+			GROUP BY DATE_FORMAT(date,'%Y-%m')
+			$having
+		) t";
+		$row = $this->db->query($sql)->row();
+		return (int) ($row->cnt ?? 0);
+	}
+
+	/**
+	 * Fetch average hours for DataTables (paginated, optional search).
+	 */
+	public function average_hours_fetch($fyear, $start = null, $length = null, $search = '')
+	{
+		$facility = $this->db->escape($_SESSION['facility']);
+		$filter = "";
+		if (!empty($fyear)) {
+			$filter = " AND DATE_FORMAT(date,'%Y') = " . $this->db->escape($fyear);
+		}
+		$having = "";
+		if ($search !== '' && trim($search) !== '') {
+			$like = $this->db->escape('%' . $this->db->escape_like_str(trim($search)) . '%');
+			$having = " HAVING (month_year LIKE $like)";
+		}
+		$limit_sql = "";
+		if ($start !== null && $length !== null && (int) $length > 0) {
+			$limit_sql = " LIMIT " . (int) $start . "," . (int) $length;
 		}
 		/* MySQL 8 ONLY_FULL_GROUP_BY: non-grouped columns must be aggregated */
 		$sql = "SELECT (SUM(time_diff) / COUNT(pid)) AS avg_hours,
@@ -295,9 +335,10 @@ class Reports_mdl extends CI_Model
 			FROM clk_diff
 			WHERE facility_id = $facility $filter
 			GROUP BY DATE_FORMAT(date,'%Y-%m')
-			ORDER BY month_year DESC";
-		$fac = $this->db->query($sql)->result_array();
-		return $fac;
+			$having
+			ORDER BY month_year DESC
+			$limit_sql";
+		return $this->db->query($sql)->result_array();
 	}
 
 
@@ -389,7 +430,7 @@ class Reports_mdl extends CI_Model
 
 			foreach ($filters as $key => $value) {
 
-				if (($key !== "rows" && $key !== "group_by" && $key !== "month" && $key !== "year" && $key !== "csv" && $key !== "region" && $key !== "institution_type" && $key!=="duty_date" && !empty($value))) {
+				if (($key !== "rows" && $key !== "group_by" && $key !== "month" && $key !== "year" && $key !== "csv" && $key !== "pdf" && $key !== "region" && $key !== "institution_type" && $key !== "duty_date" && !empty($value))) {
 					$this->db->where($key, $value);
 				}
 			}
@@ -400,9 +441,11 @@ class Reports_mdl extends CI_Model
 
 			}
 			if (isset($filters['duty_date'])) {
-
-				$this->db->where_in('duty_date', $filters['duty_date']);
-
+				$dd = $filters['duty_date'];
+				if (!is_array($dd)) {
+					$dd = array($dd);
+				}
+				$this->db->where_in('duty_date', $dd);
 			}
 			if (isset($filters['institution_type'])) {
 
@@ -470,34 +513,38 @@ class Reports_mdl extends CI_Model
 		return $query->result();
 	}
 
-	public function count_person_attendance($filters = null)
+	public function count_person_attendance($filters = null, $search_like = '')
 	{
-
 		$this->apply_aggregation_filter($filters);
-
+		if ($search_like !== '' && trim($search_like) !== '') {
+			$term = $this->db->escape_like_str(trim($search_like));
+			$this->db->group_start();
+			$this->db->like('fullname', $term);
+			$this->db->or_like('district', $term);
+			$this->db->or_like('facility_name', $term);
+			$this->db->group_end();
+		}
 		$this->db->from("person_att_final");
 		$query = $this->db->get();
-
 		return $query->num_rows();
 	}
-	public function person_attendance_all($filters = null, $limit = NULL, $start = NULL)
-	{
 
-		if ($limit){
+	public function person_attendance_all($filters = null, $limit = NULL, $start = NULL, $search_like = '')
+	{
+		$this->apply_aggregation_filter($filters);
+		if ($search_like !== '' && trim($search_like) !== '') {
+			$term = $this->db->escape_like_str(trim($search_like));
+			$this->db->group_start();
+			$this->db->like('fullname', $term);
+			$this->db->or_like('district', $term);
+			$this->db->or_like('facility_name', $term);
+			$this->db->group_end();
+		}
+		$this->db->order_by("facility_name", "ASC");
+		if ($limit) {
 			$this->db->limit($limit, $start);
 		}
-		// if ($filters['facility_name'] == '') {
-		// 	$facility_id = $_SESSION['facility'];
-		// 	$this->db->where("facility_id", "$facility_id");
-		// }
-		//dd($filters);
-
-		$this->apply_aggregation_filter($filters);
-				
-
-                $this->db->order_by("facility_name","ASC");
 		$data = $this->db->get("person_att_final")->result();
-		//dd($data);
 		return $data;
 	}
 }

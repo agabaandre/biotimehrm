@@ -1134,33 +1134,37 @@ class Employee_model extends CI_Model
             $date_from = $search_data['date_from'];
             $date_to = $search_data['date_to'];
         }
+        $date_from_esc = $this->db->escape($date_from);
+        $date_to_esc = $this->db->escape($date_to);
+
+        $namesearch = "";
         if (!empty($search_data['name'])) {
             $ids = $this->getIds($search_data['name']);
-            $emps = "'" . implode("','", $ids) . "'";
-            $namesearch = "AND k.pid IN ($emps)";
-        } else {
-            $namesearch = "";
+            if (!empty($ids)) {
+                $escaped = array_map(array($this->db, 'escape'), $ids);
+                $namesearch = " AND k.pid IN (" . implode(',', $escaped) . ")";
+            }
         }
+
+        $sjob = "";
         if (!empty($search_data['job'])) {
-            $job = $this->db->escape_like_str($search_data['job']);
-            $sjob = "AND k.job LIKE '$job'";
-        } else {
-            $sjob = "";
+            $like_val = $this->db->escape('%' . $this->db->escape_like_str($search_data['job']) . '%');
+            $sjob = " AND k.job LIKE " . $like_val;
         }
+
+        $limits = "";
         if (!empty($limit)) {
-            $limit = "LIMIT $start,$limit";
-        } else {
-            $limit = "";
+            $limits = " LIMIT " . (int) $start . "," . (int) $limit;
         }
-        /* MySQL 8 ONLY_FULL_GROUP_BY: aggregates and ORDER BY use SELECT list aliases */
-        $query = $this->db->query("SELECT k.pid, MAX(k.surname) AS surname, MAX(k.firstname) AS firstname, MAX(k.othername) AS othername, MAX(k.job) AS job, MAX(k.facility) AS facility, MAX(k.department) AS department, SUM(k.time_diff) AS m_timediff, DATE_FORMAT(k.date, '%Y-%m-01') AS date FROM clk_diff k WHERE k.date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob GROUP BY k.pid, DATE_FORMAT(k.date, '%Y-%m') ORDER BY 2 ASC, 9 ASC $limit");
+        /* MySQL 8 ONLY_FULL_GROUP_BY: aggregates and ORDER BY column positions */
+        $query = $this->db->query("SELECT k.pid, MAX(k.surname) AS surname, MAX(k.firstname) AS firstname, MAX(k.othername) AS othername, MAX(k.job) AS job, MAX(k.facility) AS facility, MAX(k.department) AS department, SUM(k.time_diff) AS m_timediff, DATE_FORMAT(k.date, '%Y-%m-01') AS date FROM clk_diff k WHERE k.date BETWEEN $date_from_esc AND $date_to_esc AND $filter $namesearch $sjob GROUP BY k.pid, DATE_FORMAT(k.date, '%Y-%m') ORDER BY 2 ASC, 9 ASC $limits");
         $data = $query->result();
         return $data;
     }
 
     /**
      * Server-side DataTables count for grouped monthly time logs.
-     * Note: clk_diff may already include ihrisdata columns or be a view.
+     * Uses clk_log + ihrisdata (same as viewTimeLogs) so it works without clk_diff.
      */
     public function countGroupedMonthlyTimeLogsAjax($search_data, $filter, $search = '')
     {
@@ -1171,13 +1175,15 @@ class Employee_model extends CI_Model
             $date_from = $search_data['date_from'];
             $date_to = $search_data['date_to'];
         }
+        $date_from_esc = $this->db->escape($date_from);
+        $date_to_esc = $this->db->escape($date_to);
 
         $namesearch = "";
         if (!empty($search_data['name'])) {
             $ids = $this->getIds($search_data['name']);
             if (!empty($ids)) {
-                $emps = "'" . implode("','", $ids) . "'";
-                $namesearch = "and pid in ($emps)";
+                $escaped = array_map(array($this->db, 'escape'), $ids);
+                $namesearch = " AND ihrisdata.ihris_pid IN (" . implode(',', $escaped) . ")";
             } else {
                 return 0;
             }
@@ -1185,24 +1191,27 @@ class Employee_model extends CI_Model
 
         $sjob = "";
         if (!empty($search_data['job'])) {
-            $job = $this->db->escape_like_str($search_data['job']);
-            $sjob = "AND k.job LIKE '$job'";
+            $like_val = $this->db->escape('%' . $this->db->escape_like_str($search_data['job']) . '%');
+            $sjob = " AND ihrisdata.job LIKE " . $like_val;
         }
 
         $searchClause = "";
-        if (!empty($search)) {
-            $escaped = $this->db->escape_like_str($search);
-            $searchClause = "AND (k.surname LIKE '%$escaped%' OR k.firstname LIKE '%$escaped%' OR k.job LIKE '%$escaped%' OR k.facility LIKE '%$escaped%' OR k.department LIKE '%$escaped%')";
+        if ($search !== '' && trim($search) !== '') {
+            $like_val = $this->db->escape('%' . $this->db->escape_like_str(trim($search)) . '%');
+            $searchClause = " AND (ihrisdata.surname LIKE $like_val OR ihrisdata.firstname LIKE $like_val OR ihrisdata.job LIKE $like_val OR ihrisdata.facility LIKE $like_val OR ihrisdata.department LIKE $like_val)";
         }
 
-        $sql = "SELECT COUNT(DISTINCT CONCAT(k.pid, '|', DATE_FORMAT(k.date, '%Y-%m'))) as cnt
-                FROM clk_diff k
-                WHERE k.date BETWEEN '$date_from' AND '$date_to' 
-                AND $filter 
-                $namesearch 
-                $sjob 
-                $searchClause";
-        
+        $sql = "SELECT COUNT(*) AS cnt FROM (
+                SELECT ihrisdata.ihris_pid, DATE_FORMAT(clk_log.date, '%Y-%m') AS ym
+                FROM clk_log
+                INNER JOIN ihrisdata ON ihrisdata.ihris_pid = clk_log.ihris_pid
+                WHERE clk_log.date BETWEEN $date_from_esc AND $date_to_esc
+                AND $filter
+                $namesearch
+                $sjob
+                $searchClause
+                GROUP BY ihrisdata.ihris_pid, DATE_FORMAT(clk_log.date, '%Y-%m')
+                ) t";
         $query = $this->db->query($sql);
         $row = $query->row();
         return (int) ($row->cnt ?? 0);
@@ -1210,7 +1219,7 @@ class Employee_model extends CI_Model
 
     /**
      * Server-side DataTables fetch for grouped monthly time logs.
-     * Note: clk_diff may already include ihrisdata columns or be a view.
+     * Uses clk_log + ihrisdata (same as viewTimeLogs) so it works without clk_diff.
      */
     public function fetchGroupedMonthlyTimeLogsAjax($search_data, $filter, $start = 0, $length = 200, $search = '')
     {
@@ -1221,13 +1230,15 @@ class Employee_model extends CI_Model
             $date_from = $search_data['date_from'];
             $date_to = $search_data['date_to'];
         }
+        $date_from_esc = $this->db->escape($date_from);
+        $date_to_esc = $this->db->escape($date_to);
 
         $namesearch = "";
         if (!empty($search_data['name'])) {
             $ids = $this->getIds($search_data['name']);
             if (!empty($ids)) {
-                $emps = "'" . implode("','", $ids) . "'";
-                $namesearch = "and pid in ($emps)";
+                $escaped = array_map(array($this->db, 'escape'), $ids);
+                $namesearch = " AND ihrisdata.ihris_pid IN (" . implode(',', $escaped) . ")";
             } else {
                 return array();
             }
@@ -1235,38 +1246,40 @@ class Employee_model extends CI_Model
 
         $sjob = "";
         if (!empty($search_data['job'])) {
-            $job = $this->db->escape_like_str($search_data['job']);
-            $sjob = "AND k.job LIKE '$job'";
+            $like_val = $this->db->escape('%' . $this->db->escape_like_str($search_data['job']) . '%');
+            $sjob = " AND ihrisdata.job LIKE " . $like_val;
         }
 
         $searchClause = "";
-        if (!empty($search)) {
-            $escaped = $this->db->escape_like_str($search);
-            $searchClause = "AND (k.surname LIKE '%$escaped%' OR k.firstname LIKE '%$escaped%' OR k.job LIKE '%$escaped%' OR k.facility LIKE '%$escaped%' OR k.department LIKE '%$escaped%')";
+        if ($search !== '' && trim($search) !== '') {
+            $like_val = $this->db->escape('%' . $this->db->escape_like_str(trim($search)) . '%');
+            $searchClause = " AND (ihrisdata.surname LIKE $like_val OR ihrisdata.firstname LIKE $like_val OR ihrisdata.job LIKE $like_val OR ihrisdata.facility LIKE $like_val OR ihrisdata.department LIKE $like_val)";
         }
 
-        $limit = "LIMIT $start, $length";
+        $start = (int) $start;
+        $length = (int) $length;
+        $limit = " LIMIT $start, $length";
 
-        /* MySQL 8 ONLY_FULL_GROUP_BY: all non-aggregated columns aggregated; ORDER BY column position from SELECT list */
-        $sql = "SELECT k.pid,
-                MAX(k.surname) AS surname,
-                MAX(k.firstname) AS firstname,
-                MAX(k.othername) AS othername,
-                MAX(k.job) AS job,
-                MAX(k.facility) AS facility,
-                MAX(k.department) AS department,
-                SUM(k.time_diff) AS m_timediff,
-                DATE_FORMAT(k.date, '%Y-%m-01') AS date
-                FROM clk_diff k
-                WHERE k.date BETWEEN '$date_from' AND '$date_to' 
-                AND $filter 
-                $namesearch 
-                $sjob 
+        /* MySQL 8 ONLY_FULL_GROUP_BY: aggregate non-grouped; ORDER BY column position; hours from time_in/time_out */
+        $sql = "SELECT ihrisdata.ihris_pid AS pid,
+                MAX(ihrisdata.surname) AS surname,
+                MAX(ihrisdata.firstname) AS firstname,
+                MAX(ihrisdata.othername) AS othername,
+                MAX(ihrisdata.job) AS job,
+                MAX(ihrisdata.facility) AS facility,
+                MAX(ihrisdata.department) AS department,
+                SUM(IFNULL(TIMESTAMPDIFF(SECOND, clk_log.time_in, clk_log.time_out), 0) / 3600) AS m_timediff,
+                DATE_FORMAT(clk_log.date, '%Y-%m-01') AS date
+                FROM clk_log
+                INNER JOIN ihrisdata ON ihrisdata.ihris_pid = clk_log.ihris_pid
+                WHERE clk_log.date BETWEEN $date_from_esc AND $date_to_esc
+                AND $filter
+                $namesearch
+                $sjob
                 $searchClause
-                GROUP BY k.pid, DATE_FORMAT(k.date, '%Y-%m')
+                GROUP BY ihrisdata.ihris_pid, DATE_FORMAT(clk_log.date, '%Y-%m')
                 ORDER BY 2 ASC, 9 ASC
                 $limit";
-        
         $query = $this->db->query($sql);
         return $query->result();
     }

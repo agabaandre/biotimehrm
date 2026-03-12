@@ -1,315 +1,214 @@
 <style>
-.cnumber {
-    width: 3%;
-}
-
-.cname {
-    text-align: left;
-    padding-left: 1.5em;
-    width: 30%;
-}
-
-@media only screen and (max-width: 980px) {
-    .cnumber {
-        width: 100%;
-    }
-
-    .cname {
-        padding-left: 0em;
-        text-align: left;
-        width: 100%;
-    }
-
-    .print {
-        display: none;
-    }
-}
+	.cnumber { width: 3%; }
+	.cname { text-align: left; padding-left: 1.5em; width: 30%; }
+	@media only screen and (max-width: 980px) {
+		.cnumber { width: 100%; }
+		.cname { padding-left: 0; text-align: left; width: 100%; }
+		.print { display: none; }
+	}
+	#personAttendanceAllTable thead th:not(.paa-num-col) { white-space: nowrap; }
+	#personAttendanceAllTable th.paa-num-col,
+	#personAttendanceAllTable td.paa-num-col {
+		width: 72px;
+		min-width: 72px;
+		max-width: 72px;
+		text-align: center;
+		box-sizing: border-box;
+	}
+	#personAttendanceAllTable thead th.paa-num-col {
+		white-space: normal;
+		word-wrap: break-word;
+		line-height: 1.2;
+		padding: 6px 4px;
+	}
 </style>
 <section class="content">
-    <div class="container-fluid">
-        <!-- Main row -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="callout callout-success">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-md-12">
+				<div class="callout callout-success">
+					<form id="personAttendanceAllFiltersForm" class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>reports/person_attendance_all" method="get">
+						<input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+						<div class="row">
+							<div class="col-md-2">
+								<div class="control-group">
+									<label class="control-label">Month</label>
+									<select class="form-control select2" name="month" id="paa_month">
+										<?php for ($m = 1; $m <= 12; $m++) {
+											$v = sprintf('%02d', $m);
+											$sel = (isset($search->month) && $search->month == $v) ? ' selected' : '';
+											echo '<option value="' . $v . '"' . $sel . '>' . strtoupper(date('F', strtotime("2022-$v-01"))) . '</option>';
+										} ?>
+									</select>
+								</div>
+							</div>
+							<div class="col-md-2">
+								<div class="control-group">
+									<label class="control-label">Year</label>
+									<select class="form-control select2" name="year" id="paa_year">
+										<?php for ($i = -3; $i <= 25; $i++) {
+											$y = 2017 + $i;
+											$sel = (isset($search->year) && $search->year == $y) ? ' selected' : '';
+											echo '<option value="' . $y . '"' . $sel . '>' . $y . '</option>';
+										} ?>
+									</select>
+								</div>
+							</div>
+							<div class="col-md-3">
+								<div class="control-group">
+									<label class="control-label">Facility</label>
+									<select class="form-control select2" name="facility_name" id="paa_facility_name">
+										<option value="">All</option>
+										<?php if (!empty($facilities)) foreach ($facilities as $value) : ?>
+											<option value="<?php echo htmlspecialchars($value->facility); ?>"
+												<?php echo (isset($search->facility_name) && $search->facility_name == $value->facility) ? ' selected' : ''; ?>>
+												<?php echo htmlspecialchars($value->facility); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</div>
+							</div>
+							<div class="col-md-3">
+								<div class="control-group">
+									<label class="control-label">District</label>
+									<select class="form-control select2" name="district" id="paa_district">
+										<option value="">All</option>
+										<?php if (!empty($districts)) foreach ($districts as $value) : ?>
+											<option value="<?php echo htmlspecialchars($value->district); ?>"
+												<?php echo (isset($search->district) && $search->district == $value->district) ? ' selected' : ''; ?>>
+												<?php echo htmlspecialchars($value->district); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</div>
+							</div>
+							<div class="col-md-2">
+								<div class="control-group" style="margin-top: 1.8em;">
+									<button type="button" id="paa_apply" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-filter"></i> Apply</button>
+								</div>
+							</div>
+						</div>
+						<div class="row mt-2">
+							<div class="col-md-12">
+								<a href="#" id="paa_csv_link" style="font-size:12px; margin-right:8px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
+								<a href="#" id="paa_pdf_link" style="font-size:12px;" class="btn bg-gray-dark color-pale print" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> Export PDF</a>
+							</div>
+						</div>
+					</form>
+				</div>
 
-
-                    <form class="form-horizontal" style="padding-bottom: 2em;"
-                        action="<?php echo base_url(); ?>reports/person_attendance_all" method="get">
-                        <div class="row">
-                            <div class="col-md-2">
-
-                                <div class="control-group">
-
-                                    <input type="hidden" id="month" value="<?php echo @$search->month; ?>">
-
-                                    <select class="form-control select2" name="month" onchange="this.form.submit()">
-
-                                        <option value="<?php echo @$search->month; ?>">
-                                            <?php echo strtoupper(date('F',  strtotime('2022-' . @$search->month . '-01'))) . "(Showing below)"; ?>
-                                        </option>
-
-                                        <option value="01">JANUARY</option>
-                                        <option value="02">FEBRUARY</option>
-                                        <option value="03">MARCH</option>
-                                        <option value="04">APRIL</option>
-                                        <option value="05">MAY</option>
-                                        <option value="06">JUNE</option>
-                                        <option value="07">JULY</option>
-                                        <option value="08">AUGUST</option>
-                                        <option value="09">SEPTEMBER</option>
-                                        <option value="10">OCTOBER</option>
-                                        <option value="11">NOVEMBER</option>
-                                        <option value="12">DECEMBER</option>
-                                    </select>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="col-md-2">
-                                <div class="control-group">
-
-                                    <select class="form-control" name="year" onchange="this.form.submit()">
-
-                                        <?php for ($i = -3; $i <= 25; $i++) {  ?>
-
-                                        <option <?php echo (@$search->year == 2017 + $i) ? "selected" : ""; ?>>
-                                            <?php echo 2017 + $i; ?>
-                                        </option>
-
-                                        <?php }  ?>
-                                    </select>
-
-                                </div>
-                            </div>
-
-                            <div class="col-md-3">
-                                <div class="control-group">
-                                    <select class="form-control select2" name="facility_name"
-                                        onchange="this.form.submit()">
-                                        <option value="">All</option>
-                                        <?php foreach ($facilities as $key => $value) : ?>
-                                        <option value="<?php echo $value->facility; ?>"
-                                            <?php echo (@$search->facility_name == $value->facility) ? "selected" : ""; ?>>
-                                            <?php echo $value->facility; ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-
-                                </div>
-                            </div>
-
-                            <div class="col-md-5">
-                                <div class="control-group">
-                                    <select class="form-control select2" name="district" onchange="this.form.submit()">
-                                        <option value="">All</option>
-                                        <?php foreach ($districts as $key => $value) : ?>
-                                        <option value="<?php echo $value->district; ?>"
-                                            <?php echo (@$search->district == $value->district) ? "selected" : ""; ?>>
-                                            <?php echo $value->district; ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-
-                                </div>
-                            </div>
-
-
-                        </div>
-
-                        <div class="row mt-2">
-                            <div class="col-md-3">
-                                <select class="form-control select2" name="rows" onchange="this.form.submit()">
-
-                                    <?php
-									$count = 0;
-									for ($i = 15; $i <= 205; $i++) {  ?>
-
-                                    <option value="<?php echo $i; ?>"
-                                        <?php echo (@$search->rows == $i) ? "selected" : ""; ?>>
-                                        <?php echo ($count == 0) ? "Show " . $i . " rows" : $i; ?>
-                                    </option>
-
-                                    <?php $count++;
-									}  ?>
-                                </select>
-                            </div>
-
-                            <div class="col-md-3">
-
-                                <div class="control-group">
-
-                                    <button type="submit" name="" class="btn bg-gray-dark color-pale"
-                                        style="font-size:12px;">Apply</button>
-                                    <?php
-									if (count($records) > 0) {
-									?>
-                                    <a href="<?php echo full_url('csv=1'); ?>" style="font-size:12px;"
-                                        class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
-                                    <a href="<?php echo full_url('pdf=1'); ?>" style="font-size:12px;"
-                                        class="btn bg-gray-dark color-pale" target="_blank"><i class="fa fa-file-pdf-o"></i> Export PDF</a>
-                                    <?php } ?>
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                </div>
-                </form>
-            </div>
-
-        </div>
-
-        <div class="panel-body">
-            <div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-
-            <div class="col-md-3" style="border-right: 0; border-left: 0; border-top: 0;"><img
-                    src="<?php echo base_url(); ?>assets/img/MOH.png" width="100px"></div>
-            <div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0;">
-                <p style="font-size: 16px; font-weight:bold; margin:0 auto; ">
-                    <?php
-					if (count($records) < 1) {
-						echo "<font color='red'> No Schedule Data</font>";
-					} else {
-					?>
-                    MONTHLY ATTENDANCE TO DUTY SUMMARY
-                    <?php echo " - "  . date('F, Y', strtotime(@$search->year . "-" . @$search->month));
-					}
-
-					?>
-                </p>
-            </div>
-            <div id="table">
-                <div class="header-row tbrow">
-                    <span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
-                    <span class="cell stcell">Name</span>
-                    <span class="cell stcell">District</span>
-                    <span class="cell stcell">Facility</span>
-                    <span class="cell stcell">Period</span>
-                    <span class="cell stcell ">Present</span>
-                    <span class="cell stcell ">Off Duty</span>
-                    <span class="cell stcell ">Official Request</span>
-                    <span class="cell stcell ">Leave</span>
-                    <span class="cell stcell ">Holiday</span>
-                    <span class="cell stcell ">Absent</span>
-                    <span class="cell stcell ">% Absenteeism</span>
-                </div>
-               <?php
-
-$mydate = @$search->year . "-" . @$search->month;
-$no = (!empty($this->uri->segment(3))) ? $this->uri->segment(3) : 1;
-
-$total_present  = 0;
-$total_leave    = 0;
-$total_official = 0;
-$total_off      = 0;
-$total_holiday  = 0;
-$total_absent   = 0;
-$total_supposed = 0;
-
-foreach ($records as $row) {
-
-    $dates = explode("-", $row->duty_date);
-    $month_days  = cal_days_in_month(CAL_GREGORIAN, $dates[1], $dates[0]);
-
-
-?>
-
-                <div class="table-row tbrow strow">
-                    <input type="radio" name="expand" class="fa fa-angle-double-down trigger">
-                    <span class="cell stcell" data-label="#">
-                        <?php echo $no; ?>
-                    </span>
-                    <span class="cell stcell" data-label="Name">
-                        <?php echo $row->fullname; ?>
-                    </span>
-                    <span class="cell stcell" data-label="District">
-                        <?php echo $row->district; ?>
-                    </span>
-                    <span class="cell stcell" data-label="Facility">
-                        <?php echo $row->facility_name; ?>
-                    </span>
-                    <span class="cell stcell" data-label="Period">
-                        <?php echo $row->duty_date; ?>
-                    </span>
-                    <span class="cell stcell " data-label="Present">
-                        <?php echo $row->P; ?>
-                    </span>
-                    <span class="cell stcell " data-label="Off Duty">
-                        <?php echo $row->O; ?>
-                    </span>
-                    <span class="cell stcell " data-label="Official Request">
-                        <?php echo $row->R; ?>
-                    </span>
-                    <span class="cell stcell " data-label="Leave">
-                        <?php echo $row->L; ?>
-                    </span>
-                    <span class="cell stcell " data-label="Holiday">
-                        <?php echo $row->H; ?>
-                    </span>
-
-                    <span class="cell stcell " data-label="Absent"><?php echo $absent = $month_days - ($row->P + $row->O + $row->R + $row->L); ?></span>
-                    <span class="cell stcell "
-                        data-label="% Absent"><?php echo ($month_days > 0) ? number_format(($absent / $month_days), 1) * 100 : 0 ?>%</span>
-
-                </div>
-                <?php
-                // Add to totals
-                $total_present += $row->P;
-                $total_off += $row->O;
-                $total_official += $row->R;
-                $total_leave += $row->L;
-                $total_holiday += $row->H;
-                $total_absent += $absent;
-                $total_supposed += $month_days;
-                
-                $no++;
-            }
-
-
-
-
-				?>
-
-                <div class="header-row tbrow">
-                    <span class="cell stcell  tbprimary cnumber"># <b id="name"></b></span>
-                    <span class="cell stcell">TOTALS</span>
-                    <span class="cell stcell "></span>
-                    <span class="cell stcell "></span>
-                    <span class="cell stcell "></span>
-                    <span class="cell stcell "><?php echo $total_present; ?></span>
-                    <span class="cell stcell "><?php echo $total_off; ?></span>
-                    <span class="cell stcell "><?php echo $total_official; ?></span>
-                    <span class="cell stcell "><?php echo $total_leave; ?></span>
-                    <span class="cell stcell "><?php echo $total_holiday; ?></span>
-                    <span class="cell stcell "><?php echo $total_absent; ?></span>
-                    <span class="cell stcell "><?php echo ($total_supposed > 0) ? number_format(($total_absent / $total_supposed) * 100, 1) : 0; ?>%</span>
-                </div>
-
-            </div>
-        </div>
-    </div>
-    <div class="row pull-right" style="padding: 0.5rem;"> <?php echo $links; ?> </div>
-    </div>
-    </div>
-    </div>
+				<div class="panel-body">
+					<div class="col-md-12" style="border: 0;">
+						<p id="paa_title" style="font-size: 16px; font-weight:bold; margin:0 auto;">
+							MONTHLY ATTENDANCE TO DUTY SUMMARY - <span id="paa_period_label"><?php echo isset($period) ? date('F, Y', strtotime($period . '-01')) : date('F, Y'); ?></span>
+						</p>
+					</div>
+					<div class="table-responsive" style="margin-top: 10px;">
+						<table id="personAttendanceAllTable" class="table table-striped table-bordered" style="width:100%;">
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Name</th>
+									<th>District</th>
+									<th>Facility</th>
+									<th>Period</th>
+									<th>Present</th>
+									<th>Off Duty</th>
+									<th>Official Request</th>
+									<th>Leave</th>
+									<th>Holiday</th>
+									<th>Absent</th>
+									<th>% Absenteeism</th>
+								</tr>
+							</thead>
+							<tbody></tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 </section>
 
-
 <script type="text/javascript">
-var url = window.location.href;
+(function() {
+	var baseUrl = '<?php echo base_url(); ?>';
+	var month = '<?php echo isset($month) ? addslashes($month) : date("m"); ?>';
+	var year = '<?php echo isset($year) ? addslashes($year) : date("Y"); ?>';
 
-if (url == '<?php echo base_url(); ?>reports/attendance_aggregate') {
-    $('.sidebar-mini').addClass('sidebar-collapse');
-}
+	function updateExportLinks() {
+		var m = $('#paa_month').val() || month;
+		var y = $('#paa_year').val() || year;
+		var d = $('#paa_district').val() || '';
+		var f = $('#paa_facility_name').val() || '';
+		var q = [];
+		q.push('month=' + encodeURIComponent(m));
+		q.push('year=' + encodeURIComponent(y));
+		if (d) q.push('district=' + encodeURIComponent(d));
+		if (f) q.push('facility_name=' + encodeURIComponent(f));
+		var qs = q.join('&');
+		$('#paa_csv_link').attr('href', baseUrl + 'reports/person_attendance_all?' + qs + '&csv=1');
+		$('#paa_pdf_link').attr('href', baseUrl + 'reports/person_attendance_all?' + qs + '&pdf=1');
+		$('#paa_period_label').text(new Date(y + '-' + m + '-01').toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+	}
 
-$('.csv').click(function(e) {
-    e.preventDefault();
-    $.ajax({
-        url: '<?php echo base_url(); ?>attendance/attrows_csv',
-        success: function(res) {
-            console.log(res);
-        }
-    })
-})
+	$(document).ready(function() {
+		if (typeof $.fn.DataTable !== 'function') {
+			console.error('DataTables not loaded.');
+			return;
+		}
+		var paaTable = $('#personAttendanceAllTable').DataTable({
+			processing: true,
+			serverSide: true,
+			searching: true,
+			ordering: true,
+			order: [[2, 'asc'], [3, 'asc'], [1, 'asc']],
+			pageLength: 30,
+			lengthMenu: [[15, 30, 50, 100, 200], [15, 30, 50, 100, 200]],
+			autoWidth: false,
+			ajax: {
+				url: baseUrl + 'reports/person_attendance_all_ajax',
+				type: 'POST',
+				data: function(d) {
+					d.month = $('#paa_month').val() || month;
+					d.year = $('#paa_year').val() || year;
+					d.district = $('#paa_district').val() || '';
+					d.facility_name = $('#paa_facility_name').val() || '';
+					d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+				}
+			},
+			columns: [
+				{ data: 0, orderable: false, width: '40px' },
+				{ data: 1, className: 'cname' },
+				{ data: 2, className: 'cname' },
+				{ data: 3, className: 'cname' },
+				{ data: 4 },
+				{ data: 5, className: 'paa-num-col', width: '72px' },
+				{ data: 6, className: 'paa-num-col', width: '72px' },
+				{ data: 7, className: 'paa-num-col', width: '72px' },
+				{ data: 8, className: 'paa-num-col', width: '72px' },
+				{ data: 9, className: 'paa-num-col', width: '72px' },
+				{ data: 10, className: 'paa-num-col', width: '72px' },
+				{ data: 11, className: 'paa-num-col', width: '72px' }
+			]
+		});
+
+		$('#paa_apply').on('click', function() {
+			updateExportLinks();
+			paaTable.ajax.reload();
+		});
+
+		$('#paa_csv_link, #paa_pdf_link').on('click', function(e) {
+			updateExportLinks();
+			var href = $(this).attr('href');
+			if (!href || href === '#') return;
+			e.preventDefault();
+			if ($(this).attr('id') === 'paa_pdf_link') {
+				window.open(href, '_blank', 'noopener');
+			} else {
+				window.location.href = href;
+			}
+		});
+
+		updateExportLinks();
+	});
+})();
 </script>

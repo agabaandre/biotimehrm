@@ -632,61 +632,94 @@ class Rosta extends MX_Controller
 		$month = $this->input->post('month');
 		$year = $this->input->post('year');
 		$empid = $this->input->post('empid');
-		if (!empty($month)) {
+		if (!empty($month) && !empty($year)) {
 			$_SESSION['month'] = $month;
 			$_SESSION['year'] = $year;
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 		}
-		if (!empty($_SESSION['year'])) {
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
+		if (!empty($_SESSION['year']) && !empty($_SESSION['month'])) {
 			$data['month'] = $_SESSION['month'];
 			$data['year'] = $_SESSION['year'];
 		} else {
 			$_SESSION['month'] = date('m');
 			$_SESSION['year'] = date('Y');
-			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 			$data['month'] = $_SESSION['month'];
 			$data['year'] = $_SESSION['year'];
 		}
-		$this->load->library('pagination');
-		$config = array();
-		$config['base_url'] = base_url() . "rosta/summary";
-		$config['total_rows'] = $this->rosta_model->countrosta_summary($date, $this->filters, 0, 0, $empid);
-		$config['per_page'] = 30; //records per page
-		$config['uri_segment'] = 3; //segment in url
-		//pagination links styling
-		$config['full_tag_open'] = '<ul class="pagination">';
-		$config['full_tag_close'] = '</ul>';
-		$config['attributes'] = ['class' => 'page-link'];
-		$config['first_link'] = false;
-		$config['last_link'] = false;
-		$config['first_tag_open'] = '<li class="page-item">';
-		$config['first_tag_close'] = '</li>';
-		$config['prev_link'] = '&laquo';
-		$config['prev_tag_open'] = '<li class="page-item">';
-		$config['prev_tag_close'] = '</li>';
-		$config['next_link'] = '&raquo';
-		$config['next_tag_open'] = '<li class="page-item">';
-		$config['next_tag_close'] = '</li>';
-		$config['last_tag_open'] = '<li class="page-item">';
-		$config['last_tag_close'] = '</li>';
-		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-		$config['num_tag_open'] = '<li class="page-item">';
-		$config['num_tag_close'] = '</li>';
-		$config['use_page_numbers'] = false;
-		$this->pagination->initialize($config);
-		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits
-		$data['links'] = $this->pagination->create_links();
-		//$data['facilities'] = $this->attendance_model->get_facility();
-		$data['sums'] = $this->rosta_model->fetch_summary($date, $this->filters, $config['per_page'], $page, $empid);
+		$data['empid'] = $empid !== null && $empid !== '' ? $empid : '';
+		$data['links'] = '';
+		$data['sums'] = array();
 		$data['view'] = 'roster_summary';
 		$data['module'] = $this->rostamodule;
 		$data['title'] = "Duty Roster Summary";
 		$data['uptitle'] = "Duty Roster Summary";
-		//print_r($data);
 		echo Modules::run("templates/main", $data);
-		//$this->load->view('summary_report',$data);
+	}
+
+	/**
+	 * Server-side DataTables AJAX endpoint for roster summary.
+	 */
+	public function summary_ajax()
+	{
+		$this->output->set_content_type('application/json');
+
+		$draw = (int) $this->input->post('draw');
+		$start = (int) $this->input->post('start');
+		$length = (int) $this->input->post('length');
+		$search = trim((string) $this->input->post('search')['value']);
+		$month = trim((string) $this->input->post('month'));
+		$year = trim((string) $this->input->post('year'));
+		$empid = trim((string) $this->input->post('empid'));
+
+		if (empty($month) || empty($year)) {
+			$year = !empty($_SESSION['year']) ? $_SESSION['year'] : date('Y');
+			$month = !empty($_SESSION['month']) ? $_SESSION['month'] : date('m');
+		}
+		$date = $year . '-' . $month;
+
+		try {
+			$total_records = $this->rosta_model->countrosta_summary($date, $this->filters, null, null, $empid, '');
+			$filtered_records = $this->rosta_model->countrosta_summary($date, $this->filters, null, null, $empid, $search);
+			$rows = $this->rosta_model->fetch_summary($date, $this->filters, $start, $length, $empid, $search);
+
+			$data = array();
+			$row_num = $start + 1;
+			foreach ($rows as $sum) {
+				$name = (isset($sum['fullname']) ? $sum['fullname'] : '') . ' ' . (isset($sum['othername']) ? $sum['othername'] : '');
+				$d = isset($sum['D']) && $sum['D'] !== '' ? (int) $sum['D'] : 0;
+				$e = isset($sum['E']) && $sum['E'] !== '' ? (int) $sum['E'] : 0;
+				$n = isset($sum['N']) && $sum['N'] !== '' ? (int) $sum['N'] : 0;
+				$o = isset($sum['O']) && $sum['O'] !== '' ? (int) $sum['O'] : 0;
+				$a = isset($sum['A']) && $sum['A'] !== '' ? (int) $sum['A'] : 0;
+				$s = isset($sum['S']) && $sum['S'] !== '' ? (int) $sum['S'] : 0;
+				$m = isset($sum['M']) && $sum['M'] !== '' ? (int) $sum['M'] : 0;
+				$z = isset($sum['Z']) && $sum['Z'] !== '' ? (int) $sum['Z'] : 0;
+				$total_row = $d + $e + $n + $o + $a + $s + $m + $z;
+				$data[] = array(
+					$row_num++,
+					$name,
+					isset($sum['job']) ? $sum['job'] : '',
+					$d, $e, $n, $o, $a, $s, $m, $z,
+					$total_row
+				);
+			}
+
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => $total_records,
+				'recordsFiltered' => $filtered_records,
+				'data' => $data
+			));
+			return;
+		} catch (Throwable $e) {
+			log_message('error', 'summary_ajax: ' . $e->getMessage());
+			echo json_encode(array(
+				'draw' => $draw,
+				'recordsTotal' => 0,
+				'recordsFiltered' => 0,
+				'data' => array(),
+				'error' => 'Failed to load data'
+			));
+		}
 	}
 	/**
 	 * CSV Roster Summary: stream by batches.
@@ -694,19 +727,22 @@ class Rosta extends MX_Controller
 	public function bundleCsv($valid_range)
 	{
 		$empid = $this->input->get('empid');
-		$batch_size = 200;
-		$total = $this->rosta_model->countrosta_summary($valid_range, $this->filters, null, null, $empid);
+		@set_time_limit(0);
+		$batch_size = 80;
+		$total = $this->rosta_model->countrosta_summary($valid_range, $this->filters, null, null, $empid, '');
 
-		$csv_file = 'Monthy_Attendance_Summary_' . date('Y-m-d') . '_' . $_SESSION['facility'] . '.csv';
-		header('Content-Type: text/csv');
+		$csv_file = 'Roster_Summary_' . date('Y-m-d') . '_' . (isset($_SESSION['facility']) ? $_SESSION['facility'] : '') . '.csv';
+		header('Content-Type: text/csv; charset=UTF-8');
 		header('Content-Disposition: attachment; filename="' . $csv_file . '"');
+		header('Cache-Control: no-cache, must-revalidate');
 		$fh = fopen('php://output', 'w');
-		ini_set('max_execution_time', 0);
 
 		fputcsv($fh, array('Name', 'Job', 'Day', 'Evening', 'Night', 'Offduty', 'Annual Leave', 'Study Leave', 'Maternity Leave', 'Other Leave', 'Total'));
+		if (ob_get_level() > 0) ob_flush();
+		flush();
 
 		for ($start = 0; $start < $total; $start += $batch_size) {
-			$batch = $this->rosta_model->fetch_summary($valid_range, $this->filters, $start, $batch_size, $empid);
+			$batch = $this->rosta_model->fetch_summary($valid_range, $this->filters, $start, $batch_size, $empid, '');
 			if (empty($batch)) {
 				break;
 			}
@@ -724,6 +760,8 @@ class Rosta extends MX_Controller
 				fputcsv($fh, array($name, isset($sum['job']) ? $sum['job'] : '', $d, $e, $n, $o, $a, $s, $m, $z, $total_row));
 			}
 			unset($batch);
+			if (ob_get_level() > 0) ob_flush();
+			flush();
 		}
 
 		fclose($fh);
@@ -1328,11 +1366,16 @@ class Rosta extends MX_Controller
 		$filename = $fac . '_summary_report_' . $date . '.pdf';
 		ini_set('max_execution_time', 0);
 
-		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		if (!empty($this->watermark) && is_file($this->watermark)) {
+			$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+			$this->ml_pdf->pdf->showWatermarkImage = true;
+		}
 		date_default_timezone_set('Africa/Kampala');
-		$this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b>');
+		$this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
 
-		$header_data = array('period_label' => $period_label);
+		$moh_logo = (defined('FCPATH') && is_file(FCPATH . 'assets/img/MOH.png')) ? FCPATH . 'assets/img/MOH.png' : '';
+		$facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : $fac;
+		$header_data = array('period_label' => $period_label, 'moh_logo_path' => $moh_logo, 'facility_name' => $facility_name);
 		$header_html = $this->load->view('summary_printable_header', $header_data, true);
 		$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($header_html, 'UTF-8', 'UTF-8'));
 
