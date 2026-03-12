@@ -172,12 +172,16 @@ class Attendance extends MX_Controller
 		$dep = $this->input->get('department');
 		$district = $facility = null;
 
-		if (!empty($month) && !empty($year)) {
+		// Prefer date from URL segment (e.g. /print_attsummary/2025-08) so PDF matches requested period
+		$date_from_url = (is_string($date) && strlen($date) >= 6) ? $date : null;
+		if ($date_from_url !== null) {
+			$date = $date_from_url;
+		} elseif (!empty($month) && !empty($year)) {
 			$date = $year . '-' . $month;
 		} elseif (!empty($_SESSION['year']) && !empty($_SESSION['month'])) {
 			$date = $_SESSION['year'] . '-' . $_SESSION['month'];
 		} else {
-			$date = is_string($date) && strlen($date) >= 6 ? $date : date('Y-m');
+			$date = date('Y-m');
 		}
 
 		@set_time_limit(0);
