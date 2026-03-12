@@ -1152,8 +1152,8 @@ class Employee_model extends CI_Model
         } else {
             $limit = "";
         }
-        /* MySQL 8 ONLY_FULL_GROUP_BY: select aggregates and ORDER BY columns from SELECT list */
-        $query = $this->db->query("SELECT k.pid, MAX(k.surname) AS surname, MAX(k.firstname) AS firstname, MAX(k.othername) AS othername, MAX(k.job) AS job, MAX(k.facility) AS facility, MAX(k.department) AS department, SUM(k.time_diff) AS m_timediff, DATE_FORMAT(k.date, '%Y-%m-01') AS date FROM clk_diff k WHERE k.date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob GROUP BY k.pid, DATE_FORMAT(k.date, '%Y-%m') ORDER BY surname ASC, date ASC $limit");
+        /* MySQL 8 ONLY_FULL_GROUP_BY: aggregates and ORDER BY use SELECT list aliases */
+        $query = $this->db->query("SELECT k.pid, MAX(k.surname) AS surname, MAX(k.firstname) AS firstname, MAX(k.othername) AS othername, MAX(k.job) AS job, MAX(k.facility) AS facility, MAX(k.department) AS department, SUM(k.time_diff) AS m_timediff, DATE_FORMAT(k.date, '%Y-%m-01') AS date FROM clk_diff k WHERE k.date BETWEEN '$date_from' AND '$date_to' AND $filter $namesearch $sjob GROUP BY k.pid, DATE_FORMAT(k.date, '%Y-%m') ORDER BY 2 ASC, 9 ASC $limit");
         $data = $query->result();
         return $data;
     }
@@ -1247,7 +1247,7 @@ class Employee_model extends CI_Model
 
         $limit = "LIMIT $start, $length";
 
-        /* MySQL 8 ONLY_FULL_GROUP_BY: all non-aggregated columns must be in GROUP BY or wrapped in aggregate. Order by SELECT list. */
+        /* MySQL 8 ONLY_FULL_GROUP_BY: all non-aggregated columns aggregated; ORDER BY column position from SELECT list */
         $sql = "SELECT k.pid,
                 MAX(k.surname) AS surname,
                 MAX(k.firstname) AS firstname,
@@ -1264,7 +1264,7 @@ class Employee_model extends CI_Model
                 $sjob 
                 $searchClause
                 GROUP BY k.pid, DATE_FORMAT(k.date, '%Y-%m')
-                ORDER BY surname ASC, date ASC
+                ORDER BY 2 ASC, 9 ASC
                 $limit";
         
         $query = $this->db->query($sql);

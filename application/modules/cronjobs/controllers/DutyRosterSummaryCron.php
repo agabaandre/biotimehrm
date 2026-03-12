@@ -20,7 +20,7 @@ class DutyRosterSummaryCron extends MX_Controller {
         try {
             
             // Get the date range for processing: first day of previous month to today
-            $date_from = date('Y-m-01', strtotime('first day of -7 month'));
+            $date_from = date('Y-m-01', strtotime('first day of -8 month'));
             $date_to = date('Y-m-d'); // Today
             
             // Generate and insert new duty roster summary data (with upsert)

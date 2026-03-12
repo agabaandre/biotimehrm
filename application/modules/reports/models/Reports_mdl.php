@@ -280,16 +280,23 @@ class Reports_mdl extends CI_Model
 
 	public function average_hours($fyear)
 	{
-
-		$facility = $_SESSION['facility'];
+		$facility = $this->db->escape($_SESSION['facility']);
 
 		if (!empty($fyear)) {
-
-			$filter = "and date_format(date,'%Y')='$fyear'";
+			$fyear = $this->db->escape($fyear);
+			$filter = " AND DATE_FORMAT(date,'%Y') = $fyear";
 		} else {
 			$filter = "";
 		}
-		$fac = $this->db->query("SELECT (SUM(time_diff)/COUNT(pid)) as avg_hours,facility,date_format(date,'%Y-%m') as month_year FROM clk_diff WHERE facility_id='$facility' $filter group by date_format(date,'%Y-%m') ORDER BY date_format(date,'%Y-%m') DESC ")->result_array();
+		/* MySQL 8 ONLY_FULL_GROUP_BY: non-grouped columns must be aggregated */
+		$sql = "SELECT (SUM(time_diff) / COUNT(pid)) AS avg_hours,
+				MAX(facility) AS facility,
+				DATE_FORMAT(date,'%Y-%m') AS month_year
+			FROM clk_diff
+			WHERE facility_id = $facility $filter
+			GROUP BY DATE_FORMAT(date,'%Y-%m')
+			ORDER BY month_year DESC";
+		$fac = $this->db->query($sql)->result_array();
 		return $fac;
 	}
 
