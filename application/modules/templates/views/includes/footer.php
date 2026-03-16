@@ -5,7 +5,7 @@
         <div class="footer-copy-right">
             <!-- <!-- <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/USAID-Identity.svg" style="width:180px; height:50px;"> -->
                           <a href="http://health.go.ug" target="_blank"> <img src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Coat_of_arms_of_Uganda.svg" style="width:80px; height:50px;"> </a>
-            <p>&copy; <?php echo date('Y'); ?>, Ministry of Health -Uganda. <strong>All Rights Reserved</strong></p>
+            <p>&copy; <?php echo date('Y'); ?>, Government of Uganda. <strong>All Rights Reserved</strong></p>
         </div>
     </div>
 </footer>

@@ -313,6 +313,11 @@ class Dashboard_mdl extends CI_Model
                 $data[$schedule_mapping[$row->schedule_id]] = $row->count;
             }
         }
+
+        // Absent = total active staff - (present + off duty + workshop/request + leave)
+        $sum_accounted = (int) $data['present'] + (int) $data['offduty'] + (int) $data['request'] + (int) $data['leave'];
+        $total_active = (int) $data['mystaff'];
+        $data['absent'] = max(0, $total_active - $sum_accounted);
         
         // Monthly attendance stats (staff-days, de-duplicated by staff+date)
         $monthly_query = "

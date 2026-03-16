@@ -481,7 +481,7 @@
 
         <!-- Footer -->
         <div class="footer">
-            <p>&copy; <?php echo date('Y'); ?> Ministry of Health Uganda. All Rights Reserved.</p>
+            <p>&copy; <?php echo date('Y'); ?> Government of Uganda. All Rights Reserved.</p>
             <p><a href="http://health.go.ug" target="_blank">health.go.ug</a></p>
         </div>
     </div>

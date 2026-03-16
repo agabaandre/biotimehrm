@@ -191,6 +191,7 @@
 .status-indicator.offduty { background: var(--warning-color); }
 .status-indicator.leave { background: var(--danger-color); }
 .status-indicator.request { background: var(--info-color); }
+.status-indicator.absent { background: #6c757d; }
 
 .status-text {
   font-size: 0.9rem;
@@ -544,13 +545,13 @@
           
           <div class="status-item">
             <div class="status-info">
-              <div class="status-indicator request"></div>
-              <p class="status-text">Workshop/Official Request</p>
+              <div class="status-indicator absent"></div>
+              <p class="status-text">Absent</p>
             </div>
-            <div class="status-value" id="request">
+            <div class="status-value" id="absent">
               <i class="fas fa-spinner fa-spin loading-pulse"></i>
- 						</div>
- 						</div>
+						</div>
+						</div>
           
           <div class="status-item">
             <div class="status-info">
@@ -899,7 +900,7 @@ waitForHighcharts(function() {
                     updateDashboardValue('#present', data.present);
                     updateDashboardValue('#offduty', data.offduty);
                     updateDashboardValue('#leave', data.leave);
-                    updateDashboardValue('#request', data.request);
+                    updateDashboardValue('#absent', data.absent);
                     updateDashboardValue('#monthly_present', data.monthly_present);
                     updateDashboardValue('#monthly_offduty', data.monthly_offduty);
                     updateDashboardValue('#monthly_leave', data.monthly_leave);
