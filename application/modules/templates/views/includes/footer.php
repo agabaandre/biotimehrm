@@ -21,16 +21,7 @@
 <!-- Bootstrap 4 -->
 
 
-<script src="<?php echo base_url() ?>assets/plugins/summernote/summernote-bs4.min.js"></script>
-<!-- AdminLTE App -->
-<!-- Select2 -->
-<script src="<?php echo base_url() ?>assets/plugins/select2/js/select2.full.min.js"></script>
-<script src="<?php echo base_url(); ?>assets/dist/js/adminlte.min.js"></script>
-<!-- <script src="<?php echo base_url(); ?>assets/dist/js/dashboard.js"></script> -->
-<!-- AdminLTE for demo purposes -->
-<!-- <script src="<?php echo base_url(); ?>assets/dist/js/demo.js"></script> -->
-
-<script src="<?php echo base_url(); ?>assets/plugins/jquery/jquery.min.js"></script>
+<!-- jQuery is loaded in header (CDN). Load jQuery-dependent scripts in order: -->
 <!-- jQuery UI 1.11.4 -->
 <script src="<?php echo base_url(); ?>assets/plugins/jquery-ui/jquery-ui.min.js"></script>
 <!-- date-range-picker -->
@@ -38,6 +29,7 @@
 <script src="<?php echo base_url() ?>assets/plugins/summernote/summernote-bs4.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/bootstrap-datepicker/js/bootstrap-datepicker.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/plugins/select2/js/select2.full.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/dist/js/adminlte.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/js/notify.min.js"></script>
 <!-- fullCalendar 2.2.5 -->
 <script src="<?php echo base_url() ?>assets/plugins/moment/moment.min.js"></script>

@@ -21,10 +21,11 @@
   <link rel="stylesheet" href="<?php echo base_url() ?>assets/plugins/select2/css/select2.min.css">
   <link rel="stylesheet" href="<?php echo base_url() ?>assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
   <link rel="stylesheet" href="<?php echo base_url() ?>assets/bootstrap-datepicker/css/bootstrap-datepicker.min.css">
-  <link rel="stylesheet" href="<?php echo base_url() ?>node_modules/ionicons-npm/css/ionicons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ionicons@5.5.2/dist/css/ionicons.min.css" integrity="sha256-CjiN9rnJH3eM6kNHkMyN4HV4UfTm8j4wc/0xGgG2nR2E=" crossorigin="anonymous">
   <!-- Theme style -->
   <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/adminlte.min.css">
-  <script src="<?php echo base_url() ?>node_modules/jquery/dist/jquery.min.js"></script>
+  <!-- jQuery: load from CDN so it is available before any plugin (required for fullcalendar, select2, summernote, AdminLTE) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
   <!-- Highcharts: load only once and in order to avoid error #16 and module "undefined" errors. -->
   <script>
   (function() {
