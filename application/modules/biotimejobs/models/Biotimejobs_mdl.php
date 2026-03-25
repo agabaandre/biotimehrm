@@ -9,7 +9,12 @@ class Biotimejobs_mdl extends CI_Model
     public  function __construct()
     {
         parent::__construct();
-        $this->facility = $_SESSION['facility'];
+        // In CLI/cron there is no session; avoid warnings/notices.
+        $sessFacility = null;
+        if (isset($this->session) && method_exists($this->session, 'userdata')) {
+            $sessFacility = $this->session->userdata('facility');
+        }
+        $this->facility = isset($_SESSION['facility']) ? $_SESSION['facility'] : ($sessFacility ?: '');
     }
 
 
