@@ -925,7 +925,8 @@ abstract class REST_Controller extends \CI_Controller
                 $method = $this->input->server('HTTP_X_HTTP_METHOD_OVERRIDE');
             }
 
-            $method = strtolower($method);
+            // PHP 8.1+: strtolower(NULL) is deprecated; normalize safely.
+            $method = is_string($method) ? strtolower($method) : NULL;
         }
 
         if (empty($method)) {

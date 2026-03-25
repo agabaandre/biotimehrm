@@ -1,8 +1,10 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-// Load Rest_Controller
-use chriskacerguis\RestServer\RestController;
+// CodeIgniter Rest Server (legacy REST_Controller)
+// This project includes the library in application/libraries.
+require_once APPPATH . 'libraries/REST_Controller.php';
+require_once APPPATH . 'libraries/Format.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -13,7 +15,7 @@ use Firebase\JWT\Key;
  * @property Apiauth_model $mAuth
  * @property Apiemployee_model $mEmployee
  */
-class Api extends RestController
+class Api extends REST_Controller
 {
 
     public $key = "qwerty@123";
