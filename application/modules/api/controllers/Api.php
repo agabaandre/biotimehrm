@@ -28,6 +28,18 @@ class Api extends REST_Controller
         $this->load->model('Apiemployee_model', 'mEmployee');
     }
 
+    /**
+     * GET /api or /api/index — REST_Controller maps index + GET to index_get().
+     */
+    public function index_get()
+    {
+        $this->response([
+            'status' => 'OK',
+            'message' => 'HRM Attend API',
+            'usage' => 'Use resource paths with HTTP verbs, e.g. POST ' . site_url('api/login') . ', GET ' . site_url('api/staff_list'),
+        ], REST_Controller::HTTP_OK);
+    }
+
     public function validateRequest()
     {
         $headers = $this->input->request_headers();
