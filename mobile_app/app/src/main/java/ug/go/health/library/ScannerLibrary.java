@@ -90,9 +90,10 @@ public int OpenDevice(String devicePath, int baudRate) {
                             return;
                     }
                 } else {
-                    // ERR_BAD_QUALITY or ERR_SMALL_LINES — retry the current sweep
-                    int errCode = data & 0xFF;
-                    if (errCode == DevComm.ERR_BAD_QUALITY || errCode == DevComm.ERR_SMALL_LINES || errCode == DevComm.ERR_TOO_FAST) {
+                    // ERR_BAD_QUALITY — retry the current sweep (legacy behaviour)
+                    if (data == (short) DevComm.ERR_BAD_QUALITY ||
+                        data == (short) DevComm.ERR_SMALL_LINES ||
+                        data == (short) DevComm.ERR_TOO_FAST) {
                         postResult(ScannerResult.waiting((short) DevComm.CMD_ENROLL_CODE, "Poor quality scan. Place your finger firmly and try again."));
                     } else {
                         // Genuine failure (generalization failed, duplicate, etc.)
@@ -117,7 +118,37 @@ public int OpenDevice(String devicePath, int baudRate) {
             devComm.InitPacket((short) DevComm.CMD_IDENTIFY_CODE, true);
             devComm.SetDataLen((short) 0);
             devComm.AddCheckSum(true);
-            handleStandardResponse((short) DevComm.CMD_IDENTIFY_CODE, devComm.Send_Command((short) DevComm.CMD_IDENTIFY_CODE));
+
+            while (true) {
+                boolean commOk = devComm.Send_Command((short) DevComm.CMD_IDENTIFY_CODE);
+                if (!commOk) {
+                    postResult(ScannerResult.error((short) DevComm.CMD_IDENTIFY_CODE, "Comm Failure"));
+                    return;
+                }
+
+                short ret  = devComm.GetRetCode();
+                short data = devComm.MAKEWORD(devComm.m_abyPacket[8], devComm.m_abyPacket[9]);
+
+                if (ret == DevComm.ERR_SUCCESS) {
+                    switch (data & 0xFFFF) {
+                        case DevComm.GD_NEED_RELEASE_FINGER:
+                            // Scanner needs finger released before it can identify — re-send
+                            postResult(ScannerResult.waiting((short) DevComm.CMD_IDENTIFY_CODE, "Release your finger"));
+                            devComm.memset(devComm.m_abyPacket, (byte) 0, 64 * 1024);
+                            devComm.InitPacket((short) DevComm.CMD_IDENTIFY_CODE, true);
+                            devComm.SetDataLen((short) 0);
+                            devComm.AddCheckSum(true);
+                            break;
+                        default:
+                            // Final result — data is the matched template number
+                            postResult(ScannerResult.success((short) DevComm.CMD_IDENTIFY_CODE, "Identified", data, null));
+                            return;
+                    }
+                } else {
+                    postResult(ScannerResult.failure((short) DevComm.CMD_IDENTIFY_CODE, "Fingerprint not recognised. Please try again."));
+                    return;
+                }
+            }
         });
     }
 
@@ -128,7 +159,37 @@ public int OpenDevice(String devicePath, int baudRate) {
             devComm.m_abyPacket[6] = devComm.LOBYTE((short) templateId);
             devComm.m_abyPacket[7] = devComm.HIBYTE((short) templateId);
             devComm.AddCheckSum(true);
-            handleStandardResponse((short) DevComm.CMD_VERIFY_CODE, devComm.Send_Command((short) DevComm.CMD_VERIFY_CODE));
+
+            while (true) {
+                boolean commOk = devComm.Send_Command((short) DevComm.CMD_VERIFY_CODE);
+                if (!commOk) {
+                    postResult(ScannerResult.error((short) DevComm.CMD_VERIFY_CODE, "Comm Failure"));
+                    return;
+                }
+
+                short ret  = devComm.GetRetCode();
+                short data = devComm.MAKEWORD(devComm.m_abyPacket[8], devComm.m_abyPacket[9]);
+
+                if (ret == DevComm.ERR_SUCCESS) {
+                    switch (data & 0xFFFF) {
+                        case DevComm.GD_NEED_RELEASE_FINGER:
+                            postResult(ScannerResult.waiting((short) DevComm.CMD_VERIFY_CODE, "Release your finger"));
+                            devComm.memset(devComm.m_abyPacket, (byte) 0, 64 * 1024);
+                            devComm.InitPacket((short) DevComm.CMD_VERIFY_CODE, true);
+                            devComm.SetDataLen((short) 2);
+                            devComm.m_abyPacket[6] = devComm.LOBYTE((short) templateId);
+                            devComm.m_abyPacket[7] = devComm.HIBYTE((short) templateId);
+                            devComm.AddCheckSum(true);
+                            break;
+                        default:
+                            postResult(ScannerResult.success((short) DevComm.CMD_VERIFY_CODE, "Verified", data, null));
+                            return;
+                    }
+                } else {
+                    postResult(ScannerResult.failure((short) DevComm.CMD_VERIFY_CODE, "Fingerprint not recognised. Please try again."));
+                    return;
+                }
+            }
         });
     }
 

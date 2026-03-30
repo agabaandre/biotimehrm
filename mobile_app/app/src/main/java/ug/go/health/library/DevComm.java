@@ -127,8 +127,11 @@ public class DevComm {
     private final CH34xUARTDriver m_uartDriver;
     private final SerialControl m_SerialPort;
 
-    // --- Serial buffer (manufacturer-style, with FixData alignment) ---
-    public final SerialBuf m_pSerialBuf = new SerialBuf();
+    // --- Shared UART read buffer (original manufacturer approach) ---
+    public byte[] m_pUARTReadBuf = new byte[MAX_DATA_LEN];
+    public byte[] m_abyPacketTmp = new byte[64 * 1024];
+    public int m_nUARTReadLen = 0;
+    public volatile boolean m_bBufferHandle = false;
 
     private UART_ReadThread m_readThread;
     private DispQueueThread m_dispQueueThread;
@@ -152,7 +155,7 @@ public class DevComm {
             if (m_uartDriver.UartInit()) {
                 m_uartDriver.SetConfig(baudRate, (byte) 8, (byte) 1, (byte) 0, (byte) 0);
                 m_nConnected = 1;
-                m_pSerialBuf.ClearBuf();
+                m_nUARTReadLen = 0;
                 m_readThread = new UART_ReadThread();
                 m_readThread.start();
                 return ERR_SUCCESS;
@@ -166,7 +169,6 @@ public class DevComm {
             m_nConnected = 3;
             m_dispQueueThread = new DispQueueThread();
             m_dispQueueThread.start();
-            m_pSerialBuf.ClearBuf();
             return ERR_SUCCESS;
         } catch (SecurityException | IOException | InvalidParameterException e) {
             Log.e(TAG, "OpenComm failed", e);
@@ -184,7 +186,7 @@ public class DevComm {
             if (m_dispQueueThread != null) { m_dispQueueThread.interrupt(); m_dispQueueThread = null; }
             m_SerialPort.close();
         }
-        m_pSerialBuf.ClearBuf();
+        m_nUARTReadLen = 0;
     }
 
     // -------------------------------------------------------------------------
@@ -257,53 +259,45 @@ public class DevComm {
     }
 
     /**
-     * Receive a command-response ACK packet.
-     * Uses per-command timeouts and SerialBuf.FixData() to align on the
-     * 0xAA 0x55 response header — matching the original manufacturer logic.
+     * Receive a command-response ACK packet — original manufacturer implementation.
+     * Uses m_pUARTReadBuf shared buffer with m_bBufferHandle spin-lock.
      */
     public boolean UART_ReceiveAck(short commandCode, boolean isCmdResponse) {
-        int totalLen = CMD_PACKET_LEN + 2;
-        int readLen  = 0;
-        boolean first = true;
+        int w_nReadLen = 0;
+        int w_nTotalLen = CMD_PACKET_LEN + 2;
+        int w_nTmpLen;
+        long w_nTime = System.currentTimeMillis();
 
-        // Finger-scan commands need a longer timeout (user must place finger)
-        int timeout = UART_COMM_TIMEOUT;
-        if (commandCode == CMD_VERIFY_CODE ||
-            commandCode == CMD_IDENTIFY_CODE ||
-            commandCode == CMD_IDENTIFY_FREE_CODE ||
-            commandCode == CMD_ENROLL_CODE ||
-            commandCode == CMD_ENROLL_ONETIME_CODE ||
-            commandCode == CMD_CHANGE_TEMPLATE_CODE ||
-            commandCode == CMD_FEATURE_OF_CAPTURED_FP_CODE ||
-            commandCode == CMD_IDENTIFY_TEMPLATE_WITH_FP_CODE ||
-            commandCode == CMD_UP_IMAGE_CODE ||
-            commandCode == CMD_FINGER_DETECT_CODE) {
-            timeout = UART_COMM_TIMEOUT * 10;
-        }
-
-        long startTime = System.currentTimeMillis();
-
-        while (readLen < totalLen) {
-            if (System.currentTimeMillis() - startTime > timeout) {
-                Log.w(TAG, "UART_ReceiveAck timeout for cmd " + String.format("0x%04X", commandCode & 0xFFFF));
-                m_pSerialBuf.ClearBuf();
+        while (w_nReadLen < w_nTotalLen) {
+            if (System.currentTimeMillis() - w_nTime > 10000) {
+                m_nUARTReadLen = 0;
                 return false;
             }
 
-            int available = m_pSerialBuf.GetPushedSize();
-            if (available <= 0) continue;
+            int i = 0;
+            while (m_bBufferHandle) {
+                if (++i > 10000) break;
+            }
+            m_bBufferHandle = true;
 
-            // Align buffer to response header 0xAA 0x55 on first read
-            if (first) {
-                if (m_pSerialBuf.FixData((byte) 0xAA, (byte) 0x55) < 0) continue;
-                first = false;
+            if (m_nUARTReadLen <= 0) {
+                m_bBufferHandle = false;
+                continue;
             }
 
-            available = m_pSerialBuf.GetPushedSize();
-            int toRead = Math.min(totalLen - readLen, available);
-            int got = m_pSerialBuf.PopData(m_abyPacket, readLen, toRead);
-            readLen += got;
-            startTime = System.currentTimeMillis(); // reset timeout on progress
+            if (w_nTotalLen - w_nReadLen < m_nUARTReadLen) {
+                w_nTmpLen = w_nTotalLen - w_nReadLen;
+                System.arraycopy(m_pUARTReadBuf, 0, m_abyPacket, w_nReadLen, w_nTmpLen);
+                w_nReadLen += w_nTmpLen;
+                m_nUARTReadLen -= w_nTmpLen;
+                System.arraycopy(m_pUARTReadBuf, w_nTmpLen, m_abyPacketTmp, 0, m_nUARTReadLen);
+                System.arraycopy(m_abyPacketTmp, 0, m_pUARTReadBuf, 0, m_nUARTReadLen);
+            } else {
+                System.arraycopy(m_pUARTReadBuf, 0, m_abyPacket, w_nReadLen, m_nUARTReadLen);
+                w_nReadLen += m_nUARTReadLen;
+                m_nUARTReadLen = 0;
+            }
+            m_bBufferHandle = false;
         }
 
         return CheckReceive(
@@ -312,82 +306,48 @@ public class DevComm {
     }
 
     /**
-     * Receive a data packet response.
-     * Reads the 6-byte header first (aligning on 0xA5 0x5A), then reads the payload.
+     * Receive a data packet — delegates to UART_ReceiveDataAck (original manufacturer).
      */
     public boolean UART_ReceiveDataPacket(short commandCode) {
-        int timeout = UART_COMM_TIMEOUT;
-        if (commandCode == CMD_VERIFY_CODE ||
-            commandCode == CMD_IDENTIFY_CODE ||
-            commandCode == CMD_IDENTIFY_FREE_CODE ||
-            commandCode == CMD_ENROLL_CODE ||
-            commandCode == CMD_ENROLL_ONETIME_CODE ||
-            commandCode == CMD_CHANGE_TEMPLATE_CODE ||
-            commandCode == CMD_FEATURE_OF_CAPTURED_FP_CODE ||
-            commandCode == CMD_IDENTIFY_TEMPLATE_WITH_FP_CODE ||
-            commandCode == CMD_UP_IMAGE_CODE ||
-            commandCode == CMD_FINGER_DETECT_CODE) {
-            timeout = UART_COMM_TIMEOUT * 10;
-        }
+        return UART_ReceiveDataAck(commandCode);
+    }
 
-        // Read 6-byte header, aligning on data-response prefix 0xA5 0x5A
-        if (!UART_ReadDataN(m_abyPacket, 0, 6, timeout, true)) {
-            Log.w(TAG, "UART_ReceiveDataPacket: header read failed");
-            m_pSerialBuf.ClearBuf();
-            return false;
-        }
-
-        // Read remaining payload + 2-byte checksum
-        if (!UART_ReadDataN(m_abyPacket, 6, GetDataLen() + 2, timeout, false)) {
-            Log.w(TAG, "UART_ReceiveDataPacket: payload read failed");
-            m_pSerialBuf.ClearBuf();
-            return false;
-        }
-
+    public boolean UART_ReceiveDataAck(short commandCode) {
+        if (!UART_ReadDataN(m_abyPacket, 0, 6)) return false;
+        if (!UART_ReadDataN(m_abyPacket, 6, GetDataLen() + 2)) return false;
         return CheckReceive((short) RCM_DATA_PREFIX_CODE, commandCode);
     }
 
-    public boolean UART_SendDataPacket(short commandCode) {
-        int len = GetDataLen() + 8;
-        if (m_nConnected == 1) {
-            if (m_uartDriver.WriteData(m_abyPacket, len) < 0) return false;
-        } else if (m_nConnected == 3) {
-            m_SerialPort.send(Arrays.copyOf(m_abyPacket, len));
-        } else {
-            return false;
-        }
-        return UART_ReceiveDataPacket(commandCode);
-    }
-
     /**
-     * Read exactly p_nLen bytes into targetBuffer starting at offset.
-     * If p_bFix is true, aligns on the data-response prefix 0xA5 0x5A first.
+     * Read exactly p_nLen bytes — original manufacturer implementation.
      */
-    boolean UART_ReadDataN(byte[] targetBuffer, int offset, int length, int timeout, boolean fixHeader) {
-        int received = 0;
-        boolean first = fixHeader;
-        long startTime = System.currentTimeMillis();
+    boolean UART_ReadDataN(byte[] p_pData, int p_nStart, int p_nLen) {
+        int w_nRecvLen = p_nLen;
+        int w_nTotalRecvLen = 0;
+        int w_nTmpLen;
+        long w_nTime = System.currentTimeMillis();
 
-        while (received < length) {
-            if (System.currentTimeMillis() - startTime > timeout) {
-                Log.w(TAG, "UART_ReadDataN timeout");
-                m_pSerialBuf.ClearBuf();
+        while (w_nTotalRecvLen < p_nLen) {
+            if (System.currentTimeMillis() - w_nTime > 10000) {
+                m_nUARTReadLen = 0;
                 return false;
             }
+            if (m_nUARTReadLen <= 0) continue;
 
-            int available = m_pSerialBuf.GetPushedSize();
-            if (available <= 0) continue;
-
-            if (first) {
-                if (m_pSerialBuf.FixData((byte) 0xA5, (byte) 0x5A) < 0) continue;
-                first = false;
+            if (p_nLen - w_nTotalRecvLen < m_nUARTReadLen) {
+                w_nTmpLen = p_nLen - w_nTotalRecvLen;
+                System.arraycopy(m_pUARTReadBuf, 0, p_pData, p_nStart + w_nTotalRecvLen, w_nTmpLen);
+                w_nRecvLen -= w_nTmpLen;
+                w_nTotalRecvLen += w_nTmpLen;
+                m_nUARTReadLen -= w_nTmpLen;
+                System.arraycopy(m_pUARTReadBuf, w_nTmpLen, m_abyPacketTmp, 0, m_nUARTReadLen);
+                System.arraycopy(m_abyPacketTmp, 0, m_pUARTReadBuf, 0, m_nUARTReadLen);
+            } else {
+                System.arraycopy(m_pUARTReadBuf, 0, p_pData, p_nStart + w_nTotalRecvLen, m_nUARTReadLen);
+                w_nRecvLen -= m_nUARTReadLen;
+                w_nTotalRecvLen += m_nUARTReadLen;
+                m_nUARTReadLen = 0;
             }
-
-            available = m_pSerialBuf.GetPushedSize();
-            int toRead = Math.min(length - received, available);
-            int got = m_pSerialBuf.PopData(targetBuffer, offset + received, toRead);
-            received += got;
-            startTime = System.currentTimeMillis();
         }
         return true;
     }
@@ -408,30 +368,22 @@ public class DevComm {
     }
 
     // -------------------------------------------------------------------------
-    // USB CH34x read thread
+    // USB CH34x read thread — original manufacturer implementation
     // -------------------------------------------------------------------------
 
     public class UART_ReadThread extends Thread {
         @Override
         public void run() {
-            byte[] buf = new byte[MAX_DATA_LEN];
-            while (!isInterrupted() && m_nConnected == 1) {
-                int count = m_uartDriver.ReadData(buf, MAX_DATA_LEN);
-                if (count > 0) {
-                    int ret;
-                    do {
-                        ret = m_pSerialBuf.PushData(buf, 0, count);
-                        if (ret < 0) {
-                            try { Thread.sleep(10); } catch (InterruptedException e) { interrupt(); return; }
-                        }
-                    } while (ret < 0);
-                }
+            while (true) {
+                if (m_nConnected != 1) break;
+                if (m_nUARTReadLen > 0) continue;
+                m_nUARTReadLen = m_uartDriver.ReadData(m_pUARTReadBuf, MAX_DATA_LEN);
             }
         }
     }
 
     // -------------------------------------------------------------------------
-    // ttySerial dispatch queue
+    // ttySerial dispatch queue — original manufacturer implementation
     // -------------------------------------------------------------------------
 
     private class SerialControl extends SerialHelper {
@@ -447,28 +399,26 @@ public class DevComm {
         @Override
         public void run() {
             while (!isInterrupted()) {
-                ComBean data;
-                synchronized (this) {
-                    while (queue.isEmpty()) {
-                        try { wait(); } catch (InterruptedException e) { interrupt(); return; }
+                while (true) {
+                    final ComBean data;
+                    synchronized (this) { data = queue.poll(); }
+                    if (data == null) break;
+
+                    int i = 0;
+                    while (m_bBufferHandle) {
+                        if (++i > 10000) break;
                     }
-                    data = queue.poll();
+                    m_bBufferHandle = true;
+                    System.arraycopy(data.bRec, 0, m_pUARTReadBuf, m_nUARTReadLen, data.nSize);
+                    m_nUARTReadLen += data.nSize;
+                    m_bBufferHandle = false;
                 }
-                if (data != null) {
-                    int ret;
-                    do {
-                        ret = m_pSerialBuf.PushData(data.bRec, 0, data.nSize);
-                        if (ret < 0) {
-                            try { Thread.sleep(10); } catch (InterruptedException e) { interrupt(); return; }
-                        }
-                    } while (ret < 0);
-                }
+                try { Thread.sleep(10); } catch (InterruptedException e) { interrupt(); return; }
             }
         }
 
         public synchronized void AddQueue(ComBean data) {
             queue.add(data);
-            notify();
         }
     }
 }
