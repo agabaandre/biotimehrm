@@ -319,6 +319,8 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         staffRecord.setFingerprintEnrolled(true);
         staffRecord.setTemplateId(templateNumber);
         staffRecord.setFingerprintSynced(false);
+        // Mark record as unsynced so the enrollment data gets pushed to server on next sync
+        staffRecord.setSynced(false);
 
         // Read the template bytes from the scanner on a background thread,
         // save to disk, then update the DB — all before marking as enrolled.

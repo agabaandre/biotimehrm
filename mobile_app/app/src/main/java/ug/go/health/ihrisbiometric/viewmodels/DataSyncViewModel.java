@@ -209,7 +209,7 @@ public class DataSyncViewModel extends AndroidViewModel {
             updateSyncMessage("Downloading reference data...");
             downloadReferenceData(() -> {
                 updateSyncMessage("Fetching unsynced records...");
-                dbService.getUnsyncedStaffRecordsAsync(this::handleUnsyncedStaffRecords);
+                dbService.getRecordsNeedingServerSyncAsync(this::handleUnsyncedStaffRecords);
             });
         } catch (Exception e) {
             Log.e(TAG, "Sync failed", e);
@@ -654,17 +654,41 @@ public class DataSyncViewModel extends AndroidViewModel {
         });
     }
 
-    private void syncStaffRecords(List<StaffRecord> unsyncedStaffRecords) {
+    private void syncStaffRecords(List<StaffRecord> records) {
         updateSyncMessage("Syncing staff records...");
-        for (StaffRecord staffRecord : unsyncedStaffRecords) {
+        for (StaffRecord staffRecord : records) {
             if (staffRecord.isDeleted()) {
                 syncDeletedStaff(staffRecord);
             } else if (staffRecord.getIhrisPid() != null && staffRecord.getIhrisPid().startsWith("LOCAL_")) {
                 syncNewStaff(staffRecord);
-            } else {
+            } else if (!staffRecord.isSynced()) {
+                // Metadata changed locally — push full update
                 syncUpdatedStaff(staffRecord);
+            } else {
+                // Metadata already synced but has new biometric enrollment — push enrollment only
+                syncEnrollmentData(staffRecord);
             }
         }
+    }
+
+    private void syncEnrollmentData(StaffRecord staffRecord) {
+        // Use enroll_user endpoint which only updates biometric fields
+        apiService.syncStaffRecord(staffRecord).enqueue(new Callback<StaffRecord>() {
+            @Override
+            public void onResponse(Call<StaffRecord> call, Response<StaffRecord> response) {
+                if (response.isSuccessful()) {
+                    staffRecord.setSynced(true);
+                    dbService.updateStaffRecordAsync(staffRecord, success -> updateStaffSyncProgress());
+                } else {
+                    handleSyncError("Enrollment sync failed for " + staffRecord.getName() + ": " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<StaffRecord> call, Throwable t) {
+                handleSyncError("Enrollment sync failed for " + staffRecord.getName() + ": " + t.getMessage());
+            }
+        });
     }
 
     private void syncNewStaff(StaffRecord staffRecord) {

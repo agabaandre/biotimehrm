@@ -33,6 +33,15 @@ public interface StaffRecordDao {
     @Query("SELECT COUNT(*) FROM staff_records WHERE synced = 0")
     int countUnsyncedStaffRecords();
 
+    // Records that need to push enrollment data to server:
+    // either metadata unsynced, OR has local biometric data not yet uploaded
+    @Query("SELECT * FROM staff_records WHERE is_deleted = 0 AND (" +
+           "synced = 0 OR " +
+           "(fingerprint_enrolled = 1 AND fingerprint_path IS NOT NULL AND fingerprint_synced = 0) OR " +
+           "(face_enrolled = 1 AND face_data IS NOT NULL AND embedding_synced = 0)" +
+           ")")
+    List<StaffRecord> getRecordsNeedingServerSync();
+
     @Query("SELECT * FROM staff_records WHERE synced = 0 AND is_deleted = 0")
     List<StaffRecord> getStaffRecordsReadyForSync();
 

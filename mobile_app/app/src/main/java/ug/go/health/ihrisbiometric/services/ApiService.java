@@ -3,9 +3,21 @@ package ug.go.health.ihrisbiometric.services;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
+import android.util.Base64;
 import android.util.Log;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
 import java.io.File;
+import java.lang.reflect.Type;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
@@ -54,11 +66,38 @@ public class ApiService {
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create(buildGson()))
                 .client(okHttpClient)
                 .build();
 
         return retrofit.create(ApiInterface.class);
+    }
+
+    private static Gson buildGson() {
+        return new GsonBuilder()
+                .excludeFieldsWithoutExposeAnnotation()
+                .registerTypeHierarchyAdapter(byte[].class, new ByteArrayTypeAdapter())
+                .create();
+    }
+
+    /** Handles byte[] as base64 string in JSON (server sends base64, not int arrays). */
+    private static class ByteArrayTypeAdapter
+            implements JsonSerializer<byte[]>, JsonDeserializer<byte[]> {
+        @Override
+        public JsonElement serialize(byte[] src, Type typeOfSrc, JsonSerializationContext ctx) {
+            return new JsonPrimitive(Base64.encodeToString(src, Base64.NO_WRAP));
+        }
+
+        @Override
+        public byte[] deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext ctx)
+                throws JsonParseException {
+            if (json.isJsonNull()) return null;
+            try {
+                return Base64.decode(json.getAsString(), Base64.DEFAULT);
+            } catch (Exception e) {
+                return null;
+            }
+        }
     }
 
     private static OkHttpClient buildOkHttpClient(Context context) {

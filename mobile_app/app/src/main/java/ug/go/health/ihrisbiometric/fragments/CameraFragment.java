@@ -420,6 +420,9 @@ public class CameraFragment extends Fragment {
 
                 selectedStaff.setFaceEnrolled(true);
                 selectedStaff.setFaceImage(base64Image);
+                selectedStaff.setEmbeddingSynced(false);
+                // Mark unsynced so enrollment gets pushed to server on next sync
+                selectedStaff.setSynced(false);
                 dbService.updateStaffRecordAsync(selectedStaff, success -> {
                     if (success) {
                         showSuccessDialog("Face Enrolled", "Staff successfully enrolled");

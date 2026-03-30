@@ -26,61 +26,34 @@ class Apiemployee_model extends CI_Model
     }
 
     // Get Staff List 
-    public function get_staff_list($facilityId)	 {
-	    $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as surname, 
-	        ihrisdata.firstname as firstname, ihrisdata.othername as othername, 
-	        ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, 
-	        mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled');
-	    $this->db->from('ihrisdata');
-	    $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
-	    $this->db->join('user', 'user.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
-	    $this->db->where('ihrisdata.facility_id', $facilityId);
-	
-	    $query = $this->db->get();
-	
-	    if ($query) {
-	        $result = $query->result();
-	
-	        // Process each staff record to clean and validate data
-	        foreach ($result as $staff) {
-	            // Handle fingerprint data
-	            if ($staff->fingerprint_data !== null) {
-	                // Try to decode if it's a JSON string
-	                $decoded = json_decode($staff->fingerprint_data, true);
-	                
-	                if ($decoded !== null) {
-	                    // If successfully decoded JSON, filter out null/empty values
-	                    $staff->fingerprint_data = array_values(array_filter($decoded, function($item) {
-	                        return $item !== null && $item !== 'null' && $item !== '';
-	                    }));
-	                } else {
-	                    // If not JSON, check if it's a string "null" or actual fingerprint data
-	                    if ($staff->fingerprint_data === 'null' || empty($staff->fingerprint_data)) {
-	                        $staff->fingerprint_data = [];
-	                    } else {
-	                        // Single fingerprint data entry
-	                        $staff->fingerprint_data = [$staff->fingerprint_data];
-	                    }
-	                }
-	            } else {
-	                $staff->fingerprint_data = [];
-	            }
-	
-	            // Ensure enrolled is boolean
-	            $staff->enrolled = ($staff->enrolled == '1' || $staff->enrolled === true) ? true : false;
-	
-	            // Clean up face data
-	            if ($staff->face_data === 'null' || empty($staff->face_data)) {
-	                $staff->face_data = null;
-	            }
-	        }
-	
-	        return $result;
-	    } else {
-	        log_message('error', 'Database query failed: ' . $this->db->last_query());
-	        return false;
-	    }
-	}
+    public function get_staff_list($facilityId) {
+        // Deliberately exclude fingerprint_data and face_data — they are large blobs
+        // fetched separately via GET /fingerprints and GET /face_embeddings
+        $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as surname,
+            ihrisdata.firstname as firstname, ihrisdata.othername as othername,
+            ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility,
+            mobile_enroll.enrolled, mobile_enroll.face_enrolled,
+            mobile_enroll.fingerprint_enrolled');
+        $this->db->from('ihrisdata');
+        $this->db->join('mobile_enroll', 'mobile_enroll.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
+        $this->db->join('user', 'user.ihris_pid = ihrisdata.ihris_pid', 'LEFT');
+        $this->db->where('ihrisdata.facility_id', $facilityId);
+
+        $query = $this->db->get();
+
+        if ($query) {
+            $result = $query->result();
+            foreach ($result as $staff) {
+                $staff->enrolled = ($staff->enrolled == '1' || $staff->enrolled === true) ? true : false;
+                $staff->fingerprint_data = []; // always empty — use /fingerprints endpoint
+                $staff->face_data = null;      // always null — use /face_embeddings endpoint
+            }
+            return $result;
+        } else {
+            log_message('error', 'Database query failed: ' . $this->db->last_query());
+            return false;
+        }
+    }
 
 
     // Post Staff List
@@ -734,11 +707,21 @@ class Apiemployee_model extends CI_Model
 
     public function upload_fingerprint_template($ihris_pid, $fingerprint_data)
     {
+        // Save base64 data to a file on the server filesystem
+        $safeId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $ihris_pid);
+        $dir = FCPATH . 'uploads/fingerprints/';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $filePath = $dir . $safeId . '.fpt';
+        $bytes = base64_decode($fingerprint_data);
+        file_put_contents($filePath, $bytes);
+
         $existing = $this->db->get_where('mobile_enroll', ['ihris_pid' => $ihris_pid])->row();
 
         $data = [
             'ihris_pid' => $ihris_pid,
-            'fingerprint_data' => $fingerprint_data,
+            'fingerprint_path' => $filePath,
             'fingerprint_enrolled' => 1,
             'enrolled' => 1
         ];
@@ -753,16 +736,26 @@ class Apiemployee_model extends CI_Model
 
     public function get_fingerprints_by_facility($facilityId)
     {
-        $this->db->select('mobile_enroll.ihris_pid, mobile_enroll.fingerprint_data');
+        $this->db->select('mobile_enroll.ihris_pid, mobile_enroll.fingerprint_path');
         $this->db->from('mobile_enroll');
         $this->db->join('ihrisdata', 'ihrisdata.ihris_pid = mobile_enroll.ihris_pid', 'inner');
         $this->db->where('ihrisdata.facility_id', $facilityId);
-        $this->db->where('mobile_enroll.fingerprint_data IS NOT NULL');
-        $this->db->where('mobile_enroll.fingerprint_data !=', '');
-        $this->db->where('mobile_enroll.fingerprint_data !=', 'null');
+        $this->db->where('mobile_enroll.fingerprint_path IS NOT NULL');
         $this->db->where('mobile_enroll.fingerprint_enrolled', 1);
         $query = $this->db->get();
-        return $query->result_array();
+        $rows = $query->result_array();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $path = $row['fingerprint_path'];
+            if ($path && file_exists($path)) {
+                $result[] = [
+                    'ihris_pid' => $row['ihris_pid'],
+                    'fingerprint_data' => base64_encode(file_get_contents($path))
+                ];
+            }
+        }
+        return $result;
     }
 
     // =========================================================================
@@ -771,17 +764,30 @@ class Apiemployee_model extends CI_Model
 
     public function upload_face_embedding($ihris_pid, $face_data, $face_image = null)
     {
+        // Save face embedding CSV to file
+        $safeId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $ihris_pid);
+        $dir = FCPATH . 'uploads/faces/';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $embeddingPath = $dir . $safeId . '.csv';
+        file_put_contents($embeddingPath, $face_data);
+
         $existing = $this->db->get_where('mobile_enroll', ['ihris_pid' => $ihris_pid])->row();
 
         $data = [
             'ihris_pid' => $ihris_pid,
-            'face_data' => $face_data,
+            'face_path' => $embeddingPath,
             'face_enrolled' => 1,
             'enrolled' => 1
         ];
 
         if ($face_image) {
-            $data['face_image'] = $face_image;
+            // Save face image to file
+            $imagePath = $dir . $safeId . '.jpg';
+            $imageBytes = base64_decode($face_image);
+            file_put_contents($imagePath, $imageBytes);
+            $data['face_image'] = $imagePath;
         }
 
         if ($existing) {
@@ -794,16 +800,31 @@ class Apiemployee_model extends CI_Model
 
     public function get_face_embeddings_by_facility($facilityId)
     {
-        $this->db->select('mobile_enroll.ihris_pid, mobile_enroll.face_data, mobile_enroll.face_image');
+        $this->db->select('mobile_enroll.ihris_pid, mobile_enroll.face_path, mobile_enroll.face_image');
         $this->db->from('mobile_enroll');
         $this->db->join('ihrisdata', 'ihrisdata.ihris_pid = mobile_enroll.ihris_pid', 'inner');
         $this->db->where('ihrisdata.facility_id', $facilityId);
-        $this->db->where('mobile_enroll.face_data IS NOT NULL');
-        $this->db->where('mobile_enroll.face_data !=', '');
-        $this->db->where('mobile_enroll.face_data !=', 'null');
+        $this->db->where('mobile_enroll.face_path IS NOT NULL');
         $this->db->where('mobile_enroll.face_enrolled', 1);
         $query = $this->db->get();
-        return $query->result_array();
+        $rows = $query->result_array();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $path = $row['face_path'];
+            if ($path && file_exists($path)) {
+                $entry = [
+                    'ihris_pid' => $row['ihris_pid'],
+                    'face_data' => file_get_contents($path) // CSV string, not binary
+                ];
+                // Return face image as base64 if available
+                if (!empty($row['face_image']) && file_exists($row['face_image'])) {
+                    $entry['face_image'] = base64_encode(file_get_contents($row['face_image']));
+                }
+                $result[] = $entry;
+            }
+        }
+        return $result;
     }
 
     // =========================================================================

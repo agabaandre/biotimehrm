@@ -202,6 +202,13 @@ public class DbService {
         });
     }
 
+    public void getRecordsNeedingServerSyncAsync(Callback<List<StaffRecord>> callback) {
+        executorService.execute(() -> {
+            List<StaffRecord> result = database.staffRecordDao().getRecordsNeedingServerSync();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     public void getSyncedStaffRecordsAsync(Callback<List<StaffRecord>> callback) {
         executorService.execute(() -> {
             List<StaffRecord> result = database.staffRecordDao().getAllStaffRecords();

@@ -60,8 +60,8 @@ public class StaffRecord {
     private String facility;
 
     @SerializedName("fingerprint_data")
-    @Expose
-    @Ignore  // No longer stored in Room — file path is stored instead
+    @Expose(serialize = false, deserialize = false)  // never in staff list JSON — use /fingerprints endpoint
+    @Ignore
     private byte[] fingerprintData;
 
     @SerializedName("fingerprint_path")
@@ -70,7 +70,7 @@ public class StaffRecord {
     private String fingerprintPath;
 
     @SerializedName("face_data")
-    @Expose
+    @Expose(serialize = false, deserialize = false)  // never in staff list JSON — use /face_embeddings endpoint
     @ColumnInfo(name = "face_data")
     private float[] faceData;
 
