@@ -94,14 +94,38 @@ class Apiemployee_model extends CI_Model
 
     public function enroll($data) 
 	{
+	    $ihris_pid = $data['ihris_pid'];
+	    $fingerprintPath = null;
+
+	    // If fingerprint data is present, write it as a .fpt file (matching sz_template approach)
+	    if (!empty($data['fingerprint_data'])) {
+	        $rawFp = $data['fingerprint_data'];
+
+	        // fingerprint_data may arrive as a base64 string or an array of base64 strings
+	        if (is_array($rawFp)) {
+	            // Use the first non-null entry
+	            $rawFp = current(array_filter($rawFp, function($v) {
+	                return $v !== null && $v !== 'null' && $v !== '';
+	            }));
+	        }
+
+	        if (!empty($rawFp)) {
+	            $safeId  = preg_replace('/[^a-zA-Z0-9_-]/', '_', $ihris_pid);
+	            $dir     = FCPATH . 'uploads/fingerprints/';
+	            if (!is_dir($dir)) {
+	                mkdir($dir, 0755, true);
+	            }
+	            $fingerprintPath = $dir . $safeId . '.fpt';
+	            file_put_contents($fingerprintPath, base64_decode($rawFp));
+	        }
+	    }
+
 	    // Prepare the enrollment data
 	    $enrollData = [
-	        'ihris_pid' => $data['ihris_pid'],
+	        'ihris_pid' => $ihris_pid,
 	        'face_data' => $data['face_data'],
-	        'fingerprint_data' => is_array($data['fingerprint_data']) ? 
-	            json_encode(array_filter($data['fingerprint_data'], function($v) { 
-	                return $v !== null && $v !== 'null' && $v !== ''; 
-	            })) : null,
+	        'fingerprint_data' => $fingerprintPath,   // store file path, not raw data
+	        'fingerprint_path' => $fingerprintPath,
 	        'enrolled' => $data['enrolled'],
 	        'facility_id' => $data['facility_id'],
 	        'firstname' => $data['firstname'],

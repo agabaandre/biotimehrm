@@ -330,9 +330,9 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         // Mark record as unsynced so the enrollment data gets pushed to server on next sync
         staffRecord.setSynced(false);
 
-        // Read the template bytes from the scanner on a background thread,
-        // save to disk, then update the DB — all before marking as enrolled.
-        executorService.execute(() -> {
+        // Read the template bytes from the scanner — readTemplateSync queues on the
+        // scanner executor internally, so run this on a plain background thread.
+        new Thread(() -> {
             byte[] templateBytes = scanner.readTemplateSync(templateNumber);
 
             if (templateBytes != null && templateBytes.length > 0) {
@@ -368,7 +368,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
             } else {
                 saveEnrolledStaff(staffRecord);
             }
-        });
+        }).start();
     }
 
     /**

@@ -158,11 +158,17 @@ public class FingerprintSyncService {
                             return;
                         }
 
-                        // Skip if already have a local file and it's synced
+                        // Skip if a fingerprint file already exists on disk — regardless of sync flag.
+                        // This prevents writing a duplicate .fpt file and re-registering the
+                        // template on the scanner when the same fingerprint is downloaded again.
                         if (localRecord.getFingerprintPath() != null
-                                && new File(localRecord.getFingerprintPath()).exists()
-                                && localRecord.isFingerprintSynced()) {
-                            callback.onProgress(completed[0], total, "Skipped " + fpRecord.getIhrisPid() + ": local file exists");
+                                && new File(localRecord.getFingerprintPath()).exists()) {
+                            // Ensure DB flags are consistent even if they drifted
+                            if (!localRecord.isFingerprintSynced()) {
+                                localRecord.setFingerprintSynced(true);
+                                dbService.updateStaffRecordAsync(localRecord, success -> {});
+                            }
+                            callback.onProgress(completed[0], total, "Skipped " + fpRecord.getIhrisPid() + ": local file already exists");
                             if (completed[0] == total) callback.onComplete(0, downloaded[0], errors);
                             return;
                         }

@@ -300,11 +300,34 @@ public int OpenDevice(String devicePath, int baudRate) {
     public int Run_CmdDeleteID(int tid) { deleteId(tid); return 0; }
 
     /**
-     * Read a template from the scanner synchronously.
+     * Read a template from the scanner synchronously — runs on the scanner executor.
      * Returns the raw template bytes, or null on failure.
      * Must NOT be called from the main thread.
      */
     public byte[] readTemplateSync(int templateNo) {
+        // Submit to scanner executor and block until done
+        final byte[][] result = {null};
+        final Object lock = new Object();
+
+        executor.execute(() -> {
+            byte[] bytes = readTemplateSyncInternal(templateNo);
+            synchronized (lock) {
+                result[0] = bytes;
+                lock.notifyAll();
+            }
+        });
+
+        synchronized (lock) {
+            try {
+                lock.wait(10000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        return result[0];
+    }
+
+    private byte[] readTemplateSyncInternal(int templateNo) {
         devComm.memset(devComm.m_abyPacket, (byte) 0, 64 * 1024);
         devComm.InitPacket((short) DevComm.CMD_READ_TEMPLATE_CODE, true);
         devComm.SetDataLen((short) 0x0002);
@@ -324,14 +347,12 @@ public int OpenDevice(String devicePath, int baudRate) {
         byte[] result = new byte[templateLen];
 
         if (templateLen == DevComm.GD_TEMPLATE_SIZE) {
-            // Single data packet
             if (!devComm.UART_ReceiveDataPacket((short) DevComm.CMD_READ_TEMPLATE_CODE)) {
                 Log.e(TAG, "readTemplateSync: failed to receive single data packet");
                 return null;
             }
             System.arraycopy(devComm.m_abyPacket, 10, result, 0, DevComm.GD_TEMPLATE_SIZE);
         } else {
-            // Multi-packet read
             int offset = 0;
             while (offset < templateLen) {
                 if (!devComm.UART_ReceiveDataPacket((short) DevComm.CMD_READ_TEMPLATE_CODE)) {
