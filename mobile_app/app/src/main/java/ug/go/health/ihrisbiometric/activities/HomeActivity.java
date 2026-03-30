@@ -259,63 +259,51 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         executorService.execute(() -> {
             Log.d(TAG, "Perform clock in action for user with template id " + templateId);
 
-            dbService.getStaffRecordByTemplateAsync(templateId, new DbService.Callback<StaffRecord>() {
-                @Override
-                public void onResult(StaffRecord staffRecord) {
-                    if (staffRecord != null) {
-                        Log.d(TAG, "onResult: Ready to clock user " + staffRecord.toJson());
+            dbService.getStaffRecordByTemplateAsync(templateId, staffRecord -> {
+				if (staffRecord != null) {
+					Log.d(TAG, "onResult: Ready to clock user " + staffRecord.toJson());
 
-                        // Create a new ClockHistory object
-                        ClockHistory clockHistory = new ClockHistory();
-                        clockHistory.setIhrisPID(staffRecord.getIhrisPid());
-                        clockHistory.setName(staffRecord.getName());
-                        clockHistory.setClockTime(new Date());
-                        clockHistory.setFacilityId(staffRecord.getFacilityId());
+					// Create a new ClockHistory object
+					ClockHistory clockHistory = new ClockHistory();
+					clockHistory.setIhrisPID(staffRecord.getIhrisPid());
+					clockHistory.setName(staffRecord.getName());
+					clockHistory.setClockTime(new Date());
+					clockHistory.setFacilityId(staffRecord.getFacilityId());
 
-                        // Determine clock status (IN or OUT)
-                        dbService.getLastClockHistoryAsync(staffRecord.getIhrisPid(), new DbService.Callback<ClockHistory>() {
-                            @Override
-                            public void onResult(ClockHistory lastClockHistory) {
-                                String clockStatus = (lastClockHistory == null || "OUT".equals(lastClockHistory.getClockStatus())) ? "IN" : "OUT";
-                                clockHistory.setClockStatus(clockStatus);
+					// Determine clock status (IN or OUT)
+					dbService.getLastClockHistoryAsync(staffRecord.getIhrisPid(), lastClockHistory -> {
+						String clockStatus = (lastClockHistory == null || "OUT".equals(lastClockHistory.getClockStatus())) ? "IN" : "OUT";
+						clockHistory.setClockStatus(clockStatus);
 
-                                // Get current location
-                                if (ActivityCompat.checkSelfPermission(HomeActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                                    fusedLocationClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
-                                        @Override
-                                        public void onSuccess(Location location) {
-                                            if (location != null) {
-                                                clockHistory.setLocation(new ug.go.health.ihrisbiometric.models.Location(
-                                                        location.getLatitude(),
-                                                        location.getLongitude()
-                                                ));
-                                                clockHistory.setLatitude(location.getLatitude());
-                                                clockHistory.setLongitude(location.getLongitude());
-                                            }
+						// Get current location
+						if (ActivityCompat.checkSelfPermission(HomeActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+							fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+								if (location != null) {
+									clockHistory.setLocation(new ug.go.health.ihrisbiometric.models.Location(
+											location.getLatitude(),
+											location.getLongitude()
+									));
+									clockHistory.setLatitude(location.getLatitude());
+									clockHistory.setLongitude(location.getLongitude());
+								}
 
-                                            // Save clock history
-                                            dbService.saveClockHistoryAsync(clockHistory, new DbService.Callback<Boolean>() {
-                                                @Override
-                                                public void onResult(Boolean result) {
-                                                    if(result) {
-                                                        updateStatus(staffRecord.getName() + " CLOCKED " + clockStatus);
-                                                    } else {
-                                                        updateStatus("Failed to clock " + staffRecord.getName());
-                                                    }
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            }
-                        });
-                    } else {
-                        Log.d(TAG, "onResult: This template does not exist we can delete it");
-                        scanner.Run_CmdDeleteID(templateId);
-                        viewModel.setStatus("Deleted orphaned template: " + templateId);
-                    }
-                }
-            });
+								// Save clock history
+								dbService.saveClockHistoryAsync(clockHistory, result -> {
+									if(result) {
+										updateStatus(staffRecord.getName() + " CLOCKED " + clockStatus);
+									} else {
+										updateStatus("Failed to clock " + staffRecord.getName());
+									}
+								});
+							});
+						}
+					});
+				} else {
+					Log.d(TAG, "onResult: This template does not exist we can delete it");
+					scanner.Run_CmdDeleteID(templateId);
+					viewModel.setStatus("Deleted orphaned template: " + templateId);
+				}
+			});
         });
     }
 
@@ -424,13 +412,18 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
     }
 
     private void handleEmptyIdEvent(String event) {
+        // Format: "EMPTY_ID :: <number>"
         String[] parts = event.split("::");
         if (parts.length >= 2) {
-            int emptyId = Integer.parseInt(parts[1].trim());
-            viewModel.setEmptyId(emptyId);
-//            updateStatus("Device Scanner Ready");
+            try {
+                int emptyId = Integer.parseInt(parts[1].trim());
+                viewModel.setEmptyId(emptyId);
+                updateStatus("Welcome. Scanner is ready.");
+            } catch (NumberFormatException e) {
+                Log.e(TAG, "Failed to parse empty ID from: " + event);
+            }
         } else {
-            updateStatus("Invalid Empty ID");
+            Log.e(TAG, "Invalid Empty ID event format: " + event);
         }
     }
 
@@ -606,10 +599,10 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
     public void onScannerEvent(ug.go.health.library.ScannerResult result) {
         runOnUiThread(() -> {
             Log.d(TAG, "Scanner Result: " + result.getMessage());
-            updateStatus(result.getMessage());
 
             if (result.getType() == ug.go.health.library.ScannerResult.Type.ERROR
                     && "Comm Failure".equals(result.getMessage())) {
+                updateStatus(result.getMessage());
                 if (!isReconnecting) {
                     if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                         reconnectAttempts++;
@@ -632,15 +625,35 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                 return;
             }
 
-            // Reset reconnect counter only on a real successful result (not just in-progress)
+            if (result.getType() == ug.go.health.library.ScannerResult.Type.IN_PROGRESS) {
+                // Show prompts like "Place your finger on the sensor", "Checking slot..."
+                updateStatus(result.getMessage());
+                return;
+            }
+
+            if (result.getType() == ug.go.health.library.ScannerResult.Type.WAITING_FOR_FINGER) {
+                // Intermediate enrollment sweep prompt
+                updateStatus(result.getMessage());
+                return;
+            }
+
+            if (result.getType() == ug.go.health.library.ScannerResult.Type.FAILURE) {
+                updateStatus("Fingerprint not recognised. Please try again.");
+                return;
+            }
+
+            if (result.getType() == ug.go.health.library.ScannerResult.Type.ERROR) {
+                updateStatus("Scanner error. Please try again.");
+                return;
+            }
+
+            // SUCCESS — reset reconnect state
             if (result.getType() == ug.go.health.library.ScannerResult.Type.SUCCESS) {
                 reconnectAttempts = 0;
                 isReconnecting = false;
-            }
 
-            if (result.getType() == ug.go.health.library.ScannerResult.Type.SUCCESS) {
                 if (result.getCommandCode() == ug.go.health.library.DevComm.CMD_GET_EMPTY_ID_CODE) {
-                    handleEmptyIdEvent("EMPTY_ID : " + result.getValue());
+                    // Handled via onEvent("EMPTY_ID :: N") — nothing to do here
                 } else if (result.getCommandCode() == ug.go.health.library.DevComm.CMD_IDENTIFY_CODE ||
                            result.getCommandCode() == ug.go.health.library.DevComm.CMD_VERIFY_CODE) {
                     long currentTime = System.currentTimeMillis();
@@ -653,9 +666,6 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                 } else if (result.getCommandCode() == ug.go.health.library.DevComm.CMD_ENROLL_CODE) {
                     handleSuccessfulScan(result.getValue());
                 }
-            } else if (result.getType() == ug.go.health.library.ScannerResult.Type.WAITING_FOR_FINGER) {
-                // Intermediate enrollment sweep — just show the prompt, the loop in ScannerLibrary continues
-                updateStatus(result.getMessage());
             }
         });
     }
