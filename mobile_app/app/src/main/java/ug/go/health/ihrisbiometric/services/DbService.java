@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -206,6 +207,22 @@ public class DbService {
         executorService.execute(() -> {
             List<StaffRecord> result = database.staffRecordDao().getRecordsNeedingServerSync();
             mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Returns enrolled staff whose .fpt or .face file is missing from disk. */
+    public void getStaffWithMissingBiometricFilesAsync(Callback<List<StaffRecord>> callback) {
+        executorService.execute(() -> {
+            List<StaffRecord> all = database.staffRecordDao().getAllStaffRecords();
+            List<StaffRecord> missing = new ArrayList<>();
+            for (StaffRecord r : all) {
+                boolean fpMissing = r.isFingerprintEnrolled()
+                        && (r.getFingerprintPath() == null || !new java.io.File(r.getFingerprintPath()).exists());
+                boolean faceMissing = r.isFaceEnrolled()
+                        && (r.getFacePath() == null || !new java.io.File(r.getFacePath()).exists());
+                if (fpMissing || faceMissing) missing.add(r);
+            }
+            mainHandler.post(() -> callback.onResult(missing));
         });
     }
 

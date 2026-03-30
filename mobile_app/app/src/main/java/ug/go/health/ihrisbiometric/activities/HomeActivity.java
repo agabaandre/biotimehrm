@@ -193,7 +193,9 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     // Give the sync ViewModel a reference so it can re-register downloaded templates
                     viewModel.setScanner(scanner);
                     // Delay registration so scanner finishes its init sequence (Run_CmdGetEmptyID) first
-                    handler.postDelayed(() -> registerUnregisteredTemplates(), 3500);
+                    handler.postDelayed(() -> {
+                        restoreMissingBiometrics(); // re-download any deleted files first
+                    }, 3500);
                 }
             } else if ("Mobile".equals(deviceSettings.getDeviceType())) {
                 deviceSettings.setScanMethod("face");
@@ -266,50 +268,45 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
             Log.d(TAG, "Perform clock in action for user with template id " + templateId);
 
             dbService.getStaffRecordByTemplateAsync(templateId, staffRecord -> {
-				if (staffRecord != null) {
-					Log.d(TAG, "onResult: Ready to clock user " + staffRecord.toJson());
+                if (staffRecord != null) {
+                    Log.d(TAG, "onResult: Ready to clock user " + staffRecord.toJson());
 
-					// Create a new ClockHistory object
-					ClockHistory clockHistory = new ClockHistory();
-					clockHistory.setIhrisPID(staffRecord.getIhrisPid());
-					clockHistory.setName(staffRecord.getName());
-					clockHistory.setClockTime(new Date());
-					clockHistory.setFacilityId(staffRecord.getFacilityId());
+                    ClockHistory clockHistory = new ClockHistory();
+                    clockHistory.setIhrisPID(staffRecord.getIhrisPid());
+                    clockHistory.setName(staffRecord.getName());
+                    clockHistory.setClockTime(new Date());
+                    clockHistory.setFacilityId(staffRecord.getFacilityId());
 
-					// Determine clock status (IN or OUT)
-					dbService.getLastClockHistoryAsync(staffRecord.getIhrisPid(), lastClockHistory -> {
-						String clockStatus = (lastClockHistory == null || "OUT".equals(lastClockHistory.getClockStatus())) ? "IN" : "OUT";
-						clockHistory.setClockStatus(clockStatus);
+                    dbService.getLastClockHistoryAsync(staffRecord.getIhrisPid(), lastClockHistory -> {
+                        String clockStatus = (lastClockHistory == null || "OUT".equals(lastClockHistory.getClockStatus())) ? "IN" : "OUT";
+                        clockHistory.setClockStatus(clockStatus);
 
-						// Get current location
-						if (ActivityCompat.checkSelfPermission(HomeActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-							fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
-								if (location != null) {
-									clockHistory.setLocation(new ug.go.health.ihrisbiometric.models.Location(
-											location.getLatitude(),
-											location.getLongitude()
-									));
-									clockHistory.setLatitude(location.getLatitude());
-									clockHistory.setLongitude(location.getLongitude());
-								}
-
-								// Save clock history
-								dbService.saveClockHistoryAsync(clockHistory, result -> {
-									if(result) {
-										updateStatus(staffRecord.getName() + " CLOCKED " + clockStatus);
-									} else {
-										updateStatus("Failed to clock " + staffRecord.getName());
-									}
-								});
-							});
-						}
-					});
-				} else {
-					Log.d(TAG, "onResult: This template does not exist we can delete it");
-					scanner.Run_CmdDeleteID(templateId);
-					viewModel.setStatus("Deleted orphaned template: " + templateId);
-				}
-			});
+                        if (ActivityCompat.checkSelfPermission(HomeActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                            fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+                                if (location != null) {
+                                    clockHistory.setLocation(new ug.go.health.ihrisbiometric.models.Location(
+                                            location.getLatitude(), location.getLongitude()));
+                                    clockHistory.setLatitude(location.getLatitude());
+                                    clockHistory.setLongitude(location.getLongitude());
+                                }
+                                dbService.saveClockHistoryAsync(clockHistory, result -> {
+                                    if (result) {
+                                        updateStatus(staffRecord.getName() + " CLOCKED " + clockStatus);
+                                    } else {
+                                        updateStatus("Failed to clock " + staffRecord.getName());
+                                    }
+                                });
+                            });
+                        }
+                    });
+                } else {
+                    // Template not found in DB — could be a race with registration still completing.
+                    // Do NOT delete immediately. Show not-recognized and let the user retry.
+                    // Only delete if the template slot is truly orphaned (no .fpt file maps to it).
+                    Log.w(TAG, "No DB record for template " + templateId + " — showing not recognized (not deleting)");
+                    updateStatus("Fingerprint not recognised. Please try again.");
+                }
+            });
         });
     }
 
@@ -365,6 +362,173 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                 saveEnrolledStaff(staffRecord);
             }
         });
+    }
+
+    /**
+     * On every app start: find enrolled staff whose .fpt/.face files are missing from disk,
+     * re-download from server, re-register with face engine, then register fingerprints on scanner.
+     */
+    private void restoreMissingBiometrics() {
+        dbService.getStaffWithMissingBiometricFilesAsync(records -> {
+            if (records == null || records.isEmpty()) {
+                // Nothing missing — just register any unregistered templates
+                registerUnregisteredTemplates();
+                return;
+            }
+
+            Log.d(TAG, "Restoring biometrics for " + records.size() + " staff with missing files");
+            updateStatus("Restoring biometric data...");
+
+            String facilityId = sessionService.getFacilityId();
+            final int[] pending = {2}; // fingerprints + faces
+
+            Runnable onBothDone = () -> {
+                pending[0]--;
+                if (pending[0] == 0) {
+                    registerUnregisteredTemplates();
+                }
+            };
+
+            // Re-download fingerprints for the facility
+            apiService.getFingerprints(facilityId).enqueue(new retrofit2.Callback<ug.go.health.ihrisbiometric.models.FingerprintDownloadResponse>() {
+                @Override
+                public void onResponse(retrofit2.Call<ug.go.health.ihrisbiometric.models.FingerprintDownloadResponse> call,
+                                       retrofit2.Response<ug.go.health.ihrisbiometric.models.FingerprintDownloadResponse> response) {
+                    if (response.isSuccessful() && response.body() != null
+                            && response.body().getFingerprints() != null) {
+                        restoreFingerprints(records, response.body().getFingerprints(), onBothDone);
+                    } else {
+                        onBothDone.run();
+                    }
+                }
+                @Override
+                public void onFailure(retrofit2.Call<ug.go.health.ihrisbiometric.models.FingerprintDownloadResponse> call, Throwable t) {
+                    Log.e(TAG, "Fingerprint restore download failed: " + t.getMessage());
+                    onBothDone.run();
+                }
+            });
+
+            // Re-download face embeddings for the facility
+            apiService.getFaceEmbeddings(facilityId).enqueue(new retrofit2.Callback<ug.go.health.ihrisbiometric.models.FaceEmbeddingDownloadResponse>() {
+                @Override
+                public void onResponse(retrofit2.Call<ug.go.health.ihrisbiometric.models.FaceEmbeddingDownloadResponse> call,
+                                       retrofit2.Response<ug.go.health.ihrisbiometric.models.FaceEmbeddingDownloadResponse> response) {
+                    if (response.isSuccessful() && response.body() != null
+                            && response.body().getEmbeddings() != null) {
+                        restoreFaceEmbeddings(records, response.body().getEmbeddings(), onBothDone);
+                    } else {
+                        onBothDone.run();
+                    }
+                }
+                @Override
+                public void onFailure(retrofit2.Call<ug.go.health.ihrisbiometric.models.FaceEmbeddingDownloadResponse> call, Throwable t) {
+                    Log.e(TAG, "Face restore download failed: " + t.getMessage());
+                    onBothDone.run();
+                }
+            });
+        });
+    }
+
+    private void restoreFingerprints(List<StaffRecord> missingRecords,
+                                     List<ug.go.health.ihrisbiometric.models.FingerprintRecord> serverFps,
+                                     Runnable onDone) {
+        File fpDir = new File(getFilesDir(), "fingerprints");
+        if (!fpDir.exists()) fpDir.mkdirs();
+
+        // Build a map for quick lookup
+        java.util.Map<String, String> serverMap = new java.util.HashMap<>();
+        for (ug.go.health.ihrisbiometric.models.FingerprintRecord fp : serverFps) {
+            serverMap.put(fp.getIhrisPid(), fp.getFingerprintData());
+        }
+
+        final int[] done = {0};
+        int toRestore = (int) missingRecords.stream()
+                .filter(r -> r.isFingerprintEnrolled()
+                        && (r.getFingerprintPath() == null || !new File(r.getFingerprintPath()).exists()))
+                .count();
+
+        if (toRestore == 0) { onDone.run(); return; }
+
+        for (StaffRecord record : missingRecords) {
+            if (!record.isFingerprintEnrolled()) continue;
+            if (record.getFingerprintPath() != null && new File(record.getFingerprintPath()).exists()) continue;
+
+            String base64 = serverMap.get(record.getIhrisPid());
+            if (base64 == null) {
+                done[0]++;
+                if (done[0] == toRestore) onDone.run();
+                continue;
+            }
+
+            byte[] bytes = ug.go.health.ihrisbiometric.converters.ByteArrayConverter.fromString(base64);
+            String safeId = record.getIhrisPid().replaceAll("[^a-zA-Z0-9_-]", "_");
+            File destFile = new File(fpDir, safeId + ".fpt");
+            try (FileOutputStream fos = new FileOutputStream(destFile)) {
+                fos.write(bytes);
+                record.setFingerprintPath(destFile.getAbsolutePath());
+                record.setTemplateId(0); // force re-registration on scanner
+                dbService.updateStaffRecordAsync(record, success -> {
+                    Log.d(TAG, "Restored fingerprint for " + record.getIhrisPid());
+                    done[0]++;
+                    if (done[0] == toRestore) onDone.run();
+                });
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to restore .fpt for " + record.getIhrisPid(), e);
+                done[0]++;
+                if (done[0] == toRestore) onDone.run();
+            }
+        }
+    }
+
+    private void restoreFaceEmbeddings(List<StaffRecord> missingRecords,
+                                       List<ug.go.health.ihrisbiometric.models.FaceEmbeddingRecord> serverFaces,
+                                       Runnable onDone) {
+        java.util.Map<String, String> serverMap = new java.util.HashMap<>();
+        for (ug.go.health.ihrisbiometric.models.FaceEmbeddingRecord fe : serverFaces) {
+            serverMap.put(fe.getIhrisPid(), fe.getFaceData());
+        }
+
+        final int[] done = {0};
+        int toRestore = (int) missingRecords.stream()
+                .filter(r -> r.isFaceEnrolled()
+                        && (r.getFacePath() == null || !new File(r.getFacePath()).exists()))
+                .count();
+
+        if (toRestore == 0) { onDone.run(); return; }
+
+        // Init face scanner if needed
+        ug.go.health.ihrisbiometric.services.FaceScanner fs =
+                new ug.go.health.ihrisbiometric.services.FaceScanner();
+        fs.initEngine(this);
+
+        for (StaffRecord record : missingRecords) {
+            if (!record.isFaceEnrolled()) continue;
+            if (record.getFacePath() != null && new File(record.getFacePath()).exists()) continue;
+
+            String base64 = serverMap.get(record.getIhrisPid());
+            if (base64 == null) {
+                done[0]++;
+                if (done[0] == toRestore) onDone.run();
+                continue;
+            }
+
+            String facePath = ug.go.health.ihrisbiometric.utils.FaceEmbeddingFileHelper
+                    .saveFaceImage(this, record.getIhrisPid(), base64);
+            fs.forceRegisterFaceFromBase64(base64, record.getIhrisPid());
+
+            if (facePath != null) {
+                record.setFacePath(facePath);
+                record.setFaceImage(base64);
+                dbService.updateStaffRecordAsync(record, success -> {
+                    Log.d(TAG, "Restored face for " + record.getIhrisPid());
+                    done[0]++;
+                    if (done[0] == toRestore) onDone.run();
+                });
+            } else {
+                done[0]++;
+                if (done[0] == toRestore) onDone.run();
+            }
+        }
     }
 
     /** Registers any templates downloaded but not yet on this scanner. */
