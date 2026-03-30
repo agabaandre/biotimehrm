@@ -104,7 +104,7 @@ public class DevComm {
     public static final int MAX_DATA_LEN        = 610;
     public static final int IMAGE_RECEIVE_UINT  = 498;
     public static final int DATA_SPLIT_UNIT     = 498;
-    public static final int GD_RECORD_SIZE      = 498;
+    public static final int GD_RECORD_SIZE      = 570; // = GD_TEMPLATE_SIZE, matches legacy
     public static final int GD_MAX_RECORD_SIZE  = 900;
     public static final int GD_TEMPLATE_SIZE    = 570;
 

@@ -224,11 +224,13 @@ public class LoginActivity extends AppCompatActivity {
 
         for (FingerprintRecord fp : records) {
             dbService.getStaffRecordByihrisPIDAsync(fp.getIhrisPid(), localRecord -> {
-                if (localRecord != null
+                // Only skip if the file actually exists on disk — not just if the path is set
+                boolean fileExists = localRecord != null
                         && localRecord.getFingerprintPath() != null
-                        && new File(localRecord.getFingerprintPath()).exists()
-                        && localRecord.isFingerprintSynced()) {
-                    // Already have it locally — skip
+                        && new File(localRecord.getFingerprintPath()).exists();
+
+                if (fileExists && localRecord.isFingerprintSynced()) {
+                    // File is present and synced — nothing to do
                     done[0]++;
                     if (done[0] == total) downloadFaceEmbeddings(facilityId);
                     return;
@@ -256,12 +258,16 @@ public class LoginActivity extends AppCompatActivity {
                     localRecord.setFingerprintPath(destFile.getAbsolutePath());
                     localRecord.setFingerprintEnrolled(true);
                     localRecord.setFingerprintSynced(true);
-                    localRecord.setTemplateId(0); // needs scanner registration
+                    localRecord.setTemplateId(0); // force scanner re-registration
                     dbService.updateStaffRecordAsync(localRecord, success -> {
+                        Log.d(TAG, "Fingerprint restored for " + fp.getIhrisPid());
                         done[0]++;
                         if (done[0] == total) downloadFaceEmbeddings(facilityId);
                     });
                 } else {
+                    // No local staff record yet — will be created when staff list downloads
+                    // Store path in a new minimal record so registration can find it
+                    Log.w(TAG, "No local record for " + fp.getIhrisPid() + " — file saved, awaiting staff sync");
                     done[0]++;
                     if (done[0] == total) downloadFaceEmbeddings(facilityId);
                 }

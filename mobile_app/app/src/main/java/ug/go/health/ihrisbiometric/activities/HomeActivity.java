@@ -196,6 +196,9 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     }
                     // Give the sync ViewModel a reference so it can re-register downloaded templates
                     viewModel.setScanner(scanner);
+                    // Block clock attempts until registration completes
+                    isRegisteringTemplates = true;
+                    updateStatus("Preparing scanner...");
                     // Delay registration so scanner finishes its init sequence (Run_CmdGetEmptyID) first
                     handler.postDelayed(() -> {
                         restoreMissingBiometrics(); // re-download any deleted files first

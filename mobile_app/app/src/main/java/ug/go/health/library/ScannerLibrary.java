@@ -405,7 +405,8 @@ public int OpenDevice(String devicePath, int baudRate) {
         }
 
         // Step 2: Send template data packet(s)
-        if (templateSize <= DevComm.GD_RECORD_SIZE) {
+        // GD_TEMPLATE_SIZE (570) fits in a single data packet — matches legacy GD_RECORD_SIZE
+        if (templateSize <= DevComm.GD_TEMPLATE_SIZE) {
             // Single packet
             devComm.InitPacket((short) DevComm.CMD_WRITE_TEMPLATE_CODE, false);
             devComm.SetDataLen((short) (templateSize + 2));
