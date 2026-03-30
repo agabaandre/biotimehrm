@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/tvItem"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:paddingLeft="?android:attr/expandableListPreferredChildPaddingLeft"
+        android:textAppearance="?android:attr/textAppearanceListItem" />
+
+    <ImageView
+        android:id="@+id/ivFace"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginEnd="8dp"
+        app:tint="@color/gray"
+        app:srcCompat="@drawable/face_icon" />
+
+    <ImageView
+        android:id="@+id/ivFingerprint"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        app:tint="@color/gray"
+        app:srcCompat="@drawable/fingerprint_icon" />
+
+</LinearLayout>

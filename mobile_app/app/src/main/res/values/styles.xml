@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="CircularButtonStyle" parent="Widget.AppCompat.ImageButton">
+        <item name="android:background">@drawable/circular_button_background</item>
+        <item name="android:elevation">4dp</item>
+        <item name="android:scaleType">fitCenter</item>
+    </style>
+
+    <style name="SpinnerStyle" parent="Widget.AppCompat.DropDownItem.Spinner">
+        <item name="android:background">@drawable/spinner_background_material</item>
+<!--        Remove bottom border menu-->
+        <item name="android:dividerHeight">0dp</item>
+    </style>
+
+    <style name="WhiteProgressBar" parent="@android:style/Widget.ProgressBar">
+        <!-- White Tint -->
+        <item name="android:indeterminateTint">@color/white</item>
+    </style>
+</resources>

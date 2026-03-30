@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="ug.go.health.ihrisbiometric.fragments.HomeFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_homeFragment_to_enrollUserFragment"
+            app:destination="@id/enrollUserFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_cameraFragment"
+            app:destination="@id/cameraFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_clockHistoryFragment"
+            app:destination="@id/clockHistoryFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_syncFragment"
+            app:destination="@id/syncFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_notificationsFragment"
+            app:destination="@id/notificationsFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_enrollHistoryFragment"
+            app:destination="@id/enrollHistoryFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_staffManagementFragment"
+            app:destination="@id/staffManagementFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/enrollUserFragment"
+        android:name="ug.go.health.ihrisbiometric.fragments.EnrollUserFragment"
+        android:label="Enroll User"
+        tools:layout="@layout/fragment_enroll_user">
+
+
+        <action
+            android:id="@+id/action_enrollUserFragment_to_cameraFragment"
+            app:destination="@id/cameraFragment" />
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/cameraFragment"
+        android:name="ug.go.health.ihrisbiometric.fragments.CameraFragment"
+        android:label="Camera"
+        tools:layout="@layout/fragment_camera" />
+
+    <fragment
+        android:id="@+id/clockHistoryFragment"
+        android:name="ug.go.health.ihrisbiometric.fragments.ClockHistoryFragment"
+        android:label="Clock History"
+        tools:layout="@layout/fragment_clock_history" />
+
+    <fragment
+        android:id="@+id/syncFragment"
+        android:name="ug.go.health.ihrisbiometric.fragments.DataSyncFragment"
+        android:label="Sync"
+        tools:layout="@layout/fragment_data_sync" />
+
+    <activity
+        android:id="@+id/deviceSetupActivity"
+        android:name="ug.go.health.ihrisbiometric.activities.DeviceSetupActivity"
+        android:label="Device Setup" />
+
+    <activity
+        android:id="@+id/outOfStationActivity"
+        android:name="ug.go.health.ihrisbiometric.activities.OutOfStationActivity"
+        android:label="Out of Station" />
+
+    <fragment
+        android:id="@+id/notificationsFragment"
+        android:name="ug.go.health.ihrisbiometric.fragments.NotificationsFragment"
+        android:label="Notifications"
+        tools:layout="@layout/fragment_notifications">
+        <action
+            android:id="@+id/action_notificationsFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/enrollHistoryFragment"
+        android:name="ug.go.health.ihrisbiometric.fragments.EnrollHistoryFragment"
+        android:label="Enroll History"
+        tools:layout="@layout/fragment_enroll_history" />
+
+    <activity
+        android:id="@+id/aboutProjectActivity"
+        android:name="ug.go.health.ihrisbiometric.activities.AboutProjectActivity"
+        android:label="About Project" />
+
+    <fragment
+        android:id="@+id/staffManagementFragment"
+        android:name="ug.go.health.ihrisbiometric.fragments.StaffManagementFragment"
+        android:label="Staff Management"
+        tools:layout="@layout/fragment_staff_management">
+        <action
+            android:id="@+id/action_staffManagementFragment_to_addEditStaffFragment"
+            app:destination="@id/addEditStaffFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addEditStaffFragment"
+        android:name="ug.go.health.ihrisbiometric.fragments.AddEditStaffFragment"
+        android:label="Add/Edit Staff"
+        tools:layout="@layout/fragment_add_edit_staff">
+        <argument
+            android:name="staffId"
+            app:argType="integer"
+            android:defaultValue="-1" />
+    </fragment>
+
+</navigation>

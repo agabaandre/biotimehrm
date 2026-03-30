@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <!-- staff_item.xml -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!--        Avatar with gray background and center image-->
+        <ImageView
+            android:id="@+id/iv_staff_image"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:scaleType="centerCrop"
+            android:background="@drawable/circle_gray"
+            android:padding="8dp"
+            android:src="@drawable/user"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_staff_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Staff Name"
+                android:textSize="16sp"
+                android:textColor="@android:color/black"/>
+
+            <TextView
+                android:id="@+id/tv_enroll_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Enrolled"
+                android:textSize="14sp"
+                android:textColor="@android:color/darker_gray"/>
+
+        </LinearLayout>
+
+        <!--        <ImageView-->
+        <!--            android:id="@+id/iv_enrolled_status"-->
+        <!--            android:layout_width="48dp"-->
+        <!--            android:layout_height="48dp"-->
+        <!--            android:src="@drawable/check_circle_outline"-->
+        <!--            android:visibility="visible"/>-->
+
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/gray"/>
+
+
+</LinearLayout>
