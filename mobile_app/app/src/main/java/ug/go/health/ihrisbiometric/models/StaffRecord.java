@@ -142,6 +142,11 @@ public class StaffRecord {
     @ColumnInfo(name = "dob")
     private String dob;
 
+    @SerializedName("cadre")
+    @Expose
+    @ColumnInfo(name = "cadre")
+    private String cadre;
+
     @SerializedName("is_deleted")
     @Expose
     @ColumnInfo(name = "is_deleted")
@@ -366,6 +371,14 @@ public class StaffRecord {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public String getCadre() {
+        return cadre;
+    }
+
+    public void setCadre(String cadre) {
+        this.cadre = cadre;
     }
 
 

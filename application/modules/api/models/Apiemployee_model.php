@@ -31,7 +31,7 @@ class Apiemployee_model extends CI_Model
         // fetched separately via GET /fingerprints and GET /face_embeddings
         $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname as surname,
             ihrisdata.firstname as firstname, ihrisdata.othername as othername,
-            ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility,
+            ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, ihrisdata.cadre,
             mobile_enroll.enrolled, mobile_enroll.face_enrolled,
             mobile_enroll.fingerprint_enrolled');
         $this->db->from('ihrisdata');
@@ -589,6 +589,7 @@ class Apiemployee_model extends CI_Model
             'gender' => $data['gender'] ?? null,
             'district' => $data['district'] ?? null,
             'dob' => $data['dob'] ?? null,
+            'cadre' => $data['cadre'] ?? null,
         ], function ($v) { return $v !== null; });
 
         $this->db->trans_begin();
@@ -644,6 +645,7 @@ class Apiemployee_model extends CI_Model
             'gender' => $data['gender'] ?? null,
             'district' => $data['district'] ?? null,
             'dob' => $data['dob'] ?? null,
+            'cadre' => $data['cadre'] ?? null,
         ], function ($v) { return $v !== null; });
 
         $this->db->trans_begin();
@@ -716,7 +718,7 @@ class Apiemployee_model extends CI_Model
     private function get_staff_record($ihris_pid)
     {
         $this->db->select('ihrisdata.id, ihrisdata.ihris_pid, ihrisdata.surname, ihrisdata.firstname,
-            ihrisdata.othername, ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility,
+            ihrisdata.othername, ihrisdata.job, ihrisdata.facility_id, ihrisdata.facility, ihrisdata.cadre,
             mobile_enroll.fingerprint_data, mobile_enroll.face_data, mobile_enroll.enrolled,
             mobile_enroll.face_enrolled, mobile_enroll.fingerprint_enrolled');
         $this->db->from('ihrisdata');
@@ -910,47 +912,27 @@ class Apiemployee_model extends CI_Model
         return $this->db->get('reasons')->result_array();
     }
 
-    // Get all cadres (distinct values from ihrisdata — employee_cadre table is empty)
+    // Get all cadres from employee_cadre
     public function get_cadres()
     {
-        $query = $this->db->query(
-            "SELECT DISTINCT cadre FROM ihrisdata 
-             WHERE cadre IS NOT NULL AND cadre != '' 
-             ORDER BY cadre ASC"
-        );
-        return $query->result_array();
+        return $this->db->select('cadre')->order_by('cadre', 'ASC')->get('employee_cadre')->result_array();
     }
 
-    // Get all districts (distinct values from ihrisdata — employee_districts has 111 rows but ihrisdata has 147 distinct)
+    // Get all districts from employee_districts
     public function get_districts()
     {
-        $query = $this->db->query(
-            "SELECT DISTINCT district FROM ihrisdata 
-             WHERE district IS NOT NULL AND district != '' 
-             ORDER BY district ASC"
-        );
-        return $query->result_array();
+        return $this->db->select('name')->order_by('name', 'ASC')->get('employee_districts')->result_array();
     }
 
-    // Get all facilities (distinct from ihrisdata — employee_facility only has 2 rows)
+    // Get all facilities from employee_facility
     public function get_all_facilities()
     {
-        $query = $this->db->query(
-            "SELECT DISTINCT facility_id, facility FROM ihrisdata 
-             WHERE facility IS NOT NULL AND facility != '' 
-             ORDER BY facility ASC"
-        );
-        return $query->result_array();
+        return $this->db->select('facility_id, facility')->order_by('facility', 'ASC')->get('employee_facility')->result_array();
     }
 
-    // Get all jobs (distinct values from ihrisdata — employee_jobs table is empty)
+    // Get all jobs from employee_jobs
     public function get_jobs()
     {
-        $query = $this->db->query(
-            "SELECT DISTINCT job FROM ihrisdata 
-             WHERE job IS NOT NULL AND job != '' 
-             ORDER BY job ASC"
-        );
-        return $query->result_array();
+        return $this->db->select('job_title')->order_by('job_title', 'ASC')->get('employee_jobs')->result_array();
     }
 }

@@ -9,6 +9,7 @@ import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
 import java.util.List;
 
+import ug.go.health.ihrisbiometric.models.AllFacilityRecord;
 import ug.go.health.ihrisbiometric.models.DeviceSettings;
 import ug.go.health.ihrisbiometric.models.FacilityRecord;
 import ug.go.health.ihrisbiometric.models.User;
@@ -171,6 +172,19 @@ public class SessionService {
 
     public void setAllFacilityList(List<String> facilities) {
         editor.putString("all_facilities", new Gson().toJson(facilities));
+        editor.commit();
+    }
+
+    public List<AllFacilityRecord> getAllFacilityRecords() {
+        String json = preferences.getString("all_facility_records", null);
+        if (json != null) {
+            return new Gson().fromJson(json, new TypeToken<List<AllFacilityRecord>>() {}.getType());
+        }
+        return new ArrayList<>();
+    }
+
+    public void setAllFacilityRecords(List<AllFacilityRecord> facilities) {
+        editor.putString("all_facility_records", new Gson().toJson(facilities));
         editor.commit();
     }
 

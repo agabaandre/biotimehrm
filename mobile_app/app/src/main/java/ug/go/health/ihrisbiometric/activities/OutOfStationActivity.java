@@ -1,20 +1,19 @@
 package ug.go.health.ihrisbiometric.activities;
 
 import android.annotation.SuppressLint;
-import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
@@ -35,16 +34,21 @@ import ug.go.health.ihrisbiometric.fragments.DatePickerFragment;
 import ug.go.health.ihrisbiometric.models.OutOfStationResponse;
 import ug.go.health.ihrisbiometric.services.ApiService;
 import ug.go.health.ihrisbiometric.services.SessionService;
+import ug.go.health.ihrisbiometric.utils.LoadingDialog;
 
 public class OutOfStationActivity extends AppCompatActivity {
 
     private static final int PICK_FILE_REQUEST_CODE = 1;
+
     private SessionService sessionService;
+    private LoadingDialog loadingDialog;
+
     private EditText requestStartDate;
     private EditText requestEndDate;
     private TextView selectedFileNameTextView;
     private Uri selectedFileUri;
     private Spinner reasonSpinner;
+    private Button submitButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,35 +57,30 @@ public class OutOfStationActivity extends AppCompatActivity {
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        // Add back button to the toolbar
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
 
         sessionService = new SessionService(this);
+        loadingDialog = new LoadingDialog(this);
 
         requestStartDate = findViewById(R.id.request_start_date);
         requestEndDate = findViewById(R.id.request_end_date);
         selectedFileNameTextView = findViewById(R.id.selected_file_name);
         reasonSpinner = findViewById(R.id.reason);
+        submitButton = findViewById(R.id.submit_request);
 
-        // Populate the spinner
         populateReasonSpinner();
 
         requestStartDate.setOnClickListener(v -> showDatePickerDialog(requestStartDate));
         requestEndDate.setOnClickListener(v -> showDatePickerDialog(requestEndDate));
-
-        Button submitRequest = findViewById(R.id.submit_request);
-        submitRequest.setOnClickListener(v -> submitOutOfStationRequest());
-
-        Button selectFileButton = findViewById(R.id.select_file_button);
-        selectFileButton.setOnClickListener(v -> openFilePicker());
+        submitButton.setOnClickListener(v -> submitOutOfStationRequest());
+        findViewById(R.id.select_file_button).setOnClickListener(v -> openFilePicker());
     }
 
     private void populateReasonSpinner() {
-        List<String> reasons = sessionService.getReasonList(); // Fetch reasons from session service
+        List<String> reasons = sessionService.getReasonList();
         if (reasons != null && !reasons.isEmpty()) {
             ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, reasons);
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -92,74 +91,105 @@ public class OutOfStationActivity extends AppCompatActivity {
     }
 
     private void submitOutOfStationRequest() {
-        // Fetch start date, end date, and comments safely
-        String startDate = requestStartDate.getText() != null ? requestStartDate.getText().toString() : "";
-        String endDate = requestEndDate.getText() != null ? requestEndDate.getText().toString() : "";
+        String startDate = requestStartDate.getText() != null ? requestStartDate.getText().toString().trim() : "";
+        String endDate   = requestEndDate.getText() != null ? requestEndDate.getText().toString().trim() : "";
         EditText commentsField = findViewById(R.id.comments);
-        String comments = commentsField != null && commentsField.getText() != null ? commentsField.getText().toString() : "";
+        String comments = commentsField != null && commentsField.getText() != null ? commentsField.getText().toString().trim() : "";
+        String reason   = (reasonSpinner != null && reasonSpinner.getSelectedItem() != null) ? reasonSpinner.getSelectedItem().toString() : "";
 
-        // Fetch reason safely
-        String reason = (reasonSpinner != null && reasonSpinner.getSelectedItem() != null) ? reasonSpinner.getSelectedItem().toString() : "";
-
-        // Ensure none of the fields are empty (basic validation)
         if (startDate.isEmpty() || endDate.isEmpty() || reason.isEmpty()) {
-            Toast.makeText(OutOfStationActivity.this, "Please fill in all required fields", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please fill in all required fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String token = sessionService.getToken();
-
-        // Create request body
+        // Build multipart parts
         RequestBody startDateBody = RequestBody.create(MediaType.parse("text/plain"), startDate);
-        RequestBody endDateBody = RequestBody.create(MediaType.parse("text/plain"), endDate);
-        RequestBody reasonBody = RequestBody.create(MediaType.parse("text/plain"), reason);
-        RequestBody commentsBody = RequestBody.create(MediaType.parse("text/plain"), comments);
+        RequestBody endDateBody   = RequestBody.create(MediaType.parse("text/plain"), endDate);
+        RequestBody reasonBody    = RequestBody.create(MediaType.parse("text/plain"), reason);
+        RequestBody commentsBody  = RequestBody.create(MediaType.parse("text/plain"), comments);
 
-        // Handle file upload
         MultipartBody.Part filePart = null;
         if (selectedFileUri != null) {
             File file = new File(getCacheDir(), getFileName(selectedFileUri));
             try {
-                InputStream inputStream = getContentResolver().openInputStream(selectedFileUri);
-                OutputStream outputStream = new FileOutputStream(file);
-                byte[] buffer = new byte[4 * 1024];
+                InputStream in  = getContentResolver().openInputStream(selectedFileUri);
+                OutputStream out = new FileOutputStream(file);
+                byte[] buf = new byte[4096];
                 int read;
-                while ((read = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, read);
-                }
-                outputStream.flush();
+                while ((read = in.read(buf)) != -1) out.write(buf, 0, read);
+                out.flush();
+                in.close();
+                out.close();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-            RequestBody requestFile = RequestBody.create(MediaType.parse(getContentResolver().getType(selectedFileUri)), file);
+            String mime = getContentResolver().getType(selectedFileUri);
+            RequestBody requestFile = RequestBody.create(MediaType.parse(mime != null ? mime : "application/octet-stream"), file);
             filePart = MultipartBody.Part.createFormData("document", file.getName(), requestFile);
         }
 
-        // Submit the request via API
+        // Show loading
+        setFormEnabled(false);
+        loadingDialog.show("Submitting request...");
+
         ApiService.getApiInterface(this).submitOutOfStationRequest(
                 startDateBody, endDateBody, reasonBody, commentsBody, filePart
         ).enqueue(new Callback<OutOfStationResponse>() {
             @Override
             public void onResponse(Call<OutOfStationResponse> call, Response<OutOfStationResponse> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(OutOfStationActivity.this, "Request submitted successfully", Toast.LENGTH_SHORT).show();
+                loadingDialog.close();
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    showResultDialog(true, "Request submitted successfully.");
                 } else {
-                    Toast.makeText(OutOfStationActivity.this, "Failed to submit request", Toast.LENGTH_SHORT).show();
+                    String msg = (response.body() != null && response.body().getMessage() != null)
+                            ? response.body().getMessage()
+                            : "Failed to submit request. Please try again.";
+                    showResultDialog(false, msg);
                 }
             }
 
             @Override
             public void onFailure(Call<OutOfStationResponse> call, Throwable t) {
-                Toast.makeText(OutOfStationActivity.this, "Request submission failed", Toast.LENGTH_SHORT).show();
+                loadingDialog.close();
+                showResultDialog(false, "Network error: " + t.getMessage());
             }
         });
+    }
+
+    /** Shows a success or error dialog. On dismiss, always goes back to HomeActivity. */
+    private void showResultDialog(boolean success, String message) {
+        new AlertDialog.Builder(this)
+                .setTitle(success ? "Success" : "Error")
+                .setMessage(message)
+                .setIcon(success ? android.R.drawable.ic_dialog_info : android.R.drawable.ic_dialog_alert)
+                .setCancelable(false)
+                .setPositiveButton("OK", (dialog, which) -> goHome())
+                .show();
+    }
+
+    private void goHome() {
+        Intent intent = new Intent(this, HomeActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
+    }
+
+    /** Disable/enable the form while submitting to prevent double-taps. */
+    private void setFormEnabled(boolean enabled) {
+        submitButton.setEnabled(enabled);
+        requestStartDate.setEnabled(enabled);
+        requestEndDate.setEnabled(enabled);
+        reasonSpinner.setEnabled(enabled);
+        EditText commentsField = findViewById(R.id.comments);
+        if (commentsField != null) commentsField.setEnabled(enabled);
+        Button selectFileButton = findViewById(R.id.select_file_button);
+        if (selectFileButton != null) selectFileButton.setEnabled(enabled);
     }
 
     private void showDatePickerDialog(final EditText editText) {
         DatePickerFragment newFragment = new DatePickerFragment();
         newFragment.setDateSetListener((view, year, month, dayOfMonth) -> {
-            String selectedDate = year + "-" + (month + 1) + "-" + dayOfMonth;
+            String selectedDate = year + "-" + String.format("%02d", month + 1) + "-" + String.format("%02d", dayOfMonth);
             editText.setText(selectedDate);
         });
         newFragment.show(getSupportFragmentManager(), "datePicker");
@@ -175,20 +205,17 @@ public class OutOfStationActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICK_FILE_REQUEST_CODE && resultCode == RESULT_OK) {
-            if (data != null) {
-                selectedFileUri = data.getData();
-                String fileName = getFileName(selectedFileUri);
-                selectedFileNameTextView.setText("Selected file: " + fileName);
-            }
+        if (requestCode == PICK_FILE_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            selectedFileUri = data.getData();
+            selectedFileNameTextView.setText("Selected: " + getFileName(selectedFileUri));
         }
     }
 
     @SuppressLint("Range")
     private String getFileName(Uri uri) {
         String result = null;
-        if (uri.getScheme().equals("content")) {
-            try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+        if ("content".equals(uri.getScheme())) {
+            try (android.database.Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                 }
@@ -196,11 +223,9 @@ public class OutOfStationActivity extends AppCompatActivity {
         }
         if (result == null) {
             result = uri.getPath();
-            int cut = result.lastIndexOf('/');
-            if (cut != -1) {
-                result = result.substring(cut + 1);
-            }
+            int cut = result != null ? result.lastIndexOf('/') : -1;
+            if (cut != -1) result = result.substring(cut + 1);
         }
-        return result;
+        return result != null ? result : "unknown";
     }
 }

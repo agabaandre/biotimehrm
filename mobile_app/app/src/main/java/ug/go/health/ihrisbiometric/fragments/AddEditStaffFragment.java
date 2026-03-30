@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.UUID;
 
 import ug.go.health.ihrisbiometric.R;
-import ug.go.health.ihrisbiometric.models.FacilityRecord;
 import ug.go.health.ihrisbiometric.models.StaffRecord;
 import ug.go.health.ihrisbiometric.services.DbService;
 import ug.go.health.ihrisbiometric.services.SessionService;
@@ -94,50 +93,31 @@ public class AddEditStaffFragment extends Fragment {
         String[] genders = {"Male", "Female", "Other"};
         spinnerGender.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, genders));
 
-        // Districts - from cached server data
+        // Districts - from employee_districts via sync
         List<String> districts = sessionService.getDistrictList();
-        if (districts.isEmpty()) {
-            districts = new ArrayList<>();
-            districts.add("No districts available - please sync first");
-        }
+        if (districts.isEmpty()) districts.add("No districts available - please sync first");
         spinnerDistrict.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, districts));
 
-        // Facilities - from cached server data (all facilities with full details)
+        // Facilities - from employee_facility via sync
         List<String> allFacilities = sessionService.getAllFacilityList();
-        if (allFacilities.isEmpty()) {
-            // Fallback to user's assigned facilities
-            List<FacilityRecord> userFacilities = sessionService.getFacilities();
-            allFacilities = new ArrayList<>();
-            for (FacilityRecord f : userFacilities) {
-                allFacilities.add(f.getFacility());
-            }
-        }
-        if (allFacilities.isEmpty()) {
-            allFacilities = new ArrayList<>();
-            allFacilities.add("No facilities available - please sync first");
-        }
+        if (allFacilities.isEmpty()) allFacilities.add("No facilities available - please sync first");
         spinnerFacility.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, allFacilities));
 
-        // Facility Type - static (institution categories)
+        // Facility Type - static
         String[] facilityTypes = {"Hospital", "Health Center IV", "Health Center III", "Health Center II", "Clinic", "School"};
         spinnerFacilityType.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, facilityTypes));
 
-        // Cadres - from cached server data
+        // Cadres - from employee_cadre via sync
         List<String> cadres = sessionService.getCadreList();
-        if (cadres.isEmpty()) {
-            cadres = new ArrayList<>();
-            cadres.add("No cadres available - please sync first");
-        }
+        if (cadres.isEmpty()) cadres.add("No cadres available - please sync first");
         spinnerCadre.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, cadres));
 
-        // Jobs - from cached server data
+        // Jobs - from employee_jobs via sync
         List<String> jobs = sessionService.getJobList();
-        if (jobs.isEmpty()) {
-            jobs = new ArrayList<>();
-            jobs.add("No jobs available - please sync first");
-        }
+        if (jobs.isEmpty()) jobs.add("No jobs available - please sync first");
         spinnerJob.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, jobs));
     }
+
 
     private void setupDatePicker() {
         etDob.setOnClickListener(v -> {
@@ -168,6 +148,7 @@ public class AddEditStaffFragment extends Fragment {
                     spinnerFacilityType.setText(staff.getFacilityType(), false);
                     etDob.setText(staff.getDob());
                     spinnerJob.setText(staff.getJob(), false);
+                    spinnerCadre.setText(staff.getCadre(), false);
                 });
             }
         });
@@ -185,11 +166,11 @@ public class AddEditStaffFragment extends Fragment {
         currentStaff.setFacilityType(spinnerFacilityType.getText().toString());
         currentStaff.setDob(etDob.getText().toString());
         currentStaff.setJob(spinnerJob.getText().toString());
+        currentStaff.setCadre(spinnerCadre.getText().toString());
         currentStaff.setSynced(false);
 
-        // Set facility_id based on selected facility name
-        List<FacilityRecord> facilities = sessionService.getFacilities();
-        for (FacilityRecord f : facilities) {
+        // Resolve facility_id from the full AllFacilityRecord list (from employee_facility)
+        for (ug.go.health.ihrisbiometric.models.AllFacilityRecord f : sessionService.getAllFacilityRecords()) {
             if (f.getFacility().equals(currentStaff.getFacility())) {
                 currentStaff.setFacilityId(f.getFacilityId());
                 break;

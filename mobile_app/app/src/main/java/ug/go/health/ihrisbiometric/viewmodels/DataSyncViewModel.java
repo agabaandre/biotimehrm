@@ -403,10 +403,12 @@ public class DataSyncViewModel extends AndroidViewModel {
             @Override
             public void onResponse(Call<AllFacilitiesListResponse> call, Response<AllFacilitiesListResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getFacilities() != null) {
+                    List<AllFacilityRecord> records = response.body().getFacilities();
                     List<String> facilityNames = new ArrayList<>();
-                    for (AllFacilityRecord f : response.body().getFacilities()) {
+                    for (AllFacilityRecord f : records) {
                         facilityNames.add(f.getFacility());
                     }
+                    sessionService.setAllFacilityRecords(records);
                     sessionService.setAllFacilityList(facilityNames);
                     updateSyncMessage("Downloaded " + facilityNames.size() + " facilities");
                 }

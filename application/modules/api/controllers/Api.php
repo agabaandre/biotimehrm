@@ -1419,7 +1419,7 @@ class Api extends REST_Controller
         try {
             $decoded = $this->validateRequest();
             $rows = $this->mEmployee->get_districts();
-            $districts = array_column($rows, 'district');
+            $districts = array_column($rows, 'name');
 
             $this->response([
                 'status' => 'SUCCESS',
@@ -1452,7 +1452,7 @@ class Api extends REST_Controller
         try {
             $decoded = $this->validateRequest();
             $rows = $this->mEmployee->get_jobs();
-            $jobs = array_column($rows, 'job');
+            $jobs = array_column($rows, 'job_title');
 
             $this->response([
                 'status' => 'SUCCESS',
@@ -1582,17 +1582,45 @@ class Api extends REST_Controller
     // POST /api/request - Submit an out-of-station/leave request
     public function request_post()
     {
+        $log_prefix = '[request_post][' . date('Y-m-d H:i:s') . ']';
+        log_message('info', $log_prefix . ' ===== REQUEST STARTED =====');
+
         try {
+            // Log raw request info
+            log_message('info', $log_prefix . ' Content-Type: ' . $this->input->server('CONTENT_TYPE'));
+            log_message('info', $log_prefix . ' Content-Length: ' . $this->input->server('CONTENT_LENGTH'));
+            log_message('info', $log_prefix . ' Request Method: ' . $this->input->server('REQUEST_METHOD'));
+
+            // Log POST fields
+            log_message('info', $log_prefix . ' POST fields: ' . json_encode($_POST));
+
+            // Log FILES info (without binary data)
+            $files_info = [];
+            foreach ($_FILES as $key => $file) {
+                $files_info[$key] = [
+                    'name'     => $file['name'],
+                    'type'     => $file['type'],
+                    'size'     => $file['size'],
+                    'tmp_name' => $file['tmp_name'],
+                    'error'    => $file['error'],
+                ];
+            }
+            log_message('info', $log_prefix . ' FILES: ' . json_encode($files_info));
+
+            log_message('info', $log_prefix . ' Step 1: Validating JWT token');
             $decoded = $this->validateRequest();
             $userId = $decoded['user_id'];
             $facilityId = $decoded['facility_id'] ?? null;
+            log_message('info', $log_prefix . ' Step 1 OK: userId=' . $userId . ' facilityId=' . $facilityId);
 
             $startDate = $this->post('startDate');
-            $endDate = $this->post('endDate');
-            $reason = $this->post('reason');
-            $comments = $this->post('comments');
+            $endDate   = $this->post('endDate');
+            $reason    = $this->post('reason');
+            $comments  = $this->post('comments');
+            log_message('info', $log_prefix . ' Step 2: Fields - startDate=' . $startDate . ' endDate=' . $endDate . ' reason=' . $reason . ' comments=' . $comments);
 
             if (empty($startDate) || empty($endDate) || empty($reason)) {
+                log_message('error', $log_prefix . ' Step 2 FAILED: Missing required fields');
                 $this->response([
                     'success' => false,
                     'message' => 'startDate, endDate, and reason are required'
@@ -1600,52 +1628,79 @@ class Api extends REST_Controller
                 return;
             }
 
-            // Get user's ihris_pid
+            log_message('info', $log_prefix . ' Step 3: Looking up user by id=' . $userId);
             $user = $this->mEmployee->get_user_by_id($userId);
             $ihris_pid = $user ? $user->ihris_pid : null;
+            log_message('info', $log_prefix . ' Step 3 OK: ihris_pid=' . $ihris_pid);
 
             // Handle file attachment
             $attachment = null;
             $fileKey = isset($_FILES['document']) ? 'document' : (isset($_FILES['attachment']) ? 'attachment' : null);
-            if ($fileKey && $_FILES[$fileKey]['error'] == 0) {
-                $this->load->library('upload');
-                $config['upload_path'] = './uploads/requests/';
-                $config['allowed_types'] = 'pdf|doc|docx|jpg|jpeg|png';
-                $config['max_size'] = 5120;
+            log_message('info', $log_prefix . ' Step 4: File upload - fileKey=' . ($fileKey ?? 'none'));
 
-                if (!is_dir($config['upload_path'])) {
-                    mkdir($config['upload_path'], 0777, true);
+            if ($fileKey && $_FILES[$fileKey]['error'] == 0) {
+                log_message('info', $log_prefix . ' Step 4a: File found - name=' . $_FILES[$fileKey]['name'] . ' size=' . $_FILES[$fileKey]['size'] . ' tmp=' . $_FILES[$fileKey]['tmp_name']);
+
+                $upload_path = FCPATH . 'uploads/requests/';
+                log_message('info', $log_prefix . ' Step 4b: upload_path=' . $upload_path . ' exists=' . (is_dir($upload_path) ? 'yes' : 'no') . ' writable=' . (is_writable($upload_path) ? 'yes' : 'no'));
+
+                if (!is_dir($upload_path)) {
+                    $made = mkdir($upload_path, 0777, true);
+                    log_message('info', $log_prefix . ' Step 4b: mkdir result=' . ($made ? 'ok' : 'FAILED'));
                 }
 
+                $this->load->library('upload');
+                $config['upload_path']   = $upload_path;
+                $config['allowed_types'] = 'pdf|doc|docx|jpg|jpeg|png';
+                $config['max_size']      = 10240; // 10MB
                 $this->upload->initialize($config);
+
+                log_message('info', $log_prefix . ' Step 4c: Calling do_upload()');
                 if ($this->upload->do_upload($fileKey)) {
                     $upload_data = $this->upload->data();
-                    $attachment = $upload_data['full_path'];
+                    $attachment  = $upload_data['full_path'];
+                    log_message('info', $log_prefix . ' Step 4c OK: attachment=' . $attachment);
+                } else {
+                    $upload_error = $this->upload->display_errors('', '');
+                    log_message('error', $log_prefix . ' Step 4c FAILED: ' . $upload_error);
                 }
+            } elseif ($fileKey) {
+                log_message('error', $log_prefix . ' Step 4 FAILED: File error code=' . $_FILES[$fileKey]['error']);
+            } else {
+                log_message('info', $log_prefix . ' Step 4: No file attached');
             }
 
-            // Look up reason_id from reason name
+            log_message('info', $log_prefix . ' Step 5: Looking up reason_id for reason=' . $reason);
             $reason_id = null;
             $reasonRow = $this->db->get_where('reasons', ['reason' => $reason])->row();
             if ($reasonRow) {
                 $reason_id = $reasonRow->r_id;
+                log_message('info', $log_prefix . ' Step 5 OK: reason_id=' . $reason_id);
+            } else {
+                log_message('error', $log_prefix . ' Step 5 WARN: No matching reason found for "' . $reason . '"');
             }
 
             $data = [
-                'ihris_pid' => $ihris_pid,
-                'startDate' => $startDate,
-                'endDate' => $endDate,
-                'reason' => $reason,
-                'reason_id' => $reason_id,
-                'comments' => $comments,
+                'ihris_pid'   => $ihris_pid,
+                'startDate'   => $startDate,
+                'endDate'     => $endDate,
+                'reason'      => $reason,
+                'reason_id'   => $reason_id,
+                'comments'    => $comments,
                 'facility_id' => $facilityId,
-                'attachment' => $attachment
+                'attachment'  => $attachment
             ];
+            log_message('info', $log_prefix . ' Step 6: Inserting request - ' . json_encode($data));
 
             $result = $this->mEmployee->create_out_of_station_request($data);
+            log_message('info', $log_prefix . ' Step 6 result: ' . json_encode($result));
 
+            log_message('info', $log_prefix . ' ===== REQUEST ENDED =====');
             $this->response($result, $result['success'] ? 200 : 400);
+
         } catch (Exception $e) {
+            log_message('error', $log_prefix . ' EXCEPTION: ' . $e->getMessage());
+            log_message('error', $log_prefix . ' TRACE: ' . $e->getTraceAsString());
             $this->response([
                 'success' => false,
                 'message' => 'An error occurred: ' . $e->getMessage()
