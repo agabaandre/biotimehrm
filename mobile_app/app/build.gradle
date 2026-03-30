@@ -1,7 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-    id "io.sentry.android.gradle" version "4.11.0"
+    id "io.sentry.android.gradle" version "4.14.1"
 }
 
 def versionPropsFile = file('../version.properties')
@@ -116,7 +116,8 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-common-java8:2.10.0"
     annotationProcessor "androidx.lifecycle:lifecycle-compiler:2.10.0"
     implementation "net.gotev:uploadservice:4.9.4"
-    implementation 'io.sentry:sentry-okhttp:8.36.0'
+    implementation 'io.sentry:sentry-android:7.19.1'
+    implementation 'io.sentry:sentry-okhttp:7.19.1'
     
     // Use Maven dependency for OpenCV instead of local project
     implementation 'org.opencv:opencv:4.13.0'

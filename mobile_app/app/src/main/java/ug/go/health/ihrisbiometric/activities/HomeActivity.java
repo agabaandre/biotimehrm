@@ -196,9 +196,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     public void handleScannerEvent(String event) {
-
 
         String cleanedEvent = event.replaceAll("\\s+", " ").replaceAll("(\r\n|\n)", " ").trim();
         Log.d(TAG, "CLEANED_EVENT " + cleanedEvent);
@@ -600,11 +598,45 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         handleScannerEvent(message);
     }
 
+    private static final int MAX_RECONNECT_ATTEMPTS = 3;
+    private int reconnectAttempts = 0;
+    private boolean isReconnecting = false;
+
     @Override
     public void onScannerEvent(ug.go.health.library.ScannerResult result) {
         runOnUiThread(() -> {
             Log.d(TAG, "Scanner Result: " + result.getMessage());
             updateStatus(result.getMessage());
+
+            if (result.getType() == ug.go.health.library.ScannerResult.Type.ERROR
+                    && "Comm Failure".equals(result.getMessage())) {
+                if (!isReconnecting) {
+                    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                        reconnectAttempts++;
+                        isReconnecting = true;
+                        Log.w(TAG, "Comm Failure detected. Reconnect attempt " + reconnectAttempts + "/" + MAX_RECONNECT_ATTEMPTS);
+                        updateStatus("Scanner disconnected. Reconnecting (" + reconnectAttempts + "/" + MAX_RECONNECT_ATTEMPTS + ")...");
+                        handler.postDelayed(() -> {
+                            if (scanner != null) {
+                                scanner.CloseDevice();
+                                scanner = null;
+                            }
+                            isReconnecting = false;
+                            initializeScanner();
+                        }, 2000);
+                    } else {
+                        Log.e(TAG, "Scanner failed after " + MAX_RECONNECT_ATTEMPTS + " reconnect attempts.");
+                        updateStatus("Scanner unavailable. Please check the device connection.");
+                    }
+                }
+                return;
+            }
+
+            // Reset reconnect counter only on a real successful result (not just in-progress)
+            if (result.getType() == ug.go.health.library.ScannerResult.Type.SUCCESS) {
+                reconnectAttempts = 0;
+                isReconnecting = false;
+            }
 
             if (result.getType() == ug.go.health.library.ScannerResult.Type.SUCCESS) {
                 if (result.getCommandCode() == ug.go.health.library.DevComm.CMD_GET_EMPTY_ID_CODE) {
@@ -618,7 +650,12 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     } else {
                         updateStatus("Please wait before clocking again.");
                     }
+                } else if (result.getCommandCode() == ug.go.health.library.DevComm.CMD_ENROLL_CODE) {
+                    handleSuccessfulScan(result.getValue());
                 }
+            } else if (result.getType() == ug.go.health.library.ScannerResult.Type.WAITING_FOR_FINGER) {
+                // Intermediate enrollment sweep — just show the prompt, the loop in ScannerLibrary continues
+                updateStatus(result.getMessage());
             }
         });
     }

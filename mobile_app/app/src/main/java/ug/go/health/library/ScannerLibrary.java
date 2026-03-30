@@ -54,12 +54,58 @@ public int OpenDevice(String devicePath, int baudRate) {
 
     public void enroll(int templateId) {
         executeCommand((short) DevComm.CMD_ENROLL_CODE, "Place your finger on the sensor", () -> {
+            // Build the enroll command packet once — it is re-sent for each sweep
             devComm.InitPacket((short) DevComm.CMD_ENROLL_CODE, true);
             devComm.SetDataLen((short) 2);
             devComm.m_abyPacket[6] = devComm.LOBYTE((short) templateId);
             devComm.m_abyPacket[7] = devComm.HIBYTE((short) templateId);
             devComm.AddCheckSum(true);
-            handleStandardResponse((short) DevComm.CMD_ENROLL_CODE, devComm.Send_Command((short) DevComm.CMD_ENROLL_CODE));
+
+            // Loop: keep sending the same packet until we get a final result.
+            // The scanner returns ERR_SUCCESS + GD_NEED_* codes for each intermediate
+            // sweep (1st, 2nd, 3rd finger placement and release). Only when data is a
+            // plain template number (< 0xFFF1) is enrollment complete.
+            while (true) {
+                boolean commOk = devComm.Send_Command((short) DevComm.CMD_ENROLL_CODE);
+                if (!commOk) {
+                    postResult(ScannerResult.error((short) DevComm.CMD_ENROLL_CODE, "Comm Failure"));
+                    return;
+                }
+
+                short ret  = devComm.GetRetCode();
+                short data = devComm.MAKEWORD(devComm.m_abyPacket[8], devComm.m_abyPacket[9]);
+
+                if (ret == DevComm.ERR_SUCCESS) {
+                    switch (data & 0xFFFF) {
+                        case DevComm.GD_NEED_FIRST_SWEEP:
+                            postResult(ScannerResult.waiting((short) DevComm.CMD_ENROLL_CODE, "Place your finger on the sensor"));
+                            break;
+                        case DevComm.GD_NEED_SECOND_SWEEP:
+                            postResult(ScannerResult.waiting((short) DevComm.CMD_ENROLL_CODE, "Place your finger again (2nd)"));
+                            break;
+                        case DevComm.GD_NEED_THIRD_SWEEP:
+                            postResult(ScannerResult.waiting((short) DevComm.CMD_ENROLL_CODE, "Place your finger again (3rd)"));
+                            break;
+                        case DevComm.GD_NEED_RELEASE_FINGER:
+                            postResult(ScannerResult.waiting((short) DevComm.CMD_ENROLL_CODE, "Release your finger"));
+                            break;
+                        default:
+                            // Final success — data is the assigned template number
+                            postResult(ScannerResult.success((short) DevComm.CMD_ENROLL_CODE, "Enrolled", data, null));
+                            return;
+                    }
+                    // Clear packet and re-send for next sweep
+                    devComm.memset(devComm.m_abyPacket, (byte) 0, 64 * 1024);
+                    devComm.InitPacket((short) DevComm.CMD_ENROLL_CODE, true);
+                    devComm.SetDataLen((short) 2);
+                    devComm.m_abyPacket[6] = devComm.LOBYTE((short) templateId);
+                    devComm.m_abyPacket[7] = devComm.HIBYTE((short) templateId);
+                    devComm.AddCheckSum(true);
+                } else {
+                    postResult(ScannerResult.failure((short) DevComm.CMD_ENROLL_CODE, "Enroll failed: " + ret));
+                    return;
+                }
+            }
         });
     }
 
@@ -147,7 +193,17 @@ public int OpenDevice(String devicePath, int baudRate) {
     }
 
     private void postResult(ScannerResult res) {
-        statusHandler.post(() -> { eventListener.onScannerEvent(res); eventListener.onEvent(res.getMessage()); });
+        // Only fire the legacy onEvent string callback for results that need
+        // string-based handling (EMPTY_ID). All other results are handled
+        // exclusively via onScannerEvent to avoid double-processing and
+        // leaking internal messages like "Success" to the UI.
+        statusHandler.post(() -> {
+            eventListener.onScannerEvent(res);
+            if (res.getCommandCode() == (short) DevComm.CMD_GET_EMPTY_ID_CODE
+                    && res.getType() == ScannerResult.Type.SUCCESS) {
+                eventListener.onEvent("EMPTY_ID :: " + res.getValue());
+            }
+        });
     }
 
     public int Run_CmdGetEmptyID() { getEmptyId(); return 0; }
