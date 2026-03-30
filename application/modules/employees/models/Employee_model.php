@@ -1343,13 +1343,17 @@ class Employee_model extends CI_Model
         $searchClause = "";
         if (!empty($search)) {
             $escaped = $this->db->escape_like_str($search);
-            $searchClause = "AND (ihrisdata.surname LIKE '%$escaped%' OR ihrisdata.firstname LIKE '%$escaped%' OR ihrisdata.job LIKE '%$escaped%' OR clk_log.date LIKE '%$escaped%')";
+            $searchClause = "AND (ihrisdata.surname LIKE '%$escaped%' OR ihrisdata.firstname LIKE '%$escaped%' OR ihrisdata.job LIKE '%$escaped%' OR logs.date LIKE '%$escaped%')";
         }
 
         $sql = "SELECT COUNT(*) as cnt
-                FROM clk_log
-                INNER JOIN ihrisdata ON ihrisdata.ihris_pid = clk_log.ihris_pid
-                WHERE clk_log.date BETWEEN '$date_from' AND '$date_to' 
+                FROM (
+                    SELECT ihris_pid, date, time_in, time_out, facility_id FROM clk_log
+                    UNION ALL
+                    SELECT ihris_pid, date, time_in, time_out, facility_id FROM mobileclk_log
+                ) AS logs
+                INNER JOIN ihrisdata ON ihrisdata.ihris_pid = logs.ihris_pid
+                WHERE logs.date BETWEEN '$date_from' AND '$date_to' 
                 AND $filter 
                 $namesearch 
                 $sjob 
@@ -1393,22 +1397,26 @@ class Employee_model extends CI_Model
         $searchClause = "";
         if (!empty($search)) {
             $escaped = $this->db->escape_like_str($search);
-            $searchClause = "AND (ihrisdata.surname LIKE '%$escaped%' OR ihrisdata.firstname LIKE '%$escaped%' OR ihrisdata.job LIKE '%$escaped%' OR clk_log.date LIKE '%$escaped%')";
+            $searchClause = "AND (ihrisdata.surname LIKE '%$escaped%' OR ihrisdata.firstname LIKE '%$escaped%' OR ihrisdata.job LIKE '%$escaped%' OR logs.date LIKE '%$escaped%')";
         }
 
         $limit = "LIMIT $start, $length";
 
         $sql = "SELECT ihrisdata.surname, ihrisdata.firstname, ihrisdata.othername, ihrisdata.department, 
                        ihrisdata.job, ihrisdata.ihris_pid as pid, ihrisdata.facility_id as facid, 
-                       ihrisdata.facility as fac, clk_log.time_in, clk_log.time_out, clk_log.date
-                FROM clk_log
-                INNER JOIN ihrisdata ON ihrisdata.ihris_pid = clk_log.ihris_pid
-                WHERE clk_log.date BETWEEN '$date_from' AND '$date_to' 
+                       ihrisdata.facility as fac, logs.time_in, logs.time_out, logs.date
+                FROM (
+                    SELECT ihris_pid, date, time_in, time_out FROM clk_log
+                    UNION ALL
+                    SELECT ihris_pid, date, time_in, time_out FROM mobileclk_log
+                ) AS logs
+                INNER JOIN ihrisdata ON ihrisdata.ihris_pid = logs.ihris_pid
+                WHERE logs.date BETWEEN '$date_from' AND '$date_to' 
                 AND $filter 
                 $namesearch 
                 $sjob 
                 $searchClause
-                ORDER BY ihrisdata.surname ASC, clk_log.date ASC
+                ORDER BY ihrisdata.surname ASC, logs.date ASC
                 $limit";
         
         $query = $this->db->query($sql);
@@ -1441,7 +1449,14 @@ class Employee_model extends CI_Model
         } else {
             $sjob = "";
         }
-        $query = $this->db->query("SELECT surname,firstname,othername,department,job,gender,birth_date,cadre,ihrisdata.ihris_pid as pid,ihrisdata.facility_id as facid, ihrisdata.facility as fac, time_in ,  time_out,clk_log.date as date  from clk_log, ihrisdata WHERE ihrisdata.ihris_pid=clk_log.ihris_pid and clk_log.date BETWEEN '$date_from' AND '$date_to'  AND $filter $sname $sjob ORDER BY surname ASC, clk_log.date ASC");
+        $query = $this->db->query("SELECT surname,firstname,othername,department,job,gender,birth_date,cadre,ihrisdata.ihris_pid as pid,ihrisdata.facility_id as facid, ihrisdata.facility as fac, logs.time_in, logs.time_out, logs.date as date
+                FROM (
+                    SELECT ihris_pid, date, time_in, time_out FROM clk_log
+                    UNION ALL
+                    SELECT ihris_pid, date, time_in, time_out FROM mobileclk_log
+                ) AS logs
+                INNER JOIN ihrisdata ON ihrisdata.ihris_pid = logs.ihris_pid
+                WHERE logs.date BETWEEN '$date_from' AND '$date_to' AND $filter $sname $sjob ORDER BY surname ASC, logs.date ASC");
         $data = $query->result();
         return $data;
     }

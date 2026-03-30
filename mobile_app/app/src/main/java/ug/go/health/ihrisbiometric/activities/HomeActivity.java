@@ -334,7 +334,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                 if (!fpDir.exists()) fpDir.mkdirs();
 
                 String safeId = staffRecord.getIhrisPid().replaceAll("[^a-zA-Z0-9_-]", "_");
-                File destFile = new File(fpDir, safeId + "_" + templateNumber + ".fpt");
+                File destFile = new File(fpDir, safeId + ".fpt");
 
                 try (FileOutputStream fos = new FileOutputStream(destFile)) {
                     fos.write(templateBytes);
@@ -584,7 +584,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
             if (!fpDir.exists()) fpDir.mkdirs();
 
             String safeId = ihrisPid.replaceAll("[^a-zA-Z0-9_-]", "_");
-            File destFile = new File(fpDir, safeId + "_" + templateNumber + ".fpt");
+            File destFile = new File(fpDir, safeId + ".fpt");
 
             File originalFile = new File(filePath);
             try {

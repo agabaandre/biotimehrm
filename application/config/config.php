@@ -40,8 +40,8 @@ if (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] 
 }
 
 if (isset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME'])) {
-  $dirname = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/';
-  $root = $protocol . $_SERVER['HTTP_HOST'] . $dirname;
+  $dirname = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+  $root = $protocol . $_SERVER['HTTP_HOST'] . ($dirname !== '' ? $dirname : '') . '/';
   $config["base_url"] = $root;
 }
 

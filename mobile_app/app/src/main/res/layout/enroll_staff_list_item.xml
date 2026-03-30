@@ -4,19 +4,17 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <!-- staff_item.xml -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp"
+        android:padding="12dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <!--        Avatar with gray background and center image-->
         <ImageView
             android:id="@+id/iv_staff_image"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:scaleType="centerCrop"
             android:background="@drawable/circle_gray"
             android:padding="8dp"
@@ -26,7 +24,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="12dp"
             android:orientation="vertical">
 
             <TextView
@@ -34,33 +32,55 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Staff Name"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textColor="@android:color/black"/>
 
             <TextView
                 android:id="@+id/tv_enroll_status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Enrolled"
-                android:textSize="14sp"
-                android:textColor="@android:color/darker_gray"/>
+                android:text="Not Enrolled"
+                android:textSize="13sp"
+                android:textColor="@android:color/darker_gray"
+                android:layout_marginTop="2dp"/>
+
+            <!-- Re-enroll buttons — shown only when that modality needs attention -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="6dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_re_enroll_fingerprint"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:text="Re-enroll Fingerprint"
+                    android:textSize="11sp"
+                    android:paddingHorizontal="8dp"
+                    android:visibility="gone"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_re_enroll_face"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:text="Re-enroll Face"
+                    android:textSize="11sp"
+                    android:paddingHorizontal="8dp"
+                    android:layout_marginStart="6dp"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
 
         </LinearLayout>
 
-        <!--        <ImageView-->
-        <!--            android:id="@+id/iv_enrolled_status"-->
-        <!--            android:layout_width="48dp"-->
-        <!--            android:layout_height="48dp"-->
-        <!--            android:src="@drawable/check_circle_outline"-->
-        <!--            android:visibility="visible"/>-->
-
     </LinearLayout>
 
-    <!-- Divider -->
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/gray"/>
-
 
 </LinearLayout>

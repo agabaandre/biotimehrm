@@ -91,7 +91,14 @@
         android:id="@+id/enrollHistoryFragment"
         android:name="ug.go.health.ihrisbiometric.fragments.EnrollHistoryFragment"
         android:label="Enroll History"
-        tools:layout="@layout/fragment_enroll_history" />
+        tools:layout="@layout/fragment_enroll_history">
+        <action
+            android:id="@+id/action_enrollHistoryFragment_to_cameraFragment"
+            app:destination="@id/cameraFragment"/>
+        <action
+            android:id="@+id/action_enrollHistoryFragment_to_enrollUserFragment"
+            app:destination="@id/enrollUserFragment"/>
+    </fragment>
 
     <activity
         android:id="@+id/aboutProjectActivity"
