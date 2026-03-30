@@ -638,7 +638,11 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
             }
 
             if (result.getType() == ug.go.health.library.ScannerResult.Type.FAILURE) {
-                updateStatus("Fingerprint not recognised. Please try again.");
+                if (result.getCommandCode() == ug.go.health.library.DevComm.CMD_ENROLL_CODE) {
+                    updateStatus(result.getMessage()); // already human-friendly from ScannerLibrary
+                } else {
+                    updateStatus("Fingerprint not recognised. Please try again.");
+                }
                 return;
             }
 

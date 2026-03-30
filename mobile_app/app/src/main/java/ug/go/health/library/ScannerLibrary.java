@@ -54,17 +54,12 @@ public int OpenDevice(String devicePath, int baudRate) {
 
     public void enroll(int templateId) {
         executeCommand((short) DevComm.CMD_ENROLL_CODE, "Place your finger on the sensor", () -> {
-            // Build the enroll command packet once — it is re-sent for each sweep
             devComm.InitPacket((short) DevComm.CMD_ENROLL_CODE, true);
             devComm.SetDataLen((short) 2);
             devComm.m_abyPacket[6] = devComm.LOBYTE((short) templateId);
             devComm.m_abyPacket[7] = devComm.HIBYTE((short) templateId);
             devComm.AddCheckSum(true);
 
-            // Loop: keep sending the same packet until we get a final result.
-            // The scanner returns ERR_SUCCESS + GD_NEED_* codes for each intermediate
-            // sweep (1st, 2nd, 3rd finger placement and release). Only when data is a
-            // plain template number (< 0xFFF1) is enrollment complete.
             while (true) {
                 boolean commOk = devComm.Send_Command((short) DevComm.CMD_ENROLL_CODE);
                 if (!commOk) {
@@ -94,17 +89,25 @@ public int OpenDevice(String devicePath, int baudRate) {
                             postResult(ScannerResult.success((short) DevComm.CMD_ENROLL_CODE, "Enrolled", data, null));
                             return;
                     }
-                    // Clear packet and re-send for next sweep
-                    devComm.memset(devComm.m_abyPacket, (byte) 0, 64 * 1024);
-                    devComm.InitPacket((short) DevComm.CMD_ENROLL_CODE, true);
-                    devComm.SetDataLen((short) 2);
-                    devComm.m_abyPacket[6] = devComm.LOBYTE((short) templateId);
-                    devComm.m_abyPacket[7] = devComm.HIBYTE((short) templateId);
-                    devComm.AddCheckSum(true);
                 } else {
-                    postResult(ScannerResult.failure((short) DevComm.CMD_ENROLL_CODE, "Enroll failed: " + ret));
-                    return;
+                    // ERR_BAD_QUALITY or ERR_SMALL_LINES — retry the current sweep
+                    int errCode = data & 0xFF;
+                    if (errCode == DevComm.ERR_BAD_QUALITY || errCode == DevComm.ERR_SMALL_LINES || errCode == DevComm.ERR_TOO_FAST) {
+                        postResult(ScannerResult.waiting((short) DevComm.CMD_ENROLL_CODE, "Poor quality scan. Place your finger firmly and try again."));
+                    } else {
+                        // Genuine failure (generalization failed, duplicate, etc.)
+                        postResult(ScannerResult.failure((short) DevComm.CMD_ENROLL_CODE, "Enrollment failed. Please try again."));
+                        return;
+                    }
                 }
+
+                // Rebuild packet for next send
+                devComm.memset(devComm.m_abyPacket, (byte) 0, 64 * 1024);
+                devComm.InitPacket((short) DevComm.CMD_ENROLL_CODE, true);
+                devComm.SetDataLen((short) 2);
+                devComm.m_abyPacket[6] = devComm.LOBYTE((short) templateId);
+                devComm.m_abyPacket[7] = devComm.HIBYTE((short) templateId);
+                devComm.AddCheckSum(true);
             }
         });
     }
