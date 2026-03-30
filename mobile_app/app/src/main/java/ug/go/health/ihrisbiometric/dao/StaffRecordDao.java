@@ -63,13 +63,13 @@ public interface StaffRecordDao {
     @Query("DELETE FROM staff_records WHERE id = :id")
     void deleteById(int id);
 
-    @Query("SELECT * FROM staff_records WHERE fingerprint_enrolled = 1 AND fingerprint_data IS NOT NULL AND fingerprint_synced = 0")
+    @Query("SELECT * FROM staff_records WHERE fingerprint_enrolled = 1 AND fingerprint_path IS NOT NULL AND fingerprint_synced = 0")
     List<StaffRecord> getStaffRecordsWithUnsyncedFingerprints();
 
-    @Query("SELECT * FROM staff_records WHERE fingerprint_enrolled = 1 AND fingerprint_data IS NOT NULL AND template_id = 0")
+    @Query("SELECT * FROM staff_records WHERE fingerprint_enrolled = 1 AND fingerprint_path IS NOT NULL AND template_id = 0")
     List<StaffRecord> getStaffRecordsWithUnregisteredFingerprints();
 
-    @Query("SELECT COUNT(*) FROM staff_records WHERE fingerprint_enrolled = 1 AND fingerprint_data IS NOT NULL AND fingerprint_synced = 0")
+    @Query("SELECT COUNT(*) FROM staff_records WHERE fingerprint_enrolled = 1 AND fingerprint_path IS NOT NULL AND fingerprint_synced = 0")
     int countUnsyncedFingerprints();
 
     @Query("SELECT COUNT(*) FROM staff_records WHERE fingerprint_synced = 1")

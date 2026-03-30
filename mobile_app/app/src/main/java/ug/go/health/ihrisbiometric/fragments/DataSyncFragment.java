@@ -33,6 +33,7 @@ import ug.go.health.ihrisbiometric.models.ClockHistory;
 import ug.go.health.ihrisbiometric.models.StaffRecord;
 import ug.go.health.ihrisbiometric.utils.NonScrollableExpandableListView;
 import ug.go.health.ihrisbiometric.viewmodels.DataSyncViewModel;
+import ug.go.health.ihrisbiometric.viewmodels.HomeViewModel;
 
 public class DataSyncFragment extends Fragment {
 
@@ -87,8 +88,6 @@ public class DataSyncFragment extends Fragment {
     }
 
     private void setupViewModel() {
-        SessionService sessionService = new SessionService(requireContext());
-        String token = sessionService.getToken();
         viewModel = new ViewModelProvider(this, new ViewModelProvider.Factory() {
             @NonNull
             @Override
@@ -99,6 +98,10 @@ public class DataSyncFragment extends Fragment {
                 throw new IllegalArgumentException("Unknown ViewModel class");
             }
         }).get(DataSyncViewModel.class);
+
+        // Pass the shared HomeViewModel so DataSyncViewModel can access the scanner
+        HomeViewModel homeViewModel = new ViewModelProvider(requireActivity()).get(HomeViewModel.class);
+        viewModel.setHomeViewModel(homeViewModel);
     }
 
     private void initializeExpandableListView() {

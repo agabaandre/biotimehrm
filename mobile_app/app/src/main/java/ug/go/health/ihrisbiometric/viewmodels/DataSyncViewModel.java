@@ -39,7 +39,7 @@ import ug.go.health.ihrisbiometric.services.EmbeddingSyncService;
 import ug.go.health.ihrisbiometric.services.FaceScanner;
 import ug.go.health.ihrisbiometric.services.FingerprintSyncService;
 import ug.go.health.ihrisbiometric.services.SessionService;
-
+import ug.go.health.library.ScannerLibrary;
 public class DataSyncViewModel extends AndroidViewModel {
     private static final String TAG = "DataSyncViewModel";
 
@@ -83,6 +83,7 @@ public class DataSyncViewModel extends AndroidViewModel {
     private SessionService sessionService;
     private FingerprintSyncService fingerprintSyncService;
     private EmbeddingSyncService embeddingSyncService;
+    private HomeViewModel homeViewModel; // source of the scanner reference
 
     public DataSyncViewModel(@NonNull Application application) {
         super(application);
@@ -107,6 +108,11 @@ public class DataSyncViewModel extends AndroidViewModel {
 
     public LiveData<SyncStatus> getSyncStatus() {
         return syncStatusLiveData;
+    }
+
+    /** Call from DataSyncFragment to give access to the shared HomeViewModel scanner reference. */
+    public void setHomeViewModel(HomeViewModel homeViewModel) {
+        this.homeViewModel = homeViewModel;
     }
 
     public LiveData<Integer> getStaffSyncProgress() {
@@ -282,21 +288,16 @@ public class DataSyncViewModel extends AndroidViewModel {
                     if (localRecord.isSynced()) {
                         serverRecord.setId(localRecord.getId());
                         serverRecord.setSynced(true);
-                        // Preserve local biometric data if server doesn't have it
-                        if (serverRecord.getFingerprintData() == null && localRecord.getFingerprintData() != null) {
-                            serverRecord.setFingerprintData(localRecord.getFingerprintData());
-                            serverRecord.setFingerprintEnrolled(localRecord.isFingerprintEnrolled());
-                            serverRecord.setFingerprintSynced(localRecord.isFingerprintSynced());
-                        }
-                        if (serverRecord.getFaceData() == null && localRecord.getFaceData() != null) {
-                            serverRecord.setFaceData(localRecord.getFaceData());
-                            serverRecord.setFaceEnrolled(localRecord.isFaceEnrolled());
-                            serverRecord.setEmbeddingSynced(localRecord.isEmbeddingSynced());
-                            serverRecord.setFaceImage(localRecord.getFaceImage());
-                        }
-                        if (serverRecord.getTemplateId() == 0 && localRecord.getTemplateId() != 0) {
-                            serverRecord.setTemplateId(localRecord.getTemplateId());
-                        }
+                        // Always preserve local biometric data and sync flags —
+                        // local data takes precedence over server data
+                        serverRecord.setFingerprintPath(localRecord.getFingerprintPath());
+                        serverRecord.setFingerprintEnrolled(localRecord.isFingerprintEnrolled());
+                        serverRecord.setFingerprintSynced(localRecord.isFingerprintSynced());
+                        serverRecord.setTemplateId(localRecord.getTemplateId());
+                        serverRecord.setFaceData(localRecord.getFaceData());
+                        serverRecord.setFaceEnrolled(localRecord.isFaceEnrolled());
+                        serverRecord.setEmbeddingSynced(localRecord.isEmbeddingSynced());
+                        serverRecord.setFaceImage(localRecord.getFaceImage());
                         dbService.updateStaffRecordAsync(serverRecord, success -> {
                             processed[0]++;
                             if (processed[0] == total) onComplete.run();
@@ -512,7 +513,13 @@ public class DataSyncViewModel extends AndroidViewModel {
                         }
                         syncMessagesLiveData.postValue(msgs2);
                         updateSyncCounts();
-                        onComplete.run();
+
+                        // Re-register downloaded templates on the scanner if one is connected
+                        if (homeViewModel != null && homeViewModel.getScanner() != null && downloaded2 > 0) {
+                            registerDownloadedTemplates(onComplete);
+                        } else {
+                            onComplete.run();
+                        }
                     }
 
                     @Override
@@ -535,6 +542,40 @@ public class DataSyncViewModel extends AndroidViewModel {
                 onComplete.run(); // Continue to clock sync even on failure
             }
         });
+    }
+
+    private void registerDownloadedTemplates(Runnable onComplete) {
+        ScannerLibrary scanner = homeViewModel != null ? homeViewModel.getScanner() : null;
+        if (scanner == null) {
+            updateSyncMessage("Scanner not connected — skipping template registration");
+            onComplete.run();
+            return;
+        }
+        updateSyncMessage("Registering downloaded templates on scanner...");
+        fingerprintSyncService.registerTemplatesOnScanner(scanner,                new FingerprintSyncService.ScannerRegistrationCallback() {
+                    @Override
+                    public void onProgress(int completed, int total, String ihrisPid) {
+                        updateSyncMessage("Registered " + completed + "/" + total + ": " + ihrisPid);
+                    }
+
+                    @Override
+                    public void onComplete(int registered, List<String> failures) {
+                        List<String> msgs = syncMessagesLiveData.getValue();
+                        msgs.add("Registered " + registered + " template(s) on scanner");
+                        if (!failures.isEmpty()) {
+                            msgs.add("Registration failures: " + failures.size());
+                            for (String f : failures) Log.w(TAG, "Registration failure: " + f);
+                        }
+                        syncMessagesLiveData.postValue(msgs);
+                        onComplete.run();
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        updateSyncMessage("Scanner registration error: " + errorMessage);
+                        onComplete.run(); // don't block the rest of sync
+                    }
+                });
     }
 
     private void runEmbeddingSync(Runnable onComplete) {

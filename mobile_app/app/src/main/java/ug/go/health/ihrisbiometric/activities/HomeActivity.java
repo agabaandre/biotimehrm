@@ -1,7 +1,6 @@
 package ug.go.health.ihrisbiometric.activities;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
@@ -30,10 +29,12 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -187,9 +188,10 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                         }
                         new Handler().postDelayed(() -> scanner.Run_CmdGetEmptyID(), 2000);
                     }
+                    // Give the sync ViewModel a reference so it can re-register downloaded templates
+                    viewModel.setScanner(scanner);
                 }
             } else if ("Mobile".equals(deviceSettings.getDeviceType())) {
-                // Mobile devices will only use face recognition by default
                 deviceSettings.setScanMethod("face");
                 sessionService.setDeviceSettings(deviceSettings);
             }
@@ -309,62 +311,66 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
 
     private void handleEnrollAction(int templateNumber) {
         StaffRecord staffRecord = viewModel.getSelectedStaff().getValue();
-        if (staffRecord != null) {
-            staffRecord.setFingerprintEnrolled(true);
-            staffRecord.setTemplateId(templateNumber);
-
-            // Fetch the current location and update the staff record
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                fusedLocationClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        if (location != null) {
-
-                            staffRecord.setLocation(new ug.go.health.ihrisbiometric.models.Location(
-                                    location.getLatitude(),
-                                    location.getLongitude()
-                            ));
-
-//                            staffRecord.setLatitude(location.getLatitude());
-//                            staffRecord.setLongitude(location.getLongitude());
-                        }
-
-                        // Save the updated staff record
-                        dbService.updateStaffRecordAsync(staffRecord, result -> {
-                            if (result) {
-                                Log.d(TAG, "Staff record updated successfully");
-
-
-                                Log.d(TAG, "Empty ID incremented to " + viewModel.getEmptyId());
-
-                                updateStatus(staffRecord.getName() + " Enrolled");
-
-                                scanner.Run_CmdReadTemplate(templateNumber);
-
-                                viewModel.incrementEmptyId();
-
-
-                            } else {
-                                Log.e(TAG, "Failed to update staff record");
-                                updateStatus("Failed to update staff record for " + staffRecord.getName());
-                            }
-                        });
-
-//                        updateStatus("Fingerprint enrolled. Waiting for template to be saved...");
-                    }
-                }).addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.e(TAG, "Failed to get location", e);
-                        updateStatus("Failed to get location for enrollment");
-                    }
-                });
-            } else {
-                updateStatus("Location permission not granted");
-            }
-        } else {
+        if (staffRecord == null) {
             updateStatus("No staff selected for enrollment");
+            return;
         }
+
+        staffRecord.setFingerprintEnrolled(true);
+        staffRecord.setTemplateId(templateNumber);
+        staffRecord.setFingerprintSynced(false);
+
+        // Read the template bytes from the scanner on a background thread,
+        // save to disk, then update the DB — all before marking as enrolled.
+        executorService.execute(() -> {
+            byte[] templateBytes = scanner.readTemplateSync(templateNumber);
+
+            if (templateBytes != null && templateBytes.length > 0) {
+                // Save to internal storage
+                File fpDir = new File(getFilesDir(), "fingerprints");
+                if (!fpDir.exists()) fpDir.mkdirs();
+
+                String safeId = staffRecord.getIhrisPid().replaceAll("[^a-zA-Z0-9_-]", "_");
+                File destFile = new File(fpDir, safeId + "_" + templateNumber + ".fpt");
+
+                try (FileOutputStream fos = new FileOutputStream(destFile)) {
+                    fos.write(templateBytes);
+                    staffRecord.setFingerprintPath(destFile.getAbsolutePath());
+                    Log.d(TAG, "Fingerprint saved to " + destFile.getAbsolutePath());
+                } catch (IOException e) {
+                    Log.e(TAG, "Failed to save fingerprint file", e);
+                    // Path stays null — upload will be skipped but enrollment still recorded
+                }
+            } else {
+                Log.w(TAG, "readTemplateSync returned null for slot " + templateNumber + " — file not saved");
+            }
+
+            // Get location then save record
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED) {
+                fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+                    if (location != null) {
+                        staffRecord.setLocation(new ug.go.health.ihrisbiometric.models.Location(
+                                location.getLatitude(), location.getLongitude()));
+                    }
+                    saveEnrolledStaff(staffRecord);
+                }).addOnFailureListener(e -> saveEnrolledStaff(staffRecord));
+            } else {
+                saveEnrolledStaff(staffRecord);
+            }
+        });
+    }
+
+    private void saveEnrolledStaff(StaffRecord staffRecord) {
+        dbService.updateStaffRecordAsync(staffRecord, result -> {
+            if (result) {
+                updateStatus(staffRecord.getName() + " Enrolled");
+                viewModel.incrementEmptyId();
+            } else {
+                Log.e(TAG, "Failed to update staff record");
+                updateStatus("Failed to update staff record for " + staffRecord.getName());
+            }
+        });
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -372,38 +378,38 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         StaffRecord staffRecord = viewModel.getSelectedStaff().getValue();
         if (staffRecord != null && staffRecord.getTemplateId() == templateNumber) {
             String ihrisPid = staffRecord.getIhrisPid();
-            String newFileName = ihrisPid + "_" + templateNumber + ".fpt";
+            // Store in internal app storage — no external storage permission needed
+            File fpDir = new File(getFilesDir(), "fingerprints");
+            if (!fpDir.exists()) fpDir.mkdirs();
+
+            String safeId = ihrisPid.replaceAll("[^a-zA-Z0-9_-]", "_");
+            File destFile = new File(fpDir, safeId + "_" + templateNumber + ".fpt");
+
             File originalFile = new File(filePath);
-            File newFile = new File(originalFile.getParent(), newFileName);
-
             try {
-                // Rename the file
-                if (originalFile.renameTo(newFile)) {
-                    Log.d(TAG, "File renamed successfully to: " + newFileName);
-                } else {
-                    Log.e(TAG, "Failed to rename file");
-                    // If renaming fails, we'll continue with the original file
-                    newFile = originalFile;
+                // Copy to internal storage (rename across filesystems may fail)
+                byte[] data = Files.readAllBytes(originalFile.toPath());
+                try (FileOutputStream fos = new FileOutputStream(destFile)) {
+                    fos.write(data);
                 }
+                // Delete the original scanner-written file
+                originalFile.delete();
 
-                // Read the file content
-                byte[] fingerprintData = Files.readAllBytes(newFile.toPath());
-
-                // Update the staff record
-                staffRecord.setFingerprintData(fingerprintData);
+                // Store the path — not the raw bytes
+                staffRecord.setFingerprintPath(destFile.getAbsolutePath());
                 staffRecord.setFingerprintEnrolled(true);
+                staffRecord.setFingerprintSynced(false);
                 staffRecord.setTemplateId(templateNumber);
 
-                // Save the updated staff record
                 dbService.updateStaffRecordAsync(staffRecord, success -> {
                     if (success) {
-                        viewModel.setStatus(staffRecord.getName() + " Enrolled. Template saved as: " + newFileName);
+                        viewModel.setStatus(staffRecord.getName() + " enrolled. Template saved.");
                     } else {
                         viewModel.setStatus("Failed to update record for " + staffRecord.getName());
                     }
                 });
             } catch (IOException e) {
-                Log.e(TAG, "Error handling template file", e);
+                Log.e(TAG, "Error saving fingerprint file", e);
                 viewModel.setStatus("Error saving template for " + staffRecord.getName());
             }
         } else {
@@ -488,11 +494,9 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
     }
 
     private LocationRequest createLocationRequest() {
-        LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(5000);
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        return locationRequest;
+        return new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
+                .setMinUpdateIntervalMillis(5000)
+                .build();
     }
 
     private void updateLocation(Location location) {
@@ -505,7 +509,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
     private void fetchFacilitiesAndStaff() {
         apiService.getStaffList().enqueue(new Callback<StaffListResponse>() {
             @Override
-            public void onResponse(Call<StaffListResponse> call, Response<StaffListResponse> response) {
+            public void onResponse(@NonNull Call<StaffListResponse> call, @NonNull Response<StaffListResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     List<StaffRecord> staffRecords = response.body().getStaff();
                     saveStaffRecordsToDatabase(staffRecords);
@@ -516,7 +520,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
             }
 
             @Override
-            public void onFailure(Call<StaffListResponse> call, Throwable t) {
+            public void onFailure(@NonNull Call<StaffListResponse> call, @NonNull Throwable t) {
                 Log.e(TAG, "Error fetching staff list", t);
                 Toast.makeText(HomeActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -527,46 +531,41 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         for (StaffRecord apiStaffRecord : staffRecords) {
             Log.d(TAG, "Received staff record from server ===> " + apiStaffRecord.toJson());
 
-            // Check if a staff record with the same ihris_pid already exists
-            dbService.getStaffRecordByihrisPIDAsync(apiStaffRecord.getIhrisPid(), new DbService.Callback<StaffRecord>() {
-                @Override
-                public void onResult(StaffRecord existingRecord) {
-                    StaffRecord dbStaffRecord = existingRecord != null ? existingRecord : new StaffRecord();
+            dbService.getStaffRecordByihrisPIDAsync(apiStaffRecord.getIhrisPid(), existingRecord -> {
+                StaffRecord dbStaffRecord = existingRecord != null ? existingRecord : new StaffRecord();
 
-                    // Update fields that can be changed from the server
-                    dbStaffRecord.setId(apiStaffRecord.getId());
-                    dbStaffRecord.setIhrisPid(apiStaffRecord.getIhrisPid());
-                    dbStaffRecord.setSurname(apiStaffRecord.getSurname());
-                    dbStaffRecord.setFirstname(apiStaffRecord.getFirstname());
-                    dbStaffRecord.setOthername(apiStaffRecord.getOthername());
-                    dbStaffRecord.setJob(apiStaffRecord.getJob());
-                    dbStaffRecord.setFacilityId(apiStaffRecord.getFacilityId());
-                    dbStaffRecord.setFacility(apiStaffRecord.getFacility());
+                // Update fields from server — but NEVER overwrite the local Room id
+                // (server id is ihrisdata.id; local id is Room's auto-generated PK)
+                dbStaffRecord.setIhrisPid(apiStaffRecord.getIhrisPid());
+                dbStaffRecord.setSurname(apiStaffRecord.getSurname());
+                dbStaffRecord.setFirstname(apiStaffRecord.getFirstname());
+                dbStaffRecord.setOthername(apiStaffRecord.getOthername());
+                dbStaffRecord.setJob(apiStaffRecord.getJob());
+                dbStaffRecord.setFacilityId(apiStaffRecord.getFacilityId());
+                dbStaffRecord.setFacility(apiStaffRecord.getFacility());
 
-                    // Preserve local data if it exists
-                    if (existingRecord != null) {
-                        dbStaffRecord.setFingerprintEnrolled(existingRecord.isFingerprintEnrolled());
-                        dbStaffRecord.setFaceEnrolled(existingRecord.isFaceEnrolled());
-                        dbStaffRecord.setSynced(existingRecord.isSynced());
-                        dbStaffRecord.setFingerprintData(existingRecord.getFingerprintData());
-                        dbStaffRecord.setFaceData(existingRecord.getFaceData());
-                        dbStaffRecord.setTemplateId(existingRecord.getTemplateId());
-                    } else {
-                        // Set default values for new records
-                        dbStaffRecord.setFingerprintEnrolled(false);
-                        dbStaffRecord.setFaceEnrolled(false);
-                        dbStaffRecord.setSynced(false); // Assuming new records from server are not synced
-                    }
-
-                    Log.d(TAG, "Saving staff record to database ===> " + dbStaffRecord.toJson());
-
-                    dbService.saveStaffRecordAsync(dbStaffRecord, new DbService.Callback<Boolean>() {
-                        @Override
-                        public void onResult(Boolean success) {
-                            if (!success) {
-                                Log.e(TAG, "Failed to save staff record: " + dbStaffRecord.getIhrisPid());
-                            }
-                        }
+                if (existingRecord != null) {
+                    // Preserve all local biometric and sync state
+                    dbStaffRecord.setFingerprintEnrolled(existingRecord.isFingerprintEnrolled());
+                    dbStaffRecord.setFingerprintPath(existingRecord.getFingerprintPath());
+                    dbStaffRecord.setFingerprintSynced(existingRecord.isFingerprintSynced());
+                    dbStaffRecord.setTemplateId(existingRecord.getTemplateId());
+                    dbStaffRecord.setFaceEnrolled(existingRecord.isFaceEnrolled());
+                    dbStaffRecord.setFaceData(existingRecord.getFaceData());
+                    dbStaffRecord.setFaceImage(existingRecord.getFaceImage());
+                    dbStaffRecord.setEmbeddingSynced(existingRecord.isEmbeddingSynced());
+                    dbStaffRecord.setSynced(existingRecord.isSynced());
+                    dbService.updateStaffRecordAsync(dbStaffRecord, success -> {
+                        if (!success) Log.e(TAG, "Failed to update staff record: " + dbStaffRecord.getIhrisPid());
+                    });
+                } else {
+                    dbStaffRecord.setFingerprintEnrolled(false);
+                    dbStaffRecord.setFaceEnrolled(false);
+                    dbStaffRecord.setFingerprintSynced(false);
+                    dbStaffRecord.setEmbeddingSynced(false);
+                    dbStaffRecord.setSynced(true); // fresh from server = already synced
+                    dbService.saveStaffRecordAsync(dbStaffRecord, success -> {
+                        if (!success) Log.e(TAG, "Failed to save staff record: " + dbStaffRecord.getIhrisPid());
                     });
                 }
             });
@@ -669,6 +668,8 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     }
                 } else if (result.getCommandCode() == ug.go.health.library.DevComm.CMD_ENROLL_CODE) {
                     handleSuccessfulScan(result.getValue());
+                } else if (result.getCommandCode() == ug.go.health.library.DevComm.CMD_CLEAR_TEMPLATE_CODE) {
+                    updateStatus("Welcome");
                 }
             }
         });

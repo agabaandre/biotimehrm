@@ -14,6 +14,7 @@ import ug.go.health.ihrisbiometric.models.DeviceSettings;
 import ug.go.health.ihrisbiometric.models.StaffRecord;
 import ug.go.health.ihrisbiometric.services.DbService;
 import ug.go.health.ihrisbiometric.services.SessionService;
+import ug.go.health.library.ScannerLibrary;
 
 public class HomeViewModel extends AndroidViewModel {
     private static final String TAG = "HomeViewModel";
@@ -24,6 +25,10 @@ public class HomeViewModel extends AndroidViewModel {
     private final MutableLiveData<Integer> emptyId = new MutableLiveData<>();
     private final MutableLiveData<List<StaffRecord>> staffRecords = new MutableLiveData<>();
     private final MutableLiveData<String> scanMethod = new MutableLiveData<>();
+
+    // Scanner reference — set by HomeActivity once hardware is ready,
+    // read by DataSyncViewModel to re-register downloaded templates
+    private ScannerLibrary scanner;
 
     private final DbService dbService;
     private final SessionService sessionService;
@@ -43,8 +48,7 @@ public class HomeViewModel extends AndroidViewModel {
         scanMethod.setValue(method);
     }
 
-    public void updateScanMethod(String method) {
-        scanMethod.setValue(method);
+    public void updateScanMethod(String method) {        scanMethod.setValue(method);
         SessionService sessionService = new SessionService(getApplication());
         DeviceSettings deviceSettings = sessionService.getDeviceSettings();
         deviceSettings.setScanMethod(method);
@@ -53,6 +57,14 @@ public class HomeViewModel extends AndroidViewModel {
 
     public LiveData<String> getScanMethod() {
         return scanMethod;
+    }
+
+    public void setScanner(ScannerLibrary scanner) {
+        this.scanner = scanner;
+    }
+
+    public ScannerLibrary getScanner() {
+        return scanner;
     }
 
 

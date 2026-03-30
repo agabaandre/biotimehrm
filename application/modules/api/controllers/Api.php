@@ -607,6 +607,24 @@ class Api extends REST_Controller
                 $result = $this->mEmployee->upload_fingerprint_template($ihris_pid, $fingerprint_data);
 
                 if ($result) {
+                    // Also save the fingerprint binary to the uploads directory
+                    $sanitizedPid = preg_replace('/[^a-zA-Z0-9_-]/', '_', $ihris_pid);
+                    $userDir = './uploads/fingerprints/' . $sanitizedPid;
+
+                    if (!is_dir($userDir)) {
+                        mkdir($userDir, 0777, true);
+                    }
+
+                    $filePath = $userDir . '/' . $sanitizedPid . '.dat';
+                    $binaryData = base64_decode($fingerprint_data);
+
+                    if ($binaryData !== false) {
+                        file_put_contents($filePath, $binaryData);
+                        log_message('debug', 'Fingerprint file saved to: ' . $filePath);
+                    } else {
+                        log_message('error', 'Failed to decode base64 fingerprint data for: ' . $ihris_pid);
+                    }
+
                     $this->response([
                         'status' => 'SUCCESS',
                         'message' => 'Fingerprint template uploaded successfully'

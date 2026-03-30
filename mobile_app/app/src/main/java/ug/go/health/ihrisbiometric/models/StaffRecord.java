@@ -61,8 +61,13 @@ public class StaffRecord {
 
     @SerializedName("fingerprint_data")
     @Expose
-    @ColumnInfo(name = "fingerprint_data")
+    @Ignore  // No longer stored in Room — file path is stored instead
     private byte[] fingerprintData;
+
+    @SerializedName("fingerprint_path")
+    @Expose
+    @ColumnInfo(name = "fingerprint_path")
+    private String fingerprintPath;
 
     @SerializedName("face_data")
     @Expose
@@ -228,6 +233,14 @@ public class StaffRecord {
 
     public void setFingerprintData(byte[] fingerprintData) {
         this.fingerprintData = fingerprintData;
+    }
+
+    public String getFingerprintPath() {
+        return fingerprintPath;
+    }
+
+    public void setFingerprintPath(String fingerprintPath) {
+        this.fingerprintPath = fingerprintPath;
     }
 
     public float[] getFaceData() {

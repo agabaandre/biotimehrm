@@ -363,6 +363,29 @@ public class DevComm {
     public byte LOBYTE(short s) { return (byte) (s & 0xFF); }
     public byte HIBYTE(short s) { return (byte) ((s >> 8) & 0xFF); }
 
+    /** Write a 16-bit value into the command data area of the packet.
+     *  first=true  → bytes [6,7];  first=false → bytes [8,9] */
+    public void SetCmdData(short value, boolean first) {
+        int offset = first ? 6 : 8;
+        m_abyPacket[offset]     = (byte) (value & 0xFF);
+        m_abyPacket[offset + 1] = (byte) ((value >> 8) & 0xFF);
+    }
+
+    /** Send a data packet (CMD_DATA_PREFIX_CODE frame) and wait for ACK. */
+    public boolean Send_DataPacket(short commandCode) {
+        int len = GetDataLen() + 8; // header(6) + data + checksum(2)
+        if (m_nConnected == 1) {
+            if (m_uartDriver.WriteData(m_abyPacket, len) < 0) return false;
+        } else if (m_nConnected == 3) {
+            byte[] buf = new byte[len];
+            System.arraycopy(m_abyPacket, 0, buf, 0, len);
+            m_SerialPort.send(buf);
+        } else {
+            return false;
+        }
+        return UART_ReceiveDataAck(commandCode);
+    }
+
     public void memset(byte[] buf, byte val, int len) {
         Arrays.fill(buf, 0, len, val);
     }

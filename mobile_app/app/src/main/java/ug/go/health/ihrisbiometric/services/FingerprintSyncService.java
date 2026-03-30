@@ -3,8 +3,14 @@ package ug.go.health.ihrisbiometric.services;
 import android.content.Context;
 import android.util.Log;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -37,6 +43,13 @@ public class FingerprintSyncService {
         void onError(String errorMessage);
     }
 
+    /** Returns the directory where fingerprint .fpt files are stored. */
+    private File getFingerprintDir() {
+        File dir = new File(context.getFilesDir(), "fingerprints");
+        if (!dir.exists()) dir.mkdirs();
+        return dir;
+    }
+
     public void uploadFingerprints(FingerprintSyncCallback callback) {
         dbService.getStaffRecordsWithUnsyncedFingerprintsAsync(records -> {
             if (records == null || records.isEmpty()) {
@@ -49,7 +62,38 @@ public class FingerprintSyncService {
             final List<String> errors = new ArrayList<>();
 
             for (StaffRecord record : records) {
-                String base64 = ByteArrayConverter.toString(record.getFingerprintData());
+                // Read the .fpt file from disk
+                String path = record.getFingerprintPath();
+                if (path == null || path.isEmpty()) {
+                    completed[0]++;
+                    errors.add("No file path for " + record.getIhrisPid());
+                    callback.onProgress(completed[0], total, "Skipped " + record.getIhrisPid() + ": no file path");
+                    if (completed[0] == total) callback.onComplete(uploaded[0], 0, errors);
+                    continue;
+                }
+
+                File file = new File(path);
+                if (!file.exists()) {
+                    completed[0]++;
+                    errors.add("File missing for " + record.getIhrisPid() + ": " + path);
+                    callback.onProgress(completed[0], total, "Skipped " + record.getIhrisPid() + ": file not found");
+                    if (completed[0] == total) callback.onComplete(uploaded[0], 0, errors);
+                    continue;
+                }
+
+                byte[] fileBytes;
+                try {
+                    fileBytes = Files.readAllBytes(file.toPath());
+                } catch (IOException e) {
+                    completed[0]++;
+                    errors.add("Read error for " + record.getIhrisPid() + ": " + e.getMessage());
+                    callback.onProgress(completed[0], total, "Read error for " + record.getIhrisPid());
+                    if (completed[0] == total) callback.onComplete(uploaded[0], 0, errors);
+                    continue;
+                }
+
+                // Base64-encode the file bytes for JSON transport
+                String base64 = ByteArrayConverter.toString(fileBytes);
                 FingerprintUploadRequest request = new FingerprintUploadRequest(record.getIhrisPid(), base64);
 
                 apiService.uploadFingerprint(request).enqueue(new Callback<FingerprintUploadResponse>() {
@@ -59,22 +103,16 @@ public class FingerprintSyncService {
                         if (response.isSuccessful()) {
                             record.setFingerprintSynced(true);
                             dbService.updateStaffRecordAsync(record, success -> {
-                                if (success) {
-                                    uploaded[0]++;
-                                }
+                                if (success) uploaded[0]++;
                                 callback.onProgress(completed[0], total, "Uploaded fingerprint for " + record.getIhrisPid());
-                                if (completed[0] == total) {
-                                    callback.onComplete(uploaded[0], 0, errors);
-                                }
+                                if (completed[0] == total) callback.onComplete(uploaded[0], 0, errors);
                             });
                         } else {
-                            String error = "Upload failed for " + record.getIhrisPid() + ": server error " + response.code();
+                            String error = "Upload failed for " + record.getIhrisPid() + ": HTTP " + response.code();
                             Log.e(TAG, error);
                             errors.add(error);
                             callback.onProgress(completed[0], total, error);
-                            if (completed[0] == total) {
-                                callback.onComplete(uploaded[0], 0, errors);
-                            }
+                            if (completed[0] == total) callback.onComplete(uploaded[0], 0, errors);
                         }
                     }
 
@@ -85,9 +123,7 @@ public class FingerprintSyncService {
                         Log.e(TAG, error, t);
                         errors.add(error);
                         callback.onProgress(completed[0], total, error);
-                        if (completed[0] == total) {
-                            callback.onComplete(uploaded[0], 0, errors);
-                        }
+                        if (completed[0] == total) callback.onComplete(uploaded[0], 0, errors);
                     }
                 });
             }
@@ -99,7 +135,7 @@ public class FingerprintSyncService {
             @Override
             public void onResponse(Call<FingerprintDownloadResponse> call, Response<FingerprintDownloadResponse> response) {
                 if (!response.isSuccessful()) {
-                    callback.onError("Download failed: server error " + response.code());
+                    callback.onError("Download failed: HTTP " + response.code());
                     return;
                 }
                 FingerprintDownloadResponse body = response.body();
@@ -118,39 +154,51 @@ public class FingerprintSyncService {
                     dbService.getStaffRecordByihrisPIDAsync(fpRecord.getIhrisPid(), localRecord -> {
                         completed[0]++;
                         if (localRecord == null) {
-                            Log.w(TAG, "No local record for ihris_pid: " + fpRecord.getIhrisPid());
+                            Log.w(TAG, "No local record for: " + fpRecord.getIhrisPid());
                             callback.onProgress(completed[0], total, "Skipped " + fpRecord.getIhrisPid() + ": not in local DB");
-                            if (completed[0] == total) {
-                                callback.onComplete(0, downloaded[0], errors);
-                            }
+                            if (completed[0] == total) callback.onComplete(0, downloaded[0], errors);
                             return;
                         }
 
-                        // Skip if local record already has fingerprint data and is synced (local takes precedence)
-                        if (localRecord.getFingerprintData() != null && localRecord.isFingerprintSynced()) {
-                            callback.onProgress(completed[0], total, "Skipped " + fpRecord.getIhrisPid() + ": local data exists");
-                            if (completed[0] == total) {
-                                callback.onComplete(0, downloaded[0], errors);
-                            }
+                        // Skip if already have a local file and it's synced
+                        if (localRecord.getFingerprintPath() != null
+                                && new File(localRecord.getFingerprintPath()).exists()
+                                && localRecord.isFingerprintSynced()) {
+                            callback.onProgress(completed[0], total, "Skipped " + fpRecord.getIhrisPid() + ": local file exists");
+                            if (completed[0] == total) callback.onComplete(0, downloaded[0], errors);
                             return;
                         }
 
-                        // Store server fingerprint data locally
-                        byte[] fingerprintBytes = ByteArrayConverter.fromString(fpRecord.getFingerprintData());
-                        localRecord.setFingerprintData(fingerprintBytes);
+                        // Decode base64 → bytes → write to file
+                        byte[] fileBytes = ByteArrayConverter.fromString(fpRecord.getFingerprintData());
+                        if (fileBytes == null || fileBytes.length == 0) {
+                            errors.add("Empty data for " + fpRecord.getIhrisPid());
+                            if (completed[0] == total) callback.onComplete(0, downloaded[0], errors);
+                            return;
+                        }
+
+                        String safeId = fpRecord.getIhrisPid().replaceAll("[^a-zA-Z0-9_-]", "_");
+                        File destFile = new File(getFingerprintDir(), safeId + ".fpt");
+                        try (FileOutputStream fos = new FileOutputStream(destFile)) {
+                            fos.write(fileBytes);
+                        } catch (IOException e) {
+                            errors.add("Write error for " + fpRecord.getIhrisPid() + ": " + e.getMessage());
+                            if (completed[0] == total) callback.onComplete(0, downloaded[0], errors);
+                            return;
+                        }
+
+                        localRecord.setFingerprintPath(destFile.getAbsolutePath());
                         localRecord.setFingerprintEnrolled(true);
                         localRecord.setFingerprintSynced(true);
+                        // Reset template_id to 0 so registerTemplatesOnScanner will
+                        // re-register this fingerprint on this device's scanner
+                        localRecord.setTemplateId(0);
 
                         dbService.updateStaffRecordAsync(localRecord, success -> {
-                            if (success) {
-                                downloaded[0]++;
-                            } else {
-                                errors.add("Failed to save fingerprint for " + fpRecord.getIhrisPid());
-                            }
+                            if (success) downloaded[0]++;
+                            else errors.add("DB update failed for " + fpRecord.getIhrisPid());
                             callback.onProgress(completed[0], total, "Downloaded fingerprint for " + fpRecord.getIhrisPid());
-                            if (completed[0] == total) {
-                                callback.onComplete(0, downloaded[0], errors);
-                            }
+                            if (completed[0] == total) callback.onComplete(0, downloaded[0], errors);
                         });
                     });
                 }
@@ -171,60 +219,84 @@ public class FingerprintSyncService {
                 return;
             }
 
-            final int total = records.size();
-            final int[] completed = {0};
-            final int[] registered = {0};
-            final List<String> failures = new ArrayList<>();
+            // Process sequentially on a background thread so we can call
+            // getEmptyIdSync() and writeTemplateToScanner() without blocking the UI.
+            new Thread(() -> {
+                final int total = records.size();
+                int registered = 0;
+                final List<String> failures = new ArrayList<>();
 
-            for (StaffRecord record : records) {
-                try {
-                    // Get next available template ID on the scanner
-                    int templateId = record.getId(); // Use staff record ID as template slot
-                    boolean written = scanner.WriteTemplateFile(templateId, record.getFingerprintData());
-                    if (!written) {
-                        String error = "Failed to write template file for " + record.getIhrisPid();
-                        Log.e(TAG, error);
-                        failures.add(error);
-                        completed[0]++;
-                        callback.onProgress(completed[0], total, record.getIhrisPid());
-                        continue;
-                    }
+                for (int i = 0; i < records.size(); i++) {
+                    StaffRecord record = records.get(i);
+                    try {
+                        String path = record.getFingerprintPath();
+                        if (path == null || !new File(path).exists()) {
+                            failures.add("No file for " + record.getIhrisPid());
+                            callback.onProgress(i + 1, total, record.getIhrisPid());
+                            continue;
+                        }
 
-                    int result = scanner.Run_CmdWriteTemplate(templateId);
-                    if (result == 0) {
-                        record.setTemplateId(templateId);
+                        byte[] fileBytes = Files.readAllBytes(new File(path).toPath());
+
+                        // Step 1: Ask the scanner for the next available slot on THIS device
+                        int slotId = scanner.getEmptyIdSync();
+                        if (slotId <= 0) {
+                            failures.add("No empty slot available for " + record.getIhrisPid());
+                            callback.onProgress(i + 1, total, record.getIhrisPid());
+                            continue;
+                        }
+
+                        // Step 2: Load bytes into scanner buffer
+                        if (!scanner.WriteTemplateFile(slotId, fileBytes)) {
+                            failures.add("Failed to load template for " + record.getIhrisPid());
+                            callback.onProgress(i + 1, total, record.getIhrisPid());
+                            continue;
+                        }
+
+                        // Step 3: Push template to scanner hardware at that slot
+                        int result = scanner.Run_CmdWriteTemplate(slotId);
+                        if (result != 0) {
+                            failures.add("Scanner write failed for " + record.getIhrisPid() + " (code: " + result + ")");
+                            callback.onProgress(i + 1, total, record.getIhrisPid());
+                            continue;
+                        }
+
+                        // Step 4: Store the device-local slot number in the DB
+                        // This mapping is only valid on this device — never sent to server
+                        final int assignedSlot = slotId;
+                        final int idx = i;
+                        record.setTemplateId(assignedSlot);
+
+                        // Synchronous DB update via a latch so we stay sequential
+                        final CountDownLatch latch = new CountDownLatch(1);
+                        final boolean[] dbSuccess = {false};
                         dbService.updateStaffRecordAsync(record, success -> {
-                            completed[0]++;
-                            if (success) {
-                                registered[0]++;
-                            } else {
-                                failures.add("DB update failed for " + record.getIhrisPid());
-                            }
-                            callback.onProgress(completed[0], total, record.getIhrisPid());
-                            if (completed[0] == total) {
-                                callback.onComplete(registered[0], failures);
-                            }
+                            dbSuccess[0] = success;
+                            latch.countDown();
                         });
-                    } else {
-                        String error = "Scanner registration failed for " + record.getIhrisPid() + " (code: " + result + ")";
-                        Log.e(TAG, error);
-                        failures.add(error);
-                        completed[0]++;
-                        callback.onProgress(completed[0], total, record.getIhrisPid());
-                    }
-                } catch (Exception e) {
-                    String error = "Exception registering " + record.getIhrisPid() + ": " + e.getMessage();
-                    Log.e(TAG, error, e);
-                    failures.add(error);
-                    completed[0]++;
-                    callback.onProgress(completed[0], total, record.getIhrisPid());
-                }
-            }
+                        latch.await(5, TimeUnit.SECONDS);
 
-            // If all completed synchronously (no async DB updates pending)
-            if (completed[0] == total) {
-                callback.onComplete(registered[0], failures);
-            }
+                        if (dbSuccess[0]) {
+                            registered++;
+                            Log.d(TAG, "Registered " + record.getIhrisPid() + " → slot " + assignedSlot);
+                        } else {
+                            failures.add("DB update failed for " + record.getIhrisPid());
+                        }
+
+                        callback.onProgress(i + 1, total, record.getIhrisPid());
+
+                    } catch (IOException e) {
+                        failures.add("File read error for " + record.getIhrisPid() + ": " + e.getMessage());
+                        callback.onProgress(i + 1, total, record.getIhrisPid());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        failures.add("Interrupted for " + record.getIhrisPid());
+                        break;
+                    }
+                }
+
+                callback.onComplete(registered, failures);
+            }).start();
         });
     }
 
