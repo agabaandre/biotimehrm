@@ -38,7 +38,7 @@ public interface StaffRecordDao {
     @Query("SELECT * FROM staff_records WHERE is_deleted = 0 AND (" +
            "synced = 0 OR " +
            "(fingerprint_enrolled = 1 AND fingerprint_path IS NOT NULL AND fingerprint_synced = 0) OR " +
-           "(face_enrolled = 1 AND face_data IS NOT NULL AND embedding_synced = 0)" +
+           "(face_enrolled = 1 AND face_path IS NOT NULL AND embedding_synced = 0)" +
            ")")
     List<StaffRecord> getRecordsNeedingServerSync();
 
@@ -84,10 +84,10 @@ public interface StaffRecordDao {
     @Query("SELECT COUNT(*) FROM staff_records WHERE fingerprint_synced = 1")
     int countSyncedFingerprints();
 
-    @Query("SELECT * FROM staff_records WHERE face_enrolled = 1 AND face_data IS NOT NULL AND embedding_synced = 0")
+    @Query("SELECT * FROM staff_records WHERE face_enrolled = 1 AND face_path IS NOT NULL AND embedding_synced = 0")
     List<StaffRecord> getStaffRecordsWithUnsyncedEmbeddings();
 
-    @Query("SELECT COUNT(*) FROM staff_records WHERE face_enrolled = 1 AND face_data IS NOT NULL AND embedding_synced = 0")
+    @Query("SELECT COUNT(*) FROM staff_records WHERE face_enrolled = 1 AND face_path IS NOT NULL AND embedding_synced = 0")
     int countUnsyncedEmbeddings();
 
     @Query("SELECT COUNT(*) FROM staff_records WHERE embedding_synced = 1")

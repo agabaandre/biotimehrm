@@ -764,31 +764,25 @@ class Apiemployee_model extends CI_Model
 
     public function upload_face_embedding($ihris_pid, $face_data, $face_image = null)
     {
-        // Save face embedding CSV to file
+        // face_data IS the base64 JPEG image — save as .face file
         $safeId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $ihris_pid);
         $dir = FCPATH . 'uploads/faces/';
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
-        $embeddingPath = $dir . $safeId . '.csv';
-        file_put_contents($embeddingPath, $face_data);
+
+        $facePath = $dir . $safeId . '.face';
+        $bytes = base64_decode($face_data);
+        file_put_contents($facePath, $bytes);
 
         $existing = $this->db->get_where('mobile_enroll', ['ihris_pid' => $ihris_pid])->row();
 
         $data = [
             'ihris_pid' => $ihris_pid,
-            'face_path' => $embeddingPath,
+            'face_path' => $facePath,
             'face_enrolled' => 1,
             'enrolled' => 1
         ];
-
-        if ($face_image) {
-            // Save face image to file
-            $imagePath = $dir . $safeId . '.jpg';
-            $imageBytes = base64_decode($face_image);
-            file_put_contents($imagePath, $imageBytes);
-            $data['face_image'] = $imagePath;
-        }
 
         if ($existing) {
             $this->db->where('ihris_pid', $ihris_pid);
@@ -800,7 +794,7 @@ class Apiemployee_model extends CI_Model
 
     public function get_face_embeddings_by_facility($facilityId)
     {
-        $this->db->select('mobile_enroll.ihris_pid, mobile_enroll.face_path, mobile_enroll.face_image');
+        $this->db->select('mobile_enroll.ihris_pid, mobile_enroll.face_path');
         $this->db->from('mobile_enroll');
         $this->db->join('ihrisdata', 'ihrisdata.ihris_pid = mobile_enroll.ihris_pid', 'inner');
         $this->db->where('ihrisdata.facility_id', $facilityId);
@@ -813,15 +807,11 @@ class Apiemployee_model extends CI_Model
         foreach ($rows as $row) {
             $path = $row['face_path'];
             if ($path && file_exists($path)) {
-                $entry = [
+                // Return base64-encoded .face file content as face_data
+                $result[] = [
                     'ihris_pid' => $row['ihris_pid'],
-                    'face_data' => file_get_contents($path) // CSV string, not binary
+                    'face_data' => base64_encode(file_get_contents($path))
                 ];
-                // Return face image as base64 if available
-                if (!empty($row['face_image']) && file_exists($row['face_image'])) {
-                    $entry['face_image'] = base64_encode(file_get_contents($row['face_image']));
-                }
-                $result[] = $entry;
             }
         }
         return $result;

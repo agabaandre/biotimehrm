@@ -71,8 +71,13 @@ public class StaffRecord {
 
     @SerializedName("face_data")
     @Expose(serialize = false, deserialize = false)  // never in staff list JSON — use /face_embeddings endpoint
-    @ColumnInfo(name = "face_data")
+    @Ignore  // stored as .face file on disk; loaded into memory when needed for recognition
     private float[] faceData;
+
+    @SerializedName("face_path")
+    @Expose
+    @ColumnInfo(name = "face_path")
+    private String facePath;
 
     @SerializedName("face_enrolled")
     @Expose
@@ -249,6 +254,14 @@ public class StaffRecord {
 
     public void setFaceData(float[] faceData) {
         this.faceData = faceData;
+    }
+
+    public String getFacePath() {
+        return facePath;
+    }
+
+    public void setFacePath(String facePath) {
+        this.facePath = facePath;
     }
 
     public boolean isFaceEnrolled() {

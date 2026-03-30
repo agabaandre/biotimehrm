@@ -99,11 +99,11 @@ public class SessionService {
     }
 
     public void logout() {
-        // Clear user session and navigate to the login screen
         editor.remove(KEY_USER);
         editor.remove(KEY_FACILITY_ID);
         editor.remove(KEY_FACILITY_NAME);
         editor.remove("facilities");
+        editor.remove("initial_sync_done");
         editor.apply();
     }
 
@@ -123,6 +123,15 @@ public class SessionService {
 
     public void setReasonList(List<String> reasons) {
         editor.putString("reasons", new Gson().toJson(reasons));
+        editor.commit();
+    }
+
+    public boolean isInitialSyncDone() {
+        return preferences.getBoolean("initial_sync_done", false);
+    }
+
+    public void setInitialSyncDone(boolean done) {
+        editor.putBoolean("initial_sync_done", done);
         editor.commit();
     }
 

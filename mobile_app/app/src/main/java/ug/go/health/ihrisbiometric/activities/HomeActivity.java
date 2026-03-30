@@ -57,7 +57,9 @@ import ug.go.health.ihrisbiometric.models.StaffRecord;
 import ug.go.health.ihrisbiometric.services.ApiInterface;
 import ug.go.health.ihrisbiometric.services.ApiService;
 import ug.go.health.ihrisbiometric.services.DbService;
+import ug.go.health.ihrisbiometric.services.FingerprintSyncService;
 import ug.go.health.ihrisbiometric.services.SessionService;
+import ug.go.health.ihrisbiometric.viewmodels.DataSyncViewModel;
 import ug.go.health.ihrisbiometric.services.StaffPictureUploadService;
 import ug.go.health.ihrisbiometric.viewmodels.HomeViewModel;
 import ug.go.health.library.ScannerLibrary;
@@ -115,6 +117,12 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
 
         observeViewModel();
         fetchFacilitiesAndStaff();
+
+        // On first login (fresh install or after logout), trigger sync automatically
+        // so previously enrolled staff are downloaded and ready to clock immediately
+        if (!sessionService.isInitialSyncDone()) {
+            triggerInitialSync();
+        }
 
         // Schedule the periodic staff picture upload task
         PeriodicWorkRequest uploadWorkRequest;
@@ -190,6 +198,9 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     }
                     // Give the sync ViewModel a reference so it can re-register downloaded templates
                     viewModel.setScanner(scanner);
+                    // Register any templates that were downloaded but not yet registered
+                    // (e.g. after fresh install + sync before scanner was ready)
+                    registerUnregisteredTemplates();
                 }
             } else if ("Mobile".equals(deviceSettings.getDeviceType())) {
                 deviceSettings.setScanMethod("face");
@@ -363,8 +374,56 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         });
     }
 
-    private void saveEnrolledStaff(StaffRecord staffRecord) {
-        dbService.updateStaffRecordAsync(staffRecord, result -> {
+    /**
+     * Triggered on first login — downloads staff list, biometrics, and reference data.
+     * Face embeddings are registered with the engine immediately after download.
+     * Fingerprint templates are registered with the scanner once it's ready.
+     */
+    private void triggerInitialSync() {
+        updateStatus("Downloading data, please wait...");
+        // Use a temporary DataSyncViewModel scoped to this activity
+        DataSyncViewModel syncVm = new ViewModelProvider(this).get(DataSyncViewModel.class);
+        syncVm.setHomeViewModel(viewModel);
+        syncVm.startSync();
+        syncVm.getSyncStatus().observe(this, status -> {
+            if (status == DataSyncViewModel.SyncStatus.COMPLETED) {
+                sessionService.setInitialSyncDone(true);
+                updateStatus("Welcome. Ready.");
+                viewModel.refreshStaffRecords();
+            } else if (status == DataSyncViewModel.SyncStatus.FAILED) {
+                updateStatus("Welcome. Sync failed — retry from menu.");
+            }
+        });
+    }
+
+    /** Registers any templates downloaded but not yet on this scanner. */
+    private void registerUnregisteredTemplates() {        if (scanner == null) return;
+        FingerprintSyncService fpSync = new FingerprintSyncService(this,
+                ApiService.getApiInterface(this), dbService);
+        fpSync.registerTemplatesOnScanner(scanner,
+                new FingerprintSyncService.ScannerRegistrationCallback() {
+                    @Override
+                    public void onProgress(int completed, int total, String ihrisPid) {
+                        Log.d(TAG, "Registering template " + completed + "/" + total + ": " + ihrisPid);
+                    }
+                    @Override
+                    public void onComplete(int registered, List<String> failures) {
+                        if (registered > 0) {
+                            updateStatus("Registered " + registered + " fingerprint(s). Ready.");
+                            viewModel.refreshStaffRecords();
+                        }
+                        if (!failures.isEmpty()) {
+                            Log.w(TAG, "Template registration failures: " + failures);
+                        }
+                    }
+                    @Override
+                    public void onError(String errorMessage) {
+                        Log.e(TAG, "Template registration error: " + errorMessage);
+                    }
+                });
+    }
+
+    private void saveEnrolledStaff(StaffRecord staffRecord) {        dbService.updateStaffRecordAsync(staffRecord, result -> {
             if (result) {
                 updateStatus(staffRecord.getName() + " Enrolled");
                 viewModel.incrementEmptyId();
@@ -553,10 +612,9 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     dbStaffRecord.setFingerprintSynced(existingRecord.isFingerprintSynced());
                     dbStaffRecord.setTemplateId(existingRecord.getTemplateId());
                     dbStaffRecord.setFaceEnrolled(existingRecord.isFaceEnrolled());
-                    dbStaffRecord.setFaceData(existingRecord.getFaceData());
+                    dbStaffRecord.setFacePath(existingRecord.getFacePath());
                     dbStaffRecord.setFaceImage(existingRecord.getFaceImage());
-                    dbStaffRecord.setEmbeddingSynced(existingRecord.isEmbeddingSynced());
-                    dbStaffRecord.setSynced(existingRecord.isSynced());
+                    dbStaffRecord.setEmbeddingSynced(existingRecord.isEmbeddingSynced());                    dbStaffRecord.setSynced(existingRecord.isSynced());
                     dbService.updateStaffRecordAsync(dbStaffRecord, success -> {
                         if (!success) Log.e(TAG, "Failed to update staff record: " + dbStaffRecord.getIhrisPid());
                     });

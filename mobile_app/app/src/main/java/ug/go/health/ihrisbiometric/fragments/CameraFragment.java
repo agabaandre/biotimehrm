@@ -71,6 +71,7 @@ import ug.go.health.ihrisbiometric.services.DbService;
 import ug.go.health.ihrisbiometric.services.FaceScanner;
 import ug.go.health.ihrisbiometric.models.FaceScannerResult;
 import ug.go.health.ihrisbiometric.utils.BitmapUtils;
+import ug.go.health.ihrisbiometric.utils.FaceEmbeddingFileHelper;
 import ug.go.health.ihrisbiometric.utils.ImageConverter;
 import ug.go.health.ihrisbiometric.viewmodels.HomeViewModel;
 import android.Manifest;
@@ -421,6 +422,10 @@ public class CameraFragment extends Fragment {
                 selectedStaff.setFaceEnrolled(true);
                 selectedStaff.setFaceImage(base64Image);
                 selectedStaff.setEmbeddingSynced(false);
+                // Save face image as .face file on disk
+                String facePath = FaceEmbeddingFileHelper.saveFaceImage(
+                        requireContext(), selectedStaff.getIhrisPid(), base64Image);
+                selectedStaff.setFacePath(facePath);
                 // Mark unsynced so enrollment gets pushed to server on next sync
                 selectedStaff.setSynced(false);
                 dbService.updateStaffRecordAsync(selectedStaff, success -> {

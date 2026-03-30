@@ -184,6 +184,37 @@ public class FaceScanner {
         }
     }
 
+    /**
+     * Register a face from base64 image, skipping the already-registered check.
+     * Used during sync download so re-syncing the same device doesn't fail.
+     * Returns "SUCCESS" if registered or already registered.
+     */
+    public String forceRegisterFaceFromBase64(String base64Image, String userId) {
+        if (base64Image == null || base64Image.isEmpty()) return "ERROR: Base64 image is null or empty";
+        if (userId == null || userId.isEmpty()) return "ERROR: User ID is null or empty";
+
+        try {
+            byte[] imageBytes = Base64.decode(base64Image, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+            if (bitmap == null) return "ERROR: Failed to decode image";
+
+            Mat mat = new Mat();
+            org.opencv.android.Utils.bitmapToMat(bitmap, mat);
+            bitmap.recycle();
+
+            Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2RGB);
+            float[] faceBoxes = new float[15];
+            JniHelper.getInstance().DetectFace(mat.getNativeObjAddr(), faceBoxes);
+
+            // Always register — overwrite if already exists
+            JniHelper.getInstance().FaceRegister(mat.getNativeObjAddr(), userId, faceBoxes);
+            return "SUCCESS: Face registered";
+        } catch (Exception e) {
+            Log.e(TAG, "forceRegisterFaceFromBase64 failed for " + userId, e);
+            return "ERROR: " + e.getMessage();
+        }
+    }
+
 
     public String saveEnrolledFaceImage(Mat mRgbFrame, String userId) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

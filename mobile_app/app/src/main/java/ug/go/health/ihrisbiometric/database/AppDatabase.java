@@ -13,7 +13,7 @@ import ug.go.health.ihrisbiometric.dao.StaffRecordDao;
 import ug.go.health.ihrisbiometric.models.ClockHistory;
 import ug.go.health.ihrisbiometric.models.StaffRecord;
 
-@Database(entities = {ClockHistory.class, StaffRecord.class}, version = 3, exportSchema = false)
+@Database(entities = {ClockHistory.class, StaffRecord.class}, version = 4, exportSchema = false)
 @TypeConverters({Converters.class})
 public abstract class AppDatabase extends RoomDatabase {
     private static final String DATABASE_NAME = "ihris_biometric_v2";

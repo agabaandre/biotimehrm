@@ -294,11 +294,10 @@ public class DataSyncViewModel extends AndroidViewModel {
                         serverRecord.setFingerprintEnrolled(localRecord.isFingerprintEnrolled());
                         serverRecord.setFingerprintSynced(localRecord.isFingerprintSynced());
                         serverRecord.setTemplateId(localRecord.getTemplateId());
-                        serverRecord.setFaceData(localRecord.getFaceData());
+                        serverRecord.setFacePath(localRecord.getFacePath());
                         serverRecord.setFaceEnrolled(localRecord.isFaceEnrolled());
                         serverRecord.setEmbeddingSynced(localRecord.isEmbeddingSynced());
-                        serverRecord.setFaceImage(localRecord.getFaceImage());
-                        dbService.updateStaffRecordAsync(serverRecord, success -> {
+                        serverRecord.setFaceImage(localRecord.getFaceImage());                        dbService.updateStaffRecordAsync(serverRecord, success -> {
                             processed[0]++;
                             if (processed[0] == total) onComplete.run();
                         });

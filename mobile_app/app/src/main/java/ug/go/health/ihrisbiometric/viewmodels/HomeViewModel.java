@@ -62,7 +62,6 @@ public class HomeViewModel extends AndroidViewModel {
     public void setScanner(ScannerLibrary scanner) {
         this.scanner = scanner;
     }
-
     public ScannerLibrary getScanner() {
         return scanner;
     }
