@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
@@ -29,8 +30,8 @@ public class EnrollHistoryFragment extends Fragment {
     private RecyclerView recyclerView;
     private View emptyStateView;
     private EnrollStaffAdapter adapter;
-    private List<StaffRecord> enrollStaffList = new ArrayList<>();
-    private List<StaffRecord> allRecords = new ArrayList<>();
+    private final List<StaffRecord> enrollStaffList = new ArrayList<>();
+    private final List<StaffRecord> allRecords = new ArrayList<>();
     private DbService dbService;
     private HomeViewModel viewModel;
 
@@ -56,22 +57,76 @@ public class EnrollHistoryFragment extends Fragment {
         emptyStateView = view.findViewById(R.id.empty_state_enroll);
 
         adapter = new EnrollStaffAdapter(enrollStaffList);
-        adapter.setOnReEnrollListener(new EnrollStaffAdapter.OnReEnrollListener() {
-            @Override
-            public void onReEnrollFingerprint(StaffRecord record) {
-                reEnrollFingerprint(record);
-            }
-            @Override
-            public void onReEnrollFace(StaffRecord record) {
-                reEnrollFace(record);
-            }
-        });
+        adapter.setOnItemClickListener(position -> showReEnrollDialog(enrollStaffList.get(position)));
 
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
         loadHistory();
         return view;
+    }
+
+    private void showReEnrollDialog(StaffRecord record) {
+        SessionService session = new SessionService(requireContext());
+        String deviceType = session.getDeviceSettings() != null
+                ? session.getDeviceSettings().getDeviceType() : "Mobile";
+        boolean hasScanner = "Scanner".equals(deviceType);
+
+        // Build options based on device type
+        String[] options = hasScanner
+                ? new String[]{"Re-enroll Fingerprint", "Re-enroll Face"}
+                : new String[]{"Re-enroll Face"};
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(record.getName())
+                .setItems(options, (dialog, which) -> {
+                    if (hasScanner) {
+                        if (which == 0) reEnrollFingerprint(record);
+                        else reEnrollFace(record);
+                    } else {
+                        reEnrollFace(record);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void reEnrollFingerprint(StaffRecord record) {
+        record.setFingerprintEnrolled(false);
+        record.setFingerprintPath(null);
+        record.setFingerprintSynced(false);
+        record.setTemplateId(0);
+        record.setSynced(false);
+
+        dbService.updateStaffRecordAsync(record, success -> {
+            if (success) {
+                viewModel.setSelectedStaff(record);
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(),
+                            "Place " + record.getName() + "'s finger on scanner",
+                            Toast.LENGTH_LONG).show();
+                    Navigation.findNavController(requireView())
+                            .navigate(R.id.action_enrollHistoryFragment_to_enrollUserFragment);
+                });
+            }
+        });
+    }
+
+    private void reEnrollFace(StaffRecord record) {
+        record.setFaceEnrolled(false);
+        record.setFacePath(null);
+        record.setFaceImage(null);
+        record.setEmbeddingSynced(false);
+        record.setSynced(false);
+
+        dbService.updateStaffRecordAsync(record, success -> {
+            if (success) {
+                viewModel.setSelectedStaff(record);
+                requireActivity().runOnUiThread(() ->
+                        Navigation.findNavController(requireView())
+                                .navigate(R.id.action_enrollHistoryFragment_to_cameraFragment));
+            }
+        });
     }
 
     private void loadHistory() {
@@ -94,62 +149,9 @@ public class EnrollHistoryFragment extends Fragment {
         emptyStateView.setVisibility(enrollStaffList.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
-    private void reEnrollFingerprint(StaffRecord record) {
-        SessionService session = new SessionService(requireContext());
-        String deviceType = session.getDeviceSettings() != null
-                ? session.getDeviceSettings().getDeviceType() : "Mobile";
-
-        if ("Mobile".equals(deviceType)) {
-            Toast.makeText(requireContext(),
-                    "Fingerprint enrollment requires a scanner device", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Clear existing fingerprint data so it gets re-enrolled fresh
-        record.setFingerprintEnrolled(false);
-        record.setFingerprintPath(null);
-        record.setFingerprintSynced(false);
-        record.setTemplateId(0);
-        record.setSynced(false);
-
-        dbService.updateStaffRecordAsync(record, success -> {
-            if (success) {
-                // Set selected staff in shared ViewModel, then navigate to EnrollUserFragment
-                // which will trigger the scanner enroll flow
-                viewModel.setSelectedStaff(record);
-                requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(requireContext(),
-                            "Place " + record.getName() + "'s finger on scanner",
-                            Toast.LENGTH_LONG).show();
-                    // Navigate to EnrollUserFragment using its own action from enrollHistoryFragment
-                    Navigation.findNavController(requireView())
-                            .navigate(R.id.action_enrollHistoryFragment_to_enrollUserFragment);
-                });
-            }
-        });
-    }
-
-    private void reEnrollFace(StaffRecord record) {
-        // Clear existing face data so it gets re-enrolled fresh
-        record.setFaceEnrolled(false);
-        record.setFacePath(null);
-        record.setFaceImage(null);
-        record.setEmbeddingSynced(false);
-        record.setSynced(false);
-
-        dbService.updateStaffRecordAsync(record, success -> {
-            if (success) {
-                viewModel.setSelectedStaff(record);
-                requireActivity().runOnUiThread(() ->
-                        Navigation.findNavController(requireView())
-                                .navigate(R.id.action_enrollHistoryFragment_to_cameraFragment));
-            }
-        });
-    }
-
     @Override
     public void onResume() {
         super.onResume();
-        loadHistory(); // refresh after returning from enroll
+        loadHistory();
     }
 }

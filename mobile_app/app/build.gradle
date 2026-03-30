@@ -24,7 +24,7 @@ sentry {
 
 android {
     namespace 'ug.go.health.ihrisbiometric'
-    compileSdk 34
+    compileSdk 36
 
     signingConfigs {
         release {

@@ -44,36 +44,6 @@
                 android:textColor="@android:color/darker_gray"
                 android:layout_marginTop="2dp"/>
 
-            <!-- Re-enroll buttons — shown only when that modality needs attention -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="6dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_re_enroll_fingerprint"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:text="Re-enroll Fingerprint"
-                    android:textSize="11sp"
-                    android:paddingHorizontal="8dp"
-                    android:visibility="gone"/>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_re_enroll_face"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:text="Re-enroll Face"
-                    android:textSize="11sp"
-                    android:paddingHorizontal="8dp"
-                    android:layout_marginStart="6dp"
-                    android:visibility="gone"/>
-
-            </LinearLayout>
-
         </LinearLayout>
 
     </LinearLayout>

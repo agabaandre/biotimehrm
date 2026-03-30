@@ -81,6 +81,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
 
     private static final long DEBOUNCE_DELAY = 2000; // 2 seconds
     private long lastClockTime = 0;
+    private boolean isRegisteringTemplates = false; // blocks clock during registration
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
@@ -161,11 +162,14 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         if ("clock".equals(actionType)) {
             String scanMethod = sessionService.getDeviceSettings().getScanMethod();
             if ("fingerprint".equals(scanMethod)) {
+                if (isRegisteringTemplates) {
+                    updateStatus("Please wait — registering fingerprints...");
+                    return;
+                }
                 if (scanner != null) {
                     scanner.Run_CmdIdentify();
                 }
             } else if ("face".equals(scanMethod)) {
-                // Navigate to CameraFragment
                 navController.navigate(R.id.action_homeFragment_to_cameraFragment);
             }
         } else if("enroll".equals(actionType)) {
@@ -371,12 +375,12 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
     private void restoreMissingBiometrics() {
         dbService.getStaffWithMissingBiometricFilesAsync(records -> {
             if (records == null || records.isEmpty()) {
-                // Nothing missing — just register any unregistered templates
                 registerUnregisteredTemplates();
                 return;
             }
 
             Log.d(TAG, "Restoring biometrics for " + records.size() + " staff with missing files");
+            isRegisteringTemplates = true;
             updateStatus("Restoring biometric data...");
 
             String facilityId = sessionService.getFacilityId();
@@ -534,6 +538,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
     /** Registers any templates downloaded but not yet on this scanner. */
     private void registerUnregisteredTemplates() {
         if (scanner == null) return;
+        isRegisteringTemplates = true;
         updateStatus("Registering fingerprints, please wait...");
         FingerprintSyncService fpSync = new FingerprintSyncService(this,
                 ApiService.getApiInterface(this), dbService);
@@ -545,6 +550,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     }
                     @Override
                     public void onComplete(int registered, List<String> failures) {
+                        isRegisteringTemplates = false;
                         if (registered > 0) {
                             updateStatus("Ready. " + registered + " fingerprint(s) registered.");
                             viewModel.refreshStaffRecords();
@@ -557,6 +563,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     }
                     @Override
                     public void onError(String errorMessage) {
+                        isRegisteringTemplates = false;
                         Log.e(TAG, "Template registration error: " + errorMessage);
                         updateStatus("Welcome");
                     }
