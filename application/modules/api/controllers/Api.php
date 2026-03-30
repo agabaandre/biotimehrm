@@ -583,6 +583,44 @@ class Api extends REST_Controller
     {
         try {
             $decoded = $this->validateRequest();
+
+            // Check if this is a JSON request (from mobile app sync)
+            $contentType = $this->input->get_request_header('Content-Type', TRUE);
+            if (strpos($contentType, 'application/json') !== false) {
+                // JSON-based fingerprint upload from mobile app
+                $input = json_decode(file_get_contents('php://input'), true);
+                if (empty($input)) {
+                    $input = $this->post();
+                }
+
+                $ihris_pid = $input['ihris_pid'] ?? null;
+                $fingerprint_data = $input['fingerprint_data'] ?? null;
+
+                if (empty($ihris_pid) || empty($fingerprint_data)) {
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'ihris_pid and fingerprint_data are required'
+                    ], 400);
+                    return;
+                }
+
+                $result = $this->mEmployee->upload_fingerprint_template($ihris_pid, $fingerprint_data);
+
+                if ($result) {
+                    $this->response([
+                        'status' => 'SUCCESS',
+                        'message' => 'Fingerprint template uploaded successfully'
+                    ], 200);
+                } else {
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'Failed to upload fingerprint template'
+                    ], 500);
+                }
+                return;
+            }
+
+            // File-based fingerprint upload (original behavior)
             
             // Get the staff ID from the request
             $staffId = $this->post('staff_id');
@@ -1188,6 +1226,321 @@ class Api extends REST_Controller
             // Return error response if any exception occurs
             $this->response([
                 'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =========================================================================
+    // STAFF CRUD ENDPOINTS (for mobile app sync)
+    // =========================================================================
+
+    // POST /api/staff/create → REST_Controller maps to staff_post('create')
+    // PUT /api/staff/update/{id} → REST_Controller maps to staff_put('update', id)
+    // DELETE /api/staff/delete/{id} → REST_Controller maps to staff_delete('delete', id)
+
+    public function staff_post($action = null)
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            if ($action !== 'create') {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Invalid action'
+                ], 400);
+                return;
+            }
+
+            $input = $this->post();
+            if (empty($input)) {
+                $input = json_decode(file_get_contents('php://input'), true);
+            }
+
+            if (empty($input['ihris_pid'])) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'ihris_pid is required'
+                ], 400);
+                return;
+            }
+
+            $result = $this->mEmployee->create_staff($input);
+
+            if ($result) {
+                $this->response($result, 200);
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Failed to create staff record'
+                ], 500);
+            }
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function staff_put($action = null, $id = null)
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            if ($action !== 'update' || empty($id)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Invalid action or missing staff ID'
+                ], 400);
+                return;
+            }
+
+            $input = $this->put();
+            if (empty($input)) {
+                $input = json_decode(file_get_contents('php://input'), true);
+            }
+
+            $result = $this->mEmployee->update_staff($id, $input);
+
+            if ($result) {
+                $this->response($result, 200);
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Failed to update staff record'
+                ], 500);
+            }
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function staff_delete($action = null, $id = null)
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            if ($action !== 'delete' || empty($id)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Invalid action or missing staff ID'
+                ], 400);
+                return;
+            }
+
+            $result = $this->mEmployee->delete_staff($id);
+
+            if ($result) {
+                $this->response([
+                    'status' => 'SUCCESS',
+                    'message' => 'Staff record deleted successfully'
+                ], 200);
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Failed to delete staff record or record not found'
+                ], 404);
+            }
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =========================================================================
+    // FACE EMBEDDING SYNC (JSON-based for mobile app)
+    // =========================================================================
+
+    // GET /api/fingerprints?facility_id= - Download fingerprint templates for a facility
+    public function fingerprints_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            $facilityId = $this->get('facility_id');
+            if (empty($facilityId)) {
+                $facilityId = $decoded['facility_id'] ?? null;
+            }
+
+            if (empty($facilityId)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'facility_id is required'
+                ], 400);
+                return;
+            }
+
+            $fingerprints = $this->mEmployee->get_fingerprints_by_facility($facilityId);
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Fingerprints fetched successfully',
+                'fingerprints' => $fingerprints
+            ], 200);
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // POST /api/upload_face_embedding - Upload face embedding as JSON
+    public function upload_face_embedding_post()
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            $input = $this->post();
+            if (empty($input)) {
+                $input = json_decode(file_get_contents('php://input'), true);
+            }
+
+            $ihris_pid = $input['ihris_pid'] ?? null;
+            $face_data = $input['face_data'] ?? null;
+            $face_image = $input['face_image'] ?? null;
+
+            if (empty($ihris_pid) || empty($face_data)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'ihris_pid and face_data are required'
+                ], 400);
+                return;
+            }
+
+            $result = $this->mEmployee->upload_face_embedding($ihris_pid, $face_data, $face_image);
+
+            if ($result) {
+                $this->response([
+                    'status' => 'SUCCESS',
+                    'message' => 'Face embedding uploaded successfully'
+                ], 200);
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Failed to upload face embedding'
+                ], 500);
+            }
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // GET /api/face_embeddings?facility_id= - Download face embeddings for a facility
+    public function face_embeddings_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            $facilityId = $this->get('facility_id');
+            if (empty($facilityId)) {
+                $facilityId = $decoded['facility_id'] ?? null;
+            }
+
+            if (empty($facilityId)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'facility_id is required'
+                ], 400);
+                return;
+            }
+
+            $embeddings = $this->mEmployee->get_face_embeddings_by_facility($facilityId);
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Face embeddings fetched successfully',
+                'embeddings' => $embeddings
+            ], 200);
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =========================================================================
+    // OUT-OF-STATION REQUEST (multipart form with optional file attachment)
+    // =========================================================================
+
+    // POST /api/request - Submit an out-of-station/leave request
+    public function request_post()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $userId = $decoded['user_id'];
+            $facilityId = $decoded['facility_id'] ?? null;
+
+            $startDate = $this->post('startDate');
+            $endDate = $this->post('endDate');
+            $reason = $this->post('reason');
+            $comments = $this->post('comments');
+
+            if (empty($startDate) || empty($endDate) || empty($reason)) {
+                $this->response([
+                    'success' => false,
+                    'message' => 'startDate, endDate, and reason are required'
+                ], 400);
+                return;
+            }
+
+            // Get user's ihris_pid
+            $user = $this->mEmployee->get_user_by_id($userId);
+            $ihris_pid = $user ? $user->ihris_pid : null;
+
+            // Handle file attachment
+            $attachment = null;
+            if (isset($_FILES['document']) && $_FILES['document']['error'] == 0) {
+                $this->load->library('upload');
+                $config['upload_path'] = './uploads/requests/';
+                $config['allowed_types'] = 'pdf|doc|docx|jpg|jpeg|png';
+                $config['max_size'] = 5120;
+
+                if (!is_dir($config['upload_path'])) {
+                    mkdir($config['upload_path'], 0777, true);
+                }
+
+                $this->upload->initialize($config);
+                if ($this->upload->do_upload('document')) {
+                    $upload_data = $this->upload->data();
+                    $attachment = $upload_data['full_path'];
+                }
+            }
+
+            // Look up reason_id from reason name
+            $reason_id = null;
+            $reasonRow = $this->db->get_where('reasons', ['reason' => $reason])->row();
+            if ($reasonRow) {
+                $reason_id = $reasonRow->r_id;
+            }
+
+            $data = [
+                'ihris_pid' => $ihris_pid,
+                'startDate' => $startDate,
+                'endDate' => $endDate,
+                'reason' => $reason,
+                'reason_id' => $reason_id,
+                'comments' => $comments,
+                'facility_id' => $facilityId,
+                'attachment' => $attachment
+            ];
+
+            $result = $this->mEmployee->create_out_of_station_request($data);
+
+            $this->response($result, $result['success'] ? 200 : 400);
+        } catch (Exception $e) {
+            $this->response([
+                'success' => false,
                 'message' => 'An error occurred: ' . $e->getMessage()
             ], 500);
         }
