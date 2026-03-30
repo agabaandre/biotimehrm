@@ -1357,6 +1357,94 @@ class Api extends REST_Controller
     // FACE EMBEDDING SYNC (JSON-based for mobile app)
     // =========================================================================
 
+    // GET /api/reasons - Get list of reasons for leave/absence requests
+    public function reasons_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $reasons = $this->mEmployee->get_reasons();
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Reasons fetched successfully',
+                'reasons' => $reasons
+            ], 200);
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // GET /api/cadres - Get list of employee cadres (distinct from ihrisdata)
+    public function cadres_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $rows = $this->mEmployee->get_cadres();
+            // Flatten to simple string array for mobile
+            $cadres = array_column($rows, 'cadre');
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'cadres' => $cadres
+            ], 200);
+        } catch (Exception $e) {
+            $this->response(['status' => 'FAILED', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // GET /api/districts - Get list of districts (distinct from ihrisdata)
+    public function districts_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $rows = $this->mEmployee->get_districts();
+            $districts = array_column($rows, 'district');
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'districts' => $districts
+            ], 200);
+        } catch (Exception $e) {
+            $this->response(['status' => 'FAILED', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // GET /api/all_facilities - Get full list of facilities (distinct from ihrisdata)
+    public function all_facilities_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $facilities = $this->mEmployee->get_all_facilities();
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'facilities' => $facilities
+            ], 200);
+        } catch (Exception $e) {
+            $this->response(['status' => 'FAILED', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // GET /api/jobs - Get list of employee jobs (distinct from ihrisdata)
+    public function jobs_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $rows = $this->mEmployee->get_jobs();
+            $jobs = array_column($rows, 'job');
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'jobs' => $jobs
+            ], 200);
+        } catch (Exception $e) {
+            $this->response(['status' => 'FAILED', 'message' => $e->getMessage()], 500);
+        }
+    }
+
     // GET /api/fingerprints?facility_id= - Download fingerprint templates for a facility
     public function fingerprints_get()
     {

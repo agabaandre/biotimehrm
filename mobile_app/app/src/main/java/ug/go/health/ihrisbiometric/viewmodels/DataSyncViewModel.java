@@ -20,7 +20,17 @@ import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import ug.go.health.ihrisbiometric.models.AllFacilitiesListResponse;
+import ug.go.health.ihrisbiometric.models.AllFacilityRecord;
+import ug.go.health.ihrisbiometric.models.CadresListResponse;
 import ug.go.health.ihrisbiometric.models.ClockHistory;
+import ug.go.health.ihrisbiometric.models.DistrictsListResponse;
+import ug.go.health.ihrisbiometric.models.FacilityListResponse;
+import ug.go.health.ihrisbiometric.models.FacilityRecord;
+import ug.go.health.ihrisbiometric.models.JobsListResponse;
+import ug.go.health.ihrisbiometric.models.ReasonRecord;
+import ug.go.health.ihrisbiometric.models.ReasonsListResponse;
+import ug.go.health.ihrisbiometric.models.StaffListResponse;
 import ug.go.health.ihrisbiometric.models.StaffRecord;
 import ug.go.health.ihrisbiometric.services.ApiInterface;
 import ug.go.health.ihrisbiometric.services.ApiService;
@@ -190,13 +200,242 @@ public class DataSyncViewModel extends AndroidViewModel {
 
     private void performSync() {
         try {
-            updateSyncMessage("Fetching unsynced records...");
-            dbService.getUnsyncedStaffRecordsAsync(this::handleUnsyncedStaffRecords);
+            updateSyncMessage("Downloading reference data...");
+            downloadReferenceData(() -> {
+                updateSyncMessage("Fetching unsynced records...");
+                dbService.getUnsyncedStaffRecordsAsync(this::handleUnsyncedStaffRecords);
+            });
         } catch (Exception e) {
             Log.e(TAG, "Sync failed", e);
             syncStatusLiveData.postValue(SyncStatus.FAILED);
             updateSyncMessage("Sync failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * Download staff list, facilities, reasons, cadres, districts, all facilities, and jobs
+     * from server before uploading local changes.
+     */
+    private void downloadReferenceData(Runnable onComplete) {
+        downloadStaffList(() ->
+            downloadFacilities(() ->
+                downloadReasons(() ->
+                    downloadCadres(() ->
+                        downloadDistricts(() ->
+                            downloadAllFacilities(() ->
+                                downloadJobs(onComplete)
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    private void downloadStaffList(Runnable onComplete) {
+        updateSyncMessage("Downloading staff list...");
+        apiService.getStaffList().enqueue(new Callback<StaffListResponse>() {
+            @Override
+            public void onResponse(Call<StaffListResponse> call, Response<StaffListResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getStaff() != null) {
+                    List<StaffRecord> serverStaff = response.body().getStaff();
+                    mergeServerStaff(serverStaff, () -> {
+                        updateSyncMessage("Downloaded " + serverStaff.size() + " staff records");
+                        onComplete.run();
+                    });
+                } else {
+                    updateSyncMessage("Staff download skipped (no data or error)");
+                    onComplete.run();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<StaffListResponse> call, Throwable t) {
+                Log.e(TAG, "Staff list download failed: " + t.getMessage());
+                updateSyncMessage("Staff download failed: " + t.getMessage());
+                onComplete.run(); // Continue sync even on failure
+            }
+        });
+    }
+
+    private void mergeServerStaff(List<StaffRecord> serverStaff, Runnable onComplete) {
+        if (serverStaff == null || serverStaff.isEmpty()) {
+            onComplete.run();
+            return;
+        }
+
+        final int[] processed = {0};
+        final int total = serverStaff.size();
+
+        for (StaffRecord serverRecord : serverStaff) {
+            dbService.getStaffRecordByihrisPIDAsync(serverRecord.getIhrisPid(), localRecord -> {
+                if (localRecord == null) {
+                    // New record from server — insert locally as synced
+                    serverRecord.setSynced(true);
+                    dbService.saveStaffRecordAsync(serverRecord, success -> {
+                        processed[0]++;
+                        if (processed[0] == total) onComplete.run();
+                    });
+                } else {
+                    // Record exists locally — only update if local is already synced
+                    // (don't overwrite local unsynced changes)
+                    if (localRecord.isSynced()) {
+                        serverRecord.setId(localRecord.getId());
+                        serverRecord.setSynced(true);
+                        // Preserve local biometric data if server doesn't have it
+                        if (serverRecord.getFingerprintData() == null && localRecord.getFingerprintData() != null) {
+                            serverRecord.setFingerprintData(localRecord.getFingerprintData());
+                            serverRecord.setFingerprintEnrolled(localRecord.isFingerprintEnrolled());
+                            serverRecord.setFingerprintSynced(localRecord.isFingerprintSynced());
+                        }
+                        if (serverRecord.getFaceData() == null && localRecord.getFaceData() != null) {
+                            serverRecord.setFaceData(localRecord.getFaceData());
+                            serverRecord.setFaceEnrolled(localRecord.isFaceEnrolled());
+                            serverRecord.setEmbeddingSynced(localRecord.isEmbeddingSynced());
+                            serverRecord.setFaceImage(localRecord.getFaceImage());
+                        }
+                        if (serverRecord.getTemplateId() == 0 && localRecord.getTemplateId() != 0) {
+                            serverRecord.setTemplateId(localRecord.getTemplateId());
+                        }
+                        dbService.updateStaffRecordAsync(serverRecord, success -> {
+                            processed[0]++;
+                            if (processed[0] == total) onComplete.run();
+                        });
+                    } else {
+                        // Local has unsynced changes — skip server update
+                        processed[0]++;
+                        if (processed[0] == total) onComplete.run();
+                    }
+                }
+            });
+        }
+    }
+
+    private void downloadFacilities(Runnable onComplete) {
+        apiService.getFacilities().enqueue(new Callback<FacilityListResponse>() {
+            @Override
+            public void onResponse(Call<FacilityListResponse> call, Response<FacilityListResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getFacilities() != null) {
+                    List<FacilityRecord> facilities = new ArrayList<>();
+                    // Add current user's facility first
+                    if (sessionService.getCurrentUser() != null) {
+                        FacilityRecord currentFacility = new FacilityRecord();
+                        currentFacility.setFacility(sessionService.getCurrentUser().getFacilityName());
+                        currentFacility.setFacilityId(sessionService.getCurrentUser().getFacilityId());
+                        facilities.add(currentFacility);
+                    }
+                    facilities.addAll(response.body().getFacilities());
+                    sessionService.setFacilities(facilities);
+                    updateSyncMessage("Downloaded " + facilities.size() + " facilities");
+                }
+                onComplete.run();
+            }
+
+            @Override
+            public void onFailure(Call<FacilityListResponse> call, Throwable t) {
+                Log.e(TAG, "Facilities download failed: " + t.getMessage());
+                onComplete.run();
+            }
+        });
+    }
+
+    private void downloadReasons(Runnable onComplete) {
+        apiService.getReasons().enqueue(new Callback<ReasonsListResponse>() {
+            @Override
+            public void onResponse(Call<ReasonsListResponse> call, Response<ReasonsListResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getReasons() != null) {
+                    List<String> reasonNames = new ArrayList<>();
+                    for (ReasonRecord reason : response.body().getReasons()) {
+                        reasonNames.add(reason.getReason());
+                    }
+                    sessionService.setReasonList(reasonNames);
+                    updateSyncMessage("Downloaded " + reasonNames.size() + " reasons");
+                }
+                onComplete.run();
+            }
+
+            @Override
+            public void onFailure(Call<ReasonsListResponse> call, Throwable t) {
+                Log.e(TAG, "Reasons download failed: " + t.getMessage());
+                onComplete.run();
+            }
+        });
+    }
+
+    private void downloadCadres(Runnable onComplete) {
+        apiService.getCadres().enqueue(new Callback<CadresListResponse>() {
+            @Override
+            public void onResponse(Call<CadresListResponse> call, Response<CadresListResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getCadres() != null) {
+                    sessionService.setCadreList(response.body().getCadres());
+                    updateSyncMessage("Downloaded " + response.body().getCadres().size() + " cadres");
+                }
+                onComplete.run();
+            }
+            @Override
+            public void onFailure(Call<CadresListResponse> call, Throwable t) {
+                Log.e(TAG, "Cadres download failed: " + t.getMessage());
+                onComplete.run();
+            }
+        });
+    }
+
+    private void downloadDistricts(Runnable onComplete) {
+        apiService.getDistricts().enqueue(new Callback<DistrictsListResponse>() {
+            @Override
+            public void onResponse(Call<DistrictsListResponse> call, Response<DistrictsListResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getDistricts() != null) {
+                    sessionService.setDistrictList(response.body().getDistricts());
+                    updateSyncMessage("Downloaded " + response.body().getDistricts().size() + " districts");
+                }
+                onComplete.run();
+            }
+            @Override
+            public void onFailure(Call<DistrictsListResponse> call, Throwable t) {
+                Log.e(TAG, "Districts download failed: " + t.getMessage());
+                onComplete.run();
+            }
+        });
+    }
+
+    private void downloadAllFacilities(Runnable onComplete) {
+        apiService.getAllFacilities().enqueue(new Callback<AllFacilitiesListResponse>() {
+            @Override
+            public void onResponse(Call<AllFacilitiesListResponse> call, Response<AllFacilitiesListResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getFacilities() != null) {
+                    List<String> facilityNames = new ArrayList<>();
+                    for (AllFacilityRecord f : response.body().getFacilities()) {
+                        facilityNames.add(f.getFacility());
+                    }
+                    sessionService.setAllFacilityList(facilityNames);
+                    updateSyncMessage("Downloaded " + facilityNames.size() + " facilities");
+                }
+                onComplete.run();
+            }
+            @Override
+            public void onFailure(Call<AllFacilitiesListResponse> call, Throwable t) {
+                Log.e(TAG, "All facilities download failed: " + t.getMessage());
+                onComplete.run();
+            }
+        });
+    }
+
+    private void downloadJobs(Runnable onComplete) {
+        apiService.getJobs().enqueue(new Callback<JobsListResponse>() {
+            @Override
+            public void onResponse(Call<JobsListResponse> call, Response<JobsListResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getJobs() != null) {
+                    sessionService.setJobList(response.body().getJobs());
+                    updateSyncMessage("Downloaded " + response.body().getJobs().size() + " jobs");
+                }
+                onComplete.run();
+            }
+            @Override
+            public void onFailure(Call<JobsListResponse> call, Throwable t) {
+                Log.e(TAG, "Jobs download failed: " + t.getMessage());
+                onComplete.run();
+            }
+        });
     }
 
     private void handleUnsyncedStaffRecords(List<StaffRecord> unsyncedStaffRecords) {

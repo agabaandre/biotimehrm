@@ -14,7 +14,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
 import com.google.android.material.textfield.TextInputEditText;
@@ -32,8 +31,9 @@ import ug.go.health.ihrisbiometric.services.SessionService;
 
 public class AddEditStaffFragment extends Fragment {
 
-    private TextInputEditText etSurname, etFirstname, etOthername, etDob, etJob;
+    private TextInputEditText etSurname, etFirstname, etOthername, etDob;
     private AutoCompleteTextView spinnerGender, spinnerDistrict, spinnerFacility, spinnerFacilityType;
+    private AutoCompleteTextView spinnerCadre, spinnerJob;
     private Button btnSave;
     private DbService dbService;
     private SessionService sessionService;
@@ -80,30 +80,63 @@ public class AddEditStaffFragment extends Fragment {
         etFirstname = view.findViewById(R.id.et_firstname);
         etOthername = view.findViewById(R.id.et_othername);
         etDob = view.findViewById(R.id.et_dob);
-        etJob = view.findViewById(R.id.et_job);
         spinnerGender = view.findViewById(R.id.spinner_gender);
         spinnerDistrict = view.findViewById(R.id.spinner_district);
         spinnerFacility = view.findViewById(R.id.spinner_facility);
         spinnerFacilityType = view.findViewById(R.id.spinner_facility_type);
+        spinnerCadre = view.findViewById(R.id.spinner_cadre);
+        spinnerJob = view.findViewById(R.id.spinner_job);
         btnSave = view.findViewById(R.id.btn_save_staff);
     }
 
     private void setupSpinners() {
+        // Gender - static
         String[] genders = {"Male", "Female", "Other"};
         spinnerGender.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, genders));
 
-        String[] districts = {"Kampala", "Wakiso", "Mukono", "Jinija", "Entebbe"}; // Placeholders
+        // Districts - from cached server data
+        List<String> districts = sessionService.getDistrictList();
+        if (districts.isEmpty()) {
+            districts = new ArrayList<>();
+            districts.add("No districts available - please sync first");
+        }
         spinnerDistrict.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, districts));
 
-        List<FacilityRecord> facilities = sessionService.getFacilities();
-        List<String> facilityNames = new ArrayList<>();
-        for (FacilityRecord f : facilities) {
-            facilityNames.add(f.getFacility());
+        // Facilities - from cached server data (all facilities with full details)
+        List<String> allFacilities = sessionService.getAllFacilityList();
+        if (allFacilities.isEmpty()) {
+            // Fallback to user's assigned facilities
+            List<FacilityRecord> userFacilities = sessionService.getFacilities();
+            allFacilities = new ArrayList<>();
+            for (FacilityRecord f : userFacilities) {
+                allFacilities.add(f.getFacility());
+            }
         }
-        spinnerFacility.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, facilityNames));
+        if (allFacilities.isEmpty()) {
+            allFacilities = new ArrayList<>();
+            allFacilities.add("No facilities available - please sync first");
+        }
+        spinnerFacility.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, allFacilities));
 
-        String[] facilityTypes = {"Hospital", "Health Center IV", "Health Center III", "Health Center II", "School"}; // Placeholders
+        // Facility Type - static (institution categories)
+        String[] facilityTypes = {"Hospital", "Health Center IV", "Health Center III", "Health Center II", "Clinic", "School"};
         spinnerFacilityType.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, facilityTypes));
+
+        // Cadres - from cached server data
+        List<String> cadres = sessionService.getCadreList();
+        if (cadres.isEmpty()) {
+            cadres = new ArrayList<>();
+            cadres.add("No cadres available - please sync first");
+        }
+        spinnerCadre.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, cadres));
+
+        // Jobs - from cached server data
+        List<String> jobs = sessionService.getJobList();
+        if (jobs.isEmpty()) {
+            jobs = new ArrayList<>();
+            jobs.add("No jobs available - please sync first");
+        }
+        spinnerJob.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, jobs));
     }
 
     private void setupDatePicker() {
@@ -125,15 +158,17 @@ public class AddEditStaffFragment extends Fragment {
         dbService.getStaffRecordByIdAsync(staffId, staff -> {
             if (staff != null) {
                 currentStaff = staff;
-                etSurname.setText(staff.getSurname());
-                etFirstname.setText(staff.getFirstname());
-                etOthername.setText(staff.getOthername());
-                spinnerGender.setText(staff.getGender(), false);
-                spinnerDistrict.setText(staff.getDistrict(), false);
-                spinnerFacility.setText(staff.getFacility(), false);
-                spinnerFacilityType.setText(staff.getFacilityType(), false);
-                etDob.setText(staff.getDob());
-                etJob.setText(staff.getJob());
+                requireActivity().runOnUiThread(() -> {
+                    etSurname.setText(staff.getSurname());
+                    etFirstname.setText(staff.getFirstname());
+                    etOthername.setText(staff.getOthername());
+                    spinnerGender.setText(staff.getGender(), false);
+                    spinnerDistrict.setText(staff.getDistrict(), false);
+                    spinnerFacility.setText(staff.getFacility(), false);
+                    spinnerFacilityType.setText(staff.getFacilityType(), false);
+                    etDob.setText(staff.getDob());
+                    spinnerJob.setText(staff.getJob(), false);
+                });
             }
         });
     }
@@ -149,27 +184,40 @@ public class AddEditStaffFragment extends Fragment {
         currentStaff.setFacility(spinnerFacility.getText().toString());
         currentStaff.setFacilityType(spinnerFacilityType.getText().toString());
         currentStaff.setDob(etDob.getText().toString());
-        currentStaff.setJob(etJob.getText().toString());
+        currentStaff.setJob(spinnerJob.getText().toString());
         currentStaff.setSynced(false);
+
+        // Set facility_id based on selected facility name
+        List<FacilityRecord> facilities = sessionService.getFacilities();
+        for (FacilityRecord f : facilities) {
+            if (f.getFacility().equals(currentStaff.getFacility())) {
+                currentStaff.setFacilityId(f.getFacilityId());
+                break;
+            }
+        }
 
         if (staffId == -1) {
             currentStaff.setIhrisPid("LOCAL_" + UUID.randomUUID().toString());
             dbService.saveStaffRecordAsync(currentStaff, success -> {
-                if (success) {
-                    Toast.makeText(requireContext(), "Staff added locally", Toast.LENGTH_SHORT).show();
-                    Navigation.findNavController(requireView()).popBackStack();
-                } else {
-                    Toast.makeText(requireContext(), "Failed to add staff", Toast.LENGTH_SHORT).show();
-                }
+                requireActivity().runOnUiThread(() -> {
+                    if (success) {
+                        Toast.makeText(requireContext(), "Staff added locally", Toast.LENGTH_SHORT).show();
+                        Navigation.findNavController(requireView()).popBackStack();
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to add staff", Toast.LENGTH_SHORT).show();
+                    }
+                });
             });
         } else {
             dbService.updateStaffRecordAsync(currentStaff, success -> {
-                if (success) {
-                    Toast.makeText(requireContext(), "Staff updated locally", Toast.LENGTH_SHORT).show();
-                    Navigation.findNavController(requireView()).popBackStack();
-                } else {
-                    Toast.makeText(requireContext(), "Failed to update staff", Toast.LENGTH_SHORT).show();
-                }
+                requireActivity().runOnUiThread(() -> {
+                    if (success) {
+                        Toast.makeText(requireContext(), "Staff updated locally", Toast.LENGTH_SHORT).show();
+                        Navigation.findNavController(requireView()).popBackStack();
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to update staff", Toast.LENGTH_SHORT).show();
+                    }
+                });
             });
         }
     }

@@ -14,6 +14,9 @@ import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 import ug.go.health.ihrisbiometric.models.ClockHistory;
+import ug.go.health.ihrisbiometric.models.AllFacilitiesListResponse;
+import ug.go.health.ihrisbiometric.models.CadresListResponse;
+import ug.go.health.ihrisbiometric.models.DistrictsListResponse;
 import ug.go.health.ihrisbiometric.models.FaceEmbeddingDownloadResponse;
 import ug.go.health.ihrisbiometric.models.FaceEmbeddingUploadRequest;
 import ug.go.health.ihrisbiometric.models.FaceUploadResponse;
@@ -21,11 +24,13 @@ import ug.go.health.ihrisbiometric.models.FacilityListResponse;
 import ug.go.health.ihrisbiometric.models.FingerprintDownloadResponse;
 import ug.go.health.ihrisbiometric.models.FingerprintUploadRequest;
 import ug.go.health.ihrisbiometric.models.FingerprintUploadResponse;
+import ug.go.health.ihrisbiometric.models.JobsListResponse;
 import ug.go.health.ihrisbiometric.models.LoginRequest;
 import ug.go.health.ihrisbiometric.models.LoginResponse;
 import ug.go.health.ihrisbiometric.models.NotificationListResponse;
 import ug.go.health.ihrisbiometric.models.OutOfStationRequest;
 import ug.go.health.ihrisbiometric.models.OutOfStationResponse;
+import ug.go.health.ihrisbiometric.models.ReasonsListResponse;
 import ug.go.health.ihrisbiometric.models.StaffListResponse;
 import ug.go.health.ihrisbiometric.models.StaffRecord;
 
@@ -96,5 +101,25 @@ public interface ApiInterface {
     // Download face embeddings for a facility
     @GET("face_embeddings")
     Call<FaceEmbeddingDownloadResponse> getFaceEmbeddings(@Query("facility_id") String facilityId);
+
+    // Get list of reasons for leave/absence requests
+    @GET("reasons")
+    Call<ReasonsListResponse> getReasons();
+
+    // Get list of employee cadres
+    @GET("cadres")
+    Call<CadresListResponse> getCadres();
+
+    // Get list of districts
+    @GET("districts")
+    Call<DistrictsListResponse> getDistricts();
+
+    // Get full list of facilities with details
+    @GET("all_facilities")
+    Call<AllFacilitiesListResponse> getAllFacilities();
+
+    // Get list of employee jobs
+    @GET("jobs")
+    Call<JobsListResponse> getJobs();
 
 }

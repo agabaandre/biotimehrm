@@ -858,4 +858,54 @@ class Apiemployee_model extends CI_Model
         $query = $this->db->get();
         return $query->row();
     }
+
+    // Get all reasons for leave/absence requests
+    public function get_reasons()
+    {
+        return $this->db->get('reasons')->result_array();
+    }
+
+    // Get all cadres (distinct values from ihrisdata — employee_cadre table is empty)
+    public function get_cadres()
+    {
+        $query = $this->db->query(
+            "SELECT DISTINCT cadre FROM ihrisdata 
+             WHERE cadre IS NOT NULL AND cadre != '' 
+             ORDER BY cadre ASC"
+        );
+        return $query->result_array();
+    }
+
+    // Get all districts (distinct values from ihrisdata — employee_districts has 111 rows but ihrisdata has 147 distinct)
+    public function get_districts()
+    {
+        $query = $this->db->query(
+            "SELECT DISTINCT district FROM ihrisdata 
+             WHERE district IS NOT NULL AND district != '' 
+             ORDER BY district ASC"
+        );
+        return $query->result_array();
+    }
+
+    // Get all facilities (distinct from ihrisdata — employee_facility only has 2 rows)
+    public function get_all_facilities()
+    {
+        $query = $this->db->query(
+            "SELECT DISTINCT facility_id, facility FROM ihrisdata 
+             WHERE facility IS NOT NULL AND facility != '' 
+             ORDER BY facility ASC"
+        );
+        return $query->result_array();
+    }
+
+    // Get all jobs (distinct values from ihrisdata — employee_jobs table is empty)
+    public function get_jobs()
+    {
+        $query = $this->db->query(
+            "SELECT DISTINCT job FROM ihrisdata 
+             WHERE job IS NOT NULL AND job != '' 
+             ORDER BY job ASC"
+        );
+        return $query->result_array();
+    }
 }

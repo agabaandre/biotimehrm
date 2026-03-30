@@ -112,6 +112,69 @@ public class SessionService {
     }
 
     public List<String> getReasonList() {
+        String reasonsJson = preferences.getString("reasons", null);
+        if (reasonsJson != null) {
+            Gson gson = new Gson();
+            TypeToken<List<String>> token = new TypeToken<List<String>>() {};
+            return gson.fromJson(reasonsJson, token.getType());
+        }
         return new ArrayList<>();
+    }
+
+    public void setReasonList(List<String> reasons) {
+        editor.putString("reasons", new Gson().toJson(reasons));
+        editor.commit();
+    }
+
+    public List<String> getCadreList() {
+        String json = preferences.getString("cadres", null);
+        if (json != null) {
+            return new Gson().fromJson(json, new TypeToken<List<String>>() {}.getType());
+        }
+        return new ArrayList<>();
+    }
+
+    public void setCadreList(List<String> cadres) {
+        editor.putString("cadres", new Gson().toJson(cadres));
+        editor.commit();
+    }
+
+    public List<String> getDistrictList() {
+        String json = preferences.getString("districts", null);
+        if (json != null) {
+            return new Gson().fromJson(json, new TypeToken<List<String>>() {}.getType());
+        }
+        return new ArrayList<>();
+    }
+
+    public void setDistrictList(List<String> districts) {
+        editor.putString("districts", new Gson().toJson(districts));
+        editor.commit();
+    }
+
+    public List<String> getAllFacilityList() {
+        String json = preferences.getString("all_facilities", null);
+        if (json != null) {
+            return new Gson().fromJson(json, new TypeToken<List<String>>() {}.getType());
+        }
+        return new ArrayList<>();
+    }
+
+    public void setAllFacilityList(List<String> facilities) {
+        editor.putString("all_facilities", new Gson().toJson(facilities));
+        editor.commit();
+    }
+
+    public List<String> getJobList() {
+        String json = preferences.getString("jobs", null);
+        if (json != null) {
+            return new Gson().fromJson(json, new TypeToken<List<String>>() {}.getType());
+        }
+        return new ArrayList<>();
+    }
+
+    public void setJobList(List<String> jobs) {
+        editor.putString("jobs", new Gson().toJson(jobs));
+        editor.commit();
     }
 }
