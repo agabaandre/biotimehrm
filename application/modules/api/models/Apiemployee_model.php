@@ -849,6 +849,15 @@ class Apiemployee_model extends CI_Model
     {
         $entry_id = md5(($data['ihris_pid'] ?? '') . $data['startDate'] . $data['endDate'] . $data['reason']);
 
+        // Look up department_id from ihrisdata so the request appears in the web view
+        $department_id = null;
+        if (!empty($data['ihris_pid'])) {
+            $ihrisRow = $this->db->get_where('ihrisdata', ['ihris_pid' => $data['ihris_pid']])->row();
+            if ($ihrisRow) {
+                $department_id = $ihrisRow->department_id ?? null;
+            }
+        }
+
         $requestData = [
             'entry_id' => $entry_id,
             'reason_id' => $data['reason_id'] ?? null,
@@ -859,6 +868,7 @@ class Apiemployee_model extends CI_Model
             'remarks' => $data['comments'] ?? '',
             'facility_id' => $data['facility_id'] ?? null,
             'attachment' => $data['attachment'] ?? null,
+            'department_id' => $department_id,
             'status' => 'Pending'
         ];
 

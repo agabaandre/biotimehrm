@@ -1,5 +1,6 @@
 package ug.go.health.ihrisbiometric.services;
 
+import androidx.annotation.Nullable;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
@@ -74,7 +75,7 @@ public interface ApiInterface {
             @Part("endDate") RequestBody endDate,
             @Part("reason") RequestBody reason,
             @Part("comments") RequestBody comments,
-            @Part MultipartBody.Part document
+            @Nullable @Part MultipartBody.Part document
     );
 
     @POST("staff/create")

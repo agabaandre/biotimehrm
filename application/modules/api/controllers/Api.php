@@ -1606,7 +1606,8 @@ class Api extends REST_Controller
 
             // Handle file attachment
             $attachment = null;
-            if (isset($_FILES['document']) && $_FILES['document']['error'] == 0) {
+            $fileKey = isset($_FILES['document']) ? 'document' : (isset($_FILES['attachment']) ? 'attachment' : null);
+            if ($fileKey && $_FILES[$fileKey]['error'] == 0) {
                 $this->load->library('upload');
                 $config['upload_path'] = './uploads/requests/';
                 $config['allowed_types'] = 'pdf|doc|docx|jpg|jpeg|png';
@@ -1617,7 +1618,7 @@ class Api extends REST_Controller
                 }
 
                 $this->upload->initialize($config);
-                if ($this->upload->do_upload('document')) {
+                if ($this->upload->do_upload($fileKey)) {
                     $upload_data = $this->upload->data();
                     $attachment = $upload_data['full_path'];
                 }

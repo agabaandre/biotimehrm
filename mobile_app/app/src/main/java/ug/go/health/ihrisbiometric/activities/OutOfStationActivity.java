@@ -133,7 +133,7 @@ public class OutOfStationActivity extends AppCompatActivity {
             }
 
             RequestBody requestFile = RequestBody.create(MediaType.parse(getContentResolver().getType(selectedFileUri)), file);
-            filePart = MultipartBody.Part.createFormData("attachment", file.getName(), requestFile);
+            filePart = MultipartBody.Part.createFormData("document", file.getName(), requestFile);
         }
 
         // Submit the request via API
