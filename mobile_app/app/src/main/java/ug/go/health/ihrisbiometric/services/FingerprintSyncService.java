@@ -9,8 +9,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -219,84 +217,58 @@ public class FingerprintSyncService {
                 return;
             }
 
-            // Process sequentially on a background thread so we can call
-            // getEmptyIdSync() and writeTemplateToScanner() without blocking the UI.
-            new Thread(() -> {
-                final int total = records.size();
-                int registered = 0;
-                final List<String> failures = new ArrayList<>();
+            final int total = records.size();
+            final int[] registered = {0};
+            final List<String> failures = new ArrayList<>();
 
-                for (int i = 0; i < records.size(); i++) {
-                    StaffRecord record = records.get(i);
-                    try {
-                        String path = record.getFingerprintPath();
-                        if (path == null || !new File(path).exists()) {
-                            failures.add("No file for " + record.getIhrisPid());
-                            callback.onProgress(i + 1, total, record.getIhrisPid());
-                            continue;
-                        }
+            // Process sequentially — each registration waits for the previous to finish
+            registerNext(scanner, records, 0, total, registered, failures, callback);
+        });
+    }
 
-                        byte[] fileBytes = Files.readAllBytes(new File(path).toPath());
+    private void registerNext(ScannerLibrary scanner, List<StaffRecord> records,
+                              int index, int total, int[] registered,
+                              List<String> failures, ScannerRegistrationCallback callback) {
+        if (index >= total) {
+            callback.onComplete(registered[0], failures);
+            return;
+        }
 
-                        // Step 1: Ask the scanner for the next available slot on THIS device
-                        int slotId = scanner.getEmptyIdSync();
-                        if (slotId <= 0) {
-                            failures.add("No empty slot available for " + record.getIhrisPid());
-                            callback.onProgress(i + 1, total, record.getIhrisPid());
-                            continue;
-                        }
+        StaffRecord record = records.get(index);
+        String path = record.getFingerprintPath();
 
-                        // Step 2: Load bytes into scanner buffer
-                        if (!scanner.WriteTemplateFile(slotId, fileBytes)) {
-                            failures.add("Failed to load template for " + record.getIhrisPid());
-                            callback.onProgress(i + 1, total, record.getIhrisPid());
-                            continue;
-                        }
+        if (path == null || !new File(path).exists()) {
+            failures.add("No file for " + record.getIhrisPid());
+            callback.onProgress(index + 1, total, record.getIhrisPid());
+            registerNext(scanner, records, index + 1, total, registered, failures, callback);
+            return;
+        }
 
-                        // Step 3: Push template to scanner hardware at that slot
-                        int result = scanner.Run_CmdWriteTemplate(slotId);
-                        if (result != 0) {
-                            failures.add("Scanner write failed for " + record.getIhrisPid() + " (code: " + result + ")");
-                            callback.onProgress(i + 1, total, record.getIhrisPid());
-                            continue;
-                        }
+        byte[] fileBytes;
+        try {
+            fileBytes = Files.readAllBytes(new File(path).toPath());
+        } catch (IOException e) {
+            failures.add("Read error for " + record.getIhrisPid() + ": " + e.getMessage());
+            callback.onProgress(index + 1, total, record.getIhrisPid());
+            registerNext(scanner, records, index + 1, total, registered, failures, callback);
+            return;
+        }
 
-                        // Step 4: Store the device-local slot number in the DB
-                        // This mapping is only valid on this device — never sent to server
-                        final int assignedSlot = slotId;
-                        final int idx = i;
-                        record.setTemplateId(assignedSlot);
-
-                        // Synchronous DB update via a latch so we stay sequential
-                        final CountDownLatch latch = new CountDownLatch(1);
-                        final boolean[] dbSuccess = {false};
-                        dbService.updateStaffRecordAsync(record, success -> {
-                            dbSuccess[0] = success;
-                            latch.countDown();
-                        });
-                        latch.await(5, TimeUnit.SECONDS);
-
-                        if (dbSuccess[0]) {
-                            registered++;
-                            Log.d(TAG, "Registered " + record.getIhrisPid() + " → slot " + assignedSlot);
-                        } else {
-                            failures.add("DB update failed for " + record.getIhrisPid());
-                        }
-
-                        callback.onProgress(i + 1, total, record.getIhrisPid());
-
-                    } catch (IOException e) {
-                        failures.add("File read error for " + record.getIhrisPid() + ": " + e.getMessage());
-                        callback.onProgress(i + 1, total, record.getIhrisPid());
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        failures.add("Interrupted for " + record.getIhrisPid());
-                        break;
-                    }
-                }
-
-                callback.onComplete(registered, failures);
-            }).start();
+        // Use the new async method that runs entirely on the scanner executor
+        scanner.registerTemplateAsync(fileBytes, (assignedSlot, error) -> {
+            if (assignedSlot > 0) {
+                record.setTemplateId(assignedSlot);
+                dbService.updateStaffRecordAsync(record, success -> {
+                    if (success) registered[0]++;
+                    else failures.add("DB update failed for " + record.getIhrisPid());
+                    callback.onProgress(index + 1, total, record.getIhrisPid());
+                    registerNext(scanner, records, index + 1, total, registered, failures, callback);
+                });
+            } else {
+                failures.add("Scanner registration failed for " + record.getIhrisPid() + ": " + error);
+                callback.onProgress(index + 1, total, record.getIhrisPid());
+                registerNext(scanner, records, index + 1, total, registered, failures, callback);
+            }
         });
     }
 

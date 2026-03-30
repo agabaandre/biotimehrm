@@ -1,11 +1,15 @@
 package ug.go.health.ihrisbiometric.models;
 
+import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 public class LoginRequest {
     @SerializedName("username")
+    @Expose
     private String username;
+
     @SerializedName("password")
+    @Expose
     private String password;
 
     public LoginRequest() {

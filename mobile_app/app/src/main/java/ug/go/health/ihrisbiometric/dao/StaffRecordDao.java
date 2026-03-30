@@ -24,7 +24,7 @@ public interface StaffRecordDao {
     @Query("SELECT * FROM staff_records WHERE template_id = :templateId AND is_deleted = 0")
     StaffRecord getStaffRecordByTemplate(int templateId);
 
-    @Query("SELECT * FROM staff_records WHERE face_data IS NOT NULL AND is_deleted = 0")
+    @Query("SELECT * FROM staff_records WHERE face_path IS NOT NULL AND is_deleted = 0")
     List<StaffRecord> getStaffRecordsWithEmbeddings();
 
     @Query("SELECT * FROM staff_records WHERE synced = 0")

@@ -479,4 +479,49 @@ public int OpenDevice(String devicePath, int baudRate) {
         deleteId(0xFF);
         return 0;
     }
+
+    /**
+     * Get an empty slot and write a template to it — all on the executor thread.
+     * Callback fires on the main thread with the assigned slot (>0) or -1 on failure.
+     */
+    public void registerTemplateAsync(byte[] templateBytes, RegisterTemplateCallback callback) {
+        if (templateBytes == null || templateBytes.length == 0) {
+            statusHandler.post(() -> callback.onResult(-1, "Empty template data"));
+            return;
+        }
+        executor.execute(() -> {
+            // Step 1: get empty slot
+            devComm.InitPacket((short) DevComm.CMD_GET_EMPTY_ID_CODE, true);
+            devComm.SetDataLen((short) 0);
+            devComm.AddCheckSum(true);
+            if (!devComm.Send_Command((short) DevComm.CMD_GET_EMPTY_ID_CODE)
+                    || devComm.GetRetCode() != DevComm.ERR_SUCCESS) {
+                statusHandler.post(() -> callback.onResult(-1, "Failed to get empty slot"));
+                return;
+            }
+            int slot = devComm.MAKEWORD(devComm.m_abyPacket[8], devComm.m_abyPacket[9]) & 0xFFFF;
+            if (slot <= 0) {
+                statusHandler.post(() -> callback.onResult(-1, "No empty slot available"));
+                return;
+            }
+
+            // Step 2: load bytes into buffer
+            if (!WriteTemplateFile(slot, templateBytes)) {
+                statusHandler.post(() -> callback.onResult(-1, "Failed to load template buffer"));
+                return;
+            }
+
+            // Step 3: write to scanner
+            int ret = writeTemplateToScanner(slot);
+            if (ret == 0) {
+                statusHandler.post(() -> callback.onResult(slot, null));
+            } else {
+                statusHandler.post(() -> callback.onResult(-1, "writeTemplate failed: " + ret));
+            }
+        });
+    }
+
+    public interface RegisterTemplateCallback {
+        void onResult(int assignedSlot, String error);
+    }
 }

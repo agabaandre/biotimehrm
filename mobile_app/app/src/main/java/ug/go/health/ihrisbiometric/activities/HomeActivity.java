@@ -118,12 +118,6 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         observeViewModel();
         fetchFacilitiesAndStaff();
 
-        // On first login (fresh install or after logout), trigger sync automatically
-        // so previously enrolled staff are downloaded and ready to clock immediately
-        if (!sessionService.isInitialSyncDone()) {
-            triggerInitialSync();
-        }
-
         // Schedule the periodic staff picture upload task
         PeriodicWorkRequest uploadWorkRequest;
         uploadWorkRequest = new PeriodicWorkRequest.Builder(StaffPictureUploadService.class, 1, TimeUnit.HOURS)
@@ -198,9 +192,8 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     }
                     // Give the sync ViewModel a reference so it can re-register downloaded templates
                     viewModel.setScanner(scanner);
-                    // Register any templates that were downloaded but not yet registered
-                    // (e.g. after fresh install + sync before scanner was ready)
-                    registerUnregisteredTemplates();
+                    // Delay registration so scanner finishes its init sequence (Run_CmdGetEmptyID) first
+                    handler.postDelayed(() -> registerUnregisteredTemplates(), 3500);
                 }
             } else if ("Mobile".equals(deviceSettings.getDeviceType())) {
                 deviceSettings.setScanMethod("face");
@@ -374,43 +367,25 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
         });
     }
 
-    /**
-     * Triggered on first login — downloads staff list, biometrics, and reference data.
-     * Face embeddings are registered with the engine immediately after download.
-     * Fingerprint templates are registered with the scanner once it's ready.
-     */
-    private void triggerInitialSync() {
-        updateStatus("Downloading data, please wait...");
-        // Use a temporary DataSyncViewModel scoped to this activity
-        DataSyncViewModel syncVm = new ViewModelProvider(this).get(DataSyncViewModel.class);
-        syncVm.setHomeViewModel(viewModel);
-        syncVm.startSync();
-        syncVm.getSyncStatus().observe(this, status -> {
-            if (status == DataSyncViewModel.SyncStatus.COMPLETED) {
-                sessionService.setInitialSyncDone(true);
-                updateStatus("Welcome. Ready.");
-                viewModel.refreshStaffRecords();
-            } else if (status == DataSyncViewModel.SyncStatus.FAILED) {
-                updateStatus("Welcome. Sync failed — retry from menu.");
-            }
-        });
-    }
-
     /** Registers any templates downloaded but not yet on this scanner. */
-    private void registerUnregisteredTemplates() {        if (scanner == null) return;
+    private void registerUnregisteredTemplates() {
+        if (scanner == null) return;
+        updateStatus("Registering fingerprints, please wait...");
         FingerprintSyncService fpSync = new FingerprintSyncService(this,
                 ApiService.getApiInterface(this), dbService);
         fpSync.registerTemplatesOnScanner(scanner,
                 new FingerprintSyncService.ScannerRegistrationCallback() {
                     @Override
                     public void onProgress(int completed, int total, String ihrisPid) {
-                        Log.d(TAG, "Registering template " + completed + "/" + total + ": " + ihrisPid);
+                        updateStatus("Registering " + completed + "/" + total + "...");
                     }
                     @Override
                     public void onComplete(int registered, List<String> failures) {
                         if (registered > 0) {
-                            updateStatus("Registered " + registered + " fingerprint(s). Ready.");
+                            updateStatus("Ready. " + registered + " fingerprint(s) registered.");
                             viewModel.refreshStaffRecords();
+                        } else {
+                            updateStatus("Welcome");
                         }
                         if (!failures.isEmpty()) {
                             Log.w(TAG, "Template registration failures: " + failures);
@@ -419,6 +394,7 @@ public class HomeActivity extends AppCompatActivity implements ug.go.health.ihri
                     @Override
                     public void onError(String errorMessage) {
                         Log.e(TAG, "Template registration error: " + errorMessage);
+                        updateStatus("Welcome");
                     }
                 });
     }
