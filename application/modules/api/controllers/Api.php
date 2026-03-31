@@ -88,7 +88,7 @@ class Api extends REST_Controller
      */
     public function schema_update_post()
     {
-        $this->validateRequest();
+     
         $result = $this->mEmployee->apply_api_schema_updates();
         $ok = empty($result['errors']);
 
