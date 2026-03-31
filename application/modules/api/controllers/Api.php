@@ -78,6 +78,27 @@ class Api extends REST_Controller
         }
     }
 
+    /**
+     * Apply API schema updates:
+     * - mobile_enroll.face_path
+     * - mobile_enroll.fingerpint_path
+     * - requests.department_id nullable
+     *
+     * Requires Authorization header.
+     */
+    public function schema_get()
+    {
+     
+        $result = $this->mEmployee->apply_api_schema_updates();
+        $ok = empty($result['errors']);
+
+        $this->response([
+            'status' => $ok ? 'SUCCESS' : 'FAILED',
+            'message' => $ok ? 'Schema updated successfully' : 'Schema update completed with errors',
+            'result' => $result
+        ], $ok ? REST_Controller::HTTP_OK : REST_Controller::HTTP_BAD_REQUEST);
+    }
+
     public function login_post()
     {
         $username = $this->post('username');
