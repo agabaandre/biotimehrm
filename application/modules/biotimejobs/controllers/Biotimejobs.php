@@ -244,7 +244,6 @@ public function get_ihrisdata($page = 1, $batch_size = 100)
     $batch_data = array();
     $start_time = microtime(true);
     $is_cli = (php_sapi_name() === 'cli');
-    $has_next = false;
     $has_status = $this->db->field_exists('status', 'ihrisdata');
     $has_is_active = $this->db->field_exists('is_active_employee', 'ihrisdata');
     $upsert_cols = $this->_get_ihrisdata_upsert_columns($has_status, $has_is_active);
