@@ -953,6 +953,23 @@ class Apiemployee_model extends CI_Model
             }
         }
 
+        // Backfill fingerpint_path from fingerprint_data where possible.
+        // This keeps existing mobile enrollment records usable after schema update.
+        if ($this->db->field_exists('fingerpint_path', 'mobile_enroll') && $this->db->field_exists('fingerprint_data', 'mobile_enroll')) {
+            $ok = $this->db->query("
+                UPDATE `mobile_enroll`
+                SET `fingerpint_path` = `fingerprint_data`
+                WHERE (`fingerpint_path` IS NULL OR `fingerpint_path` = '')
+                  AND `fingerprint_data` IS NOT NULL
+                  AND `fingerprint_data` <> ''
+            ");
+            if ($ok) {
+                $result['mobile_enroll_fingerpint_path_backfill'] = 'updated_from_fingerprint_data';
+            } else {
+                $result['errors'][] = 'Failed backfilling mobile_enroll.fingerpint_path from fingerprint_data';
+            }
+        }
+
         // Make requests.department_id nullable (preserve existing type)
         $col = $this->db->query("SHOW COLUMNS FROM `requests` LIKE 'department_id'")->row_array();
         if (!empty($col)) {
