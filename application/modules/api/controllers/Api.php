@@ -1193,6 +1193,65 @@ class Api extends REST_Controller
         }
     }
 
+    /**
+     * Run API-related schema migrations (idempotent).
+     * - mobile_enroll: add face_path, fingerpint_path (if missing)
+     * - requests: make department_id nullable (if column exists)
+     */
+    public function migrate_schema_post()
+    {
+        // Require a valid API token for schema changes.
+        $this->validateRequest();
+
+        $results = array(
+            'mobile_enroll.face_path' => 'unchanged',
+            'mobile_enroll.fingerpint_path' => 'unchanged',
+            'requests.department_id_nullable' => 'unchanged',
+        );
+
+        // 1) mobile_enroll.face_path
+        if ($this->db->table_exists('mobile_enroll')) {
+            if (!$this->db->field_exists('face_path', 'mobile_enroll')) {
+                $ok = $this->db->query("ALTER TABLE `mobile_enroll` ADD COLUMN `face_path` VARCHAR(255) NULL AFTER `face_data`");
+                $results['mobile_enroll.face_path'] = $ok ? 'added' : 'failed';
+            }
+
+            // 2) mobile_enroll.fingerpint_path (spelling as requested)
+            if (!$this->db->field_exists('fingerpint_path', 'mobile_enroll')) {
+                $ok = $this->db->query("ALTER TABLE `mobile_enroll` ADD COLUMN `fingerpint_path` VARCHAR(255) NULL AFTER `fingerprint_data`");
+                $results['mobile_enroll.fingerpint_path'] = $ok ? 'added' : 'failed';
+            }
+        } else {
+            $results['mobile_enroll.face_path'] = 'table_missing';
+            $results['mobile_enroll.fingerpint_path'] = 'table_missing';
+        }
+
+        // 3) requests.department_id -> NULLABLE (preserve column type)
+        if ($this->db->table_exists('requests') && $this->db->field_exists('department_id', 'requests')) {
+            $col = $this->db->query("SHOW COLUMNS FROM `requests` LIKE 'department_id'")->row_array();
+            if (!empty($col) && isset($col['Type'])) {
+                if (strtoupper((string) $col['Null']) !== 'YES') {
+                    $colType = $col['Type']; // e.g. int(11), varchar(255), etc.
+                    $ok = $this->db->query("ALTER TABLE `requests` MODIFY COLUMN `department_id` {$colType} NULL");
+                    $results['requests.department_id_nullable'] = $ok ? 'updated' : 'failed';
+                } else {
+                    $results['requests.department_id_nullable'] = 'already_nullable';
+                }
+            } else {
+                $results['requests.department_id_nullable'] = 'column_info_unavailable';
+            }
+        } else {
+            $results['requests.department_id_nullable'] = 'table_or_column_missing';
+        }
+
+        $hasFail = in_array('failed', $results, true);
+        $this->response(array(
+            'status' => $hasFail ? 'FAILED' : 'SUCCESS',
+            'message' => $hasFail ? 'Some schema updates failed' : 'Schema migration completed',
+            'results' => $results
+        ), $hasFail ? REST_Controller::HTTP_INTERNAL_ERROR : REST_Controller::HTTP_OK);
+    }
+
     // Helper method to create a directory and sanitize filename
     private function sanitize_and_prepare_path($staffId, $type) {
         // Remove any special characters from the staff ID
