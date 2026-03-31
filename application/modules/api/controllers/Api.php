@@ -583,6 +583,62 @@ class Api extends REST_Controller
     {
         try {
             $decoded = $this->validateRequest();
+
+            // Check if this is a JSON request (from mobile app sync)
+            $contentType = $this->input->get_request_header('Content-Type', TRUE);
+            if (strpos($contentType, 'application/json') !== false) {
+                // JSON-based fingerprint upload from mobile app
+                $input = json_decode(file_get_contents('php://input'), true);
+                if (empty($input)) {
+                    $input = $this->post();
+                }
+
+                $ihris_pid = $input['ihris_pid'] ?? null;
+                $fingerprint_data = $input['fingerprint_data'] ?? null;
+
+                if (empty($ihris_pid) || empty($fingerprint_data)) {
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'ihris_pid and fingerprint_data are required'
+                    ], 400);
+                    return;
+                }
+
+                $result = $this->mEmployee->upload_fingerprint_template($ihris_pid, $fingerprint_data);
+
+                if ($result) {
+                    // Also save the fingerprint binary to the uploads directory
+                    $sanitizedPid = preg_replace('/[^a-zA-Z0-9_-]/', '_', $ihris_pid);
+                    $userDir = './uploads/fingerprints/' . $sanitizedPid;
+
+                    if (!is_dir($userDir)) {
+                        mkdir($userDir, 0777, true);
+                    }
+
+                    $filePath = $userDir . '/' . $sanitizedPid . '.dat';
+                    $binaryData = base64_decode($fingerprint_data);
+
+                    if ($binaryData !== false) {
+                        file_put_contents($filePath, $binaryData);
+                        log_message('debug', 'Fingerprint file saved to: ' . $filePath);
+                    } else {
+                        log_message('error', 'Failed to decode base64 fingerprint data for: ' . $ihris_pid);
+                    }
+
+                    $this->response([
+                        'status' => 'SUCCESS',
+                        'message' => 'Fingerprint template uploaded successfully'
+                    ], 200);
+                } else {
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'Failed to upload fingerprint template'
+                    ], 500);
+                }
+                return;
+            }
+
+            // File-based fingerprint upload (original behavior)
             
             // Get the staff ID from the request
             $staffId = $this->post('staff_id');
@@ -1191,65 +1247,6 @@ class Api extends REST_Controller
                 'message' => 'An error occurred: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-    /**
-     * Run API-related schema migrations (idempotent).
-     * - mobile_enroll: add face_path, fingerpint_path (if missing)
-     * - requests: make department_id nullable (if column exists)
-     */
-    public function migrate_schema_post()
-    {
-        // Require a valid API token for schema changes.
-        $this->validateRequest();
-
-        $results = array(
-            'mobile_enroll.face_path' => 'unchanged',
-            'mobile_enroll.fingerpint_path' => 'unchanged',
-            'requests.department_id_nullable' => 'unchanged',
-        );
-
-        // 1) mobile_enroll.face_path
-        if ($this->db->table_exists('mobile_enroll')) {
-            if (!$this->db->field_exists('face_path', 'mobile_enroll')) {
-                $ok = $this->db->query("ALTER TABLE `mobile_enroll` ADD COLUMN `face_path` VARCHAR(255) NULL AFTER `face_data`");
-                $results['mobile_enroll.face_path'] = $ok ? 'added' : 'failed';
-            }
-
-            // 2) mobile_enroll.fingerpint_path (spelling as requested)
-            if (!$this->db->field_exists('fingerpint_path', 'mobile_enroll')) {
-                $ok = $this->db->query("ALTER TABLE `mobile_enroll` ADD COLUMN `fingerpint_path` VARCHAR(255) NULL AFTER `fingerprint_data`");
-                $results['mobile_enroll.fingerpint_path'] = $ok ? 'added' : 'failed';
-            }
-        } else {
-            $results['mobile_enroll.face_path'] = 'table_missing';
-            $results['mobile_enroll.fingerpint_path'] = 'table_missing';
-        }
-
-        // 3) requests.department_id -> NULLABLE (preserve column type)
-        if ($this->db->table_exists('requests') && $this->db->field_exists('department_id', 'requests')) {
-            $col = $this->db->query("SHOW COLUMNS FROM `requests` LIKE 'department_id'")->row_array();
-            if (!empty($col) && isset($col['Type'])) {
-                if (strtoupper((string) $col['Null']) !== 'YES') {
-                    $colType = $col['Type']; // e.g. int(11), varchar(255), etc.
-                    $ok = $this->db->query("ALTER TABLE `requests` MODIFY COLUMN `department_id` {$colType} NULL");
-                    $results['requests.department_id_nullable'] = $ok ? 'updated' : 'failed';
-                } else {
-                    $results['requests.department_id_nullable'] = 'already_nullable';
-                }
-            } else {
-                $results['requests.department_id_nullable'] = 'column_info_unavailable';
-            }
-        } else {
-            $results['requests.department_id_nullable'] = 'table_or_column_missing';
-        }
-
-        $hasFail = in_array('failed', $results, true);
-        $this->response(array(
-            'status' => $hasFail ? 'FAILED' : 'SUCCESS',
-            'message' => $hasFail ? 'Some schema updates failed' : 'Schema migration completed',
-            'results' => $results
-        ), $hasFail ? REST_Controller::HTTP_INTERNAL_ERROR : REST_Controller::HTTP_OK);
     }
 
     // Helper method to create a directory and sanitize filename

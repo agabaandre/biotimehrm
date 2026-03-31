@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical">
+
+    <!-- Transparent Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/device_setup_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"/>
+
+    <com.google.android.material.textfield.TextInputLayout
+        app:placeholderText="Enter Server URL"
+        android:padding="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_server_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Server Url"
+            android:inputType="textUri"/>
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+       app:placeholderText="Enter Port Number"
+        android:layout_margin="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_port_number"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Port Number"
+            android:inputType="number"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Device Type Dropdown -->
+    <Spinner
+        android:id="@+id/device_type_dropdown"
+        android:layout_margin="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:entries="@array/device_types"
+        style="@style/SpinnerStyle"
+        />
+
+    <CheckBox
+        android:layout_marginStart="8dp"
+        android:id="@+id/cb_use_ssl"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Use SSL"
+        android:layout_marginTop="16dp"
+        android:checked="false"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <Button
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="16dp"
+        android:id="@+id/device_setup_btn"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="Save Settings"
+        android:layout_gravity="bottom"/>
+
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/device_setup_progressbar"
+        android:visibility="gone"
+        app:trackColor="@color/gray"
+        app:indicatorColor="@color/accent_color"
+        android:layout_gravity="center"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:indeterminate="true" />
+
+</LinearLayout>

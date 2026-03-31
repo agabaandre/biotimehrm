@@ -159,7 +159,7 @@ public function validateRequest($entry_id){
 
 		
 		$this->db->join("ihrisdata", "ihrisdata.ihris_pid=requests.ihris_pid");
-		$this->db->join("reasons", "reasons.r_id=requests.reason_id");
+		$this->db->join("reasons", "reasons.r_id=requests.reason_id", "left");
 		$query=$this->db->get($table);
 		
 		return $query->result();
@@ -203,7 +203,7 @@ public function validateRequest($entry_id){
 			$this->db->where("requests.entry_id",$entry_id);
 		}
 		$this->db->join("ihrisdata", "ihrisdata.ihris_pid=requests.ihris_pid");
-		$this->db->join("reasons", "reasons.r_id=requests.reason_id");
+		$this->db->join("reasons", "reasons.r_id=requests.reason_id", "left");
 		$query=$this->db->get($table);
 		
 		return $query->result();

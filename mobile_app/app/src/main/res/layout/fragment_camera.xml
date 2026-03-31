@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Preview View for Camera -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/preview_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Face Box Frame -->
+    <ImageView
+        android:padding="50dp"
+        android:id="@+id/face_box_frame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:src="@drawable/face_box"
+        android:visibility="visible" />
+
+    <!-- Face Status TextView -->
+    <TextView
+        android:gravity="center"
+        android:layout_marginHorizontal="40dp"
+        android:padding="5dp"
+        android:id="@+id/face_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="80dp"
+        android:background="@color/black"
+        android:textColor="@android:color/white"
+        android:text="Face Status"/>
+
+    <!-- Toggle Camera Button -->
+    <ImageButton
+        android:id="@+id/toggle_camera_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|right"
+        android:layout_margin="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Toggle camera"
+        android:src="@drawable/baseline_cameraswitch_24" />
+
+    <!-- Capture Button -->
+    <Button
+        android:id="@+id/action_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:text="Enroll Staff"
+        android:backgroundTint="@android:color/holo_green_light"/>
+
+</FrameLayout>

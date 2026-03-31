@@ -1,0 +1,37 @@
+# IntelliJ IDEA
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+
+# macOS
+.DS_Store
+
+# Build directories
+/build
+/externalNativeBuild
+/captures
+/screenshots
+
+# OpenCV build files
+/opencv/build
+
+# Android local properties
+local.properties
+
+# C++ build files
+.cxx
+
+# General
+*.aab
+*.apk
+/.externalNativeBuild
+.aider*
+/opencv-sdk/
+/opencv-sdk/
+/opencv-sdk/
