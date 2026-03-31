@@ -4,6 +4,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 class ActivityLogger {
     
     protected $CI;
+    protected $activityLogColumns = null;
     
     public function __construct() {
         $this->CI =& get_instance();
@@ -49,7 +50,7 @@ class ActivityLogger {
             // Get IP address
             $ip_address = $this->CI->input->ip_address();
             
-            // Prepare data for insertion
+            // Prepare full data candidate
             $log_data = array(
                 'fk_user_id' => $user_id,
                 'activity' => $activity,
@@ -66,9 +67,29 @@ class ActivityLogger {
                 log_message('error', 'Activity Logger: activity_log table does not exist');
                 return false;
             }
+
+            // Ensure `route` column exists (add once if missing, ignore if it already exists)
+            $this->ensure_activity_log_route_column();
+
+            // Keep compatibility with older schemas by inserting only existing columns.
+            $columns = $this->get_activity_log_columns();
+            if (empty($columns)) {
+                log_message('error', 'Activity Logger: unable to read activity_log columns');
+                return false;
+            }
+            $filtered_data = array();
+            foreach ($log_data as $k => $v) {
+                if (in_array($k, $columns, true)) {
+                    $filtered_data[$k] = $v;
+                }
+            }
+            if (empty($filtered_data)) {
+                log_message('error', 'Activity Logger: no compatible columns found for insert');
+                return false;
+            }
             
             // Insert into activity_log table
-            $this->CI->db->insert('activity_log', $log_data);
+            $this->CI->db->insert('activity_log', $filtered_data);
             
             $affected_rows = $this->CI->db->affected_rows();
             log_message('debug', 'ActivityLogger: Insert result - affected rows: ' . $affected_rows);
@@ -85,6 +106,40 @@ class ActivityLogger {
             log_message('error', 'Activity Logger Error: ' . $e->getMessage());
             log_message('error', 'Activity Logger Error Stack: ' . $e->getTraceAsString());
             return false;
+        }
+    }
+
+    /**
+     * Get (and cache) activity_log table columns.
+     */
+    protected function get_activity_log_columns() {
+        if (is_array($this->activityLogColumns)) {
+            return $this->activityLogColumns;
+        }
+        $fields = $this->CI->db->list_fields('activity_log');
+        $this->activityLogColumns = is_array($fields) ? $fields : array();
+        return $this->activityLogColumns;
+    }
+
+    /**
+     * Add activity_log.route column if missing.
+     * Safe to call repeatedly; no-op when column already exists.
+     */
+    protected function ensure_activity_log_route_column() {
+        try {
+            $columns = $this->get_activity_log_columns();
+            if (!in_array('route', $columns, true)) {
+                $ok = $this->CI->db->query("ALTER TABLE `activity_log` ADD COLUMN `route` VARCHAR(255) NULL AFTER `module`");
+                if ($ok) {
+                    // Refresh cached columns after schema change
+                    $this->activityLogColumns = null;
+                    $this->get_activity_log_columns();
+                    log_message('info', 'ActivityLogger: added missing activity_log.route column');
+                }
+            }
+        } catch (Exception $e) {
+            // Continue logging with compatible columns even if ALTER fails.
+            log_message('error', 'ActivityLogger: failed to ensure route column - ' . $e->getMessage());
         }
     }
     
