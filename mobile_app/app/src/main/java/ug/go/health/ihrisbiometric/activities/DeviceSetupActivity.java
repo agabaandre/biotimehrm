@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import ug.go.health.ihrisbiometric.R;
+import ug.go.health.ihrisbiometric.models.AppSettings;
 import ug.go.health.ihrisbiometric.models.DeviceSettings;
 import ug.go.health.ihrisbiometric.services.DbService;
 import ug.go.health.ihrisbiometric.services.SessionService;
@@ -36,9 +37,9 @@ public class DeviceSetupActivity extends AppCompatActivity {
     TextInputEditText etServerURL, etPortNumber;
     CheckBox cbUseSSL;
 
-    Spinner deviceType;
+    Spinner deviceType, appMode;
 
-    String selectedDeviceType;
+    String selectedDeviceType, selectedAppMode;
 
     private LoadingDialog loadingDialog;
     private SessionService session;
@@ -72,26 +73,34 @@ public class DeviceSetupActivity extends AppCompatActivity {
         cbUseSSL = findViewById(R.id.cb_use_ssl);
 
         deviceType = findViewById(R.id.device_type_dropdown);
+        appMode = findViewById(R.id.app_mode_dropdown);
 
         loadingDialog = new LoadingDialog(this);
 
         // Populate the device type dropdown
-        List<String> deviceTypes;
-        deviceTypes = Arrays.asList("Select Device Type", "Mobile", "Scanner");
-
-
-        DropdownAdapter adapter = new DropdownAdapter(this, deviceTypes);
-        deviceType.setAdapter(adapter);
+        List<String> deviceTypes = Arrays.asList("Select Device Type", "Mobile", "Scanner");
+        DropdownAdapter deviceAdapter = new DropdownAdapter(this, deviceTypes);
+        deviceType.setAdapter(deviceAdapter);
         deviceType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 selectedDeviceType = parent.getItemAtPosition(position).toString();
             }
-
             @Override
-            public void onNothingSelected(AdapterView<?> parent) {
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
 
+        // Populate the app mode dropdown
+        List<String> appModes = Arrays.asList("Select App Mode", "Health", "Education");
+        DropdownAdapter modeAdapter = new DropdownAdapter(this, appModes);
+        appMode.setAdapter(modeAdapter);
+        appMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedAppMode = parent.getItemAtPosition(position).toString().toLowerCase();
             }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
         });
 
         // Check if device settings exist and populate the form
@@ -108,105 +117,71 @@ public class DeviceSetupActivity extends AppCompatActivity {
                     break;
                 }
             }
-        } else {
-            deviceSettings = new DeviceSettings();
+        }
+
+        AppSettings currentAppSettings = session.getAppSettings();
+        if (currentAppSettings != null) {
+            String mode = currentAppSettings.getAppMode();
+            for (int i = 0; i < appModes.size(); i++) {
+                if (appModes.get(i).equalsIgnoreCase(mode)) {
+                    appMode.setSelection(i);
+                    break;
+                }
+            }
         }
 
 
         setupBtn = findViewById(R.id.device_setup_btn);
-        DeviceSettings finalDeviceSettings = deviceSettings;
         setupBtn.setOnClickListener((v) -> {
-            loadingDialog.show("Saving device settings...");
+            loadingDialog.show("Saving settings...");
 
             String serverURL = etServerURL.getText().toString().trim();
             String portNumber = etPortNumber.getText().toString().trim();
             boolean useSSL = cbUseSSL.isChecked();
 
-            // Remove http or https from the serverURL if present
-            serverURL = serverURL.replaceFirst("^(http[s]?://)", "");
-
-            // Remove the API path from the serverURL if present at the end
-            serverURL = serverURL.replaceFirst("(/api)?$", "");
-
-            // extract protocol, host and api path from the server URL
-            String protocol = "http://";
-            String host = serverURL;
-            String apiPath = "";
-            int apiIndex = serverURL.indexOf("/api");
-            if (serverURL.startsWith("https://")) {
-                protocol = "https://";
-                host = serverURL.substring(8);
-            } else if (serverURL.startsWith("http://")) {
-                host = serverURL.substring(7);
-            }
-
-            if (apiIndex != -1) {
-                host = serverURL.substring(0, apiIndex);
-                apiPath = serverURL.substring(apiIndex);
-            } else {
-                apiPath = "/api";
-            }
-
-            // concatenate host and port number
-            String urlWithPort = host;
-            if (!portNumber.isEmpty() && !portNumber.equals("80")) {
-                urlWithPort += ":" + portNumber;
-            }
-
-            // prepend protocol and concatenate host/port and api path
-            String finalUrl = protocol + urlWithPort + apiPath;
-
-            if (useSSL && finalUrl.startsWith("http://")) {
-                finalUrl = finalUrl.replaceFirst("http://", "https://");
-            } else if (!useSSL && finalUrl.startsWith("https://")) {
-                finalUrl = finalUrl.replaceFirst("https://", "http://");
-            }
-
-            // append trailing slash if not already present
-            if (!finalUrl.endsWith("/")) {
-                finalUrl += "/";
-            }
-
-            finalDeviceSettings.setServerUrl(finalUrl);
-            finalDeviceSettings.setPortNumber(Integer.parseInt(portNumber));
-            finalDeviceSettings.setUseSSL(useSSL);
-            finalDeviceSettings.setScanMethod("fingerprint");
-            finalDeviceSettings.setDeviceType(selectedDeviceType);
-            finalDeviceSettings.setActionType("clock");
-
-            // Log the data we are going to save
-            Log.d("Device Settings", finalDeviceSettings.toString());
-
-            if(session.setDeviceSettings(finalDeviceSettings)) {
-
+            if (serverURL.isEmpty()) {
                 loadingDialog.close();
-
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle("Settings Saved");
-                builder.setMessage("Device settings have been saved.");
-                builder.setPositiveButton("Close Setup", (dialog, which) -> {
-                    // Do something when OK button is clicked
-                    Intent intent = new Intent(DeviceSetupActivity.this, SplashActivity.class);
-                    startActivity(intent);
-                    finish();
-                });
-                AlertDialog dialog = builder.create();
-                dialog.show();
-            } else {
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle("Settings not saved");
-                builder.setMessage("Device settings was unable to complete. Please restart app and try again.");
-                builder.setPositiveButton("Restart App", (dialog, which) -> {
-                    // Do something when OK button is clicked
-                    dialog.dismiss();
-                });
-                builder.setNegativeButton("Retry", (dialog, which) -> {
-                    dialog.dismiss();
-                });
-                AlertDialog dialog = builder.create();
-                dialog.show();
+                etServerURL.setError("Server URL is required");
+                return;
             }
 
+            // Simple URL normalization
+            if (!serverURL.startsWith("http")) {
+                serverURL = (useSSL ? "https://" : "http://") + serverURL;
+            }
+            if (!serverURL.endsWith("/")) {
+                serverURL += "/";
+            }
+
+            DeviceSettings ds = session.getDeviceSettings();
+            if (ds == null) ds = new DeviceSettings();
+            
+            ds.setServerUrl(serverURL);
+            ds.setPortNumber(portNumber.isEmpty() ? 80 : Integer.parseInt(portNumber));
+            ds.setUseSSL(useSSL);
+            ds.setDeviceType(selectedDeviceType);
+            ds.setScanMethod("fingerprint");
+            ds.setActionType("clock");
+
+            AppSettings as = session.getAppSettings();
+            if (as == null) as = new AppSettings();
+            as.setAppMode(selectedAppMode);
+
+            session.setDeviceSettings(ds);
+            session.setAppSettings(as);
+
+            loadingDialog.close();
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Settings Saved");
+            builder.setMessage("Settings have been saved successfully.");
+            builder.setPositiveButton("Close", (dialog, which) -> {
+                Intent intent = new Intent(DeviceSetupActivity.this, SplashActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
+            });
+            builder.show();
         });
 
     }

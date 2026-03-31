@@ -14,6 +14,7 @@ import retrofit2.http.PUT;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import ug.go.health.ihrisbiometric.models.AppSettings;
 import ug.go.health.ihrisbiometric.models.ClockHistory;
 import ug.go.health.ihrisbiometric.models.AllFacilitiesListResponse;
 import ug.go.health.ihrisbiometric.models.CadresListResponse;
@@ -36,6 +37,10 @@ import ug.go.health.ihrisbiometric.models.StaffListResponse;
 import ug.go.health.ihrisbiometric.models.StaffRecord;
 
 public interface ApiInterface {
+
+    // Get app settings
+    @GET("settings")
+    Call<AppSettings> getAppSettings();
 
     // Get list of Notifications
     @GET("notifications_list")
@@ -81,11 +86,11 @@ public interface ApiInterface {
     @POST("staff/create")
     Call<StaffRecord> createStaff(@Body StaffRecord staffRecord);
 
-    @PUT("staff/update/{id}")
-    Call<StaffRecord> updateStaff(@Path("id") int id, @Body StaffRecord staffRecord);
+    @PUT("staff/update/{ihris_pid}")
+    Call<StaffRecord> updateStaff(@Path("ihris_pid") String ihrisPid, @Body StaffRecord staffRecord);
 
-    @DELETE("staff/delete/{id}")
-    Call<ResponseBody> deleteStaff(@Path("id") int id);
+    @DELETE("staff/delete/{ihris_pid}")
+    Call<ResponseBody> deleteStaff(@Path("ihris_pid") String ihrisPid);
 
     // Upload a fingerprint template to the server
     @POST("upload_fingerprint")

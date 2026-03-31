@@ -697,14 +697,14 @@ public class DataSyncViewModel extends AndroidViewModel {
     }
 
     private void syncUpdatedStaff(StaffRecord staffRecord) {
-        apiService.updateStaff(staffRecord.getId(), staffRecord).enqueue(new StaffSyncCallback(staffRecord));
+        apiService.updateStaff(staffRecord.getIhrisPid(), staffRecord).enqueue(new StaffSyncCallback(staffRecord));
     }
 
     private void syncDeletedStaff(StaffRecord staffRecord) {
         if (staffRecord.getIhrisPid() != null && staffRecord.getIhrisPid().startsWith("LOCAL_")) {
             dbService.deleteStaffRecordLocallyAsync(staffRecord.getId(), success -> updateStaffSyncProgress());
         } else {
-            apiService.deleteStaff(staffRecord.getId()).enqueue(new Callback<ResponseBody>() {
+            apiService.deleteStaff(staffRecord.getIhrisPid()).enqueue(new Callback<ResponseBody>() {
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                     if (response.isSuccessful()) {
@@ -733,7 +733,17 @@ public class DataSyncViewModel extends AndroidViewModel {
         public void onResponse(Call<StaffRecord> call, Response<StaffRecord> response) {
             if (response.isSuccessful() && response.body() != null) {
                 StaffRecord syncedStaff = response.body();
+                // Preserve the local Room DB id — the server doesn't know it
+                syncedStaff.setId(staffRecord.getId());
                 syncedStaff.setSynced(true);
+                // Preserve local-only fields that the server doesn't return
+                syncedStaff.setFingerprintPath(staffRecord.getFingerprintPath());
+                syncedStaff.setFacePath(staffRecord.getFacePath());
+                syncedStaff.setFaceImage(staffRecord.getFaceImage());
+                syncedStaff.setTemplateId(staffRecord.getTemplateId());
+                syncedStaff.setFingerprintSynced(staffRecord.isFingerprintSynced());
+                syncedStaff.setEmbeddingSynced(staffRecord.isEmbeddingSynced());
+                syncedStaff.setLocation(staffRecord.getLocation());
                 dbService.updateStaffRecordAsync(syncedStaff, success -> updateStaffSyncProgress());
             } else {
                 handleSyncError("Sync failed for staff record: " + staffRecord.getName());

@@ -604,6 +604,70 @@ class Api extends REST_Controller
     {
         try {
             $decoded = $this->validateRequest();
+
+            // Check if this is a JSON request (from mobile app sync)
+            $contentType = $this->input->get_request_header('Content-Type', TRUE);
+            if (empty($contentType)) {
+                // Fallback: check $_SERVER directly
+                $contentType = isset($_SERVER['CONTENT_TYPE']) ? $_SERVER['CONTENT_TYPE'] : '';
+                if (empty($contentType) && isset($_SERVER['HTTP_CONTENT_TYPE'])) {
+                    $contentType = $_SERVER['HTTP_CONTENT_TYPE'];
+                }
+            }
+            $isJson = (stripos($contentType, 'application/json') !== false);
+            if ($isJson) {
+                // JSON-based fingerprint upload from mobile app
+                $input = json_decode(file_get_contents('php://input'), true);
+                if (empty($input)) {
+                    $input = $this->post();
+                }
+
+                $ihris_pid = $input['ihris_pid'] ?? null;
+                $fingerprint_data = $input['fingerprint_data'] ?? null;
+
+                if (empty($ihris_pid) || empty($fingerprint_data)) {
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'ihris_pid and fingerprint_data are required'
+                    ], 400);
+                    return;
+                }
+
+                $result = $this->mEmployee->upload_fingerprint_template($ihris_pid, $fingerprint_data);
+
+                if ($result) {
+                    // Also save the fingerprint binary to the uploads directory
+                    $sanitizedPid = preg_replace('/[^a-zA-Z0-9_-]/', '_', $ihris_pid);
+                    $userDir = './uploads/fingerprints/' . $sanitizedPid;
+
+                    if (!is_dir($userDir)) {
+                        mkdir($userDir, 0777, true);
+                    }
+
+                    $filePath = $userDir . '/' . $sanitizedPid . '.dat';
+                    $binaryData = base64_decode($fingerprint_data);
+
+                    if ($binaryData !== false) {
+                        file_put_contents($filePath, $binaryData);
+                        log_message('debug', 'Fingerprint file saved to: ' . $filePath);
+                    } else {
+                        log_message('error', 'Failed to decode base64 fingerprint data for: ' . $ihris_pid);
+                    }
+
+                    $this->response([
+                        'status' => 'SUCCESS',
+                        'message' => 'Fingerprint template uploaded successfully'
+                    ], 200);
+                } else {
+                    $this->response([
+                        'status' => 'FAILED',
+                        'message' => 'Failed to upload fingerprint template'
+                    ], 500);
+                }
+                return;
+            }
+
+            // File-based fingerprint upload (original behavior)
             
             // Get the staff ID from the request
             $staffId = $this->post('staff_id');
@@ -1209,6 +1273,492 @@ class Api extends REST_Controller
             // Return error response if any exception occurs
             $this->response([
                 'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =========================================================================
+    // STAFF CRUD ENDPOINTS (for mobile app sync)
+    // =========================================================================
+
+    // POST /api/staff/create → REST_Controller maps to staff_post('create')
+    // PUT /api/staff/update/{id} → REST_Controller maps to staff_put('update', id)
+    // DELETE /api/staff/delete/{id} → REST_Controller maps to staff_delete('delete', id)
+
+    public function staff_post($action = null)
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            if ($action !== 'create') {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Invalid action'
+                ], 400);
+                return;
+            }
+
+            $input = $this->post();
+            if (empty($input)) {
+                $input = json_decode(file_get_contents('php://input'), true);
+            }
+
+            if (empty($input['ihris_pid'])) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'ihris_pid is required'
+                ], 400);
+                return;
+            }
+
+            $result = $this->mEmployee->create_staff($input);
+
+            if ($result) {
+                $this->response($result, 200);
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Failed to create staff record'
+                ], 500);
+            }
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function staff_put($action = null, $ihris_pid = null)
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            if ($action !== 'update' || empty($ihris_pid)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Invalid action or missing ihris_pid'
+                ], 400);
+                return;
+            }
+
+            // URL-decode in case the pipe character was encoded
+            $ihris_pid = urldecode($ihris_pid);
+
+            $input = $this->put();
+            if (empty($input)) {
+                $input = json_decode(file_get_contents('php://input'), true);
+            }
+
+            if (empty($input)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'No input data provided'
+                ], 400);
+                return;
+            }
+
+            // Remove fields that don't belong in the database tables
+            $fieldsToRemove = ['id', 'template_id', 'fingerprint_path', 'face_path',
+                'fingerprint_synced', 'embedding_synced', 'synced', 'is_deleted',
+                'location', 'fingerprint_data', 'face_data'];
+            foreach ($fieldsToRemove as $field) {
+                unset($input[$field]);
+            }
+
+            // Ensure ihris_pid from URL is used as source of truth
+            $input['ihris_pid'] = $ihris_pid;
+
+            $result = $this->mEmployee->update_staff_by_pid($ihris_pid, $input);
+
+            if ($result) {
+                $this->response($result, 200);
+            } else {
+                log_message('error', 'staff_put: update failed for ihris_pid=' . $ihris_pid);
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Failed to update staff record'
+                ], 500);
+            }
+        } catch (Exception $e) {
+            log_message('error', 'staff_put exception: ' . $e->getMessage());
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function staff_delete($action = null, $ihris_pid = null)
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            if ($action !== 'delete' || empty($ihris_pid)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Invalid action or missing ihris_pid'
+                ], 400);
+                return;
+            }
+
+            // URL-decode in case the pipe character was encoded
+            $ihris_pid = urldecode($ihris_pid);
+
+            $result = $this->mEmployee->delete_staff_by_pid($ihris_pid);
+
+            if ($result) {
+                $this->response([
+                    'status' => 'SUCCESS',
+                    'message' => 'Staff record deleted successfully'
+                ], 200);
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Failed to delete staff record or record not found'
+                ], 404);
+            }
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =========================================================================
+    // FACE EMBEDDING SYNC (JSON-based for mobile app)
+    // =========================================================================
+
+    // GET /api/reasons - Get list of reasons for leave/absence requests
+    public function reasons_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $reasons = $this->mEmployee->get_reasons();
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Reasons fetched successfully',
+                'reasons' => $reasons
+            ], 200);
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // GET /api/cadres - Get list of employee cadres (distinct from ihrisdata)
+    public function cadres_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $rows = $this->mEmployee->get_cadres();
+            // Flatten to simple string array for mobile
+            $cadres = array_column($rows, 'cadre');
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'cadres' => $cadres
+            ], 200);
+        } catch (Exception $e) {
+            $this->response(['status' => 'FAILED', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // GET /api/districts - Get list of districts (distinct from ihrisdata)
+    public function districts_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $rows = $this->mEmployee->get_districts();
+            $districts = array_column($rows, 'name');
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'districts' => $districts
+            ], 200);
+        } catch (Exception $e) {
+            $this->response(['status' => 'FAILED', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // GET /api/all_facilities - Get full list of facilities (distinct from ihrisdata)
+    public function all_facilities_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $facilities = $this->mEmployee->get_all_facilities();
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'facilities' => $facilities
+            ], 200);
+        } catch (Exception $e) {
+            $this->response(['status' => 'FAILED', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // GET /api/jobs - Get list of employee jobs (distinct from ihrisdata)
+    public function jobs_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+            $rows = $this->mEmployee->get_jobs();
+            $jobs = array_column($rows, 'job_title');
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'jobs' => $jobs
+            ], 200);
+        } catch (Exception $e) {
+            $this->response(['status' => 'FAILED', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // GET /api/fingerprints?facility_id= - Download fingerprint templates for a facility
+    public function fingerprints_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            $facilityId = $this->get('facility_id');
+            if (empty($facilityId)) {
+                $facilityId = $decoded['facility_id'] ?? null;
+            }
+
+            if (empty($facilityId)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'facility_id is required'
+                ], 400);
+                return;
+            }
+
+            $fingerprints = $this->mEmployee->get_fingerprints_by_facility($facilityId);
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Fingerprints fetched successfully',
+                'fingerprints' => $fingerprints
+            ], 200);
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // POST /api/upload_face_embedding - Upload face embedding as JSON
+    public function upload_face_embedding_post()
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            $input = $this->post();
+            if (empty($input)) {
+                $input = json_decode(file_get_contents('php://input'), true);
+            }
+
+            $ihris_pid = $input['ihris_pid'] ?? null;
+            $face_data = $input['face_data'] ?? null;
+            $face_image = $input['face_image'] ?? null;
+
+            if (empty($ihris_pid) || empty($face_data)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'ihris_pid and face_data are required'
+                ], 400);
+                return;
+            }
+
+            $result = $this->mEmployee->upload_face_embedding($ihris_pid, $face_data, $face_image);
+
+            if ($result) {
+                $this->response([
+                    'status' => 'SUCCESS',
+                    'message' => 'Face embedding uploaded successfully'
+                ], 200);
+            } else {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'Failed to upload face embedding'
+                ], 500);
+            }
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // GET /api/face_embeddings?facility_id= - Download face embeddings for a facility
+    public function face_embeddings_get()
+    {
+        try {
+            $decoded = $this->validateRequest();
+
+            $facilityId = $this->get('facility_id');
+            if (empty($facilityId)) {
+                $facilityId = $decoded['facility_id'] ?? null;
+            }
+
+            if (empty($facilityId)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'facility_id is required'
+                ], 400);
+                return;
+            }
+
+            $embeddings = $this->mEmployee->get_face_embeddings_by_facility($facilityId);
+
+            $this->response([
+                'status' => 'SUCCESS',
+                'message' => 'Face embeddings fetched successfully',
+                'embeddings' => $embeddings
+            ], 200);
+        } catch (Exception $e) {
+            $this->response([
+                'status' => 'FAILED',
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =========================================================================
+    // OUT-OF-STATION REQUEST (multipart form with optional file attachment)
+    // =========================================================================
+
+    // POST /api/request - Submit an out-of-station/leave request
+    public function request_post()
+    {
+        $log_prefix = '[request_post][' . date('Y-m-d H:i:s') . ']';
+        log_message('info', $log_prefix . ' ===== REQUEST STARTED =====');
+
+        try {
+            // Log raw request info
+            log_message('info', $log_prefix . ' Content-Type: ' . $this->input->server('CONTENT_TYPE'));
+            log_message('info', $log_prefix . ' Content-Length: ' . $this->input->server('CONTENT_LENGTH'));
+            log_message('info', $log_prefix . ' Request Method: ' . $this->input->server('REQUEST_METHOD'));
+
+            // Log POST fields
+            log_message('info', $log_prefix . ' POST fields: ' . json_encode($_POST));
+
+            // Log FILES info (without binary data)
+            $files_info = [];
+            foreach ($_FILES as $key => $file) {
+                $files_info[$key] = [
+                    'name'     => $file['name'],
+                    'type'     => $file['type'],
+                    'size'     => $file['size'],
+                    'tmp_name' => $file['tmp_name'],
+                    'error'    => $file['error'],
+                ];
+            }
+            log_message('info', $log_prefix . ' FILES: ' . json_encode($files_info));
+
+            log_message('info', $log_prefix . ' Step 1: Validating JWT token');
+            $decoded = $this->validateRequest();
+            $userId = $decoded['user_id'];
+            $facilityId = $decoded['facility_id'] ?? null;
+            log_message('info', $log_prefix . ' Step 1 OK: userId=' . $userId . ' facilityId=' . $facilityId);
+
+            $startDate = $this->post('startDate');
+            $endDate   = $this->post('endDate');
+            $reason    = $this->post('reason');
+            $comments  = $this->post('comments');
+            log_message('info', $log_prefix . ' Step 2: Fields - startDate=' . $startDate . ' endDate=' . $endDate . ' reason=' . $reason . ' comments=' . $comments);
+
+            if (empty($startDate) || empty($endDate) || empty($reason)) {
+                log_message('error', $log_prefix . ' Step 2 FAILED: Missing required fields');
+                $this->response([
+                    'success' => false,
+                    'message' => 'startDate, endDate, and reason are required'
+                ], 400);
+                return;
+            }
+
+            log_message('info', $log_prefix . ' Step 3: Looking up user by id=' . $userId);
+            $user = $this->mEmployee->get_user_by_id($userId);
+            $ihris_pid = $user ? $user->ihris_pid : null;
+            log_message('info', $log_prefix . ' Step 3 OK: ihris_pid=' . $ihris_pid);
+
+            // Handle file attachment
+            $attachment = null;
+            $fileKey = isset($_FILES['document']) ? 'document' : (isset($_FILES['attachment']) ? 'attachment' : null);
+            log_message('info', $log_prefix . ' Step 4: File upload - fileKey=' . ($fileKey ?? 'none'));
+
+            if ($fileKey && $_FILES[$fileKey]['error'] == 0) {
+                log_message('info', $log_prefix . ' Step 4a: File found - name=' . $_FILES[$fileKey]['name'] . ' size=' . $_FILES[$fileKey]['size'] . ' tmp=' . $_FILES[$fileKey]['tmp_name']);
+
+                $upload_path = FCPATH . 'uploads/requests/';
+                log_message('info', $log_prefix . ' Step 4b: upload_path=' . $upload_path . ' exists=' . (is_dir($upload_path) ? 'yes' : 'no') . ' writable=' . (is_writable($upload_path) ? 'yes' : 'no'));
+
+                if (!is_dir($upload_path)) {
+                    $made = mkdir($upload_path, 0777, true);
+                    log_message('info', $log_prefix . ' Step 4b: mkdir result=' . ($made ? 'ok' : 'FAILED'));
+                }
+
+                $this->load->library('upload');
+                $config['upload_path']   = $upload_path;
+                $config['allowed_types'] = 'pdf|doc|docx|jpg|jpeg|png';
+                $config['max_size']      = 10240; // 10MB
+                $this->upload->initialize($config);
+
+                log_message('info', $log_prefix . ' Step 4c: Calling do_upload()');
+                if ($this->upload->do_upload($fileKey)) {
+                    $upload_data = $this->upload->data();
+                    $attachment  = $upload_data['full_path'];
+                    log_message('info', $log_prefix . ' Step 4c OK: attachment=' . $attachment);
+                } else {
+                    $upload_error = $this->upload->display_errors('', '');
+                    log_message('error', $log_prefix . ' Step 4c FAILED: ' . $upload_error);
+                }
+            } elseif ($fileKey) {
+                log_message('error', $log_prefix . ' Step 4 FAILED: File error code=' . $_FILES[$fileKey]['error']);
+            } else {
+                log_message('info', $log_prefix . ' Step 4: No file attached');
+            }
+
+            log_message('info', $log_prefix . ' Step 5: Looking up reason_id for reason=' . $reason);
+            $reason_id = null;
+            $reasonRow = $this->db->get_where('reasons', ['reason' => $reason])->row();
+            if ($reasonRow) {
+                $reason_id = $reasonRow->r_id;
+                log_message('info', $log_prefix . ' Step 5 OK: reason_id=' . $reason_id);
+            } else {
+                log_message('error', $log_prefix . ' Step 5 WARN: No matching reason found for "' . $reason . '"');
+            }
+
+            $data = [
+                'ihris_pid'   => $ihris_pid,
+                'startDate'   => $startDate,
+                'endDate'     => $endDate,
+                'reason'      => $reason,
+                'reason_id'   => $reason_id,
+                'comments'    => $comments,
+                'facility_id' => $facilityId,
+                'attachment'  => $attachment
+            ];
+            log_message('info', $log_prefix . ' Step 6: Inserting request - ' . json_encode($data));
+
+            $result = $this->mEmployee->create_out_of_station_request($data);
+            log_message('info', $log_prefix . ' Step 6 result: ' . json_encode($result));
+
+            log_message('info', $log_prefix . ' ===== REQUEST ENDED =====');
+            $this->response($result, $result['success'] ? 200 : 400);
+
+        } catch (Exception $e) {
+            log_message('error', $log_prefix . ' EXCEPTION: ' . $e->getMessage());
+            log_message('error', $log_prefix . ' TRACE: ' . $e->getTraceAsString());
+            $this->response([
+                'success' => false,
                 'message' => 'An error occurred: ' . $e->getMessage()
             ], 500);
         }

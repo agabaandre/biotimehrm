@@ -24,6 +24,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import ug.go.health.ihrisbiometric.R;
+import ug.go.health.ihrisbiometric.models.AppSettings;
 import ug.go.health.ihrisbiometric.models.FaceEmbeddingDownloadResponse;
 import ug.go.health.ihrisbiometric.models.FaceEmbeddingRecord;
 import ug.go.health.ihrisbiometric.models.FingerprintDownloadResponse;
@@ -56,6 +57,7 @@ public class LoginActivity extends AppCompatActivity {
     ProgressBar progressBar;
     TextView tvStatus;
     TextView changeSettings;
+    TextView tvAppName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +65,7 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         session = new SessionService(this);
+        apiService = ApiInterface.class.cast(ApiService.getApiInterface(this)); // Standard retrieval
         apiService = ApiService.getApiInterface(this);
         dbService = new DbService(this);
 
@@ -72,9 +75,15 @@ public class LoginActivity extends AppCompatActivity {
         tiePassword = findViewById(R.id.password_input);
         btnLogin = findViewById(R.id.login_button);
         progressBar = findViewById(R.id.progress_bar);
+        tvAppName = findViewById(R.id.ihris_heading);
 
         // Reuse the existing progress bar label if present, otherwise fall back gracefully
         tvStatus = findViewById(R.id.tv_loading_status);
+
+        AppSettings settings = session.getAppSettings();
+        if (settings != null && settings.getAppName() != null) {
+            tvAppName.setText(settings.getAppName());
+        }
 
         btnLogin.setOnClickListener(v -> handleLogin());
 
