@@ -706,14 +706,28 @@ class Apiemployee_model extends CI_Model
             return false;
         }
 
+        return $this->delete_staff_by_pid($record->ihris_pid);
+    }
+
+    /**
+     * Delete a staff record by ihris_pid (source of truth).
+     */
+    public function delete_staff_by_pid($ihris_pid)
+    {
+        // Verify the record exists
+        $record = $this->db->get_where('ihrisdata', ['ihris_pid' => $ihris_pid])->row();
+        if (!$record) {
+            return false;
+        }
+
         $this->db->trans_begin();
 
         // Delete enrollment data
-        $this->db->where('ihris_pid', $record->ihris_pid);
+        $this->db->where('ihris_pid', $ihris_pid);
         $this->db->delete('mobile_enroll');
 
         // Delete staff record
-        $this->db->where('id', $id);
+        $this->db->where('ihris_pid', $ihris_pid);
         $this->db->delete('ihrisdata');
 
         if ($this->db->trans_status() === FALSE) {
@@ -723,6 +737,15 @@ class Apiemployee_model extends CI_Model
 
         $this->db->trans_commit();
         return true;
+    }
+
+    /**
+     * Update a staff record by ihris_pid (source of truth).
+     */
+    public function update_staff_by_pid($ihris_pid, $data)
+    {
+        $data['ihris_pid'] = $ihris_pid;
+        return $this->update_staff(null, $data);
     }
 
     private function get_staff_record($ihris_pid)

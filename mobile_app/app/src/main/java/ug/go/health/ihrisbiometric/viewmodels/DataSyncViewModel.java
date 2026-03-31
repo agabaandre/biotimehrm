@@ -697,14 +697,14 @@ public class DataSyncViewModel extends AndroidViewModel {
     }
 
     private void syncUpdatedStaff(StaffRecord staffRecord) {
-        apiService.updateStaff(staffRecord.getId(), staffRecord).enqueue(new StaffSyncCallback(staffRecord));
+        apiService.updateStaff(staffRecord.getIhrisPid(), staffRecord).enqueue(new StaffSyncCallback(staffRecord));
     }
 
     private void syncDeletedStaff(StaffRecord staffRecord) {
         if (staffRecord.getIhrisPid() != null && staffRecord.getIhrisPid().startsWith("LOCAL_")) {
             dbService.deleteStaffRecordLocallyAsync(staffRecord.getId(), success -> updateStaffSyncProgress());
         } else {
-            apiService.deleteStaff(staffRecord.getId()).enqueue(new Callback<ResponseBody>() {
+            apiService.deleteStaff(staffRecord.getIhrisPid()).enqueue(new Callback<ResponseBody>() {
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                     if (response.isSuccessful()) {

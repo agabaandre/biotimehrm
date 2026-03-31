@@ -86,11 +86,11 @@ public interface ApiInterface {
     @POST("staff/create")
     Call<StaffRecord> createStaff(@Body StaffRecord staffRecord);
 
-    @PUT("staff/update/{id}")
-    Call<StaffRecord> updateStaff(@Path("id") int id, @Body StaffRecord staffRecord);
+    @PUT("staff/update/{ihris_pid}")
+    Call<StaffRecord> updateStaff(@Path("ihris_pid") String ihrisPid, @Body StaffRecord staffRecord);
 
-    @DELETE("staff/delete/{id}")
-    Call<ResponseBody> deleteStaff(@Path("id") int id);
+    @DELETE("staff/delete/{ihris_pid}")
+    Call<ResponseBody> deleteStaff(@Path("ihris_pid") String ihrisPid);
 
     // Upload a fingerprint template to the server
     @POST("upload_fingerprint")

@@ -1309,18 +1309,21 @@ class Api extends REST_Controller
         }
     }
 
-    public function staff_put($action = null, $id = null)
+    public function staff_put($action = null, $ihris_pid = null)
     {
         try {
             $decoded = $this->validateRequest();
 
-            if ($action !== 'update' || empty($id)) {
+            if ($action !== 'update' || empty($ihris_pid)) {
                 $this->response([
                     'status' => 'FAILED',
-                    'message' => 'Invalid action or missing staff ID'
+                    'message' => 'Invalid action or missing ihris_pid'
                 ], 400);
                 return;
             }
+
+            // URL-decode in case the pipe character was encoded
+            $ihris_pid = urldecode($ihris_pid);
 
             $input = $this->put();
             if (empty($input)) {
@@ -1343,12 +1346,15 @@ class Api extends REST_Controller
                 unset($input[$field]);
             }
 
-            $result = $this->mEmployee->update_staff($id, $input);
+            // Ensure ihris_pid from URL is used as source of truth
+            $input['ihris_pid'] = $ihris_pid;
+
+            $result = $this->mEmployee->update_staff_by_pid($ihris_pid, $input);
 
             if ($result) {
                 $this->response($result, 200);
             } else {
-                log_message('error', 'staff_put: update_staff returned null for id=' . $id . ' ihris_pid=' . ($input['ihris_pid'] ?? 'N/A'));
+                log_message('error', 'staff_put: update failed for ihris_pid=' . $ihris_pid);
                 $this->response([
                     'status' => 'FAILED',
                     'message' => 'Failed to update staff record'
@@ -1363,20 +1369,23 @@ class Api extends REST_Controller
         }
     }
 
-    public function staff_delete($action = null, $id = null)
+    public function staff_delete($action = null, $ihris_pid = null)
     {
         try {
             $decoded = $this->validateRequest();
 
-            if ($action !== 'delete' || empty($id)) {
+            if ($action !== 'delete' || empty($ihris_pid)) {
                 $this->response([
                     'status' => 'FAILED',
-                    'message' => 'Invalid action or missing staff ID'
+                    'message' => 'Invalid action or missing ihris_pid'
                 ], 400);
                 return;
             }
 
-            $result = $this->mEmployee->delete_staff($id);
+            // URL-decode in case the pipe character was encoded
+            $ihris_pid = urldecode($ihris_pid);
+
+            $result = $this->mEmployee->delete_staff_by_pid($ihris_pid);
 
             if ($result) {
                 $this->response([
