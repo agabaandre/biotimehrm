@@ -574,6 +574,15 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             'records_saved' => 0,
             'clock_log_merged' => 0,
             'errors' => array(),
+            'debug' => array(
+                'lookup_ihris_rows' => 0,
+                'lookup_emp_map_keys' => 0,
+                'lookup_device_areas' => 0,
+                'batch_rows' => 0,
+                'mapped_rows' => 0,
+                'unmapped_emp_rows' => 0,
+                'missing_device_area_rows' => 0,
+            ),
             'timing' => array(
                 'pg_query_s' => 0,
                 'lookups_s' => 0,
@@ -631,6 +640,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             $dept_col = $this->db->field_exists('department_id', 'ihrisdata') ? 'department_id' : 'department';
             $q = $this->db->query("SELECT card_number, ipps, ihris_pid, " . $dept_col . " AS dept FROM ihrisdata");
             if ($q && $q->num_rows() > 0) {
+                $result['debug']['lookup_ihris_rows'] = (int) $q->num_rows();
                 foreach ($q->result() as $r) {
                     $pid = $r->ihris_pid;
                     if (!empty($r->card_number)) {
@@ -644,6 +654,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                     }
                 }
             }
+            $result['debug']['lookup_emp_map_keys'] = count($emp_to_pid);
             $devices = array();
             $has_night_col = $this->db->field_exists('has_night', 'biotime_devices');
             $q2 = $this->db->query("SELECT sn, area_code, area_name" . ($has_night_col ? ", COALESCE(has_night, 0) AS has_night" : "") . " FROM biotime_devices");
@@ -659,6 +670,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                     }
                 }
             }
+            $result['debug']['lookup_device_areas'] = count($devices);
             $run_night_correction = false;
             if (!empty($area_alias)) {
                 $run_night_correction = isset($devices[$area_alias]) && !empty($devices[$area_alias]['has_night']);
@@ -696,10 +708,21 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
 
             while ($row = pg_fetch_assoc($pg_result)) {
                 $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
+                $emp_code = isset($row['emp_code']) ? $row['emp_code'] : '';
+                $area_name = isset($row['area_alias']) ? $row['area_alias'] : '';
+                $result['debug']['batch_rows']++;
+                if ($datetime && isset($emp_to_pid[$emp_code])) {
+                    $result['debug']['mapped_rows']++;
+                } else {
+                    $result['debug']['unmapped_emp_rows']++;
+                }
+                if ($area_name !== '' && !isset($devices[$area_name])) {
+                    $result['debug']['missing_device_area_rows']++;
+                }
                 $batch[] = array(
-                    'emp_code'     => isset($row['emp_code']) ? $row['emp_code'] : '',
+                    'emp_code'     => $emp_code,
                     'terminal_sn'  => isset($row['terminal_sn']) ? $row['terminal_sn'] : '',
-                    'area_alias'   => isset($row['area_alias']) ? $row['area_alias'] : '',
+                    'area_alias'   => $area_name,
                     'longitude'    => NULL,
                     'latitude'     => NULL,
                     'punch_state'  => '',

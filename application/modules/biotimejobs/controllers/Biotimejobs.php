@@ -1726,10 +1726,34 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $start_dt = $start_date . ' 00:00:00';
         $end_dt   = $end_date . ' 23:59:59';
         $actualsUpdated = 0;
+        $clkCandidates = 0;
+        $actualsExisting = 0;
+        $actualsPending = 0;
 
         // Night correction is applied per-batch in fetch_time_history_with_clocking; no separate night UPDATE here (avoids deadlocks)
 
         $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : 'NULL';
+        // Debug counters: candidate clock rows vs already-existing actuals vs pending inserts.
+        $q1 = $this->db->query("SELECT COUNT(DISTINCT CONCAT(date, ihris_pid)) AS n FROM clk_log WHERE date BETWEEN ? AND ?", [$start_date, $end_date]);
+        if ($q1 && $q1->num_rows() > 0) {
+            $clkCandidates = (int) $q1->row()->n;
+        }
+        $q2 = $this->db->query("SELECT COUNT(*) AS n FROM actuals WHERE date BETWEEN ? AND ? AND schedule_id = 22", [$start_date, $end_date]);
+        if ($q2 && $q2->num_rows() > 0) {
+            $actualsExisting = (int) $q2->row()->n;
+        }
+        $q3 = $this->db->query("
+            SELECT COUNT(*) AS n
+            FROM clk_log cl
+            JOIN ihrisdata id ON id.ihris_pid = cl.ihris_pid
+            LEFT JOIN actuals a ON a.entry_id = CONCAT(cl.date, id.ihris_pid)
+            WHERE cl.date BETWEEN ? AND ?
+              AND a.entry_id IS NULL
+        ", [$start_date, $end_date]);
+        if ($q3 && $q3->num_rows() > 0) {
+            $actualsPending = (int) $q3->row()->n;
+        }
+
         $this->db->trans_start();
         $this->db->query("
             INSERT INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end, stream)
@@ -1758,7 +1782,13 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $this->db->where('punch_time <=', $end_dt);
             $this->db->delete('biotime_data');
         }
-        return array('night_updated' => 0, 'actuals_updated' => $actualsUpdated);
+        return array(
+            'night_updated' => 0,
+            'actuals_updated' => $actualsUpdated,
+            'clk_candidates' => $clkCandidates,
+            'actuals_existing' => $actualsExisting,
+            'actuals_pending_before' => $actualsPending
+        );
     }
 
     /**
@@ -2194,6 +2224,18 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     }
                     if ($output_console && isset($r['actuals_merged']) && $r['actuals_merged'] > 0) {
                         $console("Actuals (from clock-in): " . $r['actuals_merged'], 'info');
+                    }
+                    if ($output_console && isset($r['debug']) && is_array($r['debug'])) {
+                        $d = $r['debug'];
+                        $console(
+                            "Debug — fetched: " . ($r['records_fetched'] ?? 0) .
+                            " | mapped: " . ($d['mapped_rows'] ?? 0) .
+                            " | unmapped_emp: " . ($d['unmapped_emp_rows'] ?? 0) .
+                            " | missing_area_map: " . ($d['missing_device_area_rows'] ?? 0) .
+                            " | emp_map_keys: " . ($d['lookup_emp_map_keys'] ?? 0) .
+                            " | device_areas: " . ($d['lookup_device_areas'] ?? 0),
+                            'info'
+                        );
                     }
                     if ($output_console && !empty($r['timing'])) {
                         $t = $r['timing'];
@@ -2635,7 +2677,10 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                         $stats = $this->biotimeNightAndActualsOnly($chunk_start, $chunk_end, true);
                         $chunk_days = (int) ceil((strtotime($chunk_end . ' 23:59:59') - strtotime($chunk_start)) / 86400) + 1;
                         $days_done += $chunk_days;
-                        $console("  ✓ Chunk $chunk_num: $chunk_start → $chunk_end (actuals: {$stats['actuals_updated']})", 'success');
+                        $console(
+                            "  ✓ Chunk $chunk_num: $chunk_start → $chunk_end (actuals inserted: {$stats['actuals_updated']} | clk candidates: {$stats['clk_candidates']} | existing actuals: {$stats['actuals_existing']} | pending before insert: {$stats['actuals_pending_before']})",
+                            'success'
+                        );
                     } catch (Exception $e) {
                         $console("  ✗ Chunk $chunk_num ($chunk_start → $chunk_end) failed: " . $e->getMessage(), 'error');
                         $this->log("fetch_daily_attendance() night/actuals chunk failed: " . $e->getMessage());
