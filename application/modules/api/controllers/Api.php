@@ -86,7 +86,7 @@ class Api extends REST_Controller
      *
      * Requires Authorization header.
      */
-    public function schema_update_post()
+    public function schema_get()
     {
      
         $result = $this->mEmployee->apply_api_schema_updates();
