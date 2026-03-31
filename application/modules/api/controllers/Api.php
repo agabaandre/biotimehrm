@@ -78,6 +78,27 @@ class Api extends REST_Controller
         }
     }
 
+    /**
+     * Apply API schema updates:
+     * - mobile_enroll.face_path
+     * - mobile_enroll.fingerpint_path
+     * - requests.department_id nullable
+     *
+     * Requires Authorization header.
+     */
+    public function schema_update_post()
+    {
+        $this->validateRequest();
+        $result = $this->mEmployee->apply_api_schema_updates();
+        $ok = empty($result['errors']);
+
+        $this->response([
+            'status' => $ok ? 'SUCCESS' : 'FAILED',
+            'message' => $ok ? 'Schema updated successfully' : 'Schema update completed with errors',
+            'result' => $result
+        ], $ok ? REST_Controller::HTTP_OK : REST_Controller::HTTP_BAD_REQUEST);
+    }
+
     public function login_post()
     {
         $username = $this->post('username');
@@ -583,62 +604,6 @@ class Api extends REST_Controller
     {
         try {
             $decoded = $this->validateRequest();
-
-            // Check if this is a JSON request (from mobile app sync)
-            $contentType = $this->input->get_request_header('Content-Type', TRUE);
-            if (strpos($contentType, 'application/json') !== false) {
-                // JSON-based fingerprint upload from mobile app
-                $input = json_decode(file_get_contents('php://input'), true);
-                if (empty($input)) {
-                    $input = $this->post();
-                }
-
-                $ihris_pid = $input['ihris_pid'] ?? null;
-                $fingerprint_data = $input['fingerprint_data'] ?? null;
-
-                if (empty($ihris_pid) || empty($fingerprint_data)) {
-                    $this->response([
-                        'status' => 'FAILED',
-                        'message' => 'ihris_pid and fingerprint_data are required'
-                    ], 400);
-                    return;
-                }
-
-                $result = $this->mEmployee->upload_fingerprint_template($ihris_pid, $fingerprint_data);
-
-                if ($result) {
-                    // Also save the fingerprint binary to the uploads directory
-                    $sanitizedPid = preg_replace('/[^a-zA-Z0-9_-]/', '_', $ihris_pid);
-                    $userDir = './uploads/fingerprints/' . $sanitizedPid;
-
-                    if (!is_dir($userDir)) {
-                        mkdir($userDir, 0777, true);
-                    }
-
-                    $filePath = $userDir . '/' . $sanitizedPid . '.dat';
-                    $binaryData = base64_decode($fingerprint_data);
-
-                    if ($binaryData !== false) {
-                        file_put_contents($filePath, $binaryData);
-                        log_message('debug', 'Fingerprint file saved to: ' . $filePath);
-                    } else {
-                        log_message('error', 'Failed to decode base64 fingerprint data for: ' . $ihris_pid);
-                    }
-
-                    $this->response([
-                        'status' => 'SUCCESS',
-                        'message' => 'Fingerprint template uploaded successfully'
-                    ], 200);
-                } else {
-                    $this->response([
-                        'status' => 'FAILED',
-                        'message' => 'Failed to upload fingerprint template'
-                    ], 500);
-                }
-                return;
-            }
-
-            // File-based fingerprint upload (original behavior)
             
             // Get the staff ID from the request
             $staffId = $this->post('staff_id');

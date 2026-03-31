@@ -918,6 +918,67 @@ class Apiemployee_model extends CI_Model
         return $this->db->select('cadre')->order_by('cadre', 'ASC')->get('employee_cadre')->result_array();
     }
 
+    /**
+     * Ensure API-related schema changes exist (idempotent):
+     * - mobile_enroll.face_path
+     * - mobile_enroll.fingerpint_path (kept as requested spelling)
+     * - requests.department_id is nullable
+     */
+    public function apply_api_schema_updates()
+    {
+        $result = [
+            'mobile_enroll_face_path' => 'unchanged',
+            'mobile_enroll_fingerpint_path' => 'unchanged',
+            'requests_department_id_nullable' => 'unchanged',
+            'errors' => []
+        ];
+
+        // Add mobile_enroll.face_path if missing
+        if (!$this->db->field_exists('face_path', 'mobile_enroll')) {
+            $ok = $this->db->query("ALTER TABLE `mobile_enroll` ADD COLUMN `face_path` VARCHAR(255) NULL AFTER `face_data`");
+            if ($ok) {
+                $result['mobile_enroll_face_path'] = 'added';
+            } else {
+                $result['errors'][] = 'Failed adding mobile_enroll.face_path';
+            }
+        }
+
+        // Add mobile_enroll.fingerpint_path if missing (requested name)
+        if (!$this->db->field_exists('fingerpint_path', 'mobile_enroll')) {
+            $ok = $this->db->query("ALTER TABLE `mobile_enroll` ADD COLUMN `fingerpint_path` VARCHAR(255) NULL AFTER `fingerprint_data`");
+            if ($ok) {
+                $result['mobile_enroll_fingerpint_path'] = 'added';
+            } else {
+                $result['errors'][] = 'Failed adding mobile_enroll.fingerpint_path';
+            }
+        }
+
+        // Make requests.department_id nullable (preserve existing type)
+        $col = $this->db->query("SHOW COLUMNS FROM `requests` LIKE 'department_id'")->row_array();
+        if (!empty($col)) {
+            $type = $col['Type'];
+            $null = strtoupper((string)$col['Null']) === 'YES';
+            $default = $col['Default'];
+            $extra = trim((string)$col['Extra']);
+
+            if (!$null) {
+                $defaultSql = is_null($default) ? ' DEFAULT NULL' : " DEFAULT " . $this->db->escape($default);
+                $extraSql = $extra !== '' ? ' ' . $extra : '';
+                $sql = "ALTER TABLE `requests` MODIFY `department_id` {$type} NULL{$defaultSql}{$extraSql}";
+                $ok = $this->db->query($sql);
+                if ($ok) {
+                    $result['requests_department_id_nullable'] = 'modified';
+                } else {
+                    $result['errors'][] = 'Failed modifying requests.department_id to nullable';
+                }
+            }
+        } else {
+            $result['errors'][] = 'Column requests.department_id not found';
+        }
+
+        return $result;
+    }
+
     // Get all districts from employee_districts
     public function get_districts()
     {
