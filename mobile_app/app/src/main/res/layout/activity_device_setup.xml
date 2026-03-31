@@ -47,7 +47,15 @@
         android:layout_margin="8dp"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:entries="@array/device_types"
+        style="@style/SpinnerStyle"
+        />
+
+    <!-- App Mode Dropdown -->
+    <Spinner
+        android:id="@+id/app_mode_dropdown"
+        android:layout_margin="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
         style="@style/SpinnerStyle"
         />
 

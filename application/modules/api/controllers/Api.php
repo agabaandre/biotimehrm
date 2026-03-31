@@ -586,7 +586,15 @@ class Api extends REST_Controller
 
             // Check if this is a JSON request (from mobile app sync)
             $contentType = $this->input->get_request_header('Content-Type', TRUE);
-            if (strpos($contentType, 'application/json') !== false) {
+            if (empty($contentType)) {
+                // Fallback: check $_SERVER directly
+                $contentType = isset($_SERVER['CONTENT_TYPE']) ? $_SERVER['CONTENT_TYPE'] : '';
+                if (empty($contentType) && isset($_SERVER['HTTP_CONTENT_TYPE'])) {
+                    $contentType = $_SERVER['HTTP_CONTENT_TYPE'];
+                }
+            }
+            $isJson = (stripos($contentType, 'application/json') !== false);
+            if ($isJson) {
                 // JSON-based fingerprint upload from mobile app
                 $input = json_decode(file_get_contents('php://input'), true);
                 if (empty($input)) {
@@ -1319,17 +1327,35 @@ class Api extends REST_Controller
                 $input = json_decode(file_get_contents('php://input'), true);
             }
 
+            if (empty($input)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'No input data provided'
+                ], 400);
+                return;
+            }
+
+            // Remove fields that don't belong in the database tables
+            $fieldsToRemove = ['id', 'template_id', 'fingerprint_path', 'face_path',
+                'fingerprint_synced', 'embedding_synced', 'synced', 'is_deleted',
+                'location', 'fingerprint_data', 'face_data'];
+            foreach ($fieldsToRemove as $field) {
+                unset($input[$field]);
+            }
+
             $result = $this->mEmployee->update_staff($id, $input);
 
             if ($result) {
                 $this->response($result, 200);
             } else {
+                log_message('error', 'staff_put: update_staff returned null for id=' . $id . ' ihris_pid=' . ($input['ihris_pid'] ?? 'N/A'));
                 $this->response([
                     'status' => 'FAILED',
                     'message' => 'Failed to update staff record'
                 ], 500);
             }
         } catch (Exception $e) {
+            log_message('error', 'staff_put exception: ' . $e->getMessage());
             $this->response([
                 'status' => 'FAILED',
                 'message' => 'An error occurred: ' . $e->getMessage()

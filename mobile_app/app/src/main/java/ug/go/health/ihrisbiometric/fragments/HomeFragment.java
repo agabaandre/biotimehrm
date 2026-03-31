@@ -1,5 +1,6 @@
 package ug.go.health.ihrisbiometric.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -33,6 +34,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import ug.go.health.ihrisbiometric.R;
+import ug.go.health.ihrisbiometric.activities.LoginActivity;
 import ug.go.health.ihrisbiometric.models.FacilityListResponse;
 import ug.go.health.ihrisbiometric.models.FacilityRecord;
 import ug.go.health.ihrisbiometric.services.ApiInterface;
@@ -208,6 +210,20 @@ public class HomeFragment extends Fragment {
             navController.navigate(R.id.action_homeFragment_to_enrollHistoryFragment);
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
         });
+
+        LinearLayout logoutOption = view.findViewById(R.id.logout_option);
+        logoutOption.setOnClickListener(v -> {
+            logout();
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        });
+    }
+
+    private void logout() {
+        sessionService.logout();
+        Intent intent = new Intent(requireActivity(), LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        requireActivity().finish();
     }
 
     private void navigateToSyncFragment() {

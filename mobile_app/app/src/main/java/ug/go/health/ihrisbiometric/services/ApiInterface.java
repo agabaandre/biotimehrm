@@ -14,6 +14,7 @@ import retrofit2.http.PUT;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import ug.go.health.ihrisbiometric.models.AppSettings;
 import ug.go.health.ihrisbiometric.models.ClockHistory;
 import ug.go.health.ihrisbiometric.models.AllFacilitiesListResponse;
 import ug.go.health.ihrisbiometric.models.CadresListResponse;
@@ -36,6 +37,10 @@ import ug.go.health.ihrisbiometric.models.StaffListResponse;
 import ug.go.health.ihrisbiometric.models.StaffRecord;
 
 public interface ApiInterface {
+
+    // Get app settings
+    @GET("settings")
+    Call<AppSettings> getAppSettings();
 
     // Get list of Notifications
     @GET("notifications_list")

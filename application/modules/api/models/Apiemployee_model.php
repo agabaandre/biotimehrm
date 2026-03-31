@@ -651,8 +651,18 @@ class Apiemployee_model extends CI_Model
         $this->db->trans_begin();
 
         if ($ihris_pid) {
-            $this->db->where('ihris_pid', $ihris_pid);
-            $this->db->update('ihrisdata', $ihrisData);
+            // Check if the ihrisdata record exists first
+            $existing = $this->db->get_where('ihrisdata', ['ihris_pid' => $ihris_pid])->row();
+            if ($existing) {
+                if (!empty($ihrisData)) {
+                    $this->db->where('ihris_pid', $ihris_pid);
+                    $this->db->update('ihrisdata', $ihrisData);
+                }
+            } else {
+                // Insert new ihrisdata record
+                $ihrisData['ihris_pid'] = $ihris_pid;
+                $this->db->insert('ihrisdata', $ihrisData);
+            }
         }
 
         // Update enrollment data if present

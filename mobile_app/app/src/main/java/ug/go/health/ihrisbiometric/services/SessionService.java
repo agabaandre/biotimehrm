@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ug.go.health.ihrisbiometric.models.AllFacilityRecord;
+import ug.go.health.ihrisbiometric.models.AppSettings;
 import ug.go.health.ihrisbiometric.models.DeviceSettings;
 import ug.go.health.ihrisbiometric.models.FacilityRecord;
 import ug.go.health.ihrisbiometric.models.User;
@@ -24,12 +25,26 @@ public class SessionService {
 
     public static final String KEY_FACILITY_ID = "facilityId";
     public static final String KEY_FACILITY_NAME = "facilityName";
+    public static final String KEY_APP_SETTINGS = "app_settings";
 
 
     public SessionService(Context context) {
         this.context = context;
         preferences = context.getSharedPreferences("session", Context.MODE_PRIVATE);
         editor = preferences.edit();
+    }
+
+    public AppSettings getAppSettings() {
+        String appSettingsJson = preferences.getString(KEY_APP_SETTINGS, null);
+        if (appSettingsJson != null) {
+            return new Gson().fromJson(appSettingsJson, AppSettings.class);
+        }
+        return null;
+    }
+
+    public void setAppSettings(AppSettings appSettings) {
+        editor.putString(KEY_APP_SETTINGS, new Gson().toJson(appSettings));
+        editor.apply();
     }
 
     public DeviceSettings getDeviceSettings() {
