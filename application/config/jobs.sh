@@ -45,4 +45,4 @@
 0 2 */5 * * curl -k https://attend.health.go.ug/index.php/cronjobs/DutyRosterSummaryCron/updateDutyRosterSummary > /dev/null 2>&1
 0 */6 * * * curl -k https://attend.health.go.ug/index.php/cronjobs/AttendanceSummaryCron/updateAttendanceSummary > /dev/null 2>&1
 
-
+index.php cronjobs/AttendanceSummaryCron/updateAttendanceSummary

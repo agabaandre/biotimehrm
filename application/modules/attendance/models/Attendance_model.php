@@ -226,48 +226,87 @@ class 	Attendance_model extends CI_Model
 		return $rows;
 	}
 
-	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL,  $district = FALSE,$facility = FALSE, $employee = NULL, $department = FALSE, $endpoint=FALSE, $search_like = '')
+	private function build_actuals_summary_query($valid_range, $employee = NULL, $department = FALSE, $endpoint = FALSE, $district = FALSE, $facility = FALSE, $search_like = '')
 	{
-		$facility_id = $_SESSION['facility'];
+		$month_start = $valid_range . '-01';
+		$month_end = date('Y-m-t', strtotime($month_start));
+		$facility_id = isset($_SESSION['facility']) ? $_SESSION['facility'] : '';
 
-		if (!empty($facility_id)&&($endpoint!='api')) {
-			$facilityf = "and facility_id='$facility_id'";
-		} else if (!empty($facility) && ($endpoint == 'api')) {
-			$facilityf = "and facility_id='$facility'";
-		}
-		else{
-			$facilityf = "";
+		$this->db->from('actuals a');
+		$this->db->join('schedules s', 's.schedule_id = a.schedule_id', 'left');
+		$this->db->join('ihrisdata i', 'i.ihris_pid = a.ihris_pid', 'left');
+		$this->db->where('a.date >=', $month_start);
+		$this->db->where('a.date <=', $month_end);
 
-		}
-	
-		if (!empty($district) && ($endpoint == 'api')) {
-			$districtf = "and district='$district'";
+		if ($endpoint != 'api') {
+			if ($facility_id !== '') {
+				$this->db->where('a.facility_id', $facility_id);
+			}
+			if (!empty($employee)) {
+				$this->db->where('a.ihris_pid', $employee);
+			}
 		} else {
-			$districtf = "";
-		}
-		if (!empty($employee)&&($endpoint!='api')) {
-			$search = "and ihris_pid='$employee'";
-		} else {
-			$search = "";
+			if (!empty($facility)) {
+				$this->db->where('a.facility_id', $facility);
+			}
+			if (!empty($district)) {
+				$this->db->where('i.district', $district);
+			}
 		}
 
 		if (!empty($department)) {
-			$dep = "and department_id='$department'";
-		} else {
-			$dep = "";
+			$this->db->group_start();
+			$this->db->where('a.department_id', $department);
+			$this->db->or_where('i.department_id', $department);
+			$this->db->group_end();
 		}
-		$searchClause = "";
+
 		if ($search_like !== '' && trim($search_like) !== '') {
-			$like = $this->db->escape('%' . $this->db->escape_like_str(trim($search_like)) . '%');
-			$searchClause = " AND (fullname LIKE $like OR job LIKE $like OR department_id LIKE $like)";
+			$term = $this->db->escape_like_str(trim($search_like));
+			$this->db->group_start();
+			$this->db->like("CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''), ' ', COALESCE(i.othername,''))", $term, 'both', false);
+			$this->db->or_like('i.job', $term);
+			$this->db->or_like('i.department_id', $term);
+			$this->db->or_like('a.department_id', $term);
+			$this->db->group_end();
 		}
-		$limits = " ";
-		if ($limit !== null && (int)$limit > 0) {
-			$limits = " LIMIT " . max(0, (int)$start) . "," . (int)$limit;
+	}
+
+	public function  attendance_summary($valid_range, $filters, $start = NULL, $limit = NULL,  $district = FALSE,$facility = FALSE, $employee = NULL, $department = FALSE, $endpoint=FALSE, $search_like = '')
+	{
+		$this->build_actuals_summary_query($valid_range, $employee, $department, $endpoint, $district, $facility, $search_like);
+		$this->db->select("
+			a.ihris_pid AS ihris_pid,
+			TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS fullname,
+			COALESCE(i.othername, '') AS othername,
+			COALESCE(i.job, '') AS job,
+			COALESCE(i.department_id, a.department_id, '') AS department_id,
+			COALESCE(i.facility, '') AS facility_name,
+			COALESCE(i.district, '') AS district,
+			" . $this->db->escape($valid_range) . " AS duty_date,
+			CAST(DAY(LAST_DAY(" . $this->db->escape($valid_range . '-01') . ")) AS UNSIGNED) AS base_line,
+			SUM(CASE WHEN s.letter='P' THEN 1 ELSE 0 END) AS P,
+			SUM(CASE WHEN s.letter='O' THEN 1 ELSE 0 END) AS O,
+			SUM(CASE WHEN s.letter='R' THEN 1 ELSE 0 END) AS R,
+			SUM(CASE WHEN s.letter='L' THEN 1 ELSE 0 END) AS L,
+			SUM(CASE WHEN s.letter='X' THEN 1 ELSE 0 END) AS X,
+			SUM(CASE WHEN s.letter='H' THEN 1 ELSE 0 END) AS H
+		", false);
+		$this->db->group_by('a.ihris_pid');
+		$this->db->group_by('i.surname');
+		$this->db->group_by('i.firstname');
+		$this->db->group_by('i.othername');
+		$this->db->group_by('i.job');
+		$this->db->group_by('i.department_id');
+		$this->db->group_by('a.department_id');
+		$this->db->group_by('i.facility');
+		$this->db->group_by('i.district');
+		$this->db->order_by('fullname', 'ASC');
+		if ($limit !== null && (int) $limit > 0) {
+			$this->db->limit((int) $limit, max(0, (int) $start));
 		}
-		$query = $this->db->query("SELECT * from person_att_final  WHERE duty_date='$valid_range' $facilityf $districtf $search $dep $searchClause $limits");
-		$data = $query->result_array();
-		return $data;
+		$query = $this->db->get();
+		return $query->result_array();
 	} //summary
 
 	public function attendance5_summary($valid_range, $filters, $start = NULL, $limit = NULL, $district = FALSE, $facility = FALSE, $employee = NULL, $department = FALSE, $endpoint = FALSE)
@@ -308,23 +347,10 @@ class 	Attendance_model extends CI_Model
 
 	public function countAttendanceSummary($valid_range, $filters, $start = NULL, $limit = NULL, $employee = NULL, $department = NULL, $search_like = '')
 	{
-		$facility = $_SESSION['facility'];
-		if (!empty($employee)) {
-			$search = "and ihris_pid='$employee'";
-		} else {
-			$search = "";
-		}
-		if (!empty($department)) {
-			$dep = "and department_id='$department'";
-		} else {
-			$dep = "";
-		}
-		$searchClause = "";
-		if ($search_like !== '' && trim($search_like) !== '') {
-			$like = $this->db->escape('%' . $this->db->escape_like_str(trim($search_like)) . '%');
-			$searchClause = " AND (fullname LIKE $like OR job LIKE $like OR department_id LIKE $like)";
-		}
-		$query = $this->db->query("SELECT * from person_att_final WHERE facility_id='$facility'  and duty_date='$valid_range' $search $dep $searchClause");
+		$this->build_actuals_summary_query($valid_range, $employee, $department, false, false, false, $search_like);
+		$this->db->select('a.ihris_pid', false);
+		$this->db->group_by('a.ihris_pid');
+		$query = $this->db->get();
 		return $query->num_rows();
 	} //summary
 
