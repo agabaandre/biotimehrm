@@ -98,16 +98,16 @@ class Attendance extends MX_Controller
 			$data = array();
 			$row_num = $start + 1;
 			foreach ($rows as $sum) {
-				$present = isset($sum['P']) && $sum['P'] !== '' ? (int) $sum['P'] : 0;
-				$base_line = isset($sum['base_line']) && $sum['base_line'] !== '' && $sum['base_line'] !== null ? $sum['base_line'] : 0;
+				$present = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'P', 0) : (isset($sum['P']) ? $sum['P'] : 0));
+				$base_line = function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'base_line', 0) : (isset($sum['base_line']) ? $sum['base_line'] : 0);
 				$fullname = isset($sum['fullname']) ? $sum['fullname'] : '';
 				$othername = isset($sum['othername']) ? $sum['othername'] : '';
 				$job = isset($sum['job']) ? character_limiter($sum['job'], 15) : '';
 				$dept = isset($sum['department_id']) ? character_limiter($sum['department_id'], 15) : '';
-				$O = isset($sum['O']) && $sum['O'] !== '' ? (int) $sum['O'] : 0;
-				$R = isset($sum['R']) && $sum['R'] !== '' ? (int) $sum['R'] : 0;
-				$L = isset($sum['L']) && $sum['L'] !== '' ? (int) $sum['L'] : 0;
-				$H = isset($sum['H']) && $sum['H'] !== '' ? (int) $sum['H'] : 0;
+				$O = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'O', 0) : (isset($sum['O']) ? $sum['O'] : 0));
+				$R = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'R', 0) : (isset($sum['R']) ? $sum['R'] : 0));
+				$L = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'L', 0) : (isset($sum['L']) ? $sum['L'] : 0));
+				$H = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'H', 0) : (isset($sum['H']) ? $sum['H'] : 0));
 				$expected = function_exists('person_att_expected_days_helper')
 					? person_att_expected_days_helper($base_line, $O, $L, $R, $H)
 					: max(0, (int) $base_line - $O - $L - $R - $H);
@@ -266,12 +266,12 @@ class Attendance extends MX_Controller
 				break;
 			}
 			foreach ($batch as $data) {
-				$present = isset($data['P']) && $data['P'] !== '' ? (int) $data['P'] : 0;
-				$off = isset($data['O']) && $data['O'] !== '' ? (int) $data['O'] : 0;
-				$request = isset($data['R']) && $data['R'] !== '' ? (int) $data['R'] : 0;
-				$leave = isset($data['L']) && $data['L'] !== '' ? (int) $data['L'] : 0;
-				$holiday = isset($data['H']) && $data['H'] !== '' ? (int) $data['H'] : 0;
-				$base_line = isset($data['base_line']) && $data['base_line'] !== '' && $data['base_line'] !== null ? $data['base_line'] : 0;
+				$present = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($data, 'P', 0) : (isset($data['P']) ? $data['P'] : 0));
+				$off = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($data, 'O', 0) : (isset($data['O']) ? $data['O'] : 0));
+				$request = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($data, 'R', 0) : (isset($data['R']) ? $data['R'] : 0));
+				$leave = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($data, 'L', 0) : (isset($data['L']) ? $data['L'] : 0));
+				$holiday = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($data, 'H', 0) : (isset($data['H']) ? $data['H'] : 0));
+				$base_line = function_exists('person_att_value_helper') ? person_att_value_helper($data, 'base_line', 0) : (isset($data['base_line']) ? $data['base_line'] : 0);
 				$r_days = function_exists('person_att_expected_days_helper')
 					? person_att_expected_days_helper($base_line, $off, $leave, $request, $holiday)
 					: max(0, (int) $base_line - $off - $leave - $request - $holiday);

@@ -61,3 +61,33 @@ if (!function_exists('person_att_percent_present_helper')) {
         return $with_suffix ? ($per . ' %') : $per;
     }
 }
+
+/**
+ * Safely read person_att_final fields from either array/object and key case.
+ */
+if (!function_exists('person_att_value_helper')) {
+    function person_att_value_helper($row, $key, $default = 0)
+    {
+        $candidates = array($key, strtolower($key), strtoupper($key));
+
+        if (is_array($row)) {
+            foreach ($candidates as $candidate) {
+                if (array_key_exists($candidate, $row) && $row[$candidate] !== null && $row[$candidate] !== '') {
+                    return $row[$candidate];
+                }
+            }
+            return $default;
+        }
+
+        if (is_object($row)) {
+            foreach ($candidates as $candidate) {
+                if (isset($row->{$candidate}) && $row->{$candidate} !== null && $row->{$candidate} !== '') {
+                    return $row->{$candidate};
+                }
+            }
+            return $default;
+        }
+
+        return $default;
+    }
+}

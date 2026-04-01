@@ -5,12 +5,12 @@ if (empty($sums) || !is_array($sums)) {
 $start_row_no = isset($start_row_no) ? (int) $start_row_no : 1;
 $no = $start_row_no;
 foreach ($sums as $sum) {
-	$present = isset($sum['P']) && $sum['P'] !== '' ? (int) $sum['P'] : 0;
-	$O = isset($sum['O']) && $sum['O'] !== '' ? (int) $sum['O'] : 0;
-	$R = isset($sum['R']) && $sum['R'] !== '' ? (int) $sum['R'] : 0;
-	$L = isset($sum['L']) && $sum['L'] !== '' ? (int) $sum['L'] : 0;
-	$H = isset($sum['H']) && $sum['H'] !== '' ? (int) $sum['H'] : 0;
-	$base_line = isset($sum['base_line']) && $sum['base_line'] !== '' && $sum['base_line'] !== null ? $sum['base_line'] : 0;
+	$present = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'P', 0) : (isset($sum['P']) ? $sum['P'] : 0));
+	$O = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'O', 0) : (isset($sum['O']) ? $sum['O'] : 0));
+	$R = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'R', 0) : (isset($sum['R']) ? $sum['R'] : 0));
+	$L = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'L', 0) : (isset($sum['L']) ? $sum['L'] : 0));
+	$H = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'H', 0) : (isset($sum['H']) ? $sum['H'] : 0));
+	$base_line = function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'base_line', 0) : (isset($sum['base_line']) ? $sum['base_line'] : 0);
 	$r_days = function_exists('person_att_expected_days_helper')
 		? person_att_expected_days_helper($base_line, $O, $L, $R, $H)
 		: max(0, (int) $base_line - $O - $L - $R - $H);
