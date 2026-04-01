@@ -932,8 +932,8 @@ class Employees extends MX_Controller
     @set_time_limit(0);
 
     if (!empty($this->watermark) && is_file($this->watermark)) {
-      $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-      $this->ml_pdf->pdf->showWatermarkImage = true;
+    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+    $this->ml_pdf->pdf->showWatermarkImage = true;
     }
     date_default_timezone_set('Africa/Kampala');
     $this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
@@ -988,8 +988,8 @@ class Employees extends MX_Controller
     @set_time_limit(0);
 
     if (!empty($this->watermark) && is_file($this->watermark)) {
-      $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-      $this->ml_pdf->pdf->showWatermarkImage = true;
+    $this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+    $this->ml_pdf->pdf->showWatermarkImage = true;
     }
     date_default_timezone_set('Africa/Kampala');
     $this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());
@@ -1721,8 +1721,8 @@ class Employees extends MX_Controller
     $total_hours = 0.0;
 
     if (!empty($this->watermark) && is_file($this->watermark)) {
-      $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
-      $this->m_pdf->pdf->showWatermarkImage = true;
+    $this->m_pdf->pdf->SetWatermarkImage($this->watermark);
+    $this->m_pdf->pdf->showWatermarkImage = true;
     }
     date_default_timezone_set('Africa/Kampala');
     $this->m_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());

@@ -700,7 +700,10 @@ class Rosta_model extends CI_Model
 		$this->build_roster_summary_actual_query($valid_range, $facility, $employee, $search_like);
 		$this->db->select("
 			dr.ihris_pid AS ihris_pid,
-			TRIM(MAX(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,'')))) AS fullname,
+			COALESCE(
+				NULLIF(TRIM(MAX(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''), ' ', COALESCE(i.othername,'')))), ''),
+				dr.ihris_pid
+			) AS fullname,
 			MAX(COALESCE(i.othername, '')) AS othername,
 			MAX(COALESCE(i.job, '')) AS job,
 			MAX(COALESCE(i.facility, '')) AS facility_name,
@@ -887,6 +890,7 @@ class Rosta_model extends CI_Model
 			$this->db->like("CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''), ' ', COALESCE(i.othername,''))", $term, 'both', false);
 			$this->db->or_like('i.job', $term);
 			$this->db->or_like('i.facility', $term);
+			$this->db->or_like('dr.ihris_pid', $term);
 			$this->db->group_end();
 		}
 	}

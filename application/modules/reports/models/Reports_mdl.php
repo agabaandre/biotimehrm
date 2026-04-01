@@ -460,24 +460,8 @@ class Reports_mdl extends CI_Model
 	 */
 	public function countAttendanceAggregatesAjax($filters = null, $group_by = "district", $search = '')
 	{
-		$group_by = $this->_aggregate_group_by_column($group_by);
-		$this->db->select("COUNT(DISTINCT CONCAT(duty_date, '|', " . $this->db->protect_identifiers($group_by) . ")) AS cnt", false);
-		$this->apply_aggregation_filter($filters);
-
-		// Apply search filter
-		if (!empty($search)) {
-			$this->db->group_start();
-			$this->db->like('job', $search);
-			$this->db->or_like('facility_name', $search);
-			$this->db->or_like('district', $search);
-			$this->db->or_like('region', $search);
-			$this->db->or_like('duty_date', $search);
-			$this->db->group_end();
-		}
-
-		$this->db->from("person_att_final");
-		$query = $this->db->get();
-		$row = $query->row();
+		$sql = $this->buildAttendanceAggregatesSql($filters, $group_by, $search, true, 0, 0);
+		$row = $this->db->query($sql)->row();
 		return (int) ($row->cnt ?? 0);
 	}
 
@@ -486,31 +470,133 @@ class Reports_mdl extends CI_Model
 	 */
 	public function fetchAttendanceAggregatesAjax($filters = null, $group_by = "district", $start = 0, $length = 200, $search = '')
 	{
-		$group_by = $this->_aggregate_group_by_column($group_by);
-		$this->apply_aggregation_filter($filters);
+		$sql = $this->buildAttendanceAggregatesSql($filters, $group_by, $search, false, (int) $start, (int) $length);
+		return $this->db->query($sql)->result();
+	}
 
-		if (!empty($search)) {
-			$this->db->group_start();
-			$this->db->like('job', $search);
-			$this->db->or_like('facility_name', $search);
-			$this->db->or_like('district', $search);
-			$this->db->or_like('region', $search);
-			$this->db->or_like('duty_date', $search);
-			$this->db->group_end();
+	private function buildAttendanceAggregatesSql($filters = null, $group_by = "district", $search = '', $count_only = false, $start = 0, $length = 200)
+	{
+		$group_by = $this->_aggregate_group_by_column($group_by);
+		$group_expr_map = array(
+			'job' => 't.job',
+			'facility_name' => 't.facility_name',
+			'facility_type_name' => 't.facility_type_name',
+			'cadre' => 't.cadre',
+			'institution_type' => 't.institution_type',
+			'district' => 't.district',
+			'region' => 't.region',
+			'department_id' => 't.department_id',
+			'gender' => 't.gender',
+		);
+		$group_expr = isset($group_expr_map[$group_by]) ? $group_expr_map[$group_by] : 't.district';
+
+		$duty_dates = array();
+		if (isset($filters['duty_date'])) {
+			$duty_dates = is_array($filters['duty_date']) ? $filters['duty_date'] : array($filters['duty_date']);
+		}
+		if (empty($duty_dates)) {
+			$duty_dates = array(date('Y-m'));
 		}
 
-		$select = $this->_aggregate_select_sql($group_by);
-		$this->db->select($select, false);
+		$where = array("a.ihris_pid IS NOT NULL", "TRIM(a.ihris_pid) <> ''");
+		$ym_escaped = array();
+		foreach ($duty_dates as $ym) {
+			$ym = trim((string) $ym);
+			if ($ym !== '') {
+				$ym_escaped[] = $this->db->escape($ym);
+			}
+		}
+		if (!empty($ym_escaped)) {
+			$where[] = "DATE_FORMAT(a.date,'%Y-%m') IN (" . implode(',', $ym_escaped) . ")";
+		}
 
-		$this->db->from("person_att_final");
-		$this->db->group_by("duty_date");
-		$this->db->group_by($group_by);
-		$this->db->order_by("duty_date", 'ASC');
-		$this->db->order_by($group_by, 'ASC');
-		$this->db->limit($length, $start);
+		if (!empty($filters['district'])) {
+			$where[] = "COALESCE(i.district,'') = " . $this->db->escape($filters['district']);
+		}
+		if (!empty($filters['facility_name'])) {
+			$where[] = "COALESCE(i.facility,'') = " . $this->db->escape($filters['facility_name']);
+		}
 
-		$query = $this->db->get();
-		return $query->result();
+		if (isset($filters['region']) && is_array($filters['region']) && !empty($filters['region'])) {
+			$regions = array();
+			foreach ($filters['region'] as $region) {
+				if ($region !== '' && $region !== null) {
+					$regions[] = $this->db->escape($region);
+				}
+			}
+			if (!empty($regions)) {
+				$where[] = "COALESCE(i.region,'') IN (" . implode(',', $regions) . ")";
+			}
+		}
+
+		if (isset($filters['institution_type']) && is_array($filters['institution_type']) && !empty($filters['institution_type'])) {
+			$types = array();
+			foreach ($filters['institution_type'] as $type) {
+				if ($type !== '' && $type !== null) {
+					$types[] = $this->db->escape($type);
+				}
+			}
+			if (!empty($types)) {
+				$where[] = "COALESCE(i.institutiontype_name,'') IN (" . implode(',', $types) . ")";
+			}
+		}
+
+		$base_where = implode(' AND ', $where);
+
+		$sub_sql = "SELECT
+				DATE_FORMAT(a.date,'%Y-%m') AS duty_date,
+				a.ihris_pid,
+				COALESCE(i.job, '') AS job,
+				COALESCE(i.facility, '') AS facility_name,
+				COALESCE(i.facility_type_id, '') AS facility_type_name,
+				COALESCE(i.cadre, '') AS cadre,
+				COALESCE(i.gender, '') AS gender,
+				COALESCE(i.district, '') AS district,
+				COALESCE(i.department_id, '') AS department_id,
+				COALESCE(i.region, '') AS region,
+				COALESCE(i.institutiontype_name, '') AS institution_type,
+				SUM(CASE WHEN s.letter='P' THEN 1 ELSE 0 END) AS present,
+				SUM(CASE WHEN s.letter='O' THEN 1 ELSE 0 END) AS off,
+				SUM(CASE WHEN s.letter='L' THEN 1 ELSE 0 END) AS own_leave,
+				SUM(CASE WHEN s.letter='R' THEN 1 ELSE 0 END) AS official,
+				SUM(CASE WHEN s.letter='H' THEN 1 ELSE 0 END) AS holiday,
+				CAST(DAY(LAST_DAY(CONCAT(DATE_FORMAT(a.date,'%Y-%m'),'-01'))) AS UNSIGNED) AS base_line
+			FROM actuals a
+			LEFT JOIN schedules s ON s.schedule_id = a.schedule_id
+			LEFT JOIN ihrisdata i ON i.ihris_pid = a.ihris_pid
+			WHERE " . $base_where . "
+			GROUP BY DATE_FORMAT(a.date,'%Y-%m'), a.ihris_pid, i.job, i.facility, i.facility_type_id, i.cadre, i.gender, i.district, i.department_id, i.region, i.institutiontype_name";
+
+		$search_sql = '';
+		if ($search !== '' && trim($search) !== '') {
+			$like = $this->db->escape('%' . $this->db->escape_like_str(trim($search)) . '%');
+			$search_sql = " WHERE (" . $group_expr . " LIKE " . $like . " OR t.duty_date LIKE " . $like . ")";
+		}
+
+		$outer_sql = "SELECT
+				t.duty_date,
+				" . $group_expr . " AS " . $this->db->protect_identifiers($group_by) . ",
+				SUM(t.present) AS present,
+				SUM(t.off) AS off,
+				SUM(t.own_leave) AS own_leave,
+				SUM(t.official) AS official,
+				SUM(t.holiday) AS holiday,
+				SUM(GREATEST(0, t.base_line - (t.off + t.own_leave + t.official + t.holiday))) AS days_supposed,
+				SUM(GREATEST(0, GREATEST(0, t.base_line - (t.off + t.own_leave + t.official + t.holiday)) - t.present)) AS days_absent,
+				SUM(GREATEST(0, GREATEST(0, t.base_line - (t.off + t.own_leave + t.official + t.holiday)) - t.present)) AS absent
+			FROM (" . $sub_sql . ") t
+			" . $search_sql . "
+			GROUP BY t.duty_date, " . $group_expr;
+
+		if ($count_only) {
+			return "SELECT COUNT(*) AS cnt FROM (" . $outer_sql . ") x";
+		}
+
+		$limit_sql = '';
+		if ($length > 0) {
+			$limit_sql = " LIMIT " . (int) $start . "," . (int) $length;
+		}
+		return $outer_sql . " ORDER BY t.duty_date ASC, " . $group_expr . " ASC" . $limit_sql;
 	}
 
 	public function count_person_attendance($filters = null, $search_like = '')
