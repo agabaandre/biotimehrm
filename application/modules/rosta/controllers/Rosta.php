@@ -1100,40 +1100,11 @@ class Rosta extends MX_Controller
 			$data['month'] = $_SESSION['month'];
 			$data['year'] = $_SESSION['year'];
 		}
-		$this->load->library('pagination');
-		$config = array();
-		$config['base_url'] = base_url() . "rosta/attfrom_report";
 		$empid = $this->input->post('empid');
-		$config['total_rows'] = $this->rosta_model->countActuals($date, $config['per_page'] = 0, $page = 0, $empid, $this->filters);
-		$config['per_page'] = 50; //records per page
-		$config['uri_segment'] = 3; //segment in url
-		//pagination links styling
-		$config['full_tag_open'] = '<ul class="pagination">';
-		$config['full_tag_close'] = '</ul>';
-		$config['attributes'] = ['class' => 'page-link'];
-		$config['first_link'] = false;
-		$config['last_link'] = false;
-		$config['first_tag_open'] = '<li class="page-item">';
-		$config['first_tag_close'] = '</li>';
-		$config['prev_link'] = '&laquo';
-		$config['prev_tag_open'] = '<li class="page-item">';
-		$config['prev_tag_close'] = '</li>';
-		$config['next_link'] = '&raquo';
-		$config['next_tag_open'] = '<li class="page-item">';
-		$config['next_tag_close'] = '</li>';
-		$config['last_tag_open'] = '<li class="page-item">';
-		$config['last_tag_close'] = '</li>';
-		$config['cur_tag_open'] = '<li class="page-item active"><a href="#" class="page-link">';
-		$config['cur_tag_close'] = '<span class="sr-only">(current)</span></a></li>';
-		$config['num_tag_open'] = '<li class="page-item">';
-		$config['num_tag_close'] = '</li>';
-		$config['use_page_numbers'] = false;
-		$this->pagination->initialize($config);
-		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; //default starting point for limits
-		$data['links'] = $this->pagination->create_links();
+		$data['links'] = '';
 		$data['departments'] = $this->departments;
 		$data['facilities'] = Modules::run("facilities/getFacilities");
-		$data['duties'] = $this->rosta_model->fetch_report($date, $config['per_page'], $page, $empid, $this->filters);
+		$data['duties'] = array();
 		$data['view'] = "attendance_form_report";
 		$data['title'] = "Monthly Attendance Form";
 		$data['uptitle'] = "Monthly Attendance Form Report";
@@ -1166,11 +1137,9 @@ class Rosta extends MX_Controller
 		$start  = (int)$this->input->post('start');
 		$length = (int)$this->input->post('length');
 
-		// Total employees for this report (respecting filters and employee filter)
-		$total = $this->rosta_model->count_attendance_form($date, $this->filters, $empid);
-
-		// Fetch page of employees
-		$employees = $this->rosta_model->fetch_attendance_form($date, $start, $length, $this->filters, $empid);
+		// Use same optimized employee fetch/count approach as faster roster report paths.
+		$total = $this->rosta_model->count_tabs_optimized($this->filters, $empid);
+		$employees = $this->rosta_model->fetch_tabs_optimized($start, $length, $empid, $this->filters);
 
 		$employee_ids = array();
 		foreach ($employees as $row) {
