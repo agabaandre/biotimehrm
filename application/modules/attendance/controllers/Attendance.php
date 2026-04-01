@@ -95,36 +95,28 @@ class Attendance extends MX_Controller
 			$filtered_records = $this->attendance_model->countAttendanceSummary($valid_range, $this->filters, 0, 0, $empid, $department, $search);
 			$rows = $this->attendance_model->attendance_summary($valid_range, $this->filters, $start, $length, $district, $facility, $empid, $department, false, $search);
 
-			$pids = array();
-			foreach ($rows as $r) {
-				if (!empty($r['ihris_pid'])) {
-					$pids[] = $r['ihris_pid'];
-				}
-			}
-			$scheduledDaysByPid = array();
-			if (!empty($pids)) {
-				$scheduledDaysByPid = $this->attendance_model->get_scheduled_days_for_month($pids, $valid_range);
-			}
-
 			$data = array();
 			$row_num = $start + 1;
 			foreach ($rows as $sum) {
 				$present = isset($sum['P']) && $sum['P'] !== '' ? (int) $sum['P'] : 0;
-				$pid = isset($sum['ihris_pid']) ? $sum['ihris_pid'] : '';
-				$r_days = isset($scheduledDaysByPid[$pid]) ? (int) $scheduledDaysByPid[$pid] : 0;
-				if ($r_days == 0) {
-					$r_days = 22;
-				}
-				$absent = function_exists('days_absent_helper') ? days_absent_helper($present, $r_days) : max(0, $r_days - $present);
-				$per = function_exists('per_present_helper') ? per_present_helper($present, $r_days) : ($r_days > 0 ? round(($present / $r_days) * 100, 1) . ' %' : '0 %');
+				$base_line = isset($sum['base_line']) && $sum['base_line'] !== '' && $sum['base_line'] !== null ? $sum['base_line'] : 0;
 				$fullname = isset($sum['fullname']) ? $sum['fullname'] : '';
 				$othername = isset($sum['othername']) ? $sum['othername'] : '';
 				$job = isset($sum['job']) ? character_limiter($sum['job'], 15) : '';
 				$dept = isset($sum['department_id']) ? character_limiter($sum['department_id'], 15) : '';
-				$O = isset($sum['O']) && $sum['O'] !== '' ? $sum['O'] : 0;
-				$R = isset($sum['R']) && $sum['R'] !== '' ? $sum['R'] : 0;
-				$L = isset($sum['L']) && $sum['L'] !== '' ? $sum['L'] : 0;
-				$H = isset($sum['H']) && $sum['H'] !== '' ? $sum['H'] : 0;
+				$O = isset($sum['O']) && $sum['O'] !== '' ? (int) $sum['O'] : 0;
+				$R = isset($sum['R']) && $sum['R'] !== '' ? (int) $sum['R'] : 0;
+				$L = isset($sum['L']) && $sum['L'] !== '' ? (int) $sum['L'] : 0;
+				$H = isset($sum['H']) && $sum['H'] !== '' ? (int) $sum['H'] : 0;
+				$expected = function_exists('person_att_expected_days_helper')
+					? person_att_expected_days_helper($base_line, $O, $L, $R, $H)
+					: max(0, (int) $base_line - $O - $L - $R - $H);
+				$absent = function_exists('person_att_absent_helper')
+					? person_att_absent_helper($present, $expected)
+					: max(0, $expected - $present);
+				$per = function_exists('person_att_percent_present_helper')
+					? person_att_percent_present_helper($present, $expected, true)
+					: ($expected > 0 ? round(($present / $expected) * 100, 1) . ' %' : '0 %');
 
 				$data[] = array(
 					$row_num++,
@@ -135,9 +127,9 @@ class Attendance extends MX_Controller
 					$R,
 					$L,
 					$H,
-					$r_days,
+					$expected,
 					$present,
-					$absent <= 0 ? 0 : $absent,
+					$absent,
 					$per
 				);
 			}
@@ -212,22 +204,14 @@ class Attendance extends MX_Controller
 			if (empty($batch)) {
 				break;
 			}
-			$pids = array();
-			foreach ($batch as $row) {
-				if (!empty($row['ihris_pid'])) {
-					$pids[] = $row['ihris_pid'];
-				}
-			}
-			$scheduledDaysByPid = $this->attendance_model->get_scheduled_days_for_month($pids, $date);
 			$rows_data = array(
 				'sums' => $batch,
-				'scheduledDaysByPid' => $scheduledDaysByPid,
 				'start_row_no' => $row_no,
 			);
 			$rows_html = $this->load->view('summary_pdf_rows', $rows_data, true);
 			$this->ml_pdf->pdf->WriteHTML(mb_convert_encoding($rows_html, 'UTF-8', 'UTF-8'));
 			$row_no += count($batch);
-			unset($batch, $pids, $scheduledDaysByPid, $rows_data, $rows_html);
+			unset($batch, $rows_data, $rows_html);
 			if (function_exists('gc_collect_cycles')) {
 				gc_collect_cycles();
 			}
@@ -281,27 +265,22 @@ class Attendance extends MX_Controller
 			if (empty($batch)) {
 				break;
 			}
-			$pids = array();
-			foreach ($batch as $row) {
-				if (!empty($row['ihris_pid'])) {
-					$pids[] = $row['ihris_pid'];
-				}
-			}
-			$scheduledDaysByPid = $this->attendance_model->get_scheduled_days_for_month($pids, $valid_range);
-
 			foreach ($batch as $data) {
-				$pid = isset($data['ihris_pid']) ? $data['ihris_pid'] : '';
-				$present = isset($data['P']) && $data['P'] !== '' ? $data['P'] : 0;
-				$off = isset($data['O']) && $data['O'] !== '' ? $data['O'] : 0;
-				$request = isset($data['R']) && $data['R'] !== '' ? $data['R'] : 0;
-				$leave = isset($data['L']) && $data['L'] !== '' ? $data['L'] : 0;
-				$holiday = isset($data['H']) && $data['H'] !== '' ? $data['H'] : 0;
-				$r_days = isset($scheduledDaysByPid[$pid]) ? (int) $scheduledDaysByPid[$pid] : 0;
-				if ($r_days == 0) {
-					$r_days = 22;
-				}
-				$absent = function_exists('days_absent_helper') ? days_absent_helper($present, $r_days) : max(0, $r_days - $present);
-				$per = function_exists('per_present_helper') ? per_present_helper($present, $r_days) : ($r_days > 0 ? round(($present / $r_days) * 100, 1) : 0);
+				$present = isset($data['P']) && $data['P'] !== '' ? (int) $data['P'] : 0;
+				$off = isset($data['O']) && $data['O'] !== '' ? (int) $data['O'] : 0;
+				$request = isset($data['R']) && $data['R'] !== '' ? (int) $data['R'] : 0;
+				$leave = isset($data['L']) && $data['L'] !== '' ? (int) $data['L'] : 0;
+				$holiday = isset($data['H']) && $data['H'] !== '' ? (int) $data['H'] : 0;
+				$base_line = isset($data['base_line']) && $data['base_line'] !== '' && $data['base_line'] !== null ? $data['base_line'] : 0;
+				$r_days = function_exists('person_att_expected_days_helper')
+					? person_att_expected_days_helper($base_line, $off, $leave, $request, $holiday)
+					: max(0, (int) $base_line - $off - $leave - $request - $holiday);
+				$absent = function_exists('person_att_absent_helper')
+					? person_att_absent_helper($present, $r_days)
+					: max(0, $r_days - $present);
+				$per = function_exists('person_att_percent_present_helper')
+					? person_att_percent_present_helper($present, $r_days, false)
+					: ($r_days > 0 ? round(($present / $r_days) * 100, 1) : 0);
 				$duty_date = isset($data['duty_date']) ? $data['duty_date'] : $valid_range;
 				$record = array(
 					isset($data['fullname']) ? $data['fullname'] : '',
@@ -319,7 +298,7 @@ class Attendance extends MX_Controller
 				);
 				fputcsv($fh, $record);
 			}
-			unset($batch, $pids, $scheduledDaysByPid);
+			unset($batch);
 			if (ob_get_level() > 0) {
 				ob_flush();
 			}

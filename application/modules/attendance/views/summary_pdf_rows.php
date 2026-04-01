@@ -2,22 +2,22 @@
 if (empty($sums) || !is_array($sums)) {
 	return;
 }
-$scheduledDaysByPid = isset($scheduledDaysByPid) ? $scheduledDaysByPid : array();
 $start_row_no = isset($start_row_no) ? (int) $start_row_no : 1;
 $no = $start_row_no;
 foreach ($sums as $sum) {
-	$pid = isset($sum['ihris_pid']) ? $sum['ihris_pid'] : '';
-	$present = isset($sum['P']) && $sum['P'] !== '' ? $sum['P'] : 0;
-	$O = isset($sum['O']) && $sum['O'] !== '' ? $sum['O'] : 0;
-	$R = isset($sum['R']) && $sum['R'] !== '' ? $sum['R'] : 0;
-	$L = isset($sum['L']) && $sum['L'] !== '' ? $sum['L'] : 0;
-	$H = isset($sum['H']) && $sum['H'] !== '' ? $sum['H'] : 0;
-	$r_days = isset($scheduledDaysByPid[$pid]) ? (int) $scheduledDaysByPid[$pid] : 0;
-	if ($r_days == 0) {
-		$r_days = 22;
-	}
-	$ab = function_exists('days_absent_helper') ? days_absent_helper($present, $r_days) : max(0, $r_days - $present);
-	$per = function_exists('per_present_helper') ? per_present_helper($present, $r_days) : ($r_days > 0 ? round(($present / $r_days) * 100, 1) : 0);
+	$present = isset($sum['P']) && $sum['P'] !== '' ? (int) $sum['P'] : 0;
+	$O = isset($sum['O']) && $sum['O'] !== '' ? (int) $sum['O'] : 0;
+	$R = isset($sum['R']) && $sum['R'] !== '' ? (int) $sum['R'] : 0;
+	$L = isset($sum['L']) && $sum['L'] !== '' ? (int) $sum['L'] : 0;
+	$H = isset($sum['H']) && $sum['H'] !== '' ? (int) $sum['H'] : 0;
+	$base_line = isset($sum['base_line']) && $sum['base_line'] !== '' && $sum['base_line'] !== null ? $sum['base_line'] : 0;
+	$r_days = function_exists('person_att_expected_days_helper')
+		? person_att_expected_days_helper($base_line, $O, $L, $R, $H)
+		: max(0, (int) $base_line - $O - $L - $R - $H);
+	$ab = function_exists('person_att_absent_helper') ? person_att_absent_helper($present, $r_days) : max(0, $r_days - $present);
+	$per = function_exists('person_att_percent_present_helper')
+		? person_att_percent_present_helper($present, $r_days, true)
+		: ($r_days > 0 ? round(($present / $r_days) * 100, 1) . ' %' : '0 %');
 	$name = (isset($sum['fullname']) ? $sum['fullname'] : '') . ' ' . (isset($sum['othername']) ? $sum['othername'] : '');
 ?>
 <tr>
@@ -31,7 +31,7 @@ foreach ($sums as $sum) {
 	<td class="num"><?php echo $H; ?></td>
 	<td class="num"><?php echo $r_days; ?></td>
 	<td class="num"><?php echo $present; ?></td>
-	<td class="num"><?php echo $ab <= 0 ? 0 : $ab; ?></td>
+	<td class="num"><?php echo $ab; ?></td>
 	<td class="num"><?php echo $per; ?></td>
 </tr>
 <?php

@@ -214,6 +214,24 @@ class Biotimejobs_mdl extends CI_Model
         return  $this->benchmark->elapsed_time();
     }
 
+    /**
+     * Normalize employee codes for robust matching between BioTime and iHRIS.
+     * Handles whitespace/case/noise differences without changing source data.
+     */
+    protected function normalize_emp_code($code)
+    {
+        if ($code === null) {
+            return '';
+        }
+        $code = strtoupper(trim((string) $code));
+        if ($code === '') {
+            return '';
+        }
+        // Remove internal spaces and common separators occasionally present in exports.
+        $code = str_replace(array(' ', "\t", "\r", "\n"), '', $code);
+        return $code;
+    }
+
 
     //process individuals
 
@@ -582,6 +600,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 'mapped_rows' => 0,
                 'unmapped_emp_rows' => 0,
                 'missing_device_area_rows' => 0,
+                'unmapped_emp_samples' => array(),
             ),
             'timing' => array(
                 'pg_query_s' => 0,
@@ -644,10 +663,20 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 foreach ($q->result() as $r) {
                     $pid = $r->ihris_pid;
                     if (!empty($r->card_number)) {
-                        $emp_to_pid[$r->card_number] = $pid;
+                        $raw = (string) $r->card_number;
+                        $emp_to_pid[$raw] = $pid;
+                        $norm = $this->normalize_emp_code($raw);
+                        if ($norm !== '') {
+                            $emp_to_pid[$norm] = $pid;
+                        }
                     }
                     if (!empty($r->ipps)) {
-                        $emp_to_pid[$r->ipps] = $pid;
+                        $raw = (string) $r->ipps;
+                        $emp_to_pid[$raw] = $pid;
+                        $norm = $this->normalize_emp_code($raw);
+                        if ($norm !== '') {
+                            $emp_to_pid[$norm] = $pid;
+                        }
                     }
                     if ($pid !== null && $pid !== '') {
                         $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
@@ -710,11 +739,19 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
                 $emp_code = isset($row['emp_code']) ? $row['emp_code'] : '';
                 $area_name = isset($row['area_alias']) ? $row['area_alias'] : '';
+                $norm_emp_code = $this->normalize_emp_code($emp_code);
                 $result['debug']['batch_rows']++;
-                if ($datetime && isset($emp_to_pid[$emp_code])) {
+                if ($datetime && (isset($emp_to_pid[$emp_code]) || ($norm_emp_code !== '' && isset($emp_to_pid[$norm_emp_code])))) {
                     $result['debug']['mapped_rows']++;
                 } else {
                     $result['debug']['unmapped_emp_rows']++;
+                    if (count($result['debug']['unmapped_emp_samples']) < 10) {
+                        $result['debug']['unmapped_emp_samples'][] = array(
+                            'emp_code' => (string) $emp_code,
+                            'normalized' => $norm_emp_code,
+                            'area_alias' => (string) $area_name
+                        );
+                    }
                 }
                 if ($area_name !== '' && !isset($devices[$area_name])) {
                     $result['debug']['missing_device_area_rows']++;
@@ -845,7 +882,8 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         $agg = array();
         foreach ($batch as $r) {
             $emp = isset($r['emp_code']) ? $r['emp_code'] : '';
-            $pid = isset($emp_to_pid[$emp]) ? $emp_to_pid[$emp] : null;
+            $norm_emp = $this->normalize_emp_code($emp);
+            $pid = isset($emp_to_pid[$emp]) ? $emp_to_pid[$emp] : (isset($emp_to_pid[$norm_emp]) ? $emp_to_pid[$norm_emp] : null);
             if (!$pid) {
                 continue;
             }

@@ -2236,6 +2236,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                             " | device_areas: " . ($d['lookup_device_areas'] ?? 0),
                             'info'
                         );
+                        if (!empty($d['unmapped_emp_samples']) && is_array($d['unmapped_emp_samples'])) {
+                            $console("Debug unmatched samples: " . json_encode($d['unmapped_emp_samples']), 'warning');
+                        }
                     }
                     if ($output_console && !empty($r['timing'])) {
                         $t = $r['timing'];
