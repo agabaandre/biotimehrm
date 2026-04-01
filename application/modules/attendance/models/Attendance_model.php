@@ -237,6 +237,8 @@ class 	Attendance_model extends CI_Model
 		$this->db->join('ihrisdata i', 'i.ihris_pid = a.ihris_pid', 'left');
 		$this->db->where('a.date >=', $month_start);
 		$this->db->where('a.date <=', $month_end);
+		$this->db->where('a.ihris_pid IS NOT NULL', null, false);
+		$this->db->where("TRIM(a.ihris_pid) <> ''", null, false);
 
 		if ($endpoint != 'api') {
 			if ($facility_id !== '') {
@@ -277,12 +279,12 @@ class 	Attendance_model extends CI_Model
 		$this->build_actuals_summary_query($valid_range, $employee, $department, $endpoint, $district, $facility, $search_like);
 		$this->db->select("
 			a.ihris_pid AS ihris_pid,
-			TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS fullname,
-			COALESCE(i.othername, '') AS othername,
-			COALESCE(i.job, '') AS job,
-			COALESCE(i.department_id, a.department_id, '') AS department_id,
-			COALESCE(i.facility, '') AS facility_name,
-			COALESCE(i.district, '') AS district,
+			TRIM(MAX(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,'')))) AS fullname,
+			MAX(COALESCE(i.othername, '')) AS othername,
+			MAX(COALESCE(i.job, '')) AS job,
+			MAX(COALESCE(i.department_id, a.department_id, '')) AS department_id,
+			MAX(COALESCE(i.facility, '')) AS facility_name,
+			MAX(COALESCE(i.district, '')) AS district,
 			" . $this->db->escape($valid_range) . " AS duty_date,
 			CAST(DAY(LAST_DAY(" . $this->db->escape($valid_range . '-01') . ")) AS UNSIGNED) AS base_line,
 			SUM(CASE WHEN s.letter='P' THEN 1 ELSE 0 END) AS P,
@@ -293,14 +295,7 @@ class 	Attendance_model extends CI_Model
 			SUM(CASE WHEN s.letter='H' THEN 1 ELSE 0 END) AS H
 		", false);
 		$this->db->group_by('a.ihris_pid');
-		$this->db->group_by('i.surname');
-		$this->db->group_by('i.firstname');
-		$this->db->group_by('i.othername');
-		$this->db->group_by('i.job');
-		$this->db->group_by('i.department_id');
-		$this->db->group_by('a.department_id');
-		$this->db->group_by('i.facility');
-		$this->db->group_by('i.district');
+		$this->db->order_by("(TRIM(MAX(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,'')))) = '')", 'ASC', false);
 		$this->db->order_by('fullname', 'ASC');
 		if ($limit !== null && (int) $limit > 0) {
 			$this->db->limit((int) $limit, max(0, (int) $start));
