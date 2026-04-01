@@ -560,7 +560,7 @@ class Reports_mdl extends CI_Model
 				SUM(CASE WHEN s.letter='L' THEN 1 ELSE 0 END) AS own_leave,
 				SUM(CASE WHEN s.letter='R' THEN 1 ELSE 0 END) AS official,
 				SUM(CASE WHEN s.letter='H' THEN 1 ELSE 0 END) AS holiday,
-				CAST(DAY(LAST_DAY(CONCAT(DATE_FORMAT(a.date,'%Y-%m'),'-01'))) AS UNSIGNED) AS base_line
+				MAX(CAST(DAY(LAST_DAY(CONCAT(DATE_FORMAT(a.date,'%Y-%m'),'-01'))) AS UNSIGNED)) AS base_line
 			FROM actuals a
 			LEFT JOIN schedules s ON s.schedule_id = a.schedule_id
 			LEFT JOIN ihrisdata i ON i.ihris_pid = a.ihris_pid
