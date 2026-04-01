@@ -1207,14 +1207,11 @@ class Rosta extends MX_Controller
 			$data[] = $row;
 		}
 
-		$summary_by_letter = $this->rosta_model->get_attendance_actuals_summary_by_letter($date, $this->filters, $empid);
-
 		$response = array(
 			'draw' => $draw,
 			'recordsTotal' => $total,
 			'recordsFiltered' => $total,
-			'data' => $data,
-			'summary' => $summary_by_letter
+			'data' => $data
 		);
 
 		$this->output
