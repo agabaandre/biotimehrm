@@ -515,36 +515,83 @@ class Reports_mdl extends CI_Model
 
 	public function count_person_attendance($filters = null, $search_like = '')
 	{
-		$this->apply_aggregation_filter($filters);
-		if ($search_like !== '' && trim($search_like) !== '') {
-			$term = $this->db->escape_like_str(trim($search_like));
-			$this->db->group_start();
-			$this->db->like('fullname', $term);
-			$this->db->or_like('district', $term);
-			$this->db->or_like('facility_name', $term);
-			$this->db->group_end();
-		}
-		$this->db->from("person_att_final");
+		$this->apply_person_attendance_all_actuals_filter($filters, $search_like);
+		$this->db->select('a.ihris_pid, a.facility_id', false);
+		$this->db->group_by('a.ihris_pid');
+		$this->db->group_by('a.facility_id');
 		$query = $this->db->get();
 		return $query->num_rows();
 	}
 
 	public function person_attendance_all($filters = null, $limit = NULL, $start = NULL, $search_like = '')
 	{
-		$this->apply_aggregation_filter($filters);
-		if ($search_like !== '' && trim($search_like) !== '') {
-			$term = $this->db->escape_like_str(trim($search_like));
-			$this->db->group_start();
-			$this->db->like('fullname', $term);
-			$this->db->or_like('district', $term);
-			$this->db->or_like('facility_name', $term);
-			$this->db->group_end();
+		$this->apply_person_attendance_all_actuals_filter($filters, $search_like);
+		$duty_date = '';
+		if (isset($filters['duty_date']) && !empty($filters['duty_date'])) {
+			$dd = is_array($filters['duty_date']) ? $filters['duty_date'] : array($filters['duty_date']);
+			$duty_date = (string) reset($dd);
 		}
-		$this->db->order_by("facility_name", "ASC");
+		$this->db->select("
+			a.ihris_pid AS ihris_pid,
+			TRIM(MAX(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''), ' ', COALESCE(i.othername,'')))) AS fullname,
+			MAX(COALESCE(i.district, '')) AS district,
+			COALESCE(
+				MAX(CASE WHEN i.facility_id = a.facility_id THEN i.facility ELSE NULL END),
+				MAX(COALESCE(i.facility, '')),
+				a.facility_id
+			) AS facility_name,
+			a.facility_id AS facility_id,
+			" . $this->db->escape($duty_date) . " AS duty_date,
+			SUM(CASE WHEN s.letter='P' THEN 1 ELSE 0 END) AS P,
+			SUM(CASE WHEN s.letter='O' THEN 1 ELSE 0 END) AS O,
+			SUM(CASE WHEN s.letter='R' THEN 1 ELSE 0 END) AS R,
+			SUM(CASE WHEN s.letter='L' THEN 1 ELSE 0 END) AS L,
+			SUM(CASE WHEN s.letter='H' THEN 1 ELSE 0 END) AS H
+		", false);
+		$this->db->group_by('a.ihris_pid');
+		$this->db->group_by('a.facility_id');
+		$this->db->order_by('facility_name', 'ASC');
+		$this->db->order_by('fullname', 'ASC');
 		if ($limit) {
 			$this->db->limit($limit, $start);
 		}
-		$data = $this->db->get("person_att_final")->result();
+		$data = $this->db->get()->result();
 		return $data;
+	}
+
+	private function apply_person_attendance_all_actuals_filter($filters = null, $search_like = '')
+	{
+		$session_facility = isset($_SESSION['facility']) ? trim((string) $_SESSION['facility']) : '';
+		$this->db->from('actuals a');
+		$this->db->join('schedules s', 's.schedule_id = a.schedule_id', 'left');
+		$this->db->join('ihrisdata i', 'i.ihris_pid = a.ihris_pid', 'left');
+		$this->db->where('a.ihris_pid IS NOT NULL', null, false);
+		$this->db->where("TRIM(a.ihris_pid) <> ''", null, false);
+		if ($session_facility !== '') {
+			// Scope by the facility captured in actual attendance records for the month.
+			$this->db->where('a.facility_id', $session_facility);
+		}
+
+		if (!empty($filters)) {
+			if (isset($filters['duty_date']) && !empty($filters['duty_date'])) {
+				$dd = is_array($filters['duty_date']) ? $filters['duty_date'] : array($filters['duty_date']);
+				$this->db->where_in("DATE_FORMAT(a.date,'%Y-%m')", $dd, false);
+			}
+			if (isset($filters['district']) && $filters['district'] !== '') {
+				$this->db->where('i.district', $filters['district']);
+			}
+			if (isset($filters['facility_name']) && $filters['facility_name'] !== '') {
+				$this->db->where('i.facility', $filters['facility_name']);
+			}
+		}
+
+		if ($search_like !== '' && trim($search_like) !== '') {
+			$term = $this->db->escape_like_str(trim($search_like));
+			$this->db->group_start();
+			$this->db->like("CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''), ' ', COALESCE(i.othername,''))", $term, 'both', false);
+			$this->db->or_like('i.district', $term);
+			$this->db->or_like('i.facility', $term);
+			$this->db->group_end();
+		}
 	}
 }
