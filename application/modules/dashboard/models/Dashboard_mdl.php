@@ -214,7 +214,7 @@ class Dashboard_mdl extends CI_Model
         $dates_result = $this->db->query($dates_query, [$facility]);
         
         if ($dates_result && $dates_result->num_rows() > 0) {
-            $dates = $dates_result->row();
+        $dates = $dates_result->row();
         
         $data['ihris_sync'] = $dates->ihris_sync ? date('j F, Y H:i:s', strtotime($dates->ihris_sync)) : 'N/A';
         $data['attendance'] = $dates->attendance ? date('j F, Y H:i:s', strtotime($dates->attendance)) : 'No Data Available';
@@ -313,7 +313,7 @@ class Dashboard_mdl extends CI_Model
                 $data[$schedule_mapping[$row->schedule_id]] = $row->count;
             }
         }
-
+        
         // Absent = total active staff - (present + off duty + workshop/request + leave)
         $sum_accounted = (int) $data['present'] + (int) $data['offduty'] + (int) $data['request'] + (int) $data['leave'];
         $total_active = (int) $data['mystaff'];

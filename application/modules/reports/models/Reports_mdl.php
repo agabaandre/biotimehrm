@@ -315,7 +315,7 @@ class Reports_mdl extends CI_Model
 	public function average_hours_fetch($fyear, $start = null, $length = null, $search = '')
 	{
 		$facility = $this->db->escape($_SESSION['facility']);
-		$filter = "";
+			$filter = "";
 		if (!empty($fyear)) {
 			$filter = " AND DATE_FORMAT(date,'%Y') = " . $this->db->escape($fyear);
 		}

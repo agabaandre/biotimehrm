@@ -101,14 +101,14 @@ $facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] 
   <div class="card">
     <div class="card-header">
       <h3 class="card-title">Monthly Time Log Report</h3>
-      <div class="card-tools">
+        <div class="card-tools">
         <form id="groupedTimeLogsFiltersForm" class="form-horizontal">
           <input type="hidden" name="<?php echo $csrf_name; ?>" value="<?php echo $csrf_hash; ?>">
           <div class="row align-items-end">
             <div class="form-group col-md-2 mb-2 mb-md-0">
               <label class="mb-1">Date From</label>
               <div class="input-group input-group-sm">
-                <div class="input-group-prepend">
+                  <div class="input-group-prepend">
                   <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
                 </div>
                 <input type="text" name="date_from" id="gtl_date_from" class="form-control datepicker" value="<?php echo htmlspecialchars($date_from); ?>" autocomplete="off">
@@ -117,7 +117,7 @@ $facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] 
             <div class="form-group col-md-2 mb-2 mb-md-0">
               <label class="mb-1">Date To</label>
               <div class="input-group input-group-sm">
-                <div class="input-group-prepend">
+                  <div class="input-group-prepend">
                   <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
                 </div>
                 <input type="text" name="date_to" id="gtl_date_to" class="form-control datepicker" value="<?php echo htmlspecialchars($date_to); ?>" autocomplete="off">
@@ -126,7 +126,7 @@ $facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] 
             <div class="form-group col-md-2 mb-2 mb-md-0">
               <label class="mb-1" for="gtl_name">Name</label>
               <input class="form-control form-control-sm" type="text" name="name" id="gtl_name" placeholder="Name">
-            </div>
+              </div>
             <div class="form-group col-md-2 mb-2 mb-md-0">
               <label class="mb-1" for="gtl_job">Position</label>
               <select name="job" id="gtl_job" class="form-control form-control-sm select2">
@@ -138,9 +138,9 @@ $facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] 
                     echo '<option value="' . htmlspecialchars($element->job) . '">' . htmlspecialchars($element->job) . '</option>';
                   }
                 }
-                ?>
-              </select>
-            </div>
+                  ?>
+                </select>
+              </div>
             <div class="form-group col-md-2 mb-2 mb-md-0 gtl-buttons-wrap">
               <?php
               $qs = http_build_query(array(
@@ -156,11 +156,11 @@ $facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] 
               <a href="<?php echo htmlspecialchars($print_url); ?>" id="gtl_print_link" class="btn btn-sm bg-gray-dark color-pale" target="_blank" rel="noopener"><i class="fa fa-print"></i> Print</a>
               <a href="<?php echo htmlspecialchars($csv_url); ?>" id="gtl_csv_link" class="btn btn-sm bg-gray-dark color-pale"><i class="fa fa-file-excel"></i> CSV</a>
             </div>
-          </div>
-        </form>
+              </div>
+          </form>
       </div>
-    </div>
-    <div class="card-body">
+  </div>
+  <div class="card-body">
       <p class="panel-title" style="font-weight:bold; font-size:16px; text-align:center;">
         MONTHLY ATTENDANCE LOG — <?php echo htmlspecialchars($facility_name); ?> — <span id="gtl_date_range"><?php echo htmlspecialchars($date_from); ?> to <?php echo htmlspecialchars($date_to); ?></span>
       </p>
@@ -175,19 +175,19 @@ $facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] 
             <col style="width: 12%;">
             <col style="width: 95px;">
           </colgroup>
-          <thead>
-            <tr>
-              <th>#</th>
+      <thead>
+        <tr>
+          <th>#</th>
               <th>Name</th>
               <th>Position</th>
               <th>Facility</th>
               <th>Department</th>
               <th>Date</th>
               <th>Hours Worked</th>
-            </tr>
-          </thead>
+        </tr>
+      </thead>
           <tbody></tbody>
-        </table>
+    </table>
       </div>
     </div>
   </div>

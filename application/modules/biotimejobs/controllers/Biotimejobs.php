@@ -926,7 +926,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             }
             if (empty($end_date_input)) {
                 $end_date = date('Y-m-d');
-            } else {
+        } else {
                 $end_date = date('Y-m-d', strtotime($end_date_input));
                 if ($end_date === '1970-01-01' || $end_date === false) {
                     echo json_encode(array('status' => 'error', 'message' => 'Invalid end_date'));
@@ -2585,7 +2585,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     $start_timestamp = strtotime($start);
                     $end_timestamp = strtotime($end_date);
                     $difference_seconds = $end_timestamp - $start_timestamp;
-                    $difference_days = $difference_seconds / (60 * 60 * 24);
+            $difference_days = $difference_seconds / (60 * 60 * 24);
                     
                     $last_activity_timestamp = $last_activity_date ? strtotime($last_activity_date) : 0;
                     $end_date_timestamp = strtotime($end_date);

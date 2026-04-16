@@ -41,7 +41,7 @@ class Attendance extends MX_Controller
 		$year = $this->input->get('year');
 		$empid = $this->input->get('empid');
 		$dep = $this->input->get('department');
-
+	
 		if (!empty($month) && !empty($year)) {
 			$_SESSION['month'] = $month;
 			$_SESSION['year'] = $year;
@@ -178,7 +178,7 @@ class Attendance extends MX_Controller
 
 		@set_time_limit(0);
 		try {
-			$this->load->library('ML_pdf');
+		$this->load->library('ML_pdf');
 			$batch_size = 80;
 			$total = $this->attendance_model->countAttendanceSummary($date, $this->filters, 0, 0, $empid, $dep, '');
 			$period_label = date('F, Y', strtotime($date . '-01'));
@@ -186,8 +186,8 @@ class Attendance extends MX_Controller
 			$filename = "Attendance_Summary_" . $fac . ".pdf";
 
 			if (!empty($this->watermark) && is_file($this->watermark)) {
-				$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
-				$this->ml_pdf->pdf->showWatermarkImage = true;
+		$this->ml_pdf->pdf->SetWatermarkImage($this->watermark);
+		$this->ml_pdf->pdf->showWatermarkImage = true;
 			}
 			date_default_timezone_set('Africa/Kampala');
 		$this->ml_pdf->pdf->SetHTMLFooter('Printed/ Accessed on: <b>' . date('d F,Y h:i A') . '</b><br style="font-size: 9px;">Source: iHRIS - HRM Attend ' . base_url());

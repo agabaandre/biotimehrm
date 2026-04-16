@@ -1178,7 +1178,7 @@ class Employee_model extends CI_Model
         $date_from_esc = $this->db->escape($date_from);
         $date_to_esc = $this->db->escape($date_to);
 
-        $namesearch = "";
+            $namesearch = "";
         if (!empty($search_data['name'])) {
             $ids = $this->getIds($search_data['name']);
             if (!empty($ids)) {
@@ -1239,7 +1239,7 @@ class Employee_model extends CI_Model
             if (!empty($ids)) {
                 $escaped = array_map(array($this->db, 'escape'), $ids);
                 $namesearch = " AND ihrisdata.ihris_pid IN (" . implode(',', $escaped) . ")";
-            } else {
+        } else {
                 return array();
             }
         }
@@ -1571,7 +1571,7 @@ class Employee_model extends CI_Model
         if (!empty($employee)) {
             $search = " AND ihrisdata.ihris_pid=" . $this->db->escape($employee);
         }
-        $jsearch = "";
+            $jsearch = "";
         if (!empty($job)) {
             $jsearch = " AND ihrisdata.job LIKE " . $this->db->escape('%' . $job . '%');
         }

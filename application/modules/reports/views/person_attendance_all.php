@@ -1,7 +1,7 @@
 <style>
 	.cnumber { width: 3%; }
 	.cname { text-align: left; padding-left: 1.5em; width: 30%; }
-	@media only screen and (max-width: 980px) {
+@media only screen and (max-width: 980px) {
 		.cnumber { width: 100%; }
 		.cname { padding-left: 0; text-align: left; width: 100%; }
 		.print { display: none; }
@@ -20,18 +20,18 @@
 		word-wrap: break-word;
 		line-height: 1.2;
 		padding: 6px 4px;
-	}
+}
 </style>
 <section class="content">
-	<div class="container-fluid">
-		<div class="row">
-			<div class="col-md-12">
-				<div class="callout callout-success">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="callout callout-success">
 					<form id="personAttendanceAllFiltersForm" class="form-horizontal" style="padding-bottom: 2em;" action="<?php echo base_url(); ?>reports/person_attendance_all" method="get">
 						<input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-						<div class="row">
-							<div class="col-md-2">
-								<div class="control-group">
+                        <div class="row">
+                            <div class="col-md-2">
+                                <div class="control-group">
 									<label class="control-label">Month</label>
 									<select class="form-control select2" name="month" id="paa_month">
 										<?php for ($m = 1; $m <= 12; $m++) {
@@ -39,11 +39,11 @@
 											$sel = (isset($search->month) && $search->month == $v) ? ' selected' : '';
 											echo '<option value="' . $v . '"' . $sel . '>' . strtoupper(date('F', strtotime("2022-$v-01"))) . '</option>';
 										} ?>
-									</select>
-								</div>
-							</div>
-							<div class="col-md-2">
-								<div class="control-group">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="control-group">
 									<label class="control-label">Year</label>
 									<select class="form-control select2" name="year" id="paa_year">
 										<?php for ($i = -3; $i <= 25; $i++) {
@@ -51,56 +51,56 @@
 											$sel = (isset($search->year) && $search->year == $y) ? ' selected' : '';
 											echo '<option value="' . $y . '"' . $sel . '>' . $y . '</option>';
 										} ?>
-									</select>
-								</div>
-							</div>
-							<div class="col-md-3">
-								<div class="control-group">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="control-group">
 									<label class="control-label">Facility</label>
 									<select class="form-control select2" name="facility_name" id="paa_facility_name">
-										<option value="">All</option>
+                                        <option value="">All</option>
 										<?php if (!empty($facilities)) foreach ($facilities as $value) : ?>
 											<option value="<?php echo htmlspecialchars($value->facility); ?>"
 												<?php echo (isset($search->facility_name) && $search->facility_name == $value->facility) ? ' selected' : ''; ?>>
 												<?php echo htmlspecialchars($value->facility); ?></option>
-										<?php endforeach; ?>
-									</select>
-								</div>
-							</div>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
 							<div class="col-md-3">
-								<div class="control-group">
+                                <div class="control-group">
 									<label class="control-label">District</label>
 									<select class="form-control select2" name="district" id="paa_district">
-										<option value="">All</option>
+                                        <option value="">All</option>
 										<?php if (!empty($districts)) foreach ($districts as $value) : ?>
 											<option value="<?php echo htmlspecialchars($value->district); ?>"
 												<?php echo (isset($search->district) && $search->district == $value->district) ? ' selected' : ''; ?>>
 												<?php echo htmlspecialchars($value->district); ?></option>
-										<?php endforeach; ?>
-									</select>
-								</div>
-							</div>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
 							<div class="col-md-2">
 								<div class="control-group" style="margin-top: 1.8em;">
 									<button type="button" id="paa_apply" class="btn bg-gray-dark color-pale" style="font-size:12px;"><i class="fa fa-filter"></i> Apply</button>
-								</div>
-							</div>
-						</div>
+                        </div>
+                            </div>
+                                </div>
 						<div class="row mt-2">
 							<div class="col-md-12">
 								<a href="#" id="paa_csv_link" style="font-size:12px; margin-right:8px;" class="btn bg-gray-dark color-pale"><i class="fa fa-file"></i> Export CSV</a>
 								<a href="#" id="paa_pdf_link" style="font-size:12px;" class="btn bg-gray-dark color-pale print" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> Export PDF</a>
-							</div>
-						</div>
-					</form>
-				</div>
+                        </div>
+                </div>
+                </form>
+        </div>
 
-				<div class="panel-body">
+        <div class="panel-body">
 					<div class="col-md-12" style="border: 0;">
 						<p id="paa_title" style="font-size: 16px; font-weight:bold; margin:0 auto;">
 							MONTHLY ATTENDANCE TO DUTY SUMMARY - <span id="paa_period_label"><?php echo isset($period) ? date('F, Y', strtotime($period . '-01')) : date('F, Y'); ?></span>
-						</p>
-					</div>
+                </p>
+            </div>
 					<div class="table-responsive" style="margin-top: 10px;">
 						<table id="personAttendanceAllTable" class="table table-striped table-bordered" style="width:100%;">
 							<thead>
@@ -121,11 +121,11 @@
 							</thead>
 							<tbody></tbody>
 						</table>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
 </section>
 
 <script type="text/javascript">
@@ -200,7 +200,7 @@
 			updateExportLinks();
 			var href = $(this).attr('href');
 			if (!href || href === '#') return;
-			e.preventDefault();
+    e.preventDefault();
 			if ($(this).attr('id') === 'paa_pdf_link') {
 				window.open(href, '_blank', 'noopener');
 			} else {

@@ -50,11 +50,12 @@ if (!function_exists('person_att_absent_helper')) {
 if (!function_exists('person_att_percent_present_helper')) {
     function person_att_percent_present_helper($P, $expected_days, $with_suffix = true)
     {
-        $e = (int) $expected_days;
+        $e = (float) $expected_days;
         if ($e <= 0) {
             return $with_suffix ? '0 %' : 0;
         }
-        $per = round(((int) $P / $e) * 100, 1);
+        // Intentionally uncapped: values above 100% are valid where worked days exceed expected days.
+        $per = round((((float) $P) / $e) * 100, 1);
         if (is_infinite($per) || is_nan($per)) {
             return $with_suffix ? '0 %' : 0;
         }

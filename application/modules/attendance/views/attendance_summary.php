@@ -107,14 +107,14 @@
 							</div>
 						</div>
 					</form>
-				</div>
+		</div>
 
-				<div class="panel-body">
+		<div class="panel-body">
 					<div class="col-md-12" style="border: 0;">
 						<p id="attendance_summary_title" style="font-size: 16px; font-weight:bold; margin:0 auto;">
 							MONTHLY ATTENDANCE TO DUTY SUMMARY - <?php echo htmlspecialchars(isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] : ''); ?> <span id="ats_period_label"><?php echo date('F, Y', strtotime($year . '-' . $month . '-01')); ?></span>
-						</p>
-					</div>
+				</p>
+			</div>
 					<div class="table-responsive" style="margin-top: 10px;">
 						<table id="attendanceSummaryTable" class="table table-striped table-bordered" style="width:100%;">
 							<thead>
@@ -137,8 +137,8 @@
 						</table>
 					</div>
 				</div>
-			</div>
-		</div>
+	</div>
+	</div>
 	</div>
 </section>
 
@@ -213,7 +213,7 @@
 			updateExportLinks();
 			var href = $(this).attr('href');
 			if (!href || href === '#') return;
-			e.preventDefault();
+		e.preventDefault();
 			if ($(this).attr('id') === 'ats_print_link') {
 				window.open(href, '_blank', 'noopener');
 			} else {
