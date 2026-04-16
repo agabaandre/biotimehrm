@@ -641,9 +641,18 @@ class Employees extends MX_Controller
           }
         }
         
+        $pid = isset($log->pid) ? (string) $log->pid : '';
+        $nameText = trim(($log->surname ?? '') . ' ' . ($log->firstname ?? ''));
+        $nameCell = $nameText;
+        if ($pid !== '') {
+          $nameCell = '<a href="' . base_url() . 'employees/employeeTimeLogs/' . rawurlencode($pid) . '">' . htmlspecialchars($nameText) . '</a>';
+        } else {
+          $nameCell = htmlspecialchars($nameText);
+        }
+
         $data[] = array(
           $row_num++,
-          trim(($log->surname ?? '') . ' ' . ($log->firstname ?? '')),
+          $nameCell,
           $log->job ?? '',
           date('j F, Y', strtotime($log->date)),
           $time_in ? date('H:i:s', strtotime($time_in)) : '',

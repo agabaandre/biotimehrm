@@ -102,6 +102,14 @@ class Attendance extends MX_Controller
 				$base_line = function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'base_line', 0) : (isset($sum['base_line']) ? $sum['base_line'] : 0);
 				$fullname = isset($sum['fullname']) ? $sum['fullname'] : '';
 				$othername = isset($sum['othername']) ? $sum['othername'] : '';
+				$full_name_text = trim($fullname . ' ' . $othername);
+				$pid_for_link = isset($sum['ihris_pid']) ? (string) $sum['ihris_pid'] : '';
+				$name_link = $full_name_text;
+				if ($pid_for_link !== '') {
+					$name_link = '<a href="' . base_url() . 'employees/employeeTimeLogs/' . rawurlencode($pid_for_link) . '">' . htmlspecialchars($full_name_text) . '</a>';
+				} else {
+					$name_link = htmlspecialchars($full_name_text);
+				}
 				$job = isset($sum['job']) ? character_limiter($sum['job'], 15) : '';
 				$dept = isset($sum['department_id']) ? character_limiter($sum['department_id'], 15) : '';
 				$O = (int) (function_exists('person_att_value_helper') ? person_att_value_helper($sum, 'O', 0) : (isset($sum['O']) ? $sum['O'] : 0));
@@ -120,7 +128,7 @@ class Attendance extends MX_Controller
 
 				$data[] = array(
 					$row_num++,
-					$fullname . ' ' . $othername,
+					$name_link,
 					$job,
 					$dept,
 					$O,
