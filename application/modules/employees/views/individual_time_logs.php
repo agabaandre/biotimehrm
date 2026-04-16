@@ -149,16 +149,8 @@
               $totalLeaves = 0;
               foreach ($leaves as $leave) {
                 $no++;
-              ?>
-                <?php "Leave"; ?>
-                <?php date('j F,Y', strtotime($leave->date)); ?>
-              <?php
                 $totalLeaves += 1;
               } ?>
-							 <tr>
-                <td colspan="4">Total Scheduled/Roster Days(D)</td>
-                <td><?= totalDutys($totalDuty) ?> Days</td>
-              </tr>
               <tr>
                 <td colspan="4">Total Leave Days(L)</td>
                 <td><?= $totalLeaves ?> Days</td>
@@ -169,11 +161,7 @@
               $totalRequests = 0;
               foreach ($requests as $request) {
                 $no++;
-              ?>
-                <?php echo date('j F,Y', strtotime($request->date)); ?>
-                <?php echo date('j F,Y', strtotime($request->date)); ?>
-              <?php
-                $totalRequests = 1;
+                $totalRequests += 1;
               } ?>
               <tr>
                 <td colspan="4">Total Official Request(R)</td>
@@ -193,12 +181,25 @@
                 <td colspan="4">Total days Off Duty(O)</td>
                 <td><?= $toffs ?>Days</td>
               </tr>
+              <?php
+                $fromDate = !empty($from) ? $from : date('Y-m-01');
+                $toDate = !empty($to) ? $to : date('Y-m-d');
+                $baselineDays = 0;
+                if (strtotime($fromDate) !== false && strtotime($toDate) !== false && strtotime($toDate) >= strtotime($fromDate)) {
+                  $baselineDays = (int) floor((strtotime($toDate) - strtotime($fromDate)) / 86400) + 1;
+                }
+                $expectedDays = function_exists('person_att_expected_days_helper')
+                  ? person_att_expected_days_helper($baselineDays, $toffs, $totalLeaves, $totalRequests, 0)
+                  : max(0, $baselineDays - $toffs - $totalLeaves - $totalRequests);
+              ?>
+              <tr>
+                <td colspan="4">Total Scheduled/Roster Days(D)</td>
+                <td><?= $expectedDays ?> Days</td>
+              </tr>
               <tr>
                 <td colspan="4" style="font-weight:bold;">TOTAL DAYS WORKED</td>
                 <td style="font-weight:bold;">
-                
-                <?php if($wdays<=$totalDuty){echo $wdays." Days out of".totalDutys($totalDuty);}else{echo $wdays." Days";} ?>
-                
+                <?php echo $wdays <= $expectedDays ? ($wdays . " Days out of " . $expectedDays) : ($wdays . " Days"); ?>
               </td>
               </tr>
               <tr>

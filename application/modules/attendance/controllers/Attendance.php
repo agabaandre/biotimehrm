@@ -253,7 +253,7 @@ class Attendance extends MX_Controller
 		$batch_size = 80;
 		$total = $this->attendance_model->countAttendanceSummary($valid_range, $this->filters, 0, 0, $empid, $dep, '');
 
-		$header_row = array('Name', 'Job', 'Department', 'Duty Date', 'Off Duty', 'Official Request', 'Leave', 'Holiday', 'Total Days Expected', 'Total Days Worked', 'Total Days Absent', '% Present');
+		$header_row = array('Name', 'Job', 'Department', 'Duty Date', 'Off Duty', 'Official Request', 'Leave', 'Holiday', 'Total Days Expected', 'Total Days Worked', 'Total Days Absent', '% Present/Accounted');
 		fputcsv($fh, $header_row);
 		if (ob_get_level() > 0) {
 			ob_flush();

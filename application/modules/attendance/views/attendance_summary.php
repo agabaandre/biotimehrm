@@ -130,7 +130,7 @@
 									<th>Total Days Expected</th>
 									<th>Total Days Worked</th>
 									<th>Total Days Absent</th>
-									<th>% Present</th>
+									<th>% Present/Accounted</th>
 								</tr>
 							</thead>
 							<tbody></tbody>

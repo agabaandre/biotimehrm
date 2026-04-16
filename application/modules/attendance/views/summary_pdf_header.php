@@ -50,7 +50,7 @@
 				<th class="num" style="width: 8%;">Days Expected</th>
 				<th class="num" style="width: 8%;">Days Worked</th>
 				<th class="num" style="width: 8%;">Days Absent</th>
-				<th class="num" style="width: 7%;">% Present</th>
+				<th class="num" style="width: 7%;">% Present/Accounted</th>
 			</tr>
 		</thead>
 		<tbody>
