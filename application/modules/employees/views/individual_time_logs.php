@@ -206,6 +206,15 @@
                 <td colspan="4" style="font-weight:bold;">TOTAL HOURS WORKED</td>
                 <td style="font-weight:bold;"><?= abs($totalHours) ?> Hours</td>
               </tr>
+              <?php
+                $presentAccounted = function_exists('person_att_percent_present_helper')
+                  ? person_att_percent_present_helper($wdays, $expectedDays, true)
+                  : ($expectedDays > 0 ? round(($wdays / $expectedDays) * 100, 1) . ' %' : '0 %');
+              ?>
+              <tr>
+                <td colspan="4" style="font-weight:bold;">%Present/Accounted</td>
+                <td style="font-weight:bold;"><?= $presentAccounted ?></td>
+              </tr>
             </tfoot>
           </table>
         </div>
