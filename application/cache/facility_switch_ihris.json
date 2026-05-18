@@ -1,6 +1,6 @@
 {
-    "generated_at": 1779129122,
-    "generated_at_iso": "2026-05-18 21:32:02",
+    "generated_at": 1779133798,
+    "generated_at_iso": "2026-05-18 22:49:58",
     "timezone": "Africa\/Kampala",
     "districts": [
         {
@@ -1469,6 +1469,10 @@
                 "facility": "ANYAVU Health Center II"
             },
             {
+                "facility_id": "facility|HCIII-303-5",
+                "facility": "AROI Health Centre III"
+            },
+            {
                 "facility_id": "facility|868",
                 "facility": "ARUA City Health Office"
             },
@@ -1479,6 +1483,10 @@
             {
                 "facility_id": "facility|1120",
                 "facility": "ARUA Main PRISONS Health Centre III"
+            },
+            {
+                "facility_id": "facility|261",
+                "facility": "ARUA Prison Health Centre III"
             },
             {
                 "facility_id": "facility|791",
@@ -1521,6 +1529,10 @@
                 "facility": "MUNGUCHI MEDICAL CENTER"
             },
             {
+                "facility_id": "facility|HCIV-303-3",
+                "facility": "OLI Health Centre IV"
+            },
+            {
                 "facility_id": "facility|HCII-303-42",
                 "facility": "OLUKO SOLIDALE Health Centre III"
             },
@@ -1539,6 +1551,10 @@
             {
                 "facility_id": "facility|HCII-303-38",
                 "facility": "ORIVU Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-303-39",
+                "facility": "PAJULU Health Centre III"
             },
             {
                 "facility_id": "facility|HCIII-303-16",
@@ -1563,24 +1579,84 @@
                 "facility": "AJIA Health Centre III"
             },
             {
+                "facility_id": "facility|1169",
+                "facility": "ANYAVU Health Center II"
+            },
+            {
                 "facility_id": "facility|HCIII-303-5",
                 "facility": "AROI Health Centre III"
+            },
+            {
+                "facility_id": "facility|868",
+                "facility": "ARUA City Health Office"
+            },
+            {
+                "facility_id": "facility|DHO-303-1",
+                "facility": "ARUA DHO's Office"
+            },
+            {
+                "facility_id": "facility|1120",
+                "facility": "ARUA Main PRISONS Health Centre III"
             },
             {
                 "facility_id": "facility|261",
                 "facility": "ARUA Prison Health Centre III"
             },
             {
+                "facility_id": "facility|791",
+                "facility": "ARUA Regional Blood Bank"
+            },
+            {
+                "facility_id": "facility|772",
+                "facility": "ARUA Regional Referral Hospital"
+            },
+            {
+                "facility_id": "facility|260",
+                "facility": "AYAYIA Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-303-9",
                 "facility": "AYIVUNI Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-303-7",
+                "facility": "BONDO Health Centre III"
+            },
+            {
+                "facility_id": "facility|Ghospital-303-2",
+                "facility": "KULUVA HOSPITAL"
+            },
+            {
+                "facility_id": "facility|HCII-303-34",
+                "facility": "LAZEBU Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-303-22",
+                "facility": "LOGIRI Health Centre III"
+            },
+            {
+                "facility_id": "facility|842",
+                "facility": "MASJID NOOR Health Centre III"
+            },
+            {
+                "facility_id": "facility|1304",
+                "facility": "MUNGUCHI MEDICAL CENTER"
             },
             {
                 "facility_id": "facility|HCIV-303-3",
                 "facility": "OLI Health Centre IV"
             },
             {
+                "facility_id": "facility|HCII-303-42",
+                "facility": "OLUKO SOLIDALE Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCIII-303-23",
                 "facility": "OMBIDRIONDREA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-303-24",
+                "facility": "OPIA Health Centre III"
             },
             {
                 "facility_id": "facility|233",
@@ -1597,6 +1673,14 @@
             {
                 "facility_id": "facility|HCIII-303-16",
                 "facility": "RIKI Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-303-41",
+                "facility": "ST. ASSUMPTA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-303-19",
+                "facility": "VURRA Health Centre III"
             }
         ],
         "BUDAKA": [
@@ -3559,6 +3643,10 @@
         ],
         "GULU": [
             {
+                "facility_id": "facility|HCII-304-3",
+                "facility": "ALOKOLUM Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCIII-304-14",
                 "facility": "ANGAYA Health Centre III"
             },
@@ -3569,6 +3657,10 @@
             {
                 "facility_id": "facility|1356",
                 "facility": "Aywee Health Centre III"
+            },
+            {
+                "facility_id": "facility|871",
+                "facility": "BARDEGE Health Centre III"
             },
             {
                 "facility_id": "facility|HCII-304-49",
@@ -3585,6 +3677,10 @@
             {
                 "facility_id": "facility|1183",
                 "facility": "Good Shepherd Health Centre II"
+            },
+            {
+                "facility_id": "facility|886",
+                "facility": "GULU City Health Office"
             },
             {
                 "facility_id": "facility|DHO-304-1",
@@ -3627,6 +3723,18 @@
                 "facility": "LABWOROMOR Health Centre III"
             },
             {
+                "facility_id": "facility|HCII-304-15",
+                "facility": "LAPETA Health Centre II"
+            },
+            {
+                "facility_id": "facility|1357",
+                "facility": "LAROO Health Centre III"
+            },
+            {
+                "facility_id": "facility|1358",
+                "facility": "LAYIBI TECHO Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCII-304-19",
                 "facility": "LUGORE Health Centre II"
             },
@@ -3637,6 +3745,10 @@
             {
                 "facility_id": "facility|1235",
                 "facility": "OBERABIC Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-304-64",
+                "facility": "OITINO Health Centre II"
             },
             {
                 "facility_id": "facility|HCII-304-24",
@@ -3717,16 +3829,80 @@
                 "facility": "ALOKOLUM Health Centre II"
             },
             {
+                "facility_id": "facility|HCIII-304-14",
+                "facility": "ANGAYA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIV-304-2",
+                "facility": "AWACH Health Centre IV"
+            },
+            {
                 "facility_id": "facility|1356",
-                "facility": "AYWEE Health Centre III"
+                "facility": "Aywee Health Centre III"
             },
             {
                 "facility_id": "facility|871",
                 "facility": "BARDEGE Health Centre III"
             },
             {
+                "facility_id": "facility|HCII-304-49",
+                "facility": "COOPE Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-304-1",
+                "facility": "CWERO Health Centre III"
+            },
+            {
+                "facility_id": "facility|1279",
+                "facility": "FAMILY CARE Health Centre II"
+            },
+            {
+                "facility_id": "facility|1183",
+                "facility": "Good Shepherd Health Centre II"
+            },
+            {
                 "facility_id": "facility|886",
                 "facility": "GULU City Health Office"
+            },
+            {
+                "facility_id": "facility|DHO-304-1",
+                "facility": "GULU DHO's Office"
+            },
+            {
+                "facility_id": "facility|1121",
+                "facility": "Gulu prisons Health Centre III"
+            },
+            {
+                "facility_id": "facility|793",
+                "facility": "Gulu Regional Blood Bank"
+            },
+            {
+                "facility_id": "facility|770",
+                "facility": "GULU Regional Referral Hospital"
+            },
+            {
+                "facility_id": "facility|HCII-304-1",
+                "facility": "GWENGDIYA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-304-9",
+                "facility": "KAL-ALII Health Centre II"
+            },
+            {
+                "facility_id": "facility|1196",
+                "facility": "Karin Medical Centre - Agonga"
+            },
+            {
+                "facility_id": "facility|1197",
+                "facility": "Karin Medical Centre - Unyama"
+            },
+            {
+                "facility_id": "facility|1205",
+                "facility": "Keyo Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-304-5",
+                "facility": "LABWOROMOR Health Centre III"
             },
             {
                 "facility_id": "facility|HCII-304-15",
@@ -3741,8 +3917,88 @@
                 "facility": "LAYIBI TECHO Health Centre III"
             },
             {
+                "facility_id": "facility|HCII-304-19",
+                "facility": "LUGORE Health Centre II"
+            },
+            {
+                "facility_id": "facility|1149",
+                "facility": "Lugore Prisons Health Centre II"
+            },
+            {
+                "facility_id": "facility|1235",
+                "facility": "OBERABIC Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-304-64",
                 "facility": "OITINO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-304-24",
+                "facility": "OMEL Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-304-25",
+                "facility": "OROKO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-304-12",
+                "facility": "PABWO Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-304-26",
+                "facility": "PAIBONA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-304-13",
+                "facility": "PATIKO Health Centre III"
+            },
+            {
+                "facility_id": "facility|498",
+                "facility": "PAWEL ANGANY Health Center II"
+            },
+            {
+                "facility_id": "facility|HCII-304-31",
+                "facility": "PUGWINYI Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-304-65",
+                "facility": "PUKONY Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-304-32",
+                "facility": "PUNENA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-304-35",
+                "facility": "RWOTOBILO Health Centre II"
+            },
+            {
+                "facility_id": "facility|1322",
+                "facility": "SOS (HGMC) Health Centre II"
+            },
+            {
+                "facility_id": "facility|1243",
+                "facility": "St. Andrew Health Centre II"
+            },
+            {
+                "facility_id": "facility|1246",
+                "facility": "St. Luke Health Centre II"
+            },
+            {
+                "facility_id": "facility|1115",
+                "facility": "ST. Marys Hospital Lacor"
+            },
+            {
+                "facility_id": "facility|813",
+                "facility": "St. Nektarios Orthodox Centre lll"
+            },
+            {
+                "facility_id": "facility|1250",
+                "facility": "St. Peters Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-304-42",
+                "facility": "TEGOT-ATO Health Centre II"
             },
             {
                 "facility_id": "facility|HCII-304-44",
@@ -3757,6 +4013,10 @@
             {
                 "facility_id": "facility|870",
                 "facility": "BACAYAYA Health Centre II"
+            },
+            {
+                "facility_id": "facility|876",
+                "facility": "BUHANIKA Health Centre III"
             },
             {
                 "facility_id": "facility|HCIII-403-15",
@@ -3803,6 +4063,10 @@
                 "facility": "KAPAAPI Health Centre III"
             },
             {
+                "facility_id": "facility|903",
+                "facility": "KARONGO Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCII-403-18",
                 "facility": "KASOMORO Health Centre II"
             },
@@ -3821,6 +4085,10 @@
             {
                 "facility_id": "facility|628",
                 "facility": "KIGOROBYA Town Council"
+            },
+            {
+                "facility_id": "facility|1495",
+                "facility": "KIHUUKYA Health Centre III"
             },
             {
                 "facility_id": "facility|1289",
@@ -3853,6 +4121,10 @@
         ],
         "HOIMA City": [
             {
+                "facility_id": "facility|1171",
+                "facility": "Azur Christian Health Centre IV"
+            },
+            {
                 "facility_id": "facility|870",
                 "facility": "BACAYAYA Health Centre II"
             },
@@ -3861,12 +4133,104 @@
                 "facility": "BUHANIKA Health Centre III"
             },
             {
+                "facility_id": "facility|HCIII-403-15",
+                "facility": "BURARU Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-403-16",
+                "facility": "BUSERUKA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-403-17",
+                "facility": "BUTEMA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-403-7",
+                "facility": "DWOOLI Health Centre III"
+            },
+            {
+                "facility_id": "facility|794",
+                "facility": "HOIMA Blood Collecting Centre"
+            },
+            {
+                "facility_id": "facility|DHO-403-1",
+                "facility": "HOIMA DHO's Office"
+            },
+            {
+                "facility_id": "facility|887",
+                "facility": "HOIMA Municipal Health Office"
+            },
+            {
+                "facility_id": "facility|1143",
+                "facility": "Hoima Prisons Health Centre II"
+            },
+            {
+                "facility_id": "facility|775",
+                "facility": "HOIMA Regional Referral Hospital"
+            },
+            {
+                "facility_id": "facility|HCIII-403-3",
+                "facility": "KABAALE Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-403-16",
+                "facility": "KAPAAPI Health Centre III"
+            },
+            {
                 "facility_id": "facility|903",
                 "facility": "KARONGO Health Centre III"
             },
             {
+                "facility_id": "facility|HCII-403-18",
+                "facility": "KASOMORO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-403-20",
+                "facility": "KIBAIRE Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-403-21",
+                "facility": "KIBIRO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIV-403-2",
+                "facility": "KIGOROBYA Health Centre IV"
+            },
+            {
+                "facility_id": "facility|628",
+                "facility": "KIGOROBYA Town Council"
+            },
+            {
                 "facility_id": "facility|1495",
                 "facility": "KIHUUKYA Health Centre III"
+            },
+            {
+                "facility_id": "facility|1289",
+                "facility": "KISAARU HEALTH CENTER"
+            },
+            {
+                "facility_id": "facility|HCII-403-25",
+                "facility": "KISABAGWA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-403-26",
+                "facility": "KISEKE Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-403-32",
+                "facility": "KYABASENGYA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-403-36",
+                "facility": "MBARAARA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-403-18",
+                "facility": "MPARANGASI Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-403-9",
+                "facility": "TONYA Health Centre III"
             }
         ],
         "IBANDA": [
@@ -4413,6 +4777,10 @@
                 "facility": "BUDONDO Health Centre IV"
             },
             {
+                "facility_id": "facility|HCIV-204-4",
+                "facility": "BUGEMBE Health Centre IV"
+            },
+            {
                 "facility_id": "facility|HCII-204-14",
                 "facility": "BUNAWONA Health Centre II"
             },
@@ -4427,6 +4795,10 @@
             {
                 "facility_id": "facility|HCIII-204-8",
                 "facility": "BUTAGAYA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-204-97",
+                "facility": "BUWENDA Health Centre II"
             },
             {
                 "facility_id": "facility|310",
@@ -4453,12 +4825,24 @@
                 "facility": "Crescent Medical Centre IV"
             },
             {
+                "facility_id": "facility|HCII-204-33",
+                "facility": "IVUNAMBA Health Centre II"
+            },
+            {
                 "facility_id": "facility|795",
                 "facility": "Jinja Blood Collection Centre"
             },
             {
                 "facility_id": "facility|891",
                 "facility": "Jinja Central Division Health Centre III"
+            },
+            {
+                "facility_id": "facility|1482",
+                "facility": "Jinja Central Health Centre III"
+            },
+            {
+                "facility_id": "facility|892",
+                "facility": "JINJA City Health Office"
             },
             {
                 "facility_id": "facility|DHO-204-1",
@@ -4509,20 +4893,56 @@
                 "facility": "KAMIIGO Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-204-51",
+                "facility": "KIBIBI Health Centre II"
+            },
+            {
+                "facility_id": "facility|1419",
+                "facility": "Kimaka HC III"
+            },
+            {
                 "facility_id": "facility|HCII-204-56",
                 "facility": "KISASI Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-204-57",
+                "facility": "KISIMA Health Centre II"
             },
             {
                 "facility_id": "facility|HCII-204-59",
                 "facility": "KITANABA Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-204-60",
+                "facility": "KYOMYA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-204-17",
+                "facility": "LUKOLO Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCII-204-63",
                 "facility": "LUMULI Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-204-64",
+                "facility": "LWANDA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-204-65",
+                "facility": "MAFUBIRA Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCIII-204-18",
                 "facility": "MAGAMAGA Health Centre III"
+            },
+            {
+                "facility_id": "facility|923",
+                "facility": "MASESE III Health Centre II"
+            },
+            {
+                "facility_id": "facility|924",
+                "facility": "MASESE Landing Site Health Centre II"
             },
             {
                 "facility_id": "facility|HCII-204-70",
@@ -4533,12 +4953,24 @@
                 "facility": "MPAMBWA Health Centre III"
             },
             {
+                "facility_id": "facility|934",
+                "facility": "MPUMUDDE Health Centre IV"
+            },
+            {
                 "facility_id": "facility|HCII-204-72",
                 "facility": "MPUNGWE Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-204-76",
+                "facility": "MUSIMA Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-204-98",
                 "facility": "MUTAI Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-204-20",
+                "facility": "MUWUMBA Health Centre III"
             },
             {
                 "facility_id": "facility|HCII-204-78",
@@ -4557,6 +4989,10 @@
                 "facility": "NAMWENDWA Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-204-85",
+                "facility": "NAWANGOMA Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-204-99",
                 "facility": "NSOZIBBIRI Health Centre II"
             },
@@ -4565,11 +5001,27 @@
                 "facility": "WAIRAKA Health Centre II"
             },
             {
+                "facility_id": "facility|HCIII-204-2",
+                "facility": "WAKITAKA Health Centre III"
+            },
+            {
+                "facility_id": "facility|983",
+                "facility": "WALUKUBA Health Centre IV"
+            },
+            {
                 "facility_id": "facility|HCII-204-100",
                 "facility": "WANSIMBA Health Centre II"
             }
         ],
         "JINJA City": [
+            {
+                "facility_id": "facility|HCII-204-11",
+                "facility": "BUBUGO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-204-5",
+                "facility": "BUDIIMA Health Centre III"
+            },
             {
                 "facility_id": "facility|HCIV-204-3",
                 "facility": "BUDONDO Health Centre IV"
@@ -4579,12 +5031,60 @@
                 "facility": "BUGEMBE Health Centre IV"
             },
             {
+                "facility_id": "facility|HCII-204-14",
+                "facility": "BUNAWONA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-204-7",
+                "facility": "BUSEDDE Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-204-17",
+                "facility": "BUSEGULA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-204-8",
+                "facility": "BUTAGAYA Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCII-204-97",
                 "facility": "BUWENDA Health Centre II"
             },
             {
+                "facility_id": "facility|310",
+                "facility": "BUWENGE General Hospital"
+            },
+            {
+                "facility_id": "facility|HCIV-204-5",
+                "facility": "BUWENGE Health Centre IV"
+            },
+            {
+                "facility_id": "facility|823",
+                "facility": "Buwenge Hospital and Medical Centre"
+            },
+            {
+                "facility_id": "facility|HCII-204-19",
+                "facility": "BUWORERO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-204-20",
+                "facility": "BWASE Health Centre II"
+            },
+            {
+                "facility_id": "facility|825",
+                "facility": "Crescent Medical Centre IV"
+            },
+            {
                 "facility_id": "facility|HCII-204-33",
                 "facility": "IVUNAMBA Health Centre II"
+            },
+            {
+                "facility_id": "facility|795",
+                "facility": "Jinja Blood Collection Centre"
+            },
+            {
+                "facility_id": "facility|891",
+                "facility": "Jinja Central Division Health Centre III"
             },
             {
                 "facility_id": "facility|1482",
@@ -4595,6 +5095,54 @@
                 "facility": "JINJA City Health Office"
             },
             {
+                "facility_id": "facility|DHO-204-1",
+                "facility": "JINJA DHO's Office"
+            },
+            {
+                "facility_id": "facility|828",
+                "facility": "JINJA Islamic Health Centre III"
+            },
+            {
+                "facility_id": "facility|1123",
+                "facility": "Jinja M Prisons Health Centre III"
+            },
+            {
+                "facility_id": "facility|1124",
+                "facility": "Jinja R Health Centre III"
+            },
+            {
+                "facility_id": "facility|767",
+                "facility": "JINJA Regional Referral Hospital"
+            },
+            {
+                "facility_id": "facility|HCII-204-41",
+                "facility": "KABAGANDA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-204-42",
+                "facility": "KABEMBE Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-204-13",
+                "facility": "KAKAIRE Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-204-14",
+                "facility": "KAKIRA Health Centre III"
+            },
+            {
+                "facility_id": "facility|1284",
+                "facility": "Kakira Sugar Workers Hospital"
+            },
+            {
+                "facility_id": "facility|640",
+                "facility": "KAKIRA Town Council"
+            },
+            {
+                "facility_id": "facility|HCII-204-44",
+                "facility": "KAMIIGO Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-204-51",
                 "facility": "KIBIBI Health Centre II"
             },
@@ -4603,8 +5151,16 @@
                 "facility": "Kimaka HC III"
             },
             {
+                "facility_id": "facility|HCII-204-56",
+                "facility": "KISASI Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-204-57",
                 "facility": "KISIMA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-204-59",
+                "facility": "KITANABA Health Centre II"
             },
             {
                 "facility_id": "facility|HCII-204-60",
@@ -4615,12 +5171,20 @@
                 "facility": "LUKOLO Health Centre III"
             },
             {
+                "facility_id": "facility|HCII-204-63",
+                "facility": "LUMULI Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-204-64",
                 "facility": "LWANDA Health Centre II"
             },
             {
                 "facility_id": "facility|HCII-204-65",
                 "facility": "MAFUBIRA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-204-18",
+                "facility": "MAGAMAGA Health Centre III"
             },
             {
                 "facility_id": "facility|923",
@@ -4631,20 +5195,60 @@
                 "facility": "MASESE Landing Site Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-204-70",
+                "facility": "MAWOITO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-204-19",
+                "facility": "MPAMBWA Health Centre III"
+            },
+            {
                 "facility_id": "facility|934",
                 "facility": "MPUMUDDE Health Centre IV"
+            },
+            {
+                "facility_id": "facility|HCII-204-72",
+                "facility": "MPUNGWE Health Centre II"
             },
             {
                 "facility_id": "facility|HCII-204-76",
                 "facility": "MUSIMA Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-204-98",
+                "facility": "MUTAI Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCIII-204-20",
                 "facility": "MUWUMBA Health Centre III"
             },
             {
+                "facility_id": "facility|HCII-204-78",
+                "facility": "NABITAMBALA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-204-81",
+                "facility": "NALINAIBI Health Centre II"
+            },
+            {
+                "facility_id": "facility|1071",
+                "facility": "NALUFENYA POLICE Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-204-83",
+                "facility": "NAMWENDWA Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-204-85",
                 "facility": "NAWANGOMA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-204-99",
+                "facility": "NSOZIBBIRI Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-204-5",
+                "facility": "WAIRAKA Health Centre II"
             },
             {
                 "facility_id": "facility|HCIII-204-2",
@@ -4653,6 +5257,10 @@
             {
                 "facility_id": "facility|983",
                 "facility": "WALUKUBA Health Centre IV"
+            },
+            {
+                "facility_id": "facility|HCII-204-100",
+                "facility": "WANSIMBA Health Centre II"
             }
         ],
         "KAABONG": [
@@ -5605,16 +6213,144 @@
         ],
         "KAMPALA": [
             {
+                "facility_id": "facility|1264",
+                "facility": "ALLIED MEDICAL CLINIC"
+            },
+            {
+                "facility_id": "facility|1265",
+                "facility": "Angelina Domiciliary Clinic"
+            },
+            {
+                "facility_id": "facility|1033",
+                "facility": "BUKOTO Health Centre III"
+            },
+            {
+                "facility_id": "facility|1268",
+                "facility": "BUSINGYE MEDICAL CENTRE"
+            },
+            {
+                "facility_id": "facility|782",
+                "facility": "BUTABIKA National Mental Referral Hospital"
+            },
+            {
+                "facility_id": "facility|1269",
+                "facility": "BWAISE HEALTH CENTRE II"
+            },
+            {
                 "facility_id": "facility|781",
                 "facility": "CHINA UGANDA Friendship Hospital, Naguru - National Trauma and Rehabilitation Centre"
+            },
+            {
+                "facility_id": "facility|1035",
+                "facility": "City Hall Clinic"
+            },
+            {
+                "facility_id": "facility|814",
+                "facility": "HOLY Cross Orthodox Hospital"
+            },
+            {
+                "facility_id": "facility|1034",
+                "facility": "KAMPALA - Central Division"
+            },
+            {
+                "facility_id": "facility|1037",
+                "facility": "KAMPALA - Kawempe Division"
+            },
+            {
+                "facility_id": "facility|1044",
+                "facility": "KAMPALA - Makindye Division"
+            },
+            {
+                "facility_id": "facility|1045",
+                "facility": "KAMPALA - Nakawa Division"
+            },
+            {
+                "facility_id": "facility|1046",
+                "facility": "KAMPALA - Rubaga Division"
+            },
+            {
+                "facility_id": "facility|1036",
+                "facility": "KAWAALA Health Centre III"
+            },
+            {
+                "facility_id": "facility|1285",
+                "facility": "Kawempe Domicilliary Clinic"
             },
             {
                 "facility_id": "facility|785",
                 "facility": "KAWEMPE Specialised National Referral Hospital"
             },
             {
+                "facility_id": "facility|1038",
+                "facility": "KCCA City Health Office"
+            },
+            {
+                "facility_id": "facility|834",
+                "facility": "KIBULI Muslim Hospital"
+            },
+            {
+                "facility_id": "facility|1287",
+                "facility": "Kiganda Maternity Clinic"
+            },
+            {
+                "facility_id": "facility|1288",
+                "facility": "KIKAJJO HEALTH SERVICES CLINIC"
+            },
+            {
                 "facility_id": "facility|789",
                 "facility": "KIRUDDU National Referral Hospital"
+            },
+            {
+                "facility_id": "facility|1039",
+                "facility": "Kisenyi Health Centre IV"
+            },
+            {
+                "facility_id": "facility|1040",
+                "facility": "Kisugu Health Centre III"
+            },
+            {
+                "facility_id": "facility|1041",
+                "facility": "Kiswa Health Centre III"
+            },
+            {
+                "facility_id": "facility|1042",
+                "facility": "Kitebi Health Centre III"
+            },
+            {
+                "facility_id": "facility|1043",
+                "facility": "Komamboga Health Centre III"
+            },
+            {
+                "facility_id": "facility|1292",
+                "facility": "KYOSIIMA MATERNITY and NURSING Health Centre II"
+            },
+            {
+                "facility_id": "facility|1156",
+                "facility": "Luzira Prisons Health Centre IV"
+            },
+            {
+                "facility_id": "facility|1126",
+                "facility": "Luzira Remand Prisons Health Centre III"
+            },
+            {
+                "facility_id": "facility|1127",
+                "facility": "Luzira Upper Prisons Health Centre III"
+            },
+            {
+                "facility_id": "facility|1136",
+                "facility": "Luzira Women Prisons Health Centre III"
+            },
+            {
+                "facility_id": "facility|1295",
+                "facility": "Maama Maria Medical centre"
+            },
+            {
+                "facility_id": "facility|1062",
+                "facility": "MECHANICAL WORKSHOP  POLICE Health Centre II"
+            },
+            {
+                "facility_id": "facility|1217",
+                "facility": "Mengo Hospital"
             },
             {
                 "facility_id": "facility|787",
@@ -5625,8 +6361,104 @@
                 "facility": "MULAGO National Referral Hospital"
             },
             {
+                "facility_id": "facility|1160",
+                "facility": "MULAGO Specialised Women and Neonatal Hospital"
+            },
+            {
+                "facility_id": "facility|1157",
+                "facility": "MURCHISON BAY HOSPITAL"
+            },
+            {
+                "facility_id": "facility|1069",
+                "facility": "NAGURU POLICE Health Centre IV"
+            },
+            {
+                "facility_id": "facility|HCII-228-2",
+                "facility": "NAKASERO Regional Blood Bank"
+            },
+            {
+                "facility_id": "facility|1309",
+                "facility": "NATHAN MEDICAL CLINIC"
+            },
+            {
+                "facility_id": "facility|1310",
+                "facility": "NJERU MATERNITY Health Centre II"
+            },
+            {
+                "facility_id": "facility|1108",
+                "facility": "NSAMBYA HOSPITAL"
+            },
+            {
+                "facility_id": "facility|1074",
+                "facility": "NSAMBYA POLICE Health Centre IV"
+            },
+            {
+                "facility_id": "facility|1312",
+                "facility": "Nyamayalwo Clinic"
+            },
+            {
                 "facility_id": "facility|854",
                 "facility": "OLD Kampala Hospital"
+            },
+            {
+                "facility_id": "facility|1076",
+                "facility": "OLD KAMPALA POLICE Health Centre II"
+            },
+            {
+                "facility_id": "facility|1111",
+                "facility": "RUBAGA HOSPITAL"
+            },
+            {
+                "facility_id": "facility|857",
+                "facility": "Saidina Abubakar Nursing Home III"
+            },
+            {
+                "facility_id": "facility|1248",
+                "facility": "St. LUKE SOCIETY"
+            },
+            {
+                "facility_id": "facility|1251",
+                "facility": "St. Stephens Hospital COU"
+            },
+            {
+                "facility_id": "facility|800",
+                "facility": "UGANDA Blood Transfusion Services (UBTS)"
+            },
+            {
+                "facility_id": "facility|432",
+                "facility": "UGANDA Cancer Institue (UCI)"
+            },
+            {
+                "facility_id": "facility|409",
+                "facility": "UGANDA Heart Institute (UHI)"
+            },
+            {
+                "facility_id": "facility|864",
+                "facility": "UMMB Secretariat"
+            },
+            {
+                "facility_id": "facility|1324",
+                "facility": "UPMB Optical Unit"
+            },
+            {
+                "facility_id": "facility|1252",
+                "facility": "UPMB Secretariat"
+            },
+            {
+                "facility_id": "facility|1086",
+                "facility": "WANDEGEYA POLICE Health Centre II"
+            },
+            {
+                "facility_id": "facility|1254",
+                "facility": "Wentz Medical Center IV"
+            },
+            {
+                "facility_id": "facility|988",
+                "facility": "ZUKUULI MUSLIM Health Centre III"
+            },
+            {
+                "facility_id": "facility|992",
+                "facility": "ZUKUULI MUSLIM Health Centre III"
             }
         ],
         "KAMPALA City": [
@@ -9059,6 +9891,10 @@
                 "facility": "ABUNGA Health Centre II"
             },
             {
+                "facility_id": "facility|804",
+                "facility": "ADYEL Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCIII-307-2",
                 "facility": "AGALI Health Centre III"
             },
@@ -9073,6 +9909,14 @@
             {
                 "facility_id": "facility|HCIV-307-2",
                 "facility": "AMACH Health Centre IV"
+            },
+            {
+                "facility_id": "facility|HCII-307-9",
+                "facility": "ANYANGATIR Health Centre III"
+            },
+            {
+                "facility_id": "facility|1513",
+                "facility": "ANYOMOREM Health Centre III"
             },
             {
                 "facility_id": "facility|HCII-307-11",
@@ -9103,8 +9947,36 @@
                 "facility": "Boroboro Health Center III"
             },
             {
+                "facility_id": "facility|1167",
+                "facility": "delete Amuca SDA Health Center III"
+            },
+            {
+                "facility_id": "facility|1484",
+                "facility": "LIRA City East Division Health Office"
+            },
+            {
+                "facility_id": "facility|803",
+                "facility": "LIRA City Health Office"
+            },
+            {
+                "facility_id": "facility|1483",
+                "facility": "LIRA City West Division Health Office"
+            },
+            {
                 "facility_id": "facility|DHO-307-1",
                 "facility": "LIRA DHO's Office"
+            },
+            {
+                "facility_id": "facility|806",
+                "facility": "LIRA MUNICIPAL COUNCIL Health Centre III"
+            },
+            {
+                "facility_id": "facility|1051",
+                "facility": "LIRA POLICE Health Centre II"
+            },
+            {
+                "facility_id": "facility|1125",
+                "facility": "LIRA Prisons Health Centre III"
             },
             {
                 "facility_id": "facility|771",
@@ -9131,6 +10003,10 @@
                 "facility": "PAG Health Centre IV"
             },
             {
+                "facility_id": "facility|1512",
+                "facility": "PUNULURU Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCII-307-27",
                 "facility": "RAILWAY Health Centre II"
             },
@@ -9141,8 +10017,32 @@
         ],
         "LIRA City": [
             {
+                "facility_id": "facility|HCII-307-2",
+                "facility": "ABALA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-307-4",
+                "facility": "ABUNGA Health Centre II"
+            },
+            {
                 "facility_id": "facility|804",
                 "facility": "ADYEL Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-307-2",
+                "facility": "AGALI Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-307-6",
+                "facility": "AKANGI Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-307-7",
+                "facility": "ALIK Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIV-307-2",
+                "facility": "AMACH Health Centre IV"
             },
             {
                 "facility_id": "facility|HCII-307-9",
@@ -9153,12 +10053,32 @@
                 "facility": "ANYOMOREM Health Centre III"
             },
             {
+                "facility_id": "facility|HCII-307-11",
+                "facility": "APUCE Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-307-4",
+                "facility": "AROMO Health Centre III"
+            },
+            {
                 "facility_id": "facility|805",
                 "facility": "AYAGO Health Center III"
             },
             {
+                "facility_id": "facility|869",
+                "facility": "Aywee Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCIII-307-6",
                 "facility": "BARAPWO Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-307-7",
+                "facility": "BARR Health Centre III"
+            },
+            {
+                "facility_id": "facility|1173",
+                "facility": "Boroboro Health Center III"
             },
             {
                 "facility_id": "facility|1167",
@@ -9177,6 +10097,10 @@
                 "facility": "LIRA City West Division Health Office"
             },
             {
+                "facility_id": "facility|DHO-307-1",
+                "facility": "LIRA DHO's Office"
+            },
+            {
                 "facility_id": "facility|806",
                 "facility": "LIRA MUNICIPAL COUNCIL Health Centre III"
             },
@@ -9189,12 +10113,40 @@
                 "facility": "LIRA Prisons Health Centre III"
             },
             {
+                "facility_id": "facility|771",
+                "facility": "LIRA Regional Referral Hospital"
+            },
+            {
                 "facility_id": "facility|808",
                 "facility": "OBER Health Center IV"
             },
             {
+                "facility_id": "facility|HCIV-307-3",
+                "facility": "OGUR Health Centre IV"
+            },
+            {
+                "facility_id": "facility|HCIII-307-13",
+                "facility": "ONGICA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-307-24",
+                "facility": "ONYWAKO Health Centre II"
+            },
+            {
+                "facility_id": "facility|1239",
+                "facility": "PAG Health Centre IV"
+            },
+            {
                 "facility_id": "facility|1512",
                 "facility": "PUNULURU Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-307-27",
+                "facility": "RAILWAY Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-307-28",
+                "facility": "WALELA Health Centre II"
             }
         ],
         "LUUKA": [
@@ -9941,12 +10893,20 @@
                 "facility": "Al-Rahma Medical Centre III"
             },
             {
+                "facility_id": "facility|HCII-105-5",
+                "facility": "BUGABIRA Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCIII-105-2",
                 "facility": "BUKAKATA Health Centre III"
             },
             {
                 "facility_id": "facility|HCIII-105-3",
                 "facility": "BUKEERI Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-105-4",
+                "facility": "BUKOTO Health Centre III"
             },
             {
                 "facility_id": "facility|HCII-105-9",
@@ -9969,8 +10929,16 @@
                 "facility": "KITOVU Sub- Regional Blood Bank"
             },
             {
+                "facility_id": "facility|HCIV-105-2",
+                "facility": "KIYUMBA Health Centre IV"
+            },
+            {
                 "facility_id": "facility|1290",
                 "facility": "Kuteesa Domiciliary Clinic"
+            },
+            {
+                "facility_id": "facility|HCII-105-16",
+                "facility": "KYAMUYIMBWA Health Centre II"
             },
             {
                 "facility_id": "facility|HCIV-105-1",
@@ -10005,6 +10973,14 @@
                 "facility": "MASAKA BUYAGA Health Centre II GOVT"
             },
             {
+                "facility_id": "facility|921",
+                "facility": "MASAKA City Health Centre II"
+            },
+            {
+                "facility_id": "facility|922",
+                "facility": "MASAKA City Health Office"
+            },
+            {
                 "facility_id": "facility|DHO-105-1",
                 "facility": "MASAKA DHOs Office"
             },
@@ -10029,26 +11005,106 @@
                 "facility": "MAZINGA Health Centre II"
             },
             {
+                "facility_id": "facility|HCIII-105-1",
+                "facility": "MPUGWE Health Centre III"
+            },
+            {
+                "facility_id": "facility|961",
+                "facility": "NYENDO Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-124-1",
+                "facility": "SSENYA Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-105-23",
                 "facility": "ZZIMWE Health Centre II"
             }
         ],
         "MASAKA City": [
             {
+                "facility_id": "facility|821",
+                "facility": "Al-Rahma Medical Centre III"
+            },
+            {
                 "facility_id": "facility|HCII-105-5",
                 "facility": "BUGABIRA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-105-2",
+                "facility": "BUKAKATA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-105-3",
+                "facility": "BUKEERI Health Centre III"
             },
             {
                 "facility_id": "facility|HCIII-105-4",
                 "facility": "BUKOTO Health Centre III"
             },
             {
+                "facility_id": "facility|HCII-105-9",
+                "facility": "KAMULEGU Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-105-10",
+                "facility": "KAMWOZI Health Centre II (Masaka)"
+            },
+            {
+                "facility_id": "facility|1102",
+                "facility": "KITOVU HEALTH CARE COMPLEX"
+            },
+            {
+                "facility_id": "UCMB-facility|GHospital-105-1",
+                "facility": "KITOVU HEALTH CARE COMPLEX"
+            },
+            {
+                "facility_id": "facility|796",
+                "facility": "KITOVU Sub- Regional Blood Bank"
+            },
+            {
                 "facility_id": "facility|HCIV-105-2",
                 "facility": "KIYUMBA Health Centre IV"
             },
             {
+                "facility_id": "facility|1290",
+                "facility": "Kuteesa Domiciliary Clinic"
+            },
+            {
                 "facility_id": "facility|HCII-105-16",
                 "facility": "KYAMUYIMBWA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIV-105-1",
+                "facility": "KYANNAMUKAAKA Health Centre IV"
+            },
+            {
+                "facility_id": "facility|1291",
+                "facility": "KYETUME Health Centre III"
+            },
+            {
+                "facility_id": "facility|991",
+                "facility": "Lambu Health Centre III"
+            },
+            {
+                "facility_id": "facility|132",
+                "facility": "MAKONZI Health Centre II (Masaka)"
+            },
+            {
+                "facility_id": "facility|990",
+                "facility": "MARIAM AL-KAABI Health Centre III"
+            },
+            {
+                "facility_id": "facility|797",
+                "facility": "MASAKA Blood Collection Centre"
+            },
+            {
+                "facility_id": "facility|HCIII-105-6",
+                "facility": "MASAKA BUWUNGA Health Centre III GOVT"
+            },
+            {
+                "facility_id": "facility|133",
+                "facility": "MASAKA BUYAGA Health Centre II GOVT"
             },
             {
                 "facility_id": "facility|921",
@@ -10057,6 +11113,30 @@
             {
                 "facility_id": "facility|922",
                 "facility": "MASAKA City Health Office"
+            },
+            {
+                "facility_id": "facility|DHO-105-1",
+                "facility": "MASAKA DHOs Office"
+            },
+            {
+                "facility_id": "facility|HCII-105-14",
+                "facility": "MASAKA KITUNGA Health Centre II GOVT"
+            },
+            {
+                "facility_id": "facility|1057",
+                "facility": "MASAKA POLICE Health Centre III"
+            },
+            {
+                "facility_id": "facility|1128",
+                "facility": "MASAKA Prisons Health Centre III"
+            },
+            {
+                "facility_id": "facility|777",
+                "facility": "MASAKA Regional Referral Hospital"
+            },
+            {
+                "facility_id": "facility|HCII-105-26",
+                "facility": "MAZINGA Health Centre II"
             },
             {
                 "facility_id": "facility|HCIII-105-1",
@@ -10069,6 +11149,10 @@
             {
                 "facility_id": "facility|HCII-124-1",
                 "facility": "SSENYA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-105-23",
+                "facility": "ZZIMWE Health Centre II"
             }
         ],
         "MASINDI": [
@@ -10473,6 +11557,10 @@
                 "facility": "MALUKHU Health Centre III"
             },
             {
+                "facility_id": "facility|1257",
+                "facility": "MBALE City Health Centre II"
+            },
+            {
                 "facility_id": "facility|927",
                 "facility": "MBALE CITY Health Office"
             },
@@ -10567,6 +11655,14 @@
         ],
         "MBALE CITY": [
             {
+                "facility_id": "facility|818",
+                "facility": "AHAMADIYA Muslim Medical Centre IV"
+            },
+            {
+                "facility_id": "facility|HCII-209-1",
+                "facility": "BUDWALE Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCIV-209-1",
                 "facility": "BUFUMBO Health Centre IV"
             },
@@ -10575,16 +11671,92 @@
                 "facility": "BUKASAKYA Health Centre III"
             },
             {
+                "facility_id": "facility|190",
+                "facility": "BUKIENDE Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-209-16",
+                "facility": "BUMADANDA Health Centre III"
+            },
+            {
+                "facility_id": "facility|112",
+                "facility": "BUMASIKYE Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-209-17",
+                "facility": "BUNAPONGO Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCIII-209-16",
                 "facility": "BUNGOKHO MUTOTO Health Centre III"
             },
             {
                 "facility_id": "facility|878",
-                "facility": "BUSAMAGA Health Centre III"
+                "facility": "BUSAMAGA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-209-17",
+                "facility": "BUSANO Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-209-18",
+                "facility": "BUSHIKORI Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIV-209-2",
+                "facility": "BUSIU Health Centre IV"
+            },
+            {
+                "facility_id": "facility|HCII-209-23",
+                "facility": "BUSOBA EPI CENTRE II"
+            },
+            {
+                "facility_id": "facility|HCII-209-19",
+                "facility": "BUWANGWA Health Centre III"
+            },
+            {
+                "facility_id": "facility|1179",
+                "facility": "CURE Childrens Hospital of Uganda"
+            },
+            {
+                "facility_id": "facility|827",
+                "facility": "ISLAMIC University Health Centre II"
+            },
+            {
+                "facility_id": "facility|193",
+                "facility": "JEWA Health Centre III"
+            },
+            {
+                "facility_id": "facility|1186",
+                "facility": "JOY HOSPICE"
+            },
+            {
+                "facility_id": "facility|51",
+                "facility": "KIGEZI-BUDWALE Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-209-21",
+                "facility": "KOLONYI Health Centre III"
+            },
+            {
+                "facility_id": "facility|1211",
+                "facility": "Kolonyi Health Centre IV"
+            },
+            {
+                "facility_id": "facility|HCIII-209-13",
+                "facility": "LWANGOLI Health Centre III"
             },
             {
                 "facility_id": "facility|1420",
                 "facility": "LWASSO Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-209-24",
+                "facility": "MAKHAI Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-209-14",
+                "facility": "MAKHONJE Health Centre III"
             },
             {
                 "facility_id": "facility|920",
@@ -10597,6 +11769,46 @@
             {
                 "facility_id": "facility|927",
                 "facility": "MBALE CITY Health Office"
+            },
+            {
+                "facility_id": "facility|DHO-209-1",
+                "facility": "MBALE DHO's Office"
+            },
+            {
+                "facility_id": "facility|HCII-209-12",
+                "facility": "MBALE MAIN PRISON Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-209-3",
+                "facility": "MBALE POLICE CLINIC Health Centre III"
+            },
+            {
+                "facility_id": "facility|1060",
+                "facility": "MBALE POLICE Health Centre IV"
+            },
+            {
+                "facility_id": "facility|1137",
+                "facility": "MBALE Prisons Health Centre III"
+            },
+            {
+                "facility_id": "facility|798",
+                "facility": "MBALE Regional Blood Bank"
+            },
+            {
+                "facility_id": "facility|768",
+                "facility": "MBALE Regional Referral Hospital"
+            },
+            {
+                "facility_id": "facility|104",
+                "facility": "MURUBA Health Centre II"
+            },
+            {
+                "facility_id": "facility|1421",
+                "facility": "NABUMALI Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-209-2",
+                "facility": "NAIKU Health Centre III"
             },
             {
                 "facility_id": "facility|HCIII-209-3",
@@ -10615,11 +11827,43 @@
                 "facility": "NAMATALA Health Centre IV"
             },
             {
+                "facility_id": "facility|HCIII-209-7",
+                "facility": "NAMAWANGA Health Centre III"
+            },
+            {
                 "facility_id": "facility|46",
                 "facility": "NANKUSI Health Center II"
+            },
+            {
+                "facility_id": "facility|HCII-209-2",
+                "facility": "NASASA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-209-8",
+                "facility": "NYONDO Health Centre III"
+            },
+            {
+                "facility_id": "facility|858",
+                "facility": "SAIDINA Umar Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-209-5",
+                "facility": "SIIRA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-209-9",
+                "facility": "THORNBURY\/THORNBURY BUFUMBO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-209-11",
+                "facility": "WANALE Health Centre III"
             }
         ],
         "MBARARA": [
+            {
+                "facility_id": "facility|872",
+                "facility": "BIHARWE Health Centre II"
+            },
             {
                 "facility_id": "facility|HCIII-410-3",
                 "facility": "BUBAARE Health Centre III - Mbarara"
@@ -10653,6 +11897,18 @@
                 "facility": "Kakika Prisons Health Centre II"
             },
             {
+                "facility_id": "facility|897",
+                "facility": "KAKOBA Health Center III"
+            },
+            {
+                "facility_id": "facility|898",
+                "facility": "KAMUKUZI DIVISION Health Centre II"
+            },
+            {
+                "facility_id": "facility|899",
+                "facility": "KAMUKUZI DMO Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-410-12",
                 "facility": "KARIRO Health Centre II"
             },
@@ -10665,6 +11921,14 @@
                 "facility": "KASHARE Health Centre III"
             },
             {
+                "facility_id": "facility|1259",
+                "facility": "KICWAMBA Health Centre II"
+            },
+            {
+                "facility_id": "facility|1258",
+                "facility": "KYARWABUGANDA Health Centre III"
+            },
+            {
                 "facility_id": "facility|HCII-410-21",
                 "facility": "MABIRA Health Centre II"
             },
@@ -10675,6 +11939,18 @@
             {
                 "facility_id": "facility|929",
                 "facility": "MBARARA CITY COUNCIL Health Center IV"
+            },
+            {
+                "facility_id": "facility|928",
+                "facility": "MBARARA City Health Office"
+            },
+            {
+                "facility_id": "facility|1454",
+                "facility": "MBARARA City Northern Division Health Office"
+            },
+            {
+                "facility_id": "facility|1455",
+                "facility": "MBARARA City Southern Division Health Office"
             },
             {
                 "facility_id": "facility|DHO-410-1",
@@ -10709,6 +11985,10 @@
                 "facility": "NYABISIRIRA Health Centre II"
             },
             {
+                "facility_id": "facility|957",
+                "facility": "NYAKAYOJO Health Centre III"
+            },
+            {
                 "facility_id": "facility|852",
                 "facility": "Nyamirima Muslim Health Centre II"
             },
@@ -10719,6 +11999,10 @@
             {
                 "facility_id": "facility|853",
                 "facility": "Nyamitanga IMAU Health Centre II"
+            },
+            {
+                "facility_id": "facility|960",
+                "facility": "NYAMITYOBORA Health Centre II"
             },
             {
                 "facility_id": "facility|HCII-410-28",
@@ -10745,8 +12029,16 @@
                 "facility": "RUSHOOKA Health Centre III"
             },
             {
+                "facility_id": "facility|970",
+                "facility": "RUTI Health Centre II"
+            },
+            {
                 "facility_id": "facility|972",
                 "facility": "RWAKISHAKIZI Health Centre II"
+            },
+            {
+                "facility_id": "facility|973",
+                "facility": "RWAMUJOJO Health Centre II"
             },
             {
                 "facility_id": "facility|974",
@@ -10763,6 +12055,38 @@
                 "facility": "BIHARWE Health Centre II"
             },
             {
+                "facility_id": "facility|HCIII-410-3",
+                "facility": "BUBAARE Health Centre III - Mbarara"
+            },
+            {
+                "facility_id": "facility|HCIII-410-4",
+                "facility": "BUKIIRO Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-410-4",
+                "facility": "BWENGURE Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIV-410-3",
+                "facility": "BWIZIBWERA Health Centre IV"
+            },
+            {
+                "facility_id": "facility|1095",
+                "facility": "HOLY INNOCENTS CHILDREN HOSPITAL"
+            },
+            {
+                "facility_id": "facility|HCII-410-7",
+                "facility": "ITARA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-410-5",
+                "facility": "KAGONGI Health Centre III"
+            },
+            {
+                "facility_id": "facility|1145",
+                "facility": "Kakika Prisons Health Centre II"
+            },
+            {
                 "facility_id": "facility|897",
                 "facility": "KAKOBA Health Center III"
             },
@@ -10775,12 +12099,32 @@
                 "facility": "KAMUKUZI DMO Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-410-12",
+                "facility": "KARIRO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-410-13",
+                "facility": "KARWESANGA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-410-7",
+                "facility": "KASHARE Health Centre III"
+            },
+            {
                 "facility_id": "facility|1259",
                 "facility": "KICWAMBA Health Centre II"
             },
             {
                 "facility_id": "facility|1258",
                 "facility": "KYARWABUGANDA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-410-21",
+                "facility": "MABIRA Health Centre II"
+            },
+            {
+                "facility_id": "facility|1300",
+                "facility": "MAYANJA MEMORIAL HOSPITAL"
             },
             {
                 "facility_id": "facility|929",
@@ -10799,16 +12143,80 @@
                 "facility": "MBARARA City Southern Division Health Office"
             },
             {
+                "facility_id": "facility|DHO-410-1",
+                "facility": "MBARARA DHO's Office"
+            },
+            {
+                "facility_id": "facility|843",
+                "facility": "MBARARA Muslim Health Centre III"
+            },
+            {
+                "facility_id": "facility|1061",
+                "facility": "MBARARA POLICE Health Centre III"
+            },
+            {
+                "facility_id": "facility|1129",
+                "facility": "Mbarara Prisons Health Centre III"
+            },
+            {
+                "facility_id": "facility|799",
+                "facility": "MBARARA Regional Blood Bank"
+            },
+            {
+                "facility_id": "facility|769",
+                "facility": "MBARARA Regional Referral Hospital"
+            },
+            {
+                "facility_id": "facility|HCII-410-43",
+                "facility": "MUGARUTSYA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-410-46",
+                "facility": "NYABISIRIRA Health Centre II"
+            },
+            {
                 "facility_id": "facility|957",
                 "facility": "NYAKAYOJO Health Centre III"
+            },
+            {
+                "facility_id": "facility|852",
+                "facility": "Nyamirima Muslim Health Centre II"
             },
             {
                 "facility_id": "facility|959",
                 "facility": "NYAMITANGA Health Centre III"
             },
             {
+                "facility_id": "facility|853",
+                "facility": "Nyamitanga IMAU Health Centre II"
+            },
+            {
                 "facility_id": "facility|960",
                 "facility": "NYAMITYOBORA Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-410-28",
+                "facility": "NYARUBUNGO Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-410-10",
+                "facility": "RUBAYA Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-410-11",
+                "facility": "RUBINDI Health Centre III"
+            },
+            {
+                "facility_id": "facility|1316",
+                "facility": "RUBINDI PARENTS CLINIC"
+            },
+            {
+                "facility_id": "facility|1242",
+                "facility": "Ruharo Mission Hospital"
+            },
+            {
+                "facility_id": "facility|1112",
+                "facility": "RUSHOOKA Health Centre III"
             },
             {
                 "facility_id": "facility|970",
@@ -10825,6 +12233,10 @@
             {
                 "facility_id": "facility|974",
                 "facility": "RWEMIGINA Health Centre II"
+            },
+            {
+                "facility_id": "facility|1320",
+                "facility": "Sheema Clinic"
             }
         ],
         "MITOOMA": [
@@ -13517,12 +14929,12 @@
         ],
         "PALLISA": [
             {
-                "facility_id": "facility|1436",
-                "facility": "AKISIM Health Centre III"
-            },
-            {
                 "facility_id": "facility|HCIII-210-8",
                 "facility": "AGULE Health Centre III"
+            },
+            {
+                "facility_id": "facility|1436",
+                "facility": "AKISIM Health Centre III"
             },
             {
                 "facility_id": "facility|HCIII-210-9",
@@ -14701,6 +16113,10 @@
                 "facility": "ARABAKA Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-211-10",
+                "facility": "ARAPAI Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCIII-211-9",
                 "facility": "ASURET Health Centre III"
             },
@@ -14749,6 +16165,10 @@
                 "facility": "OJOM Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-211-5",
+                "facility": "OPUYO Health Centre II"
+            },
+            {
                 "facility_id": "facility|964",
                 "facility": "POLICE Health Centre III"
             },
@@ -14763,6 +16183,10 @@
             {
                 "facility_id": "facility|DHO-211-1",
                 "facility": "SOROTI DHO's Office"
+            },
+            {
+                "facility_id": "facility|HCIII-211-3",
+                "facility": "SOROTI Health Centre III"
             },
             {
                 "facility_id": "facility|1133",
@@ -14799,24 +16223,76 @@
         ],
         "SOROTI City": [
             {
+                "facility_id": "facility|1165",
+                "facility": "Abeko Health Center II"
+            },
+            {
+                "facility_id": "facility|HCII-211-8",
+                "facility": "AGIRIGIROI Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-211-9",
+                "facility": "ARABAKA Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-211-10",
                 "facility": "ARAPAI Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-211-9",
+                "facility": "ASURET Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-211-11",
+                "facility": "AUKOT Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-211-12",
+                "facility": "AWALIWAL Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCIII-211-10",
+                "facility": "DAKABELA Health Centre III"
             },
             {
                 "facility_id": "facility|883",
                 "facility": "EASTERN DIVISION Health Centre III"
             },
             {
+                "facility_id": "facility|HCIII-211-12",
+                "facility": "GWERI Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCIII-211-1",
+                "facility": "KAMUDA Health Centre III"
+            },
+            {
                 "facility_id": "facility|914",
                 "facility": "KICHINJAJI Health Centre III"
+            },
+            {
+                "facility_id": "facility|HCII-211-15",
+                "facility": "LALLE Health Centre II"
             },
             {
                 "facility_id": "facility|933",
                 "facility": "MORUAPESUR Health Centre II"
             },
             {
+                "facility_id": "facility|HCII-211-3",
+                "facility": "OCOKICAN Health Centre II"
+            },
+            {
+                "facility_id": "facility|HCII-211-4",
+                "facility": "OJOM Health Centre II"
+            },
+            {
                 "facility_id": "facility|HCII-211-5",
                 "facility": "OPUYO Health Centre II"
+            },
+            {
+                "facility_id": "facility|964",
+                "facility": "POLICE Health Centre III"
             },
             {
                 "facility_id": "facility|965",
@@ -14827,12 +16303,40 @@
                 "facility": "SOROTI CITY Health Office"
             },
             {
+                "facility_id": "facility|DHO-211-1",
+                "facility": "SOROTI DHO's Office"
+            },
+            {
                 "facility_id": "facility|HCIII-211-3",
                 "facility": "SOROTI Health Centre III"
             },
             {
                 "facility_id": "facility|1133",
                 "facility": "Soroti Main Prisons Health Centre III"
+            },
+            {
+                "facility_id": "facility|1083",
+                "facility": "SOROTI POLICE Health Centre III"
+            },
+            {
+                "facility_id": "facility|801",
+                "facility": "Soroti Regional Blood Bank"
+            },
+            {
+                "facility_id": "facility|779",
+                "facility": "SOROTI Regional Referral Hospital"
+            },
+            {
+                "facility_id": "facility|1249",
+                "facility": "St. PETERS COU Health Center II"
+            },
+            {
+                "facility_id": "facility|HCIV-211-1",
+                "facility": "TIRIRI Health Centre IV"
+            },
+            {
+                "facility_id": "facility|HCIII-211-7",
+                "facility": "TUBUR Health Centre III"
             },
             {
                 "facility_id": "facility|985",
@@ -15883,5 +17387,17 @@
                 "facility": "ZUMBO Health Centre III"
             }
         ]
+    },
+    "district_id_aliases": {
+        "ARUA City": "ARUA",
+        "GULU City": "GULU",
+        "HOIMA City": "HOIMA",
+        "JINJA City": "JINJA",
+        "KAMPALA": "KAMPALA City",
+        "LIRA City": "LIRA",
+        "MASAKA City": "MASAKA",
+        "MBALE CITY": "MBALE",
+        "MBARARA City": "MBARARA",
+        "SOROTI City": "SOROTI"
     }
 }

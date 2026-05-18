@@ -428,7 +428,7 @@ $switch_can_rebuild_cache = is_array($permissions) && (in_array('34', $permissio
 if (!function_exists('switch_facility_district_option_value')) {
     function switch_facility_district_option_value($district_id, $district_name)
     {
-        return urlencode(str_replace(' ', '', (string) $district_id)) . '_' . urlencode(str_replace(' ', '', (string) $district_name));
+        return rawurlencode((string) $district_id) . '_' . rawurlencode((string) $district_name);
     }
 }
 ?>
@@ -606,8 +606,25 @@ if (!function_exists('switch_facility_district_option_value')) {
             return '';
         }
         var decoded = decodeURIComponent(String(distValue));
-        var parts = decoded.split('_');
-        return parts.length ? decodeURIComponent(parts[0]) : '';
+        var sep = decoded.indexOf('_');
+        if (sep === -1) {
+            return decoded;
+        }
+        return decodeURIComponent(decoded.substring(0, sep));
+    }
+
+    function resolveSwitchDistrictId(districtId) {
+        if (!districtId || !facilitySwitchCache) {
+            return districtId || '';
+        }
+        var aliases = facilitySwitchCache.district_id_aliases || {};
+        var resolved = districtId;
+        var guard = 0;
+        while (aliases[resolved] && aliases[resolved] !== resolved && guard < 10) {
+            resolved = aliases[resolved];
+            guard++;
+        }
+        return resolved;
     }
 
     function escapeSwitchHtml(text) {
@@ -634,7 +651,7 @@ if (!function_exists('switch_facility_district_option_value')) {
 
     function renderSwitchFacilities(distValue) {
         switchFacilitiesUpdating = true;
-        var districtId = parseSwitchDistrictId(distValue);
+        var districtId = resolveSwitchDistrictId(parseSwitchDistrictId(distValue));
         var html = "<option value=''>Select Facility</option>";
         var $sfac = $switchModal.find('.sfacility');
 

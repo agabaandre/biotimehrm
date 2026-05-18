@@ -23,6 +23,10 @@ class Departments extends MX_Controller
     $dist = urldecode($_GET['dist_data']);
     $distdata = explode('_', $dist, 2);
     $dist_id = isset($distdata[0]) ? urldecode($distdata[0]) : '';
+    // Legacy option values stripped spaces from district_id (e.g. KAMPALACity vs KAMPALA City).
+    if ($dist_id !== '' && strpos($dist_id, ' ') === false && preg_match('/City$/i', $dist_id)) {
+      $dist_id = preg_replace('/City$/i', ' City', $dist_id);
+    }
 
     $userdata = $this->session->get_userdata();
     $permissions = isset($userdata['permissions']) ? $userdata['permissions'] : [];

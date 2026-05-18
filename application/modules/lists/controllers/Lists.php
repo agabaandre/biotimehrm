@@ -62,6 +62,9 @@ class Lists extends MX_Controller
 			'generated_at_iso'       => isset($data['generated_at_iso']) ? $data['generated_at_iso'] : null,
 			'districts'              => isset($data['districts']) ? $data['districts'] : [],
 			'facilities_by_district' => isset($data['facilities_by_district']) ? $data['facilities_by_district'] : [],
+			'district_id_aliases'    => isset($data['district_id_aliases']) && is_array($data['district_id_aliases'])
+				? $data['district_id_aliases']
+				: [],
 		];
 
 		if (!in_array('38', $permissions)) {

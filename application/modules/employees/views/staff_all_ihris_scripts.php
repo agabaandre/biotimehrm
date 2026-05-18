@@ -227,6 +227,13 @@
 
             window.ihrisStaffTable = table;
 
+            window.setTimeout(function() {
+                if (!filtersSelect2Ready) {
+                    initFilterSelect2($);
+                    bindFilterHandlers($);
+                }
+            }, 2000);
+
             $('#filterForm').on('submit', function(e) {
                 e.preventDefault();
                 table.ajax.reload();

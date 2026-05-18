@@ -125,7 +125,8 @@ class Reports extends MX_Controller
 		$draw = (int) $this->input->post('draw');
 		$start = (int) $this->input->post('start');
 		$length = (int) $this->input->post('length');
-		$search = trim((string) $this->input->post('search')['value']);
+		$search_post = $this->input->post('search');
+		$search = (is_array($search_post) && isset($search_post['value'])) ? trim((string) $search_post['value']) : '';
 		$year = trim((string) $this->input->post('year'));
 
 		try {
@@ -236,7 +237,7 @@ class Reports extends MX_Controller
 		$data['period'] = $month_year;
 		$data['districts'] = $this->districts_mdl->get_all_Districts();
 		$data['regions'] = $this->db->query("SELECT distinct region from ihrisdata WHERE region!='' ORDER BY region asc")->result();
-		$data['institutiontypes'] = $this->db->query("SELECT distinct institutiontype_name from ihrisdata ORDER BY institutiontype_name asc")->result();
+		$data['institutiontypes'] = $this->_aggregate_institution_types();
 		$data['facilities'] = $this->facilities_mdl->getAll();
 		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "region", "department_id", "gender"];
 
@@ -257,7 +258,8 @@ class Reports extends MX_Controller
 		$draw = (int) $this->input->post('draw');
 		$start = (int) $this->input->post('start');
 		$length = (int) $this->input->post('length');
-		$search = trim((string) $this->input->post('search')['value']);
+		$search_post = $this->input->post('search');
+		$search = (is_array($search_post) && isset($search_post['value'])) ? trim((string) $search_post['value']) : '';
 
 		// Get filters from POST
 		$filters = array();
@@ -450,6 +452,30 @@ class Reports extends MX_Controller
 		array_push($exportable, $footer_row);
 
 		render_csv_data($exportable, "attendance_aggregates_" . time(), false);
+	}
+
+	/**
+	 * Distinct institution types for aggregate report filters.
+	 */
+	private function _aggregate_institution_types()
+	{
+		if ($this->db->field_exists('institutiontype_name', 'ihrisdata')) {
+			return $this->db->query(
+				"SELECT DISTINCT TRIM(institutiontype_name) AS institutiontype_name
+				 FROM ihrisdata
+				 WHERE institutiontype_name IS NOT NULL AND TRIM(institutiontype_name) != ''
+				 ORDER BY institutiontype_name ASC"
+			)->result();
+		}
+		if ($this->db->field_exists('institution_type', 'ihrisdata')) {
+			return $this->db->query(
+				"SELECT DISTINCT TRIM(institution_type) AS institutiontype_name
+				 FROM ihrisdata
+				 WHERE institution_type IS NOT NULL AND TRIM(institution_type) != ''
+				 ORDER BY institution_type ASC"
+			)->result();
+		}
+		return array();
 	}
 
 	/**
@@ -672,7 +698,8 @@ class Reports extends MX_Controller
 		$draw = (int) $this->input->post('draw');
 		$start = (int) $this->input->post('start');
 		$length = (int) $this->input->post('length');
-		$search = trim((string) $this->input->post('search')['value']);
+		$search_post = $this->input->post('search');
+		$search = (is_array($search_post) && isset($search_post['value'])) ? trim((string) $search_post['value']) : '';
 		$month = trim((string) $this->input->post('month'));
 		$year = trim((string) $this->input->post('year'));
 		$district = trim((string) $this->input->post('district'));

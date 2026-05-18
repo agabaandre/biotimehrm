@@ -71,8 +71,12 @@ class Facility_switch_cache {
 			];
 		}
 
-		$facilities_by_district = [];
-		$facility_count = 0;
+		$raw_facilities_by_district = [];
+		$district_names = [];
+		foreach ($districts as $d) {
+			$district_names[$d['district_id']] = $d['district'];
+		}
+
 		$seen_facilities = [];
 		foreach ($facility_rows as $row) {
 			$district_id = trim((string) $row->district_id);
@@ -80,20 +84,28 @@ class Facility_switch_cache {
 			if ($district_id === '' || $facility_id === '') {
 				continue;
 			}
-			$key = $district_id . '|' . $facility_id;
-			if (isset($seen_facilities[$key])) {
+			$dedupe = $district_id . '|' . $facility_id;
+			if (isset($seen_facilities[$dedupe])) {
 				continue;
 			}
-			$seen_facilities[$key] = true;
-			if (!isset($facilities_by_district[$district_id])) {
-				$facilities_by_district[$district_id] = [];
+			$seen_facilities[$dedupe] = true;
+			if (!isset($raw_facilities_by_district[$district_id])) {
+				$raw_facilities_by_district[$district_id] = [];
 			}
-			$facilities_by_district[$district_id][] = [
+			$raw_facilities_by_district[$district_id][] = [
 				'facility_id' => $facility_id,
 				'facility'    => trim((string) $row->facility),
 			];
-			$facility_count++;
+			if (!isset($district_names[$district_id])) {
+				$district_names[$district_id] = trim((string) $row->district);
+			}
 		}
+
+		$merged = $this->_merge_district_groups($districts, $raw_facilities_by_district, $district_names);
+		$facilities_by_district = $merged['facilities_by_district'];
+		$district_id_aliases = $merged['district_id_aliases'];
+		$facility_count = $merged['facility_count'];
+		// Keep every district_id from ihrisdata in the dropdown (e.g. KAMPALA and KAMPALA City).
 
 		$payload = [
 			'generated_at'           => $now->getTimestamp(),
@@ -101,6 +113,7 @@ class Facility_switch_cache {
 			'timezone'               => $this->timezone,
 			'districts'              => $districts,
 			'facilities_by_district' => $facilities_by_district,
+			'district_id_aliases'    => $district_id_aliases,
 		];
 
 		$this->_write_cache_file($payload);
@@ -142,7 +155,7 @@ class Facility_switch_cache {
 	public function get_facilities_for_district($district_id, $only_facility_id = null)
 	{
 		$data = $this->get_data();
-		$district_id = trim((string) $district_id);
+		$district_id = $this->resolve_district_id($district_id, $data);
 		$list = isset($data['facilities_by_district'][$district_id])
 			? $data['facilities_by_district'][$district_id]
 			: [];
@@ -262,6 +275,157 @@ class Facility_switch_cache {
 			'generated_at_iso'       => null,
 			'districts'              => [],
 			'facilities_by_district' => [],
+			'district_id_aliases'    => [],
+		];
+	}
+
+	/**
+	 * Normalize district label so "KAMPALA" and "KAMPALA City" merge into one group.
+	 *
+	 * @param string $district_id
+	 * @param string $district_name
+	 * @return string
+	 */
+	public function normalize_district_group_key($district_id, $district_name = '')
+	{
+		$label = trim((string) $district_name);
+		if ($label === '') {
+			$label = trim((string) $district_id);
+		}
+		$key = strtolower($label);
+		$key = preg_replace('/\s+city\s*$/i', '', $key);
+		$key = preg_replace('/\s+/', ' ', $key);
+		return $key;
+	}
+
+	/**
+	 * Resolve district_id for facility lookup (alias or direct key).
+	 *
+	 * @param string $district_id
+	 * @param array|null $data
+	 * @return string
+	 */
+	public function resolve_district_id($district_id, $data = null)
+	{
+		$district_id = trim((string) $district_id);
+		if ($district_id === '') {
+			return '';
+		}
+		if ($data === null) {
+			$data = $this->get_data();
+		}
+		if (isset($data['facilities_by_district'][$district_id])) {
+			return $district_id;
+		}
+		$aliases = isset($data['district_id_aliases']) && is_array($data['district_id_aliases'])
+			? $data['district_id_aliases']
+			: [];
+		while (isset($aliases[$district_id]) && $aliases[$district_id] !== $district_id) {
+			$district_id = $aliases[$district_id];
+		}
+		return $district_id;
+	}
+
+	/**
+	 * Merge ihrisdata district_id variants that share the same normalized district name.
+	 *
+	 * @param array<int, array{district_id:string,district:string}> $districts
+	 * @param array<string, array<int, array{facility_id:string,facility:string}>> $raw_facilities_by_district
+	 * @param array<string, string> $district_names
+	 * @return array{districts:array,facilities_by_district:array,district_id_aliases:array,facility_count:int}
+	 */
+	protected function _merge_district_groups(array $districts, array $raw_facilities_by_district, array $district_names)
+	{
+		$groups = [];
+		foreach ($district_names as $district_id => $district_name) {
+			$group_key = $this->normalize_district_group_key($district_id, $district_name);
+			if ($group_key === '') {
+				continue;
+			}
+			if (!isset($groups[$group_key])) {
+				$groups[$group_key] = [
+					'members' => [],
+				];
+			}
+			$count = isset($raw_facilities_by_district[$district_id])
+				? count($raw_facilities_by_district[$district_id])
+				: 0;
+			$groups[$group_key]['members'][$district_id] = [
+				'district_id'   => $district_id,
+				'district'      => $district_name,
+				'facility_count' => $count,
+			];
+		}
+
+		$facilities_by_district = [];
+		$district_id_aliases = [];
+		$facility_count = 0;
+		$seen_facilities = [];
+
+		foreach ($groups as $group_key => $group) {
+			$members = $group['members'];
+			if (empty($members)) {
+				continue;
+			}
+
+			$canonical_id = null;
+			$best_count = -1;
+			foreach ($members as $member) {
+				if ($member['facility_count'] > $best_count) {
+					$best_count = $member['facility_count'];
+					$canonical_id = $member['district_id'];
+				}
+			}
+			if ($canonical_id === null) {
+				$first = reset($members);
+				$canonical_id = $first['district_id'];
+			}
+
+			$bucket = [];
+			foreach ($members as $member_id => $member) {
+				$rows = isset($raw_facilities_by_district[$member_id])
+					? $raw_facilities_by_district[$member_id]
+					: [];
+				foreach ($rows as $row) {
+					$fid = $row['facility_id'];
+					if ($fid === '' || isset($seen_facilities[$group_key . '|' . $fid])) {
+						continue;
+					}
+					$seen_facilities[$group_key . '|' . $fid] = true;
+					$bucket[] = $row;
+					$facility_count++;
+				}
+			}
+			usort($bucket, function ($a, $b) {
+				return strcasecmp($a['facility'], $b['facility']);
+			});
+
+			// Same merged facility list for every district_id in this group (KAMPALA + KAMPALA City).
+			foreach ($members as $member_id => $member) {
+				$facilities_by_district[$member_id] = $bucket;
+				if ($member_id !== $canonical_id) {
+					$district_id_aliases[$member_id] = $canonical_id;
+				}
+			}
+		}
+
+		// Districts with no facilities still appear in the dropdown.
+		foreach ($districts as $d) {
+			$id = $d['district_id'];
+			if (!isset($facilities_by_district[$id])) {
+				$facilities_by_district[$id] = [];
+			}
+		}
+
+		usort($districts, function ($a, $b) {
+			return strcasecmp($a['district'], $b['district']);
+		});
+
+		return [
+			'districts'              => $districts,
+			'facilities_by_district' => $facilities_by_district,
+			'district_id_aliases'    => $district_id_aliases,
+			'facility_count'         => $facility_count,
 		];
 	}
 }

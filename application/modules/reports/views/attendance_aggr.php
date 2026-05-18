@@ -24,6 +24,11 @@
 			display: none;
 		}
 	}
+
+	.aa-filter-s2 + .select2-container {
+		width: 100% !important;
+		max-width: 100%;
+	}
 </style>
 <script>
 	function limitSelection(select) {
@@ -45,7 +50,7 @@
 								<div class="control-group">
 									<label for="month">Select Month and Year:(Max value is 4 months)</label>
 									<select name="duty_date[]" id="aa_duty_date" multiple="multiple" size="3"
-									onchange="limitSelection(this)" class="form-control select2">
+									onchange="limitSelection(this)" class="form-control aa-filter-s2">
 									<?php
 									$currentYear = date("Y");
 										$currentMonth = date("n");
@@ -68,11 +73,11 @@
 							<div class="col-md-4">
 								<div class="control-group">
 									<label>Region</label>
-									<select class="form-control select2" name="region[]" id="aa_region" multiple>
-										<option value="">All</option>
+									<select class="form-control aa-filter-s2 aa-multi-s2" name="region[]" id="aa_region" multiple data-placeholder="All regions">
 										<?php foreach ($regions as $key => $value): ?>
-											<option value="<?php echo $value->region; ?>">
-												<?php echo $value->region; ?>
+											<?php if (empty($value->region)) { continue; } ?>
+											<option value="<?php echo htmlspecialchars($value->region, ENT_QUOTES, 'UTF-8'); ?>">
+												<?php echo htmlspecialchars($value->region, ENT_QUOTES, 'UTF-8'); ?>
 											</option>
 										<?php endforeach; ?>
 									</select>
@@ -82,7 +87,7 @@
 							<div class="col-md-4">
 								<div class="control-group">
 									<label>District</label>
-									<select class="form-control select2" name="district" id="aa_district">
+									<select class="form-control aa-filter-s2" name="district" id="aa_district">
 										<option value="">All</option>
 										<?php foreach ($districts as $key => $value): ?>
 											<option value="<?php echo $value->district; ?>">
@@ -98,7 +103,7 @@
 							<div class="col-md-4">
 								<div class="control-group">
 									<label>Facility</label>
-									<select class="form-control select2" name="facility_name" id="aa_facility_name">
+									<select class="form-control aa-filter-s2" name="facility_name" id="aa_facility_name">
 										<option value="">All</option>
 										<?php foreach ($facilities as $key => $value): ?>
 											<option value="<?php echo $value->facility; ?>">
@@ -112,11 +117,14 @@
 							<div class="col-md-4">
 								<div class="control-group">
 									<label>Institution Type</label>
-									<select class="form-control select2" name="institution_type[]" id="aa_institution_type" multiple>
-										<option value="">All</option>
+									<select class="form-control aa-filter-s2 aa-multi-s2" name="institution_type[]" id="aa_institution_type" multiple data-placeholder="All institution types">
 										<?php foreach ($institutiontypes as $institution): ?>
-											<option value="<?php echo $institution->institutiontype_name; ?>">
-												<?php echo $institution->institutiontype_name; ?>
+											<?php
+											$instName = isset($institution->institutiontype_name) ? trim((string) $institution->institutiontype_name) : '';
+											if ($instName === '') { continue; }
+											?>
+											<option value="<?php echo htmlspecialchars($instName, ENT_QUOTES, 'UTF-8'); ?>">
+												<?php echo htmlspecialchars($instName, ENT_QUOTES, 'UTF-8'); ?>
 											</option>
 										<?php endforeach; ?>
 									</select>
@@ -126,7 +134,7 @@
 							<div class="col-md-4">
 								<div class="control-group">
 									<label>Group By Column</label>
-									<select class="form-control select2" name="group_by" id="aa_group_by">
+									<select class="form-control aa-filter-s2" name="group_by" id="aa_group_by">
 										<?php foreach ($aggregations as $key => $value): ?>
 											<option value="<?php echo $value; ?>" <?php echo ($grouped_by == $value) ? "selected" : ""; ?>>
 												<?php echo ucwords(str_replace("_", " ", $value)); ?>
@@ -200,6 +208,10 @@ $(document).ready(function() {
 	var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 	var baseUrl = '<?php echo base_url(); ?>';
 
+	function nonEmptyList(vals) {
+		return (vals || []).filter(function(v) { return v !== null && v !== undefined && String(v).trim() !== ''; });
+	}
+
 	function getFilters() {
 		var dutyDates = $('#aa_duty_date').val() || [];
 		if (dutyDates.length === 0) {
@@ -209,10 +221,30 @@ $(document).ready(function() {
 			duty_date: dutyDates,
 			district: $('#aa_district').val() || '',
 			facility_name: $('#aa_facility_name').val() || '',
-			region: $('#aa_region').val() || [],
-			institution_type: $('#aa_institution_type').val() || [],
+			region: nonEmptyList($('#aa_region').val()),
+			institution_type: nonEmptyList($('#aa_institution_type').val()),
 			group_by: $('#aa_group_by').val() || 'district'
 		};
+	}
+
+	function initAggregateSelect2() {
+		$('.aa-filter-s2').each(function() {
+			var $el = $(this);
+			if ($el.data('select2')) {
+				$el.select2('destroy');
+			}
+			var isMulti = !!$el.prop('multiple');
+			var opts = {
+				theme: 'bootstrap4',
+				width: '100%',
+				minimumResultsForSearch: isMulti ? 0 : 6
+			};
+			if (isMulti) {
+				opts.placeholder = $el.data('placeholder') || 'All';
+				opts.allowClear = true;
+			}
+			$el.select2(opts);
+		});
 	}
 
 	function buildExportParams(csvOrPdf) {
@@ -325,10 +357,11 @@ $(document).ready(function() {
 		table.ajax.reload();
 	});
 
-	// Initialize
+	// Initialize (defer Select2 so it does not fight DataTable; multi-selects must not use value="" "All" options)
 	updateGroupByLabel();
 	updateExportLinks();
 	initTable();
+	window.setTimeout(initAggregateSelect2, 0);
 
 	// Update CSV link when filters change
 	$('#aa_duty_date, #aa_district, #aa_facility_name, #aa_region, #aa_institution_type').on('change', function() {
