@@ -224,6 +224,18 @@ class Reports extends MX_Controller
 			return;
 		}
 
+		if ($this->input->get('institution_types') === '1') {
+			$types = [];
+			foreach ($this->_aggregate_institution_types() as $row) {
+				$name = isset($row->institutiontype_name) ? trim((string) $row->institutiontype_name) : '';
+				if ($name !== '') {
+					$types[] = ['value' => $name, 'label' => $name];
+				}
+			}
+			$this->output->set_content_type('application/json')->set_output(json_encode(['institution_types' => $types]));
+			return;
+		}
+
 		// Handle CSV export (streamed, no full load)
 		$csv = request_fields('csv');
 		if ($csv) {

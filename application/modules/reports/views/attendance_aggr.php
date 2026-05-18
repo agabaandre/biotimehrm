@@ -113,16 +113,26 @@
 							<div class="col-md-4">
 								<div class="control-group">
 									<label>Institution Type</label>
-									<select class="form-control aa-filter-s2 aa-multi-s2" name="institution_type[]" id="aa_institution_type" multiple data-placeholder="All institution types">
-										<?php foreach ($institutiontypes as $institution): ?>
-											<?php
-											$instName = isset($institution->institutiontype_name) ? trim((string) $institution->institutiontype_name) : '';
-											if ($instName === '') { continue; }
-											?>
+									<select class="form-control aa-filter-s2" name="institution_type" id="aa_institution_type">
+										<option value="">All</option>
+										<?php
+										$aa_institution_types = isset($institutiontypes) && is_array($institutiontypes) ? $institutiontypes : [];
+										foreach ($aa_institution_types as $institution) {
+											$instName = '';
+											if (is_object($institution)) {
+												$instName = isset($institution->institutiontype_name) ? trim((string) $institution->institutiontype_name) : '';
+												if ($instName === '' && isset($institution->val)) {
+													$instName = trim((string) $institution->val);
+												}
+											}
+											if ($instName === '') {
+												continue;
+											}
+										?>
 											<option value="<?php echo htmlspecialchars($instName, ENT_QUOTES, 'UTF-8'); ?>">
 												<?php echo htmlspecialchars($instName, ENT_QUOTES, 'UTF-8'); ?>
 											</option>
-										<?php endforeach; ?>
+										<?php } ?>
 									</select>
 								</div>
 							</div>
@@ -218,7 +228,7 @@ $(document).ready(function() {
 			district: $('#aa_district').val() || '',
 			facility_name: $('#aa_facility_name').val() || '',
 			region: nonEmptyList($('#aa_region').val()),
-			institution_type: nonEmptyList($('#aa_institution_type').val()),
+			institution_type: $('#aa_institution_type').val() || '',
 			group_by: $('#aa_group_by').val() || 'district'
 		};
 	}
@@ -261,17 +271,53 @@ $(document).ready(function() {
 				$el.select2('destroy');
 			}
 			var isMulti = !!$el.prop('multiple');
+			if (isMulti && $el.find('option.aa-s2-placeholder').length === 0) {
+				$el.prepend('<option class="aa-s2-placeholder" value=""></option>');
+			}
 			var opts = {
 				theme: 'bootstrap4',
 				width: '100%',
+				dropdownParent: $('#aggregateFiltersForm'),
 				minimumResultsForSearch: isMulti ? 0 : 6
 			};
 			if (isMulti) {
 				opts.placeholder = $el.data('placeholder') || 'All';
 				opts.allowClear = true;
+				opts.closeOnSelect = false;
 			}
 			$el.select2(opts);
 		});
+	}
+
+	function loadAggregateInstitutionTypes() {
+		var $inst = $('#aa_institution_type');
+		if ($inst.find('option').length > 1) {
+			return;
+		}
+		$.getJSON(baseUrl + 'reports/attendance_aggregate', { institution_types: '1' })
+			.done(function(data) {
+				var html = '<option value="">All</option>';
+				(data && data.institution_types ? data.institution_types : []).forEach(function(o) {
+					var name = (o && o.value) ? o.value : (o && o.label ? o.label : '');
+					if (!name) {
+						return;
+					}
+					var safe = $('<div>').text(name).html();
+					html += '<option value="' + safe + '">' + safe + '</option>';
+				});
+				$inst.html(html);
+				if ($inst.data('select2')) {
+					$inst.select2('destroy');
+				}
+				$inst.select2({
+					theme: 'bootstrap4',
+					width: '100%',
+					dropdownParent: $('#aggregateFiltersForm'),
+					minimumResultsForSearch: 6,
+					allowClear: true,
+					placeholder: 'All'
+				});
+			});
 	}
 
 	function buildExportParams(csvOrPdf) {
@@ -291,10 +337,8 @@ $(document).ready(function() {
 				params.append('region[]', region);
 			});
 		}
-		if (f.institution_type && f.institution_type.length > 0) {
-			f.institution_type.forEach(function(type) {
-				params.append('institution_type[]', type);
-			});
+		if (f.institution_type) {
+			params.append('institution_type', f.institution_type);
 		}
 		return baseUrl + 'reports/attendance_aggregate?' + params.toString();
 	}
@@ -388,7 +432,10 @@ $(document).ready(function() {
 	updateGroupByLabel();
 	updateExportLinks();
 	initTable();
-	window.setTimeout(initAggregateSelect2, 0);
+	window.setTimeout(function() {
+		initAggregateSelect2();
+		loadAggregateInstitutionTypes();
+	}, 0);
 
 	$('#aa_district').on('change', function() {
 		loadAggregateFacilities($(this).val() || '');

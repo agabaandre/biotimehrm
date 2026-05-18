@@ -490,6 +490,20 @@ class Reports_mdl extends CI_Model
 	 * @param string|null $district_name
 	 * @return array<int, object>
 	 */
+	/**
+	 * @return string|null
+	 */
+	private function _aggregate_institution_type_column()
+	{
+		if ($this->db->field_exists('institutiontype_name', 'ihrisdata')) {
+			return 'institutiontype_name';
+		}
+		if ($this->db->field_exists('institution_type', 'ihrisdata')) {
+			return 'institution_type';
+		}
+		return null;
+	}
+
 	public function get_aggregate_facilities_for_district($district_name = null)
 	{
 		$names = $this->_aggregate_district_names_for_filter($district_name);
@@ -570,15 +584,17 @@ class Reports_mdl extends CI_Model
 			}
 		}
 
-		if (isset($filters['institution_type']) && is_array($filters['institution_type']) && !empty($filters['institution_type'])) {
+		if (!empty($filters['institution_type'])) {
+			$raw_types = is_array($filters['institution_type']) ? $filters['institution_type'] : array($filters['institution_type']);
 			$types = array();
-			foreach ($filters['institution_type'] as $type) {
+			$inst_col = $this->_aggregate_institution_type_column();
+			foreach ($raw_types as $type) {
 				if ($type !== '' && $type !== null) {
 					$types[] = $this->db->escape($type);
 				}
 			}
-			if (!empty($types)) {
-				$where[] = "COALESCE(i.institutiontype_name,'') IN (" . implode(',', $types) . ")";
+			if (!empty($types) && $inst_col !== null) {
+				$where[] = 'COALESCE(i.' . $inst_col . ',\'\') IN (' . implode(',', $types) . ')';
 			}
 		}
 

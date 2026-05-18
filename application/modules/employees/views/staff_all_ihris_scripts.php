@@ -13,10 +13,13 @@
     var suppressFilterReload = false;
     var filtersSelect2Ready = false;
 
-    function ihrisSelect2Options() {
+    function ihrisSelect2Options($el) {
         return {
             theme: 'bootstrap4',
             width: '100%',
+            dropdownParent: $('#filterForm'),
+            placeholder: $el && $el.attr('id') === 'filterFacility' ? 'All facilities' : undefined,
+            allowClear: $el && $el.attr('id') === 'filterFacility',
             minimumResultsForSearch: 6
         };
     }
@@ -29,10 +32,20 @@
             return;
         }
         try {
-            $el.select2(ihrisSelect2Options());
+            $el.select2(ihrisSelect2Options($el));
         } catch (err) {
             console.error('Select2 init failed for', $el.attr('id'), err);
         }
+    }
+
+    function refreshIhrisSelect2($el) {
+        if (!$el.length) {
+            return;
+        }
+        if ($el.data('select2')) {
+            $el.select2('destroy');
+        }
+        initIhrisSelect2($el);
     }
 
     function setFilterVal($el, val) {
@@ -64,7 +77,7 @@
             }
             $facility.append(new Option(o.label || o.value, o.value, false, false));
         });
-        setFilterVal($facility, '');
+        refreshIhrisSelect2($facility);
         suppressFilterReload = false;
     }
 
@@ -73,14 +86,18 @@
         if (district) {
             params.district = district;
         }
+        var $facility = jQuery('#filterFacility');
+        $facility.prop('disabled', true);
         jQuery.getJSON(baseUrl + 'employees/all_ihris_staff', params)
             .done(function(data) {
                 populateFacilityOptions(data && data.facilities ? data.facilities : []);
             })
-            .fail(function() {
+            .fail(function(xhr) {
+                console.error('Facility filter load failed', xhr.status, xhr.responseText);
                 populateFacilityOptions([]);
             })
             .always(function() {
+                $facility.prop('disabled', false);
                 if (typeof done === 'function') {
                     done();
                 }
@@ -95,9 +112,9 @@
         suppressFilterReload = true;
 
         initIhrisSelect2($('#filterDistrict'));
-        initIhrisSelect2($('#filterFacility'));
         initIhrisSelect2($('#filterInstitutionType'));
         initIhrisSelect2($('#filterFacilityType'));
+        // Facility Select2 is created when options are loaded (after district chosen).
         // Job list is large — init last so the first table request is not blocked.
         window.setTimeout(function() {
             initIhrisSelect2($('#filterJob'));
@@ -106,19 +123,24 @@
     }
 
     function bindFilterHandlers($) {
-        $('#filterForm').off('change.ihrisFilters', '.ihris-filter-s2').on('change.ihrisFilters', '.ihris-filter-s2', function() {
-            if (suppressFilterReload) {
-                return;
-            }
-            var id = this.id;
-            if (id === 'filterDistrict') {
+        $('#filterDistrict').off('change.ihrisFilters select2:select.ihrisFilters select2:clear.ihrisFilters')
+            .on('change.ihrisFilters select2:select.ihrisFilters select2:clear.ihrisFilters', function() {
+                if (suppressFilterReload) {
+                    return;
+                }
                 loadFacilitiesForDistrict($(this).val() || '', function() {
                     scheduleTableReload();
                 });
-                return;
-            }
-            scheduleTableReload();
-        });
+            });
+
+        $('#filterFacility, #filterJob, #filterInstitutionType, #filterFacilityType')
+            .off('change.ihrisFilters select2:select.ihrisFilters select2:clear.ihrisFilters')
+            .on('change.ihrisFilters select2:select.ihrisFilters select2:clear.ihrisFilters', function() {
+                if (suppressFilterReload) {
+                    return;
+                }
+                scheduleTableReload();
+            });
     }
 
     whenPluginsReady(function($) {
