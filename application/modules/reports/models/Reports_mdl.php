@@ -510,14 +510,14 @@ class Reports_mdl extends CI_Model
 		if (empty($names)) {
 			return [];
 		}
-		$this->db->distinct();
-		$this->db->select('TRIM(facility) AS facility', false);
-		$this->db->from('ihrisdata');
-		$this->db->where('facility IS NOT NULL', null, false);
-		$this->db->where("TRIM(facility) <> ''", null, false);
-		$this->db->where_in('district', $names);
-		$this->db->order_by('facility', 'ASC');
-		return $this->db->get()->result();
+		$placeholders = implode(',', array_fill(0, count($names), '?'));
+		$sql = "SELECT TRIM(facility) AS facility
+		        FROM ihrisdata
+		        WHERE " . mysql8_nonempty_sql('facility') . "
+		          AND TRIM(district) IN ({$placeholders})
+		        GROUP BY TRIM(facility)
+		        ORDER BY TRIM(facility) ASC";
+		return $this->db->query($sql, $names)->result();
 	}
 
 	private function buildAttendanceAggregatesSql($filters = null, $group_by = "district", $search = '', $count_only = false, $start = 0, $length = 200)
@@ -564,7 +564,7 @@ class Reports_mdl extends CI_Model
 					$escaped[] = $this->db->escape($name);
 				}
 				$where[] = 'COALESCE(i.district,\'\') IN (' . implode(',', $escaped) . ')';
-			} else {
+			} elseif (!empty($district_names)) {
 				$where[] = "COALESCE(i.district,'') = " . $this->db->escape($district_names[0]);
 			}
 		}
@@ -600,6 +600,26 @@ class Reports_mdl extends CI_Model
 
 		$base_where = implode(' AND ', $where);
 
+		$inst_col = $this->_aggregate_institution_type_column();
+		$inst_coalesce = $inst_col !== null
+			? 'COALESCE(i.' . mysql8_quote_ident($inst_col) . ", '')"
+			: "''";
+		$sub_group = array(
+			"DATE_FORMAT(a.date,'%Y-%m')",
+			'a.ihris_pid',
+			'i.job',
+			'i.facility',
+			'i.facility_type_id',
+			'i.cadre',
+			'i.gender',
+			'i.district',
+			'i.department_id',
+			'i.region',
+		);
+		if ($inst_col !== null) {
+			$sub_group[] = 'i.' . mysql8_quote_ident($inst_col);
+		}
+
 		$sub_sql = "SELECT
 				DATE_FORMAT(a.date,'%Y-%m') AS duty_date,
 				a.ihris_pid,
@@ -611,7 +631,7 @@ class Reports_mdl extends CI_Model
 				COALESCE(i.district, '') AS district,
 				COALESCE(i.department_id, '') AS department_id,
 				COALESCE(i.region, '') AS region,
-				COALESCE(i.institutiontype_name, '') AS institution_type,
+				{$inst_coalesce} AS institution_type,
 				SUM(CASE WHEN s.letter='P' THEN 1 ELSE 0 END) AS present,
 				SUM(CASE WHEN s.letter='O' THEN 1 ELSE 0 END) AS off,
 				SUM(CASE WHEN s.letter='L' THEN 1 ELSE 0 END) AS own_leave,
@@ -622,7 +642,7 @@ class Reports_mdl extends CI_Model
 			LEFT JOIN schedules s ON s.schedule_id = a.schedule_id
 			LEFT JOIN ihrisdata i ON i.ihris_pid = a.ihris_pid
 			WHERE " . $base_where . "
-			GROUP BY DATE_FORMAT(a.date,'%Y-%m'), a.ihris_pid, i.job, i.facility, i.facility_type_id, i.cadre, i.gender, i.district, i.department_id, i.region, i.institutiontype_name";
+			GROUP BY " . implode(', ', $sub_group);
 
 		$search_sql = '';
 		if ($search !== '' && trim($search) !== '') {

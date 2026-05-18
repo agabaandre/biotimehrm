@@ -38,24 +38,24 @@ class Facility_switch_cache {
 		$tz = new DateTimeZone($this->timezone);
 		$now = new DateTime('now', $tz);
 
-		$this->ci->db->select('DISTINCT district_id, district', false);
-		$this->ci->db->where('district_id IS NOT NULL', null, false);
-		$this->ci->db->where('district_id !=', '');
-		$this->ci->db->where('district IS NOT NULL', null, false);
-		$this->ci->db->where('district !=', '');
-		$this->ci->db->order_by('district', 'ASC');
-		$district_rows = $this->ci->db->get('ihrisdata')->result();
+		$this->ci->load->helper('mysql8_ihris');
+		$district_rows = $this->ci->db->query(
+			"SELECT TRIM(district_id) AS district_id, TRIM(district) AS district
+			 FROM ihrisdata
+			 WHERE " . mysql8_nonempty_sql('district_id') . " AND " . mysql8_nonempty_sql('district') . "
+			 GROUP BY TRIM(district_id), TRIM(district)
+			 ORDER BY TRIM(district) ASC"
+		)->result();
 
-		$this->ci->db->select('DISTINCT district_id, facility_id, facility', false);
-		$this->ci->db->where('district_id IS NOT NULL', null, false);
-		$this->ci->db->where('district_id !=', '');
-		$this->ci->db->where('facility_id IS NOT NULL', null, false);
-		$this->ci->db->where('facility_id !=', '');
-		$this->ci->db->where('facility IS NOT NULL', null, false);
-		$this->ci->db->where('facility !=', '');
-		$this->ci->db->order_by('district_id', 'ASC');
-		$this->ci->db->order_by('facility', 'ASC');
-		$facility_rows = $this->ci->db->get('ihrisdata')->result();
+		$facility_rows = $this->ci->db->query(
+			"SELECT TRIM(district_id) AS district_id, TRIM(facility_id) AS facility_id, TRIM(facility) AS facility
+			 FROM ihrisdata
+			 WHERE " . mysql8_nonempty_sql('district_id') . "
+			   AND " . mysql8_nonempty_sql('facility_id') . "
+			   AND " . mysql8_nonempty_sql('facility') . "
+			 GROUP BY TRIM(district_id), TRIM(facility_id), TRIM(facility)
+			 ORDER BY TRIM(district_id) ASC, TRIM(facility) ASC"
+		)->result();
 
 		$districts = [];
 		$seen_districts = [];

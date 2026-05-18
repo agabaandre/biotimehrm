@@ -481,9 +481,9 @@ class Employee_model extends CI_Model
         $job_rows = $this->db->query(
             "SELECT TRIM(job_id) AS job_id, TRIM(job) AS job
              FROM ihrisdata
-             WHERE job_id IS NOT NULL AND TRIM(job_id) != ''
+             WHERE " . mysql8_nonempty_sql('job_id') . "
              GROUP BY TRIM(job_id), TRIM(job)
-             ORDER BY job ASC"
+             ORDER BY TRIM(job) ASC"
         );
         if ($job_rows) {
             foreach ($job_rows->result() as $row) {
@@ -495,11 +495,11 @@ class Employee_model extends CI_Model
         $inst_col = $this->_ihris_institution_type_column();
         if ($inst_col !== null) {
             $inst_rows = $this->db->query(
-                "SELECT TRIM({$inst_col}) AS val
+                "SELECT " . mysql8_trim_expr($inst_col) . " AS val
                  FROM ihrisdata
-                 WHERE {$inst_col} IS NOT NULL AND TRIM({$inst_col}) != ''
-                 GROUP BY TRIM({$inst_col})
-                 ORDER BY val ASC"
+                 WHERE " . mysql8_nonempty_sql($inst_col) . "
+                 GROUP BY " . mysql8_trim_expr($inst_col) . "
+                 ORDER BY " . mysql8_trim_expr($inst_col) . " ASC"
             );
             if ($inst_rows) {
                 foreach ($inst_rows->result() as $row) {
@@ -511,11 +511,11 @@ class Employee_model extends CI_Model
         $ft_col = $this->_ihris_facility_type_column();
         if ($ft_col !== null) {
             $ft_rows = $this->db->query(
-                "SELECT TRIM({$ft_col}) AS val
+                "SELECT " . mysql8_trim_expr($ft_col) . " AS val
                  FROM ihrisdata
-                 WHERE {$ft_col} IS NOT NULL AND TRIM({$ft_col}) != ''
-                 GROUP BY TRIM({$ft_col})
-                 ORDER BY val ASC"
+                 WHERE " . mysql8_nonempty_sql($ft_col) . "
+                 GROUP BY " . mysql8_trim_expr($ft_col) . "
+                 ORDER BY " . mysql8_trim_expr($ft_col) . " ASC"
             );
             if ($ft_rows) {
                 foreach ($ft_rows->result() as $row) {
@@ -542,15 +542,15 @@ class Employee_model extends CI_Model
 
         $sql = "SELECT TRIM(facility_id) AS facility_id, TRIM(facility) AS facility, TRIM(district) AS district
                 FROM ihrisdata
-                WHERE facility_id IS NOT NULL AND TRIM(facility_id) != ''";
+                WHERE " . mysql8_nonempty_sql('facility_id');
         $params = [];
         $district_names = $this->_ihris_district_names_for_filter($district);
         if (!empty($district_names)) {
             $placeholders = implode(',', array_fill(0, count($district_names), '?'));
-            $sql .= " AND TRIM(district) IN ({$placeholders})";
+            $sql .= ' AND TRIM(district) IN (' . $placeholders . ')';
             $params = $district_names;
         }
-        $sql .= " GROUP BY TRIM(facility_id), TRIM(facility) ORDER BY facility ASC";
+        $sql .= ' GROUP BY TRIM(facility_id), TRIM(facility) ORDER BY TRIM(facility) ASC';
 
         $facility_rows = $params ? $this->db->query($sql, $params) : $this->db->query($sql);
         if ($facility_rows) {

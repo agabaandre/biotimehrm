@@ -264,7 +264,13 @@ class Reports extends MX_Controller
 		$data['grouped_by'] = (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
 		$data['period'] = $month_year;
 		$data['districts'] = $this->districts_mdl->switch_all_Districts();
-		$data['regions'] = $this->db->query("SELECT distinct region from ihrisdata WHERE region!='' ORDER BY region asc")->result();
+		$data['regions'] = $this->db->query(
+			"SELECT " . mysql8_trim_expr('region') . " AS region
+			 FROM ihrisdata
+			 WHERE " . mysql8_nonempty_sql('region') . "
+			 GROUP BY " . mysql8_trim_expr('region') . "
+			 ORDER BY " . mysql8_trim_expr('region') . " ASC"
+		)->result();
 		$data['institutiontypes'] = $this->_aggregate_institution_types();
 		$data['facilities'] = [];
 		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "region", "department_id", "gender"];
@@ -488,22 +494,19 @@ class Reports extends MX_Controller
 	private function _aggregate_institution_types()
 	{
 		if ($this->db->field_exists('institutiontype_name', 'ihrisdata')) {
-			return $this->db->query(
-				"SELECT DISTINCT TRIM(institutiontype_name) AS institutiontype_name
-				 FROM ihrisdata
-				 WHERE institutiontype_name IS NOT NULL AND TRIM(institutiontype_name) != ''
-				 ORDER BY institutiontype_name ASC"
-			)->result();
+			$col = 'institutiontype_name';
+		} elseif ($this->db->field_exists('institution_type', 'ihrisdata')) {
+			$col = 'institution_type';
+		} else {
+			return array();
 		}
-		if ($this->db->field_exists('institution_type', 'ihrisdata')) {
-			return $this->db->query(
-				"SELECT DISTINCT TRIM(institution_type) AS institutiontype_name
-				 FROM ihrisdata
-				 WHERE institution_type IS NOT NULL AND TRIM(institution_type) != ''
-				 ORDER BY institution_type ASC"
-			)->result();
-		}
-		return array();
+		return $this->db->query(
+			"SELECT " . mysql8_trim_expr($col) . " AS institutiontype_name
+			 FROM ihrisdata
+			 WHERE " . mysql8_nonempty_sql($col) . "
+			 GROUP BY " . mysql8_trim_expr($col) . "
+			 ORDER BY " . mysql8_trim_expr($col) . " ASC"
+		)->result();
 	}
 
 	/**
