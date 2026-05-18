@@ -90,8 +90,9 @@
 									<select class="form-control aa-filter-s2" name="district" id="aa_district">
 										<option value="">All</option>
 										<?php foreach ($districts as $key => $value): ?>
-											<option value="<?php echo $value->district; ?>">
-												<?php echo $value->district; ?>
+											<?php if (empty($value->district)) { continue; } ?>
+											<option value="<?php echo htmlspecialchars($value->district, ENT_QUOTES, 'UTF-8'); ?>">
+												<?php echo htmlspecialchars($value->district, ENT_QUOTES, 'UTF-8'); ?>
 											</option>
 										<?php endforeach; ?>
 									</select>
@@ -104,12 +105,7 @@
 								<div class="control-group">
 									<label>Facility</label>
 									<select class="form-control aa-filter-s2" name="facility_name" id="aa_facility_name">
-										<option value="">All</option>
-										<?php foreach ($facilities as $key => $value): ?>
-											<option value="<?php echo $value->facility; ?>">
-												<?php echo $value->facility; ?>
-											</option>
-										<?php endforeach; ?>
+										<option value="">All (select district to narrow)</option>
 									</select>
 								</div>
 							</div>
@@ -225,6 +221,37 @@ $(document).ready(function() {
 			institution_type: nonEmptyList($('#aa_institution_type').val()),
 			group_by: $('#aa_group_by').val() || 'district'
 		};
+	}
+
+	function populateAggregateFacilities(facilities) {
+		var $facility = $('#aa_facility_name');
+		var html = '<option value="">All</option>';
+		(facilities || []).forEach(function(o) {
+			var name = (o && o.value) ? o.value : (o && o.label ? o.label : '');
+			if (!name) {
+				return;
+			}
+			var safe = $('<div>').text(name).html();
+			html += '<option value="' + safe + '">' + safe + '</option>';
+		});
+		$facility.html(html);
+		if ($facility.data('select2')) {
+			$facility.val('').trigger('change.select2');
+		}
+	}
+
+	function loadAggregateFacilities(district) {
+		if (!district) {
+			populateAggregateFacilities([]);
+			return;
+		}
+		$.getJSON(baseUrl + 'reports/attendance_aggregate', { facilities: '1', district: district })
+			.done(function(data) {
+				populateAggregateFacilities(data && data.facilities ? data.facilities : []);
+			})
+			.fail(function() {
+				populateAggregateFacilities([]);
+			});
 	}
 
 	function initAggregateSelect2() {
@@ -363,8 +390,13 @@ $(document).ready(function() {
 	initTable();
 	window.setTimeout(initAggregateSelect2, 0);
 
+	$('#aa_district').on('change', function() {
+		loadAggregateFacilities($(this).val() || '');
+		updateExportLinks();
+	});
+
 	// Update CSV link when filters change
-	$('#aa_duty_date, #aa_district, #aa_facility_name, #aa_region, #aa_institution_type').on('change', function() {
+	$('#aa_duty_date, #aa_facility_name, #aa_region, #aa_institution_type').on('change', function() {
 		updateExportLinks();
 	});
 });

@@ -146,6 +146,53 @@ class Facility_switch_cache {
 	}
 
 	/**
+	 * All district names in the same group (e.g. KAMPALA + KAMPALA City).
+	 *
+	 * @param string|null $selected_district_name
+	 * @return array<int, string>
+	 */
+	public function get_district_names_in_group($selected_district_name)
+	{
+		$selected = trim((string) $selected_district_name);
+		if ($selected === '') {
+			return [];
+		}
+		foreach ($this->_district_groups_map() as $names) {
+			foreach ($names as $name) {
+				if (strcasecmp(trim((string) $name), $selected) === 0) {
+					return array_values(array_unique($names));
+				}
+			}
+		}
+		return [$selected];
+	}
+
+	/**
+	 * @return array<string, array<int, string>>
+	 */
+	protected function _district_groups_map()
+	{
+		$data = $this->get_data();
+		$map = [];
+		foreach ($data['districts'] as $row) {
+			$district_id = isset($row['district_id']) ? $row['district_id'] : '';
+			$district_name = isset($row['district']) ? $row['district'] : '';
+			$gk = $this->normalize_district_group_key($district_id, $district_name);
+			if ($gk === '') {
+				continue;
+			}
+			if (!isset($map[$gk])) {
+				$map[$gk] = [];
+			}
+			$name = trim((string) $district_name);
+			if ($name !== '' && !in_array($name, $map[$gk], true)) {
+				$map[$gk][] = $name;
+			}
+		}
+		return $map;
+	}
+
+	/**
 	 * Facilities in a district; optionally restrict to one facility_id (session user).
 	 *
 	 * @param string      $district_id

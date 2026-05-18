@@ -465,17 +465,13 @@ class Employee_model extends CI_Model
 
         $this->db->reset_query();
 
-        $district_rows = $this->db->query(
-            "SELECT TRIM(district) AS district
-             FROM ihrisdata
-             WHERE district IS NOT NULL AND TRIM(district) != ''
-             GROUP BY TRIM(district)
-             ORDER BY district ASC"
-        );
-        if ($district_rows) {
-            foreach ($district_rows->result() as $row) {
-                $this->_push_ihris_filter_option($opts['districts'], $row->district, $row->district);
+        $this->load->library('facility_switch_cache', null, 'fsc');
+        foreach ($this->fsc->get_districts() as $row) {
+            $name = trim((string) $row->district);
+            if ($name === '') {
+                continue;
             }
+            $this->_push_ihris_filter_option($opts['districts'], $name, $name);
         }
 
         if ($include_facilities) {
@@ -548,11 +544,13 @@ class Employee_model extends CI_Model
                 FROM ihrisdata
                 WHERE facility_id IS NOT NULL AND TRIM(facility_id) != ''";
         $params = [];
-        if ($district !== null && trim((string) $district) !== '') {
-            $sql .= " AND TRIM(district) = ?";
-            $params[] = trim((string) $district);
+        $district_names = $this->_ihris_district_names_for_filter($district);
+        if (!empty($district_names)) {
+            $placeholders = implode(',', array_fill(0, count($district_names), '?'));
+            $sql .= " AND TRIM(district) IN ({$placeholders})";
+            $params = $district_names;
         }
-        $sql .= " GROUP BY TRIM(facility_id), TRIM(facility), TRIM(district) ORDER BY facility ASC";
+        $sql .= " GROUP BY TRIM(facility_id), TRIM(facility) ORDER BY facility ASC";
 
         $facility_rows = $params ? $this->db->query($sql, $params) : $this->db->query($sql);
         if ($facility_rows) {
@@ -618,6 +616,34 @@ class Employee_model extends CI_Model
     }
 
     /**
+     * District names in the same group (e.g. KAMPALA + KAMPALA City) for filters.
+     *
+     * @param string|null $selected District name from filter dropdown.
+     * @return array<int, string>
+     */
+    private function _ihris_district_names_for_filter($selected)
+    {
+        $this->load->library('facility_switch_cache', null, 'fsc');
+        return $this->fsc->get_district_names_in_group($selected);
+    }
+
+    /**
+     * @param string|null $district
+     */
+    private function _apply_ihris_district_filter($district)
+    {
+        if ($district === null || $district === '') {
+            return;
+        }
+        $names = $this->_ihris_district_names_for_filter($district);
+        if (count($names) > 1) {
+            $this->db->where_in('district', $names);
+            return;
+        }
+        $this->db->where('district', $names[0]);
+    }
+
+    /**
      * Count all iHRIS staff with optional filters (for All iHRIS Staff page).
      */
     public function all_ihris_staff_count($district = null, $facility = null, $job = null, $institution_type = null, $facility_type = null, $search = '', $include_inactive = false)
@@ -627,9 +653,7 @@ class Employee_model extends CI_Model
         if (!$include_inactive && $has_active) {
             $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
         }
-        if ($district !== null && $district !== '') {
-            $this->db->where('district', $district);
-        }
+        $this->_apply_ihris_district_filter($district);
         if (!empty($facility)) {
             $facility = is_array($facility) ? $facility : array_filter(explode(',', $facility));
             if (!empty($facility)) {
@@ -684,9 +708,7 @@ class Employee_model extends CI_Model
         if (!$include_inactive && $has_active) {
             $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
         }
-        if ($district !== null && $district !== '') {
-            $this->db->where('district', $district);
-        }
+        $this->_apply_ihris_district_filter($district);
         if (!empty($facility)) {
             $facility = is_array($facility) ? $facility : array_filter(explode(',', $facility));
             if (!empty($facility)) {

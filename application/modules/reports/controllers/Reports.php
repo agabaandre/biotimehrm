@@ -208,6 +208,22 @@ class Reports extends MX_Controller
 
 	public function attendance_aggregate()
 	{
+		if ($this->input->get('facilities') === '1') {
+			$district = $this->input->get('district');
+			$rows = ($district !== null && $district !== '')
+				? $this->reports_mdl->get_aggregate_facilities_for_district($district)
+				: [];
+			$facilities = [];
+			foreach ($rows as $row) {
+				$name = isset($row->facility) ? trim((string) $row->facility) : '';
+				if ($name !== '') {
+					$facilities[] = ['value' => $name, 'label' => $name];
+				}
+			}
+			$this->output->set_content_type('application/json')->set_output(json_encode(['facilities' => $facilities]));
+			return;
+		}
+
 		// Handle CSV export (streamed, no full load)
 		$csv = request_fields('csv');
 		if ($csv) {
@@ -235,10 +251,10 @@ class Reports extends MX_Controller
 		$data['module'] = $this->module;
 		$data['grouped_by'] = (!empty(request_fields('group_by'))) ? request_fields('group_by') : "district";
 		$data['period'] = $month_year;
-		$data['districts'] = $this->districts_mdl->get_all_Districts();
+		$data['districts'] = $this->districts_mdl->switch_all_Districts();
 		$data['regions'] = $this->db->query("SELECT distinct region from ihrisdata WHERE region!='' ORDER BY region asc")->result();
 		$data['institutiontypes'] = $this->_aggregate_institution_types();
-		$data['facilities'] = $this->facilities_mdl->getAll();
+		$data['facilities'] = [];
 		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "region", "department_id", "gender"];
 
 		$data['view'] = 'attendance_aggr';

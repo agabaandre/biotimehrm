@@ -474,6 +474,38 @@ class Reports_mdl extends CI_Model
 		return $this->db->query($sql)->result();
 	}
 
+	/**
+	 * @param string|null $district
+	 * @return array<int, string>
+	 */
+	private function _aggregate_district_names_for_filter($district)
+	{
+		$this->load->library('facility_switch_cache', null, 'fsc');
+		return $this->fsc->get_district_names_in_group($district);
+	}
+
+	/**
+	 * Facilities for aggregate report filter (merged district group).
+	 *
+	 * @param string|null $district_name
+	 * @return array<int, object>
+	 */
+	public function get_aggregate_facilities_for_district($district_name = null)
+	{
+		$names = $this->_aggregate_district_names_for_filter($district_name);
+		if (empty($names)) {
+			return [];
+		}
+		$this->db->distinct();
+		$this->db->select('TRIM(facility) AS facility', false);
+		$this->db->from('ihrisdata');
+		$this->db->where('facility IS NOT NULL', null, false);
+		$this->db->where("TRIM(facility) <> ''", null, false);
+		$this->db->where_in('district', $names);
+		$this->db->order_by('facility', 'ASC');
+		return $this->db->get()->result();
+	}
+
 	private function buildAttendanceAggregatesSql($filters = null, $group_by = "district", $search = '', $count_only = false, $start = 0, $length = 200)
 	{
 		$group_by = $this->_aggregate_group_by_column($group_by);
@@ -511,7 +543,16 @@ class Reports_mdl extends CI_Model
 		}
 
 		if (!empty($filters['district'])) {
-			$where[] = "COALESCE(i.district,'') = " . $this->db->escape($filters['district']);
+			$district_names = $this->_aggregate_district_names_for_filter($filters['district']);
+			if (count($district_names) > 1) {
+				$escaped = array();
+				foreach ($district_names as $name) {
+					$escaped[] = $this->db->escape($name);
+				}
+				$where[] = 'COALESCE(i.district,\'\') IN (' . implode(',', $escaped) . ')';
+			} else {
+				$where[] = "COALESCE(i.district,'') = " . $this->db->escape($district_names[0]);
+			}
 		}
 		if (!empty($filters['facility_name'])) {
 			$where[] = "COALESCE(i.facility,'') = " . $this->db->escape($filters['facility_name']);
@@ -664,7 +705,12 @@ class Reports_mdl extends CI_Model
 				$this->db->where_in("DATE_FORMAT(a.date,'%Y-%m')", $dd, false);
 			}
 			if (isset($filters['district']) && $filters['district'] !== '') {
-				$this->db->where('i.district', $filters['district']);
+				$district_names = $this->_aggregate_district_names_for_filter($filters['district']);
+				if (count($district_names) > 1) {
+					$this->db->where_in('i.district', $district_names);
+				} else {
+					$this->db->where('i.district', $district_names[0]);
+				}
 			}
 			if (isset($filters['facility_name']) && $filters['facility_name'] !== '') {
 				$this->db->where('i.facility', $filters['facility_name']);
