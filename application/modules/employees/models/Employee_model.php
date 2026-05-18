@@ -12,7 +12,8 @@ class Employee_model extends CI_Model
     public  function __construct()
     {
         parent::__construct();
-        $this->facility = $this->session->userdata['facility'];
+        $userdata = $this->session->userdata();
+        $this->facility = (is_array($userdata) && isset($userdata['facility'])) ? $userdata['facility'] : null;
     }
     public function get_employees($filters)
     {
@@ -445,105 +446,175 @@ class Employee_model extends CI_Model
     }
 
     /**
-     * Get distinct filter options from ihrisdata for All iHRIS Staff page.
-     * Uses query builder and permissive WHERE so options populate from actual table columns.
+     * Distinct filter options from ihrisdata for All iHRIS Staff page.
+     *
+     * @param bool $include_facilities Skip facilities on initial page load (load via AJAX per district).
      */
-    public function get_all_ihris_filter_options()
+    public function get_all_ihris_filter_options($include_facilities = true)
     {
-        $opts = ['districts' => [], 'facilities' => [], 'jobs' => [], 'institution_types' => [], 'facility_types' => []];
+        $opts = [
+            'districts'          => [],
+            'facilities'         => [],
+            'jobs'               => [],
+            'institution_types'  => [],
+            'facility_types'     => [],
+        ];
         if (!$this->db->table_exists('ihrisdata')) {
             return $opts;
         }
 
-        $add_non_empty = function (array &$list, $value, $label = null) {
-            if ($value === null || trim((string) $value) === '') {
-                return;
-            }
-            $lbl = $label !== null ? trim((string) $label) : trim((string) $value);
-            if ($lbl === '') {
-                $lbl = (string) $value;
-            }
-            $list[] = ['value' => $value, 'label' => $lbl];
-        };
-
-        // Districts
         $this->db->reset_query();
-        $this->db->distinct();
-        $this->db->select('district');
-        $this->db->from('ihrisdata');
-        $this->db->order_by('district', 'asc');
-        $q = $this->db->get();
-        if ($q && $q->num_rows() > 0) {
-            foreach ($q->result() as $r) {
-                $add_non_empty($opts['districts'], $r->district, $r->district);
+
+        $district_rows = $this->db->query(
+            "SELECT TRIM(district) AS district
+             FROM ihrisdata
+             WHERE district IS NOT NULL AND TRIM(district) != ''
+             GROUP BY TRIM(district)
+             ORDER BY district ASC"
+        );
+        if ($district_rows) {
+            foreach ($district_rows->result() as $row) {
+                $this->_push_ihris_filter_option($opts['districts'], $row->district, $row->district);
             }
         }
 
-        // Facilities (facility_id, facility)
-        $this->db->reset_query();
-        $this->db->distinct();
-        $this->db->select('facility_id, facility');
-        $this->db->from('ihrisdata');
-        $this->db->order_by('facility', 'asc');
-        $q = $this->db->get();
-        if ($q && $q->num_rows() > 0) {
-            foreach ($q->result() as $r) {
-                $val = isset($r->facility_id) ? $r->facility_id : '';
-                $lbl = (isset($r->facility) && trim((string) $r->facility) !== '') ? $r->facility : $val;
-                $add_non_empty($opts['facilities'], $val, $lbl);
+        if ($include_facilities) {
+            $opts['facilities'] = $this->get_ihris_facilities_for_district(null);
+        }
+
+        $job_rows = $this->db->query(
+            "SELECT TRIM(job_id) AS job_id, TRIM(job) AS job
+             FROM ihrisdata
+             WHERE job_id IS NOT NULL AND TRIM(job_id) != ''
+             GROUP BY TRIM(job_id), TRIM(job)
+             ORDER BY job ASC"
+        );
+        if ($job_rows) {
+            foreach ($job_rows->result() as $row) {
+                $label = trim((string) $row->job) !== '' ? $row->job : $row->job_id;
+                $this->_push_ihris_filter_option($opts['jobs'], $row->job_id, $label);
             }
         }
 
-        // Jobs (job_id, job)
-        $this->db->reset_query();
-        $this->db->distinct();
-        $this->db->select('job_id, job');
-        $this->db->from('ihrisdata');
-        $this->db->order_by('job', 'asc');
-        $q = $this->db->get();
-        if ($q && $q->num_rows() > 0) {
-            foreach ($q->result() as $r) {
-                $val = isset($r->job_id) ? $r->job_id : '';
-                $lbl = (isset($r->job) && trim((string) $r->job) !== '') ? $r->job : $val;
-                $add_non_empty($opts['jobs'], $val, $lbl);
-            }
-        }
-
-        // Institution type (institution_type or institutiontype_name)
-        $col_inst = $this->db->field_exists('institution_type', 'ihrisdata') ? 'institution_type' : ($this->db->field_exists('institutiontype_name', 'ihrisdata') ? 'institutiontype_name' : null);
-        if ($col_inst) {
-            $this->db->reset_query();
-            $this->db->distinct();
-            $this->db->select($col_inst);
-            $this->db->from('ihrisdata');
-            $this->db->order_by($col_inst, 'asc');
-            $q = $this->db->get();
-            if ($q && $q->num_rows() > 0) {
-                foreach ($q->result() as $r) {
-                    $v = $r->{$col_inst};
-                    $add_non_empty($opts['institution_types'], $v, $v);
+        $inst_col = $this->_ihris_institution_type_column();
+        if ($inst_col !== null) {
+            $inst_rows = $this->db->query(
+                "SELECT TRIM({$inst_col}) AS val
+                 FROM ihrisdata
+                 WHERE {$inst_col} IS NOT NULL AND TRIM({$inst_col}) != ''
+                 GROUP BY TRIM({$inst_col})
+                 ORDER BY val ASC"
+            );
+            if ($inst_rows) {
+                foreach ($inst_rows->result() as $row) {
+                    $this->_push_ihris_filter_option($opts['institution_types'], $row->val, $row->val);
                 }
             }
         }
 
-        // Facility type (facility_type_id or facility_type)
-        $col_ft = $this->db->field_exists('facility_type_id', 'ihrisdata') ? 'facility_type_id' : ($this->db->field_exists('facility_type', 'ihrisdata') ? 'facility_type' : null);
-        if ($col_ft) {
-            $this->db->reset_query();
-            $this->db->distinct();
-            $this->db->select($col_ft);
-            $this->db->from('ihrisdata');
-            $this->db->order_by($col_ft, 'asc');
-            $q = $this->db->get();
-            if ($q && $q->num_rows() > 0) {
-                foreach ($q->result() as $r) {
-                    $v = $r->{$col_ft};
-                    $add_non_empty($opts['facility_types'], $v, $v);
+        $ft_col = $this->_ihris_facility_type_column();
+        if ($ft_col !== null) {
+            $ft_rows = $this->db->query(
+                "SELECT TRIM({$ft_col}) AS val
+                 FROM ihrisdata
+                 WHERE {$ft_col} IS NOT NULL AND TRIM({$ft_col}) != ''
+                 GROUP BY TRIM({$ft_col})
+                 ORDER BY val ASC"
+            );
+            if ($ft_rows) {
+                foreach ($ft_rows->result() as $row) {
+                    $this->_push_ihris_filter_option($opts['facility_types'], $row->val, $row->val);
                 }
             }
         }
 
         return $opts;
+    }
+
+    /**
+     * Facilities for All iHRIS Staff filter (optional district name).
+     *
+     * @param string|null $district
+     * @return array<int, array<string, mixed>>
+     */
+    public function get_ihris_facilities_for_district($district = null)
+    {
+        $list = [];
+        if (!$this->db->table_exists('ihrisdata')) {
+            return $list;
+        }
+
+        $sql = "SELECT TRIM(facility_id) AS facility_id, TRIM(facility) AS facility, TRIM(district) AS district
+                FROM ihrisdata
+                WHERE facility_id IS NOT NULL AND TRIM(facility_id) != ''";
+        $params = [];
+        if ($district !== null && trim((string) $district) !== '') {
+            $sql .= " AND TRIM(district) = ?";
+            $params[] = trim((string) $district);
+        }
+        $sql .= " GROUP BY TRIM(facility_id), TRIM(facility), TRIM(district) ORDER BY facility ASC";
+
+        $facility_rows = $params ? $this->db->query($sql, $params) : $this->db->query($sql);
+        if ($facility_rows) {
+            foreach ($facility_rows->result() as $row) {
+                $label = trim((string) $row->facility) !== '' ? $row->facility : $row->facility_id;
+                $this->_push_ihris_filter_option($list, $row->facility_id, $label, [
+                    'district' => $row->district,
+                ]);
+            }
+        }
+
+        return $list;
+    }
+
+    /**
+     * @return string|null
+     */
+    private function _ihris_institution_type_column()
+    {
+        if ($this->db->field_exists('institutiontype_name', 'ihrisdata')) {
+            return 'institutiontype_name';
+        }
+        if ($this->db->field_exists('institution_type', 'ihrisdata')) {
+            return 'institution_type';
+        }
+        return null;
+    }
+
+    /**
+     * @return string|null
+     */
+    private function _ihris_facility_type_column()
+    {
+        if ($this->db->field_exists('facility_type_id', 'ihrisdata')) {
+            return 'facility_type_id';
+        }
+        if ($this->db->field_exists('facility_type', 'ihrisdata')) {
+            return 'facility_type';
+        }
+        return null;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $list
+     * @param array<string, mixed>             $extra
+     */
+    private function _push_ihris_filter_option(array &$list, $value, $label, array $extra = [])
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return;
+        }
+        $label = trim((string) $label);
+        if ($label === '') {
+            $label = $value;
+        }
+        foreach ($list as $existing) {
+            if (isset($existing['value']) && (string) $existing['value'] === $value) {
+                return;
+            }
+        }
+        $list[] = array_merge(['value' => $value, 'label' => $label], $extra);
     }
 
     /**
@@ -571,11 +642,11 @@ class Employee_model extends CI_Model
                 $this->db->where_in('job_id', $job);
             }
         }
-        $col_inst = $this->db->field_exists('institution_type', 'ihrisdata') ? 'institution_type' : ($this->db->field_exists('institutiontype_name', 'ihrisdata') ? 'institutiontype_name' : null);
+        $col_inst = $this->_ihris_institution_type_column();
         if ($institution_type !== null && $institution_type !== '' && $col_inst) {
             $this->db->where($col_inst, $institution_type);
         }
-        $col_ft = $this->db->field_exists('facility_type_id', 'ihrisdata') ? 'facility_type_id' : ($this->db->field_exists('facility_type', 'ihrisdata') ? 'facility_type' : null);
+        $col_ft = $this->_ihris_facility_type_column();
         if ($facility_type !== null && $facility_type !== '' && $col_ft) {
             $this->db->where($col_ft, $facility_type);
         }
@@ -628,11 +699,11 @@ class Employee_model extends CI_Model
                 $this->db->where_in('job_id', $job);
             }
         }
-        $col_inst = $this->db->field_exists('institution_type', 'ihrisdata') ? 'institution_type' : ($this->db->field_exists('institutiontype_name', 'ihrisdata') ? 'institutiontype_name' : null);
+        $col_inst = $this->_ihris_institution_type_column();
         if ($institution_type !== null && $institution_type !== '' && $col_inst) {
             $this->db->where($col_inst, $institution_type);
         }
-        $col_ft = $this->db->field_exists('facility_type_id', 'ihrisdata') ? 'facility_type_id' : ($this->db->field_exists('facility_type', 'ihrisdata') ? 'facility_type' : null);
+        $col_ft = $this->_ihris_facility_type_column();
         if ($facility_type !== null && $facility_type !== '' && $col_ft) {
             $this->db->where($col_ft, $facility_type);
         }

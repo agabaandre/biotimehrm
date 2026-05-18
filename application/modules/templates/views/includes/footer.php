@@ -414,6 +414,23 @@ $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') || $_SERV
 $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 $linkquery = $url; // Outputs: Full URL
 // Outputs: Query String
+
+$this->load->library('facility_switch_cache', null, 'fsc');
+$switch_facility_districts = $this->fsc->get_districts();
+$switch_facility_cache_meta = $this->fsc->status();
+$switch_session_district_id = isset($_SESSION['district_id']) ? (string) $_SESSION['district_id'] : '';
+$switch_session_district = isset($_SESSION['district']) ? (string) $_SESSION['district'] : '';
+$switch_session_facility_id = isset($_SESSION['facility']) ? (string) $_SESSION['facility'] : '';
+$switch_session_facility_name = isset($_SESSION['facility_name']) ? (string) $_SESSION['facility_name'] : '';
+$switch_can_view_all_facilities = is_array($permissions) && in_array('38', $permissions);
+$switch_can_rebuild_cache = is_array($permissions) && (in_array('34', $permissions) || in_array('38', $permissions));
+
+if (!function_exists('switch_facility_district_option_value')) {
+    function switch_facility_district_option_value($district_id, $district_name)
+    {
+        return urlencode(str_replace(' ', '', (string) $district_id)) . '_' . urlencode(str_replace(' ', '', (string) $district_name));
+    }
+}
 ?>
 <!-- Modal -->
 <div class="modal fade" id="switch" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -425,29 +442,44 @@ $linkquery = $url; // Outputs: Full URL
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+            <?php if (!empty($switch_facility_cache_meta['generated_at'])) { ?>
+                <p class="text-muted small px-3 mb-0">Facility list cached: <?php echo htmlspecialchars($switch_facility_cache_meta['generated_at'], ENT_QUOTES, 'UTF-8'); ?>
+                <?php if ($switch_can_rebuild_cache) { ?>
+                    · <a href="<?php echo base_url('lists/rebuild_switch_facility_cache?redirect=' . urlencode($linkquery)); ?>">Refresh list</a>
+                <?php } ?>
+                </p>
+            <?php } ?>
             <div class="modal-body">
                 <form class="form form-horizontal" action="<?php echo base_url(); ?>departments/switchDepartment" method="post">
                     <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
                     <div class="row">
                         <div class="col-md-12">
                             <label>District</label>
-                            <select class="sdistrict form-control select2dist" id="district" name="district" onChange="getFacs($(this).val());" <?php if (!(in_array('34', $permissions))) {
+                            <select class="sdistrict form-control select2dist" id="switchDistrict" name="district" <?php if (!(in_array('34', $permissions))) {
                                                                                                                                                     echo "disabled";
                                                                                                                                                 } ?>>
-                                <option value="<?php echo urlencode(str_replace(" ", "", ($_SESSION['district_id']))) . "_" . urlencode(str_replace(" ", "", $_SESSION['district'])); ?>"><?php echo $_SESSION['district']; ?></option>
                                 <?php
-                                $districts = Modules::run("lists/switch_districts");
-                                foreach ($districts as $district) {
+                                $switch_seen_district_ids = [];
+                                if ($switch_session_district_id !== '' && $switch_session_district !== '') {
+                                    $switch_seen_district_ids[$switch_session_district_id] = true;
                                 ?>
-                                    <option value="<?php echo urlencode(str_replace(" ", "", $district->district_id)) . "_" . urlencode(str_replace(" ", "", $district->district)); ?>"><?php echo ucwords($district->district); ?></option>
-                                <?php }   ?>
+                                    <option value="<?php echo switch_facility_district_option_value($switch_session_district_id, $switch_session_district); ?>" selected><?php echo htmlspecialchars(ucwords($switch_session_district), ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php }
+                                foreach ($switch_facility_districts as $district) {
+                                    if (isset($switch_seen_district_ids[$district->district_id])) {
+                                        continue;
+                                    }
+                                    $switch_seen_district_ids[$district->district_id] = true;
+                                ?>
+                                    <option value="<?php echo switch_facility_district_option_value($district->district_id, $district->district); ?>"><?php echo htmlspecialchars(ucwords($district->district), ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php } ?>
                             </select>
                         </div>
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label>Facility</label>
-                                <select name="facility" onChange="getDeps($(this).val());" class="sfacility form-control select2dist" required>
-                                    <option value="" disabled>All</option>
+                                <select name="facility" id="switchFacility" class="sfacility form-control select2dist" required>
+                                    <option value="">Select Facility</option>
                                 </select>
                             </div>
                         </div>
@@ -456,7 +488,7 @@ $linkquery = $url; // Outputs: Full URL
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label>Department</label>
-                                <select name="department" onChange="getDivisions($(this).val());" class="sdepartment form-control select2dist">
+                                <select name="department" class="sdepartment form-control select2dist">
                                     <option value="">All</option>
                                 </select>
                             </div>
@@ -465,7 +497,7 @@ $linkquery = $url; // Outputs: Full URL
                         <div class="col-md-12" style="display:none;">
                             <div class="form-group">
                                 <label>Division</label>
-                                <select id="division" class="sdivison form-control select2dist" onChange="getUnits($(this).val());" name="division">
+                                <select id="division" class="sdivison form-control select2dist" name="division">
                                     <option value="">All</option>
                                 </select>
                             </div>
@@ -476,7 +508,7 @@ $linkquery = $url; // Outputs: Full URL
                             <!-- < needs fixing> -->
                             <div class="form-group">
                                 <label>Section</label>
-                                <select id="section" class="ssection form-control select2dist" onChange="getUnits($(this).val());" name="section">
+                                <select id="switchSection" class="ssection form-control select2dist" name="section">
                                     <option value="">All</option>
                                 </select>
                             </div>
@@ -563,23 +595,165 @@ $linkquery = $url; // Outputs: Full URL
     });
 </script>
 <script>
-    $("document").ready(function() {
-        $(".sdistrict").change();
-        //$(".sfacility").change();
-        // console.log(time);
-    });
+    var facilitySwitchCache = null;
+    var facilitySwitchCacheLoading = false;
+    var switchFacilitiesUpdating = false;
+    var switchSessionFacilityId = <?php echo json_encode($switch_session_facility_id); ?>;
+    var $switchModal = $('#switch');
 
-    function getFacs(val) {
+    function parseSwitchDistrictId(distValue) {
+        if (!distValue) {
+            return '';
+        }
+        var decoded = decodeURIComponent(String(distValue));
+        var parts = decoded.split('_');
+        return parts.length ? decodeURIComponent(parts[0]) : '';
+    }
+
+    function escapeSwitchHtml(text) {
+        return $('<div>').text(text == null ? '' : String(text)).html();
+    }
+
+    function facilityOptionValue(facilityId, facilityName) {
+        return facilityId + '_' + facilityName;
+    }
+
+    function selectCurrentSwitchFacility() {
+        if (!switchSessionFacilityId) {
+            return;
+        }
+        var $sfac = $switchModal.find('.sfacility');
+        var $match = $sfac.find('option').filter(function() {
+            var val = $(this).val() || '';
+            return val.indexOf(switchSessionFacilityId + '_') === 0;
+        }).first();
+        if ($match.length) {
+            $sfac.val($match.val());
+        }
+    }
+
+    function renderSwitchFacilities(distValue) {
+        switchFacilitiesUpdating = true;
+        var districtId = parseSwitchDistrictId(distValue);
+        var html = "<option value=''>Select Facility</option>";
+        var $sfac = $switchModal.find('.sfacility');
+
+        function finishSwitchFacilities() {
+            $sfac.html(html);
+            selectCurrentSwitchFacility();
+            if ($sfac.data('select2')) {
+                $sfac.trigger('change.select2');
+            }
+            switchFacilitiesUpdating = false;
+        }
+
+        if (facilitySwitchCache && facilitySwitchCache.facilities_by_district) {
+            var list = facilitySwitchCache.facilities_by_district[districtId] || [];
+            list.forEach(function(row) {
+                var fid = row.facility_id || '';
+                var fname = row.facility || '';
+                if (!fid) {
+                    return;
+                }
+                var label = fname.replace(/\b\w/g, function(ch) { return ch.toUpperCase(); });
+                html += "<option value='" + escapeSwitchHtml(fid) + '_' + escapeSwitchHtml(fname) + "'>" + escapeSwitchHtml(label) + "</option>";
+            });
+            finishSwitchFacilities();
+            return;
+        }
+
         $.ajax({
             method: "GET",
             url: "<?php echo base_url(); ?>departments/get_facilities",
-            data: 'dist_data=' + val,
+            data: { dist_data: distValue },
             success: function(data) {
-                //alert(data);
-                $(".sfacility").html(data);
+                $sfac.html(data);
+                selectCurrentSwitchFacility();
+                if ($sfac.data('select2')) {
+                    $sfac.trigger('change.select2');
+                }
+                switchFacilitiesUpdating = false;
+            },
+            error: function() {
+                switchFacilitiesUpdating = false;
             }
         });
     }
+
+    function loadFacilitySwitchCache(done) {
+        if (facilitySwitchCache) {
+            done();
+            return;
+        }
+        if (facilitySwitchCacheLoading) {
+            var wait = setInterval(function() {
+                if (!facilitySwitchCacheLoading) {
+                    clearInterval(wait);
+                    done();
+                }
+            }, 50);
+            return;
+        }
+        facilitySwitchCacheLoading = true;
+        $.getJSON("<?php echo base_url('lists/switch_facility_data'); ?>")
+            .done(function(data) {
+                facilitySwitchCache = data;
+            })
+            .always(function() {
+                facilitySwitchCacheLoading = false;
+                done();
+            });
+    }
+
+    function getFacs(val) {
+        loadFacilitySwitchCache(function() {
+            renderSwitchFacilities(val);
+        });
+    }
+
+    function getDeps(val) {
+        if (!val) {
+            $switchModal.find('.sdepartment').html("<option value=''>All</option>");
+            return;
+        }
+        $.ajax({
+            method: "GET",
+            url: "<?php echo base_url(); ?>departments/get_departments",
+            data: { fac_data: val },
+            success: function(data) {
+                $switchModal.find('.sdepartment').html(data);
+            }
+        });
+    }
+
+    $switchModal.on('change', '.sdistrict', function() {
+        getFacs($(this).val());
+    });
+
+    $switchModal.on('change', '.sfacility', function() {
+        if (switchFacilitiesUpdating) {
+            return;
+        }
+        getDeps($(this).val());
+    });
+
+    $switchModal.on('change', '.sdepartment', function() {
+        getDivisions($(this).val());
+    });
+
+    $switchModal.on('change', '#switchDivision, .ssection', function() {
+        getUnits($(this).val());
+    });
+
+    $("document").ready(function() {
+        loadFacilitySwitchCache(function() {
+            getFacs($switchModal.find('.sdistrict').val());
+        });
+    });
+
+    $switchModal.on('shown.bs.modal', function() {
+        getFacs($switchModal.find('.sdistrict').val());
+    });
 
     function getuserDeps(val) {
         $.ajax({
@@ -598,10 +772,9 @@ $linkquery = $url; // Outputs: Full URL
         $.ajax({
             method: "GET",
             url: "<?php echo base_url(); ?>departments/get_divisions",
-            data: 'depart_data=' + val,
+            data: { depart_data: val },
             success: function(data) {
-                // alert(data);
-                $(".sdivision").html(data);
+                $switchModal.find('.sdivison, #switchDivision').html(data);
             }
         });
     }
@@ -610,10 +783,9 @@ $linkquery = $url; // Outputs: Full URL
         $.ajax({
             method: "GET",
             url: "<?php echo base_url(); ?>departments/get_units",
-            data: 'division=' + val,
+            data: { division: val },
             success: function(data) {
-                //alert(data);
-                $(".sunit").html(data);
+                $switchModal.find('.sunit').html(data);
             }
         });
     }

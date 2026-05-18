@@ -24,24 +24,8 @@ class Districts_mdl extends CI_Model {
 	
 	public function switch_all_Districts()
 	{
-        
-		//  $permissions = $this->session->userdata('permissions');
-		// if (!(in_array('46', $permissions))) {
-
-		// 	$district_id = $this->session->userdata('district_id');
-
-		// 	$region = $this->db->query("SELECT region  from ihris_data WHERE district_id='$district_id'")->row()->region;
-
-		// }
-
-		$this->db->select('distinct(district_id),district');
-		// if(!empty($region)){
-		// $this->db->where("region", "$region");
-		// }
-		$this->db->order_by('district', 'ASC');
-		$query = $this->db->get('ihrisdata');
-
-		return $query->result();
+		$this->load->library('facility_switch_cache', null, 'fsc');
+		return $this->fsc->get_districts();
 	}
 
 	public function get_all_Districts()

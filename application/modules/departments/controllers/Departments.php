@@ -16,76 +16,37 @@ class Departments extends MX_Controller
   }
   public function get_facilities()
   {
-
-    if (!empty($_GET['dist_data'])) {
-
-      $dist = urldecode($_GET["dist_data"]);
-
-      $distdata = array();
-      $distdata = explode("_", $dist);
-
-      $dist_id = $distdata[0];
-      $district = $distdata[1];
-      $userdata = $this->session->get_userdata();
-      $permissions = $userdata['permissions'];
-      //view all facilities
-      if (in_array('38', $permissions)) {
-        $sql = "SELECT DISTINCT facility_id,facility FROM ihrisdata WHERE district_id LIKE '$dist_id' ORDER BY facility ASC";
-      } else {
-        $facility = $_SESSION['facility'];
-        $sql = "SELECT DISTINCT facility_id,facility FROM ihrisdata WHERE facility_id LIKE '$facility'";
-      }
-
-      $facilities = $this->db->query($sql)->result();
-
-      $opt = "<option value=''>Select Facility</option>";
-
-      if (!empty($facilities)) {
-
-        foreach ($facilities as $facility) {
-          $opt .= "<option value='" . $facility->facility_id . "_" . $facility->facility . "'>" . ucwords($facility->facility) . "</option>";
-        }
-      }
-
-      echo $opt;
+    if (empty($_GET['dist_data'])) {
+      return;
     }
+
+    $dist = urldecode($_GET['dist_data']);
+    $distdata = explode('_', $dist, 2);
+    $dist_id = isset($distdata[0]) ? urldecode($distdata[0]) : '';
+
+    $userdata = $this->session->get_userdata();
+    $permissions = isset($userdata['permissions']) ? $userdata['permissions'] : [];
+    $only_facility_id = null;
+    if (!in_array('38', $permissions)) {
+      $only_facility_id = isset($_SESSION['facility']) ? (string) $_SESSION['facility'] : '';
+    }
+
+    $this->load->library('facility_switch_cache', null, 'fsc');
+    $facilities = $this->fsc->get_facilities_for_district($dist_id, $only_facility_id);
+
+    $opt = "<option value=''>Select Facility</option>";
+    foreach ($facilities as $facility) {
+      $opt .= "<option value='" . htmlspecialchars($facility->facility_id, ENT_QUOTES, 'UTF-8')
+        . '_' . htmlspecialchars($facility->facility, ENT_QUOTES, 'UTF-8') . "'>"
+        . htmlspecialchars(ucwords($facility->facility), ENT_QUOTES, 'UTF-8') . '</option>';
+    }
+
+    echo $opt;
   }
 
   public function get_user_facilities()
   {
-
-    if (!empty($_GET['dist_data'])) {
-
-      $dist = urldecode($_GET["dist_data"]);
-
-      $distdata = array();
-      $distdata = explode("_", $dist);
-
-      $dist_id = $distdata[0];
-      $district = $distdata[1];
-      $userdata = $this->session->get_userdata();
-      $permissions = $userdata['permissions'];
-      //view all facilities
-      if (in_array('38', $permissions)) {
-        $sql = "SELECT DISTINCT facility_id,facility FROM ihrisdata WHERE district_id LIKE '$dist_id' ORDER BY facility ASC";
-      } else {
-        $facility = $_SESSION['facility'];
-        $sql = "SELECT DISTINCT facility_id,facility FROM ihrisdata WHERE facility_id LIKE '$facility'";
-      }
-
-      $facilities = $this->db->query($sql)->result();
-
-      $opt = "<option value=''>Select Facility</option>";
-
-      if (!empty($facilities)) {
-
-        foreach ($facilities as $facility) {
-          $opt .= "<option value='" . $facility->facility_id . "_" . $facility->facility . "'>" . ucwords($facility->facility) . "</option>";
-        }
-      }
-
-      echo $opt;
-    }
+    $this->get_facilities();
   }
 
 

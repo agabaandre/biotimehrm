@@ -37,6 +37,95 @@ class Lists extends MX_Controller
 	{
 		return $this->districts_mdl->switch_all_Districts();
 	}
+
+	/**
+	 * JSON payload for Switch Facility modal (facilities grouped by district_id).
+	 * Restricted users only receive facilities for their current district.
+	 */
+	public function switch_facility_data()
+	{
+		if (!$this->session->userdata('user_id')) {
+			$this->output->set_status_header(401);
+			$this->output->set_content_type('application/json')->set_output(json_encode(['error' => 'Unauthorized']));
+			return;
+		}
+
+		$this->load->library('facility_switch_cache', null, 'fsc');
+		$data = $this->fsc->get_data();
+
+		$permissions = $this->session->userdata('permissions');
+		if (!is_array($permissions)) {
+			$permissions = [];
+		}
+
+		$payload = [
+			'generated_at_iso'       => isset($data['generated_at_iso']) ? $data['generated_at_iso'] : null,
+			'districts'              => isset($data['districts']) ? $data['districts'] : [],
+			'facilities_by_district' => isset($data['facilities_by_district']) ? $data['facilities_by_district'] : [],
+		];
+
+		if (!in_array('38', $permissions)) {
+			$district_id = (string) $this->session->userdata('district_id');
+			if ($district_id === '' && isset($_SESSION['district_id'])) {
+				$district_id = (string) $_SESSION['district_id'];
+			}
+			$facility_id = (string) $this->session->userdata('facility');
+			if ($facility_id === '' && isset($_SESSION['facility'])) {
+				$facility_id = (string) $_SESSION['facility'];
+			}
+			$list = isset($payload['facilities_by_district'][$district_id])
+				? $payload['facilities_by_district'][$district_id]
+				: [];
+			if ($facility_id !== '') {
+				$list = array_values(array_filter($list, function ($row) use ($facility_id) {
+					return isset($row['facility_id']) && $row['facility_id'] === $facility_id;
+				}));
+			}
+			$payload['facilities_by_district'] = [$district_id => $list];
+		}
+
+		$this->output->set_content_type('application/json')->set_output(json_encode($payload));
+	}
+
+	/**
+	 * Rebuild Switch Facility district/facility cache from ihrisdata (manual refresh).
+	 */
+	public function rebuild_switch_facility_cache()
+	{
+		if (!$this->session->userdata('user_id')) {
+			show_error('Unauthorized', 401);
+		}
+		$permissions = $this->session->userdata('permissions');
+		if (!is_array($permissions)) {
+			$permissions = [];
+		}
+		if (!in_array('34', $permissions) && !in_array('38', $permissions)) {
+			show_error('Forbidden', 403);
+		}
+
+		$this->load->library('facility_switch_cache', null, 'fsc');
+		try {
+			$result = $this->fsc->rebuild();
+		} catch (Exception $e) {
+			$result = ['status' => 'error', 'message' => $e->getMessage()];
+		}
+
+		if ($this->input->is_ajax_request()) {
+			$this->output->set_content_type('application/json')->set_output(json_encode($result));
+			return;
+		}
+
+		$msg = isset($result['status']) && $result['status'] === 'success'
+			? 'Facility list cache rebuilt (' . (int) $result['districts'] . ' districts, ' . (int) $result['facilities'] . ' facilities).'
+			: 'Facility cache rebuild failed.';
+		$this->session->set_flashdata('message', $msg);
+		$redirect = $this->input->get('redirect');
+		if ($redirect) {
+			redirect($redirect);
+			return;
+		}
+		redirect($_SERVER['HTTP_REFERER'] ?: 'dashboard');
+	}
 	public function get_all_districts()
 	{
 		return $this->districts_mdl->get_all_Districts();

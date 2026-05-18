@@ -52,16 +52,21 @@ require_once("includes/sidenav.php");
           </section>
 
           <?php
-              $child_data = array();
-              if (isset($view)) $child_data['view'] = $view;
-              if (isset($module)) $child_data['module'] = $module;
-              if (isset($uptitle)) $child_data['uptitle'] = $uptitle;
-              if (isset($title)) $child_data['title'] = $title;
-              if (isset($can_mark_disabled)) $child_data['can_mark_disabled'] = $can_mark_disabled;
-              else $child_data['can_mark_disabled'] = (is_array($permissions) && (in_array('15', $permissions) || in_array(15, $permissions)));
-              if (isset($filter_options)) $child_data['filter_options'] = $filter_options;
-              if (isset($setting)) $child_data['setting'] = $setting;
-              $this->load->view($module . "/" . $view, $child_data);
+              $page_child_data = array();
+              if (isset($view)) $page_child_data['view'] = $view;
+              if (isset($module)) $page_child_data['module'] = $module;
+              if (isset($uptitle)) $page_child_data['uptitle'] = $uptitle;
+              if (isset($title)) $page_child_data['title'] = $title;
+              if (isset($can_mark_disabled)) {
+                  $page_child_data['can_mark_disabled'] = $can_mark_disabled;
+              } else {
+                  $page_child_data['can_mark_disabled'] = (is_array($permissions) && (in_array('15', $permissions) || in_array(15, $permissions)));
+              }
+              if (isset($filter_options)) {
+                  $page_child_data['filter_options'] = $filter_options;
+              }
+              if (isset($setting)) $page_child_data['setting'] = $setting;
+              $this->load->view($module . "/" . $view, $page_child_data);
           ?>
 
         </div> 
@@ -77,4 +82,7 @@ require_once("includes/sidenav.php");
 <!-- /.content-wrapper -->
 <?php
 require_once("includes/footer.php");
+if (!empty($module) && isset($view) && $view === 'staff_all_ihris') {
+    $this->load->view($module . '/staff_all_ihris_scripts', isset($page_child_data) ? $page_child_data : array());
+}
 ?>

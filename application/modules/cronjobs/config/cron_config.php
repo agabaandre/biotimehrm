@@ -58,7 +58,25 @@ $config['cron_jobs'] = [
         'log_level' => 'info',
         'retry_attempts' => 3,
         'retry_delay' => 300,
-    ]
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Switch Facility cache (districts + facilities from ihrisdata)
+    |--------------------------------------------------------------------------
+    | Cron Expression: 0 0 * * 0  (Sunday at midnight)
+    */
+    'facility_switch_cache' => [
+        'enabled' => TRUE,
+        'cron_expression' => '0 0 * * 0',
+        'controller' => 'cronjobs/FacilitySwitchCacheCron/rebuild',
+        'description' => 'Rebuild Switch Facility district/facility JSON cache from ihrisdata',
+        'timezone' => 'Africa/Kampala',
+        'max_execution_time' => 120,
+        'log_level' => 'info',
+        'retry_attempts' => 2,
+        'retry_delay' => 300,
+    ],
 ];
 
 /*

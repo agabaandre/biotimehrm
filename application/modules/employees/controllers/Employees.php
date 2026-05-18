@@ -42,15 +42,30 @@ class Employees extends MX_Controller
       show_404();
       return;
     }
+
+    // JSON filter lists (GET) — same URI as the page so HMVC routing stays reliable.
+    if ($this->input->get('filters') === '1') {
+      $district = $this->input->get('district');
+      if ($district !== null && $district !== '') {
+        $payload = ['facilities' => $this->empModel->get_ihris_facilities_for_district($district)];
+      } else {
+        $payload = $this->empModel->get_all_ihris_filter_options(true);
+      }
+      $this->output->set_content_type('application/json')->set_output(json_encode($payload));
+      return;
+    }
+
     if ($this->input->is_ajax_request()) {
       $this->_handleAllIhrisAjaxRequest();
       return;
     }
-    $data['filter_options'] = $this->empModel->get_all_ihris_filter_options();
+
+    $data['filter_options'] = $this->empModel->get_all_ihris_filter_options(false);
+    $data['staff_page_scripts'] = true;
+    $data['can_mark_disabled'] = true;
     $data['view'] = 'staff_all_ihris';
     $data['uptitle'] = 'All iHRIS Staff';
     $data['module'] = 'employees';
-    $data['can_mark_disabled'] = true;
     echo Modules::run('templates/main', $data);
   }
 
@@ -59,9 +74,15 @@ class Employees extends MX_Controller
     $draw = (int) $this->input->post('draw');
     $start = (int) $this->input->post('start');
     $length = (int) $this->input->post('length');
-    $search = $this->input->post('search')['value'] ?? '';
-    $order_column = (int) $this->input->post('order')[0]['column'];
-    $order_dir = $this->input->post('order')[0]['dir'] === 'desc' ? 'desc' : 'asc';
+    $search_post = $this->input->post('search');
+    $search = (is_array($search_post) && isset($search_post['value'])) ? $search_post['value'] : '';
+    $order_column = 3;
+    $order_dir = 'asc';
+    $order_post = $this->input->post('order');
+    if (is_array($order_post) && isset($order_post[0])) {
+      $order_column = (int) $order_post[0]['column'];
+      $order_dir = (isset($order_post[0]['dir']) && $order_post[0]['dir'] === 'desc') ? 'desc' : 'asc';
+    }
     $district = $this->input->post('district');
     $facility = $this->input->post('facility');
     $job = $this->input->post('job');
