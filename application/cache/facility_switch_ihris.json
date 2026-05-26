@@ -1,6 +1,6 @@
 {
-    "generated_at": 1779133798,
-    "generated_at_iso": "2026-05-18 22:49:58",
+    "generated_at": 1779777350,
+    "generated_at_iso": "2026-05-26 09:35:50",
     "timezone": "Africa\/Kampala",
     "districts": [
         {
@@ -867,11 +867,11 @@
                 "facility": "KAKET Health Centre II"
             },
             {
-                "facility_id": "facility|Ghospital-322-1",
+                "facility_id": "UCMB-facility|GHospital-322-1",
                 "facility": "KALONGO AMBROSOLI MEMORIAL HOSPITAL"
             },
             {
-                "facility_id": "UCMB-facility|GHospital-322-1",
+                "facility_id": "facility|Ghospital-322-1",
                 "facility": "KALONGO AMBROSOLI MEMORIAL HOSPITAL"
             },
             {
@@ -3041,11 +3041,11 @@
                 "facility": "BUYENGO Health Centre II"
             },
             {
-                "facility_id": "facility|1094",
+                "facility_id": "UCMB-facility|GHospital-202-1",
                 "facility": "DABANI HOSPITAL"
             },
             {
-                "facility_id": "UCMB-facility|GHospital-202-1",
+                "facility_id": "facility|1094",
                 "facility": "DABANI HOSPITAL"
             },
             {
@@ -5725,11 +5725,11 @@
                 "facility": "RUTEETE Health Centre III"
             },
             {
-                "facility_id": "facility|1117",
+                "facility_id": "UCMB-facility|GHospital-405-1",
                 "facility": "VIRIKA HOSPITAL"
             },
             {
-                "facility_id": "UCMB-facility|GHospital-405-1",
+                "facility_id": "facility|1117",
                 "facility": "VIRIKA HOSPITAL"
             }
         ],
@@ -6453,11 +6453,11 @@
                 "facility": "Wentz Medical Center IV"
             },
             {
-                "facility_id": "facility|988",
+                "facility_id": "facility|992",
                 "facility": "ZUKUULI MUSLIM Health Centre III"
             },
             {
-                "facility_id": "facility|992",
+                "facility_id": "facility|988",
                 "facility": "ZUKUULI MUSLIM Health Centre III"
             }
         ],
@@ -6703,11 +6703,11 @@
                 "facility": "Wentz Medical Center IV"
             },
             {
-                "facility_id": "facility|988",
+                "facility_id": "facility|992",
                 "facility": "ZUKUULI MUSLIM Health Centre III"
             },
             {
-                "facility_id": "facility|992",
+                "facility_id": "facility|988",
                 "facility": "ZUKUULI MUSLIM Health Centre III"
             }
         ],
@@ -10917,11 +10917,11 @@
                 "facility": "KAMWOZI Health Centre II (Masaka)"
             },
             {
-                "facility_id": "facility|1102",
+                "facility_id": "UCMB-facility|GHospital-105-1",
                 "facility": "KITOVU HEALTH CARE COMPLEX"
             },
             {
-                "facility_id": "UCMB-facility|GHospital-105-1",
+                "facility_id": "facility|1102",
                 "facility": "KITOVU HEALTH CARE COMPLEX"
             },
             {
@@ -11051,11 +11051,11 @@
                 "facility": "KAMWOZI Health Centre II (Masaka)"
             },
             {
-                "facility_id": "facility|1102",
+                "facility_id": "UCMB-facility|GHospital-105-1",
                 "facility": "KITOVU HEALTH CARE COMPLEX"
             },
             {
-                "facility_id": "UCMB-facility|GHospital-105-1",
+                "facility_id": "facility|1102",
                 "facility": "KITOVU HEALTH CARE COMPLEX"
             },
             {
@@ -13863,11 +13863,11 @@
                 "facility": "AKWORO Health Centre III"
             },
             {
-                "facility_id": "facility|Ghospital-310-2",
+                "facility_id": "UCMB-facility|GHospital-310-2",
                 "facility": "ANGAL ST. LUKE HOSPITAL"
             },
             {
-                "facility_id": "UCMB-facility|GHospital-310-2",
+                "facility_id": "facility|Ghospital-310-2",
                 "facility": "ANGAL ST. LUKE HOSPITAL"
             },
             {

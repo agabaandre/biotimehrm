@@ -393,7 +393,7 @@
 <script type="text/javascript">
     $(document).ready(function() {
         // $.notify("Hello","success");
-        var isPassChanged = <?php echo $pass_changed = $this->session->userdata('changed'); ?>;
+        var isPassChanged = <?php $pass_changed = $this->session->userdata('changed'); echo (int) (!empty($pass_changed) ? $pass_changed : 0); ?>;
 
         if (isPassChanged != 1) {
             console.log(isPassChanged);
@@ -449,9 +449,9 @@ if (!function_exists('switch_facility_district_option_value')) {
                 <?php } ?>
                 </p>
             <?php } ?>
-            <div class="modal-body">
-                <form class="form form-horizontal" action="<?php echo base_url(); ?>departments/switchDepartment" method="post">
-                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+            <form class="form form-horizontal" action="<?php echo base_url(); ?>departments/switchDepartment" method="post">
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                <div class="modal-body">
                     <div class="row">
                         <div class="col-md-12">
                             <label>District</label>
@@ -762,14 +762,22 @@ if (!function_exists('switch_facility_district_option_value')) {
         getUnits($(this).val());
     });
 
-    $("document").ready(function() {
+    $(document).ready(function() {
+        $switchModal = $('#switch');
+        // Explicit fallback trigger in case Bootstrap data-api fails to bind.
+        $(document).on('click.switchFacilityTrigger', '[data-toggle="modal"][data-target="#switch"]', function(e) {
+            if ($switchModal.length && !$switchModal.hasClass('show')) {
+                e.preventDefault();
+                $switchModal.modal('show');
+            }
+        });
         loadFacilitySwitchCache(function() {
             getFacs($switchModal.find('.sdistrict').val());
         });
     });
 
-    $switchModal.on('shown.bs.modal', function() {
-        getFacs($switchModal.find('.sdistrict').val());
+    $(document).on('shown.bs.modal', '#switch', function() {
+        getFacs($('#switch').find('.sdistrict').val());
     });
 
     function getuserDeps(val) {
