@@ -31,7 +31,7 @@
     
     <?php if (in_array('13', $permissions)) { ?>
       <li class="nav-item">
-        <a class="btn-modern nav-link" data-toggle="modal" data-target="#switch" style="cursor: pointer;">
+        <a class="btn-modern nav-link" href="#" data-toggle="modal" data-target="#switch" role="button" style="cursor: pointer;">
           <i class="fas fa-toggle-on" style="font-size: 0.75rem; margin-right: 0.3rem;"></i>
           <span class="hidden-mobile">Change Facility</span>
         </a>

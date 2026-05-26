@@ -522,11 +522,11 @@ if (!function_exists('switch_facility_district_option_value')) {
                             </div>
                         </div>
                     </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-info"><i class="fa fa-paper-plane" aria-hidden="true">Switch</i></button>
-                <button type="button" class="btn btn-default" data-dismiss="modal"><i class="fa fa-times">Close</i></button>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-info"><i class="fa fa-paper-plane" aria-hidden="true">Switch</i></button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><i class="fa fa-times">Close</i></button>
+                </div>
             </form>
         </div>
     </div>
