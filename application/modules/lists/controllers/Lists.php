@@ -159,9 +159,7 @@ class Lists extends MX_Controller
 
 	public function deleteDistrict()
 	{
-		$data = $this->input->post();
-		$message = $this->districts_mdl->deleteDistrict($data);
-		$this->session->set_flashdata('success', $message);
+		$this->session->set_flashdata('error', 'Deleting districts is not allowed.');
 		redirect('lists/getDistricts');
 	}
 
@@ -595,8 +593,7 @@ class Lists extends MX_Controller
 
 	public function deleteCadre()
 	{
-		$data = $this->input->post();
-		$this->cadre_mdl->deleteCadre($data);
+		$this->session->set_flashdata('error', 'Deleting cadres is not allowed.');
 		redirect('lists/getCadres');
 	}
 
@@ -721,8 +718,7 @@ class Lists extends MX_Controller
 
 	public function deleteJob()
 	{
-		$data = $this->input->post();
-		$this->jobs_mdl->deleteJob($data);
+		$this->session->set_flashdata('error', 'Deleting jobs is not allowed.');
 		redirect('lists/getJobs');
 	}
 

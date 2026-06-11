@@ -792,7 +792,57 @@ class Employee_model extends CI_Model
     }
 
     /**
-     * Set staff active state (0 = inactive/Former Staff, 1 = active). Uses is_active_employee in ihrisdata.
+     * Ensure optional employee lifecycle columns exist on ihrisdata.
+     */
+    public function ensureIhrisdataEmployeeColumns()
+    {
+        $this->load->dbforge();
+
+        if (!$this->db->field_exists('job_enddate', 'ihrisdata')) {
+            $this->dbforge->add_column('ihrisdata', [
+                'job_enddate' => [
+                    'type' => 'DATE',
+                    'null' => TRUE,
+                ],
+            ]);
+        }
+
+        if (!$this->db->field_exists('is_active', 'ihrisdata')) {
+            $this->dbforge->add_column('ihrisdata', [
+                'is_active' => [
+                    'type' => 'TINYINT',
+                    'constraint' => 1,
+                    'null' => FALSE,
+                    'default' => 1,
+                ],
+            ]);
+        }
+
+        if (!$this->db->field_exists('is_active_employee', 'ihrisdata')) {
+            $this->dbforge->add_column('ihrisdata', [
+                'is_active_employee' => [
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'null' => FALSE,
+                    'default' => 1,
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * @return string
+     */
+    private function generateNewIhrisPid()
+    {
+        $row = $this->db->select_max('id', 'max_id')->get('ihrisdata')->row();
+        $next_id = ($row && !empty($row->max_id)) ? ((int) $row->max_id + 1) : 1;
+
+        return 'person|' . $next_id;
+    }
+
+    /**
+     * Set staff active state (0 = inactive/Former Staff, 1 = active).
      */
     public function set_staff_status($ihris_pid, $active)
     {
@@ -800,8 +850,21 @@ class Employee_model extends CI_Model
         if (strpos($pid, 'person|') !== 0) {
             $pid = 'person|' . $pid;
         }
+
+        $update = [];
+        if ($this->db->field_exists('is_active_employee', 'ihrisdata')) {
+            $update['is_active_employee'] = (int) $active;
+        }
+        if ($this->db->field_exists('is_active', 'ihrisdata')) {
+            $update['is_active'] = (int) $active;
+        }
+        if (empty($update)) {
+            return false;
+        }
+
         $this->db->where('ihris_pid', $pid);
-        $this->db->update('ihrisdata', array('is_active_employee' => (int) $active));
+        $this->db->update('ihrisdata', $update);
+
         return $this->db->affected_rows() > 0;
     }
 
@@ -1930,6 +1993,8 @@ class Employee_model extends CI_Model
 
     public function save_employee($postdata)
     {
+        $this->ensureIhrisdataEmployeeColumns();
+
         $facility_id = trim((string) ($postdata['facility_id'] ?? ''));
         $facility_name = trim((string) ($postdata['facility'] ?? ''));
 
@@ -1943,41 +2008,74 @@ class Employee_model extends CI_Model
             $facility_id = trim((string) $facility_row->facility_id);
         }
 
+        if ($facility_name === '' || $facility_id === '') {
+            return 'Please select a valid ' . strtolower(entity_label('facility')) . '.';
+        }
+
         $data = array(
-            'firstname' => $postdata['firstname'],
-            'othername' => $postdata['othername'],
-            'surname' => $postdata['surname'],
-            'gender' => $postdata['gender'],
-            'birth_date' => $postdata['birth_date'],
-            'home_district' => $postdata['home_district'],
-            'mobile' => $postdata['mobile'],
-            'telephone' => $postdata['telephone'],
-            'email' => $postdata['email'],
-            'place_of_residence' => $postdata['place_of_residence'],
-            'nin' => $postdata['nin'],
-            'job' => $postdata['job'],
-            'job_id' => $postdata['job_id'],
-            'salary_grade' => $postdata['salary_grade'],
-            'employment_terms' => $postdata['employment_terms'],
-            'cadre' => $postdata['cadre'],
+            'ihris_pid' => $this->generateNewIhrisPid(),
+            'firstname' => $postdata['firstname'] ?? '',
+            'othername' => $postdata['othername'] ?? '',
+            'surname' => $postdata['surname'] ?? '',
+            'gender' => $postdata['gender'] ?? '',
+            'birth_date' => $postdata['birth_date'] !== '' ? $postdata['birth_date'] : null,
+            'home_district' => $postdata['home_district'] ?? '',
+            'mobile' => $postdata['mobile'] ?? '',
+            'telephone' => $postdata['telephone'] ?? '',
+            'email' => $postdata['email'] ?? '',
+            'place_of_residence' => $postdata['place_of_residence'] ?? '',
+            'nin' => trim((string) ($postdata['nin'] ?? '')),
+            'card_number' => trim((string) ($postdata['card_number'] ?? '')),
+            'ipps' => trim((string) ($postdata['ipps'] ?? '')),
+            'job' => $postdata['job'] ?? '',
+            'job_id' => $postdata['job_id'] ?? '',
+            'salary_grade' => $postdata['salary_grade'] ?? '',
+            'employment_terms' => $postdata['employment_terms'] ?? '',
+            'cadre' => $postdata['cadre'] ?? '',
             'facility_id' => $facility_id,
             'facility' => $facility_name,
-            'institution_category' => $postdata['institution_category'] ?? ($facility_row->institution_category ?? ''),
-            'institutiontype_name' => $postdata['institutiontype_name'] ?? ($facility_row->institution_type ?? ''),
-            'institution_level' => $postdata['institution_level'] ?? ($facility_row->institution_level ?? ''),
-            'district_id' => $postdata['district_id'] ?? ($facility_row->district_id ?? ''),
-            'district' => $postdata['district'] ?? ($facility_row->district_name ?? ''),
+            'institution_category' => $postdata['institution_category'] ?? ($facility_row ? $facility_row->institution_category : ''),
+            'institutiontype_name' => $postdata['institutiontype_name'] ?? ($facility_row ? $facility_row->institution_type : ''),
+            'institution_level' => $postdata['institution_level'] ?? ($facility_row ? $facility_row->institution_level : ''),
+            'district_id' => $postdata['district_id'] ?? ($facility_row ? $facility_row->district_id : ''),
+            'district' => $postdata['district'] ?? '',
         );
 
-        $qry = $this->db->insert("ihrisdata", $data);
+        if ($this->db->field_exists('is_active', 'ihrisdata')) {
+            $data['is_active'] = 1;
+        }
+        if ($this->db->field_exists('is_active_employee', 'ihrisdata')) {
+            $data['is_active_employee'] = 1;
+        }
+        if ($this->db->field_exists('job_enddate', 'ihrisdata')) {
+            $data['job_enddate'] = null;
+        }
+        if ($this->db->field_exists('section', 'ihrisdata') && !isset($data['section'])) {
+            $data['section'] = '';
+        }
+        if ($this->db->field_exists('region', 'ihrisdata') && empty($data['region'])) {
+            $data['region'] = '';
+        }
+
+        $insert_data = [];
+        foreach ($data as $column => $value) {
+            if ($this->db->field_exists($column, 'ihrisdata')) {
+                $insert_data[$column] = $value;
+            }
+        }
+
+        $this->db->insert('ihrisdata', $insert_data);
         $rows = $this->db->affected_rows();
 
         if ($rows > 0) {
-
-            return "Employee has been Added Successfully";
-        } else {
-
-            return "Operation failed";
+            return 'Employee has been added successfully';
         }
+
+        $err = $this->db->error();
+        if (!empty($err['message'])) {
+            return $err['message'];
+        }
+
+        return 'Operation failed';
     }
 }

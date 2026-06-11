@@ -454,6 +454,7 @@ class Employees extends MX_Controller
 
   public function createEmployee()
   {
+    $this->empModel->ensureIhrisdataEmployeeColumns();
     $data['title'] = "Staff";
     $data['facilities'] = Modules::run("lists/get_all_Facilities");
     $data['facilities_json'] = json_encode(Modules::run("lists/get_all_Facilities"));
@@ -471,9 +472,34 @@ class Employees extends MX_Controller
   public function saveEmployee()
   {
     $data = $this->input->post();
-    $this->empModel->save_employee($data);
+    if (empty($data)) {
+      return $this->_employeeSaveResponse('error', 'No data received');
+    }
 
-    redirect('employees/index');
+    $result = $this->empModel->save_employee($data);
+    $ok = stripos($result, 'success') !== false || stripos($result, 'added') !== false;
+
+    return $this->_employeeSaveResponse($ok ? 'success' : 'error', $result);
+  }
+
+  /**
+   * @param string $status
+   * @param string $message
+   */
+  private function _employeeSaveResponse($status, $message)
+  {
+    $payload = [
+      'status'     => $status,
+      'message'    => $message,
+      'csrf_token' => $this->security->get_csrf_hash(),
+    ];
+
+    if ($this->input->is_ajax_request()) {
+      return $this->output->set_content_type('application/json')->set_output(json_encode($payload));
+    }
+
+    $this->session->set_flashdata($status === 'success' ? 'success' : 'error', $message);
+    redirect($status === 'success' ? 'employees/index' : 'employees/createEmployee');
   }
 
   public function personlogs()

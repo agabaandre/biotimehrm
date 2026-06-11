@@ -1,7 +1,8 @@
 <!-- Main content -->
 <section class="content">
     <div class="container-fluid">
-        <form class="district_form" method="post" action="<?php echo base_url(); ?>employees/saveEmployee">
+        <form id="createEmployeeForm" class="district_form" method="post" action="<?php echo base_url(); ?>employees/saveEmployee">
+            <input type="hidden" id="createEmployeeCsrf" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
             <div class="row">
 
                 <!-- right column -->
@@ -95,11 +96,15 @@
                             </div>
                             <div class="form-group">
                                 <label>National Identification Number (NIN)</label>
-                                <input type="text" class="form-control" name="nin" required>
+                                <input type="text" class="form-control" name="nin">
                             </div>
                             <div class="form-group">
                                 <label>National ID Card Number</label>
-                                <input type="number" class="form-control" name="card_number" required>
+                                <input type="text" class="form-control" name="card_number">
+                            </div>
+                            <div class="form-group">
+                                <label>IPPS / HCM Number</label>
+                                <input type="text" class="form-control" name="ipps" placeholder="Optional">
                             </div>
                             <div class="form-group">
                                 <label>Place of Residence</label>
@@ -185,8 +190,10 @@
                             </div>
 
                             <div class="card-footer">
-                                <button type="reset" class="btn bg-gray btn-outline">Reset All</button>
-                                <button type="submit" class="btn bg-gray-dark color-pale">Submit</button>
+                                <button type="reset" class="btn bg-gray btn-outline" id="resetEmployeeForm">Reset All</button>
+                                <button type="submit" class="btn bg-gray-dark color-pale" id="submitEmployeeForm">
+                                    <i class="fas fa-save mr-1"></i>Submit
+                                </button>
                             </div>
 
                         </div>
@@ -201,9 +208,31 @@
 </section>
 <!-- /.content -->
 
+<link rel="stylesheet" href="<?php echo base_url('assets/plugins/toastr/toastr.min.css'); ?>">
+<script src="<?php echo base_url('assets/plugins/toastr/toastr.min.js'); ?>"></script>
+
 <script>
+    var csrfTokenName = <?php echo json_encode($this->security->get_csrf_token_name()); ?>;
     var facility_json = <?php echo !empty($facilities_json) ? $facilities_json : '[]'; ?>;
     var job_json = <?php echo !empty($jobs_json) ? $jobs_json : '[]'; ?>;
+
+    function refreshEmployeeCsrfToken(hash) {
+        if (!hash) {
+            return;
+        }
+        $('input[name="' + csrfTokenName + '"]').val(hash);
+        $('#createEmployeeCsrf').val(hash);
+    }
+
+    function resetEmployeeFormFields() {
+        var form = document.getElementById('createEmployeeForm');
+        if (form) {
+            form.reset();
+        }
+        $('#createEmployeeForm .select2').val(null).trigger('change');
+        updateInstitutionFields('');
+        document.getElementById('job_id').value = '';
+    }
 
     function updateInstitutionFields(facilityName) {
         var match = (facility_json || []).find(function(row) {
@@ -241,8 +270,67 @@
     }
 
     $(document).ready(function() {
+        toastr.options = {
+            closeButton: true,
+            progressBar: true,
+            positionClass: 'toast-top-right',
+            timeOut: 5000
+        };
+
         $('#facility').on('change', function() {
             updateInstitutionFields(this.value);
+        });
+
+        $('#createEmployeeForm').on('submit', function(e) {
+            e.preventDefault();
+            var form = this;
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            if (!$('#facility_id').val()) {
+                toastr.error('Please select a <?php echo strtolower(entity_label('facility')); ?>.');
+                return;
+            }
+
+            var $form = $(form);
+            var $submit = $('#submitEmployeeForm');
+            var originalHtml = $submit.html();
+            $submit.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Saving...');
+
+            $.ajax({
+                url: $form.attr('action'),
+                type: 'POST',
+                data: $form.serialize(),
+                dataType: 'json',
+                success: function(result) {
+                    refreshEmployeeCsrfToken(result.csrf_token);
+                    if (result.status === 'success') {
+                        toastr.success(result.message || 'Employee saved successfully.');
+                        resetEmployeeFormFields();
+                    } else {
+                        toastr.error(result.message || 'Failed to save employee.');
+                    }
+                },
+                error: function(xhr) {
+                    if (xhr.status === 403) {
+                        toastr.error('Security token expired. Please refresh the page and try again.');
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        toastr.error(xhr.responseJSON.message);
+                    } else {
+                        toastr.error('Failed to save employee. Please try again.');
+                    }
+                },
+                complete: function() {
+                    $submit.prop('disabled', false).html(originalHtml);
+                }
+            });
+        });
+
+        $('#resetEmployeeForm').on('click', function() {
+            window.setTimeout(function() {
+                resetEmployeeFormFields();
+            }, 0);
         });
     });
 </script>

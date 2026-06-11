@@ -37,17 +37,11 @@
                                     <button class="btn btn-sm btn  btnkey bg-gray-dark color-pale" data-toggle="modal"
                                         data-target="#EditModal<?php echo $cadre->id; ?>">Edit</button>
                                     <?php //} ?>
-
-                                    <?php //if (in_array('41', $permissions)) { ?>
-                                    <button class="btn btn-sm btnkey bg-danger color-pale " data-toggle="modal"
-                                        data-target="#delete<?php echo $cadre->id; ?>">Delete</button>
-                                    <?php //} ?>
                                 </td>
                             </tr>
 
                             <?php 
                        include('eddit_modal.php');
-                       include('delete_modal.php');
                         $no++;
                         endforeach ?>
 
