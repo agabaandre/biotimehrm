@@ -279,6 +279,7 @@ class Apiemployee_model extends CI_Model
                 if ($completedRecord) {
                     // User has completed a clock cycle today, create a new clock-in
                     if ($this->db->insert('mobileclk_log', $data)) {
+                        $this->recordActualsFromMobileClockIn($data);
                         return [
                             'status' => true,
                             'message' => 'Created new clock-in after previous complete cycle',
@@ -314,6 +315,7 @@ class Apiemployee_model extends CI_Model
                 
                 // Insert new clock in record
                 if ($this->db->insert('mobileclk_log', $data)) {
+                    $this->recordActualsFromMobileClockIn($data);
                     return [
                         'status' => true,
                         'message' => 'Clock-in successful',
@@ -432,11 +434,14 @@ class Apiemployee_model extends CI_Model
 
     public function clock_user_mobile($data)
     {
-
         $this->db->insert('clk_log', $data);
+        $insert_id = $this->db->insert_id();
 
+        if ($insert_id && !empty($data['time_in'])) {
+            $this->recordActualsFromMobileClockIn($data);
+        }
 
-        return $this->db->insert_id(); // Return the ID of the inserted record if needed
+        return $insert_id;
     }
     public function clock_out_mobile($entry_id, $timeout)
     {
@@ -1045,5 +1050,92 @@ class Apiemployee_model extends CI_Model
     public function get_jobs()
     {
         return $this->db->select('job_title')->order_by('job_title', 'ASC')->get('employee_jobs')->result_array();
+    }
+
+    /**
+     * Record a Present (schedule 22) actual after a successful mobile clock-in.
+     * entry_id matches biotime sync: {YYYY-MM-DD}{ihris_pid}.
+     *
+     * @param array<string, mixed> $data
+     * @return bool
+     */
+    public function recordActualsFromMobileClockIn(array $data)
+    {
+        $ihris_pid = trim((string) ($data['ihris_pid'] ?? ''));
+        $facility_id = trim((string) ($data['facility_id'] ?? ''));
+        $date = $this->normalizeActualsDate($data['date'] ?? '');
+
+        if ($ihris_pid === '' || $facility_id === '' || $date === '') {
+            return false;
+        }
+
+        $entry_id = $date . $ihris_pid;
+        if ($this->db->get_where('actuals', ['entry_id' => $entry_id], 1)->row()) {
+            return true;
+        }
+
+        $employee = $this->db->select('department_id, department')
+            ->from('ihrisdata')
+            ->where('ihris_pid', $ihris_pid)
+            ->limit(1)
+            ->get()
+            ->row();
+
+        $department_id = null;
+        if ($employee) {
+            $department_id = !empty($employee->department_id)
+                ? $employee->department_id
+                : ($employee->department ?? null);
+        }
+
+        $schedule_id = 22;
+        $color = null;
+        $schedule = $this->db->select('schedule_id, color')
+            ->from('schedules')
+            ->where('schedule_id', 22)
+            ->limit(1)
+            ->get()
+            ->row();
+        if ($schedule) {
+            $schedule_id = (int) $schedule->schedule_id;
+            $color = $schedule->color ?? null;
+        }
+
+        $insert = [
+            'entry_id'      => $entry_id,
+            'facility_id'   => $facility_id,
+            'department_id' => $department_id,
+            'ihris_pid'     => $ihris_pid,
+            'schedule_id'   => $schedule_id,
+            'color'         => $color,
+            'date'          => $date,
+            'end'           => date('Y-m-d', strtotime($date . ' +1 day')),
+            'allDay'        => 'true',
+            'stream'        => 'mobile',
+        ];
+
+        $this->db->insert('actuals', $insert);
+
+        return $this->db->affected_rows() > 0;
+    }
+
+    /**
+     * @param mixed $date
+     * @return string
+     */
+    private function normalizeActualsDate($date)
+    {
+        $date = trim((string) $date);
+        if ($date === '') {
+            return '';
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return $date;
+        }
+
+        $parsed = strtotime($date);
+
+        return $parsed ? date('Y-m-d', $parsed) : '';
     }
 }
