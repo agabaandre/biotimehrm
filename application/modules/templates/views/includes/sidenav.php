@@ -92,7 +92,7 @@
              <ul class="nav nav-treeview">
                <li class="nav-item"><a href="<?php echo base_url() ?>employees" class="nav-link <?php echo ($this->uri->segment(1) == 'employees' && $this->uri->segment(2) == '') ? 'active' : ''; ?>">
                    <i class="far fa-circle nav-icon"></i>
-                   Facility Staff List</a></li>
+                   <?php echo entity_label('facility_staff_list'); ?></a></li>
                <li class="nav-item"><a href="<?php echo base_url() ?>employees/district_employees" class="nav-link <?php echo ($this->uri->segment(1) == 'employees' && $this->uri->segment(2) == 'district_employees') ? 'active' : ''; ?>">
                    <i class="far fa-circle nav-icon"></i>
                    District Staff List</a></li>

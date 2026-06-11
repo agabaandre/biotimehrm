@@ -64,7 +64,7 @@ $filter_counts_label = count($filter_districts) . ' districts, ' . count($filter
                 </select>
               </div>
               <div class="col-md-2">
-                <label class="form-label">Facility</label>
+                <label class="form-label"><?php echo entity_label('facility'); ?></label>
                 <select class="form-control form-control-sm ihris-filter-s2" id="filterFacility" name="facility">
                   <option value="">All (select district to narrow)</option>
                 </select>
@@ -92,7 +92,7 @@ $filter_counts_label = count($filter_districts) . ' districts, ' . count($filter
                 </select>
               </div>
               <div class="col-md-2">
-                <label class="form-label">Facility Type</label>
+                <label class="form-label"><?php echo entity_label('facility_type'); ?></label>
                 <select class="form-control form-control-sm ihris-filter-s2" id="filterFacilityType" name="facility_type">
                   <option value="">All</option>
                   <?php foreach ($filter_facility_types as $o) {
@@ -148,7 +148,7 @@ $filter_counts_label = count($filter_districts) . ' districts, ' . count($filter
                     <th>Phone</th>
                     <th>Email</th>
                     <th>District</th>
-                    <th>Facility</th>
+                    <th><?php echo entity_label('facility'); ?></th>
                     <th>Department</th>
                     <th>Job</th>
                     <th>Terms</th>

@@ -72,7 +72,7 @@ $staffs = Modules::run('employees/get_employees'); //print_r($staffs[0]);
                           <th>First Name</th>
                           <th>Othername</th>
                           <th>Job</th>
-                          <th>Facility</th>
+                          <th><?php echo entity_label('facility'); ?></th>
                         </thead> -->
             <script>
               $(document).ready(function() {

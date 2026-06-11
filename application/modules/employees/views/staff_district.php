@@ -269,7 +269,7 @@
                 </label>
               <div class="input-group">
                   <input type="text" class="form-control form-control-lg" id="globalSearch" 
-                         placeholder="Search by name, ID, NIN, phone, email, department, job, facility, or any other field...">
+                         placeholder="Search by name, ID, NIN, phone, email, department, job, <?php echo strtolower(entity_label('facility')); ?>, or any other field...">
                   <div class="input-group-append">
                     <button type="submit" class="btn btn-info btn-lg">
                       <i class="fas fa-search mr-2"></i>Search
@@ -280,7 +280,7 @@
               </div>
             </div>
                 <small class="form-text text-muted">
-                  <i class="fas fa-info-circle mr-1"></i> Searches across all employee fields including name, ID, NIN, phone, email, department, job, facility, etc.
+                  <i class="fas fa-info-circle mr-1"></i> Searches across all employee fields including name, ID, NIN, phone, email, department, job, <?php echo strtolower(entity_label('facility')); ?>, etc.
                 </small>
               </div>
               <div class="col-12 mt-3 pt-3" style="border-top: 1px solid #dee2e6;">
@@ -330,7 +330,7 @@
                     <th style="width: 120px;">Birth Date</th>
                     <th style="width: 120px;">Phone</th>
                     <th style="min-width: 150px;">Email</th>
-                    <th style="min-width: 150px;">Facility</th>
+                    <th style="min-width: 150px;"><?php echo entity_label('facility'); ?></th>
                     <th style="min-width: 120px;">Department</th>
                     <th style="min-width: 120px;">Job</th>
                     <th style="width: 120px;">Terms</th>
@@ -369,7 +369,7 @@
             </div>
             <h6 class="staff-name mt-2">Staff Name</h6>
             <p class="text-muted staff-job">Job Title</p>
-            <p class="text-muted staff-facility">Facility</p>
+            <p class="text-muted staff-facility"><?php echo entity_label('facility'); ?></p>
           </div>
           <div class="col-md-8">
             <form id="inchargeForm">

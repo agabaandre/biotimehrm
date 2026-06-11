@@ -42,7 +42,7 @@
 				<th style="width: 32px;">#</th>
 				<th class="text-left" style="width: 22%;">Name</th>
 				<th class="text-left" style="width: 18%;">Position</th>
-				<th class="text-left" style="width: 18%;">Facility</th>
+				<th class="text-left" style="width: 18%;"><?php echo entity_label('facility'); ?></th>
 				<th class="text-left" style="width: 14%;">Department</th>
 				<th class="text-left" style="width: 14%;">Date</th>
 				<th class="num" style="width: 14%;">Hours Worked</th>

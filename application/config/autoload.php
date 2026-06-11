@@ -89,7 +89,7 @@ $autoload['drivers'] = array('cache');
 |
 |	$autoload['helper'] = array('url', 'file');
 */
-$autoload['helper'] = array('url', 'form', 'absent', 'rosta', 'text', 'custom', 'attendance', 'mysql8_ihris');
+$autoload['helper'] = array('url', 'form', 'absent', 'rosta', 'text', 'custom', 'attendance', 'mysql8_ihris', 'deployment');
 
 /*
 | -------------------------------------------------------------------

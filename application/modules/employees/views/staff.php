@@ -9,7 +9,7 @@
             <i class="fas fa-users text-info"></i>
             <?php echo $_SESSION['facility_name']; ?> Staff
           </h4>
-          <p class="page-subtitle">Manage and view all employees in the facility</p>
+          <p class="page-subtitle">Manage and view all employees <?php echo entity_label('in_the_facility'); ?></p>
         </div>
       </div>
     </div>
@@ -132,7 +132,7 @@
             </div>
             <h6 class="staff-name mt-2">Staff Name</h6>
             <p class="text-muted staff-job">Job Title</p>
-            <p class="text-muted staff-facility">Facility</p>
+            <p class="text-muted staff-facility"><?php echo entity_label('facility'); ?></p>
           </div>
           <div class="col-md-8">
             <form id="inchargeForm">

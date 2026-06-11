@@ -180,7 +180,7 @@ $facility_name = isset($_SESSION['facility_name']) ? $_SESSION['facility_name'] 
           <th>#</th>
               <th>Name</th>
               <th>Position</th>
-              <th>Facility</th>
+              <th><?php echo entity_label('facility'); ?></th>
               <th>Department</th>
               <th>Date</th>
               <th>Hours Worked</th>

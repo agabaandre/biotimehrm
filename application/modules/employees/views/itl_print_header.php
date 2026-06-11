@@ -48,7 +48,7 @@
 		<tbody>
 			<tr><td>Employee Name</td><td><?php echo isset($employee) && $employee ? htmlspecialchars(trim(($employee->surname ?? '') . ' ' . ($employee->firstname ?? ''))) : ''; ?></td></tr>
 			<tr><td>Designation</td><td><?php echo isset($employee) && $employee ? htmlspecialchars($employee->job ?? '') : ''; ?></td></tr>
-			<tr><td>Facility</td><td><?php echo isset($employee) && $employee ? htmlspecialchars($employee->facility ?? '') : ''; ?></td></tr>
+			<tr><td><?php echo entity_label('facility'); ?></td><td><?php echo isset($employee) && $employee ? htmlspecialchars($employee->facility ?? '') : ''; ?></td></tr>
 			<tr><td>Department</td><td><?php echo isset($employee) && $employee ? htmlspecialchars($employee->department ?? '') : ''; ?></td></tr>
 			<tr><td>Period</td><td><strong><?php echo isset($from) ? date('j F, Y', strtotime($from)) : ''; ?> to <?php echo isset($to) ? date('j F, Y', strtotime($to)) : ''; ?></strong></td></tr>
 		</tbody>

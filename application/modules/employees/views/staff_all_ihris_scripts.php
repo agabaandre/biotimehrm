@@ -18,7 +18,7 @@
             theme: 'bootstrap4',
             width: '100%',
             dropdownParent: $('#filterForm'),
-            placeholder: $el && $el.attr('id') === 'filterFacility' ? 'All facilities' : undefined,
+            placeholder: $el && $el.attr('id') === 'filterFacility' ? '<?php echo addslashes(entity_label('all_entities')); ?>' : undefined,
             allowClear: $el && $el.attr('id') === 'filterFacility',
             minimumResultsForSearch: 6
         };

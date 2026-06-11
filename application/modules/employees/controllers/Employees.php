@@ -374,7 +374,7 @@ class Employees extends MX_Controller
     header('Cache-Control: no-cache');
     $fh = fopen('php://output', 'w');
     fprintf($fh, chr(0xEF).chr(0xBB).chr(0xBF));
-    $header = array('#', 'Staff ID', 'NIN', 'Full Name', 'Gender', 'Birth Date', 'Phone', 'Email', 'Facility', 'Department', 'Job', 'Terms', 'Card #', 'Status');
+    $header = array('#', 'Staff ID', 'NIN', 'Full Name', 'Gender', 'Birth Date', 'Phone', 'Email', entity_label('facility'), 'Department', 'Job', 'Terms', 'Card #', 'Status');
     fputcsv($fh, $header);
     $batch_size = 500;
     $row_no = 1;
@@ -415,7 +415,7 @@ class Employees extends MX_Controller
     header('Cache-Control: no-cache');
     $fh = fopen('php://output', 'w');
     fprintf($fh, chr(0xEF).chr(0xBB).chr(0xBF));
-    $header = array('#', 'Staff ID', 'NIN', 'Full Name', 'Gender', 'Birth Date', 'Phone', 'Email', 'Facility', 'Department', 'Job', 'Terms', 'Card #', 'Status');
+    $header = array('#', 'Staff ID', 'NIN', 'Full Name', 'Gender', 'Birth Date', 'Phone', 'Email', entity_label('facility'), 'Department', 'Job', 'Terms', 'Card #', 'Status');
     fputcsv($fh, $header, "\t");
     $batch_size = 500;
     $row_no = 1;
@@ -446,7 +446,7 @@ class Employees extends MX_Controller
     $data['facilities'] = Modules::run("facilities/getFacilities");
     $data['jobs'] = Modules::run("jobs/getJobs");
     $data['view'] = 'staff';
-    $data['uptitle'] = "Staff List";
+    $data['uptitle'] = entity_label('facility_staff_list');
     $data['module'] = "employees";
     echo Modules::run("templates/main", $data);
   }
@@ -829,7 +829,7 @@ class Employees extends MX_Controller
     header('Content-Disposition: attachment; filename="' . $csv_file . '"');
     header('Cache-Control: no-cache, must-revalidate');
     $fh = fopen('php://output', 'w');
-    fputcsv($fh, array('#', 'Name', 'Position', 'Facility', 'Department', 'Date', 'Hours Worked'));
+    fputcsv($fh, array('#', 'Name', 'Position', entity_label('facility'), 'Department', 'Date', 'Hours Worked'));
     if (ob_get_level() > 0) {
       ob_flush();
     }
