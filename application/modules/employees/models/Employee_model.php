@@ -1930,9 +1930,20 @@ class Employee_model extends CI_Model
 
     public function save_employee($postdata)
     {
+        $facility_id = trim((string) ($postdata['facility_id'] ?? ''));
+        $facility_name = trim((string) ($postdata['facility'] ?? ''));
+
+        $this->load->model('lists/facilities_mdl', 'facilities_mdl');
+        $facility_row = $facility_id !== '' ? $this->facilities_mdl->getByFacilityId($facility_id) : null;
+        if (!$facility_row && $facility_name !== '') {
+            $facility_row = $this->db->get_where('employee_facility', ['facility' => $facility_name], 1)->row();
+        }
+        if ($facility_row) {
+            $facility_name = trim((string) $facility_row->facility);
+            $facility_id = trim((string) $facility_row->facility_id);
+        }
 
         $data = array(
-
             'firstname' => $postdata['firstname'],
             'othername' => $postdata['othername'],
             'surname' => $postdata['surname'],
@@ -1949,12 +1960,13 @@ class Employee_model extends CI_Model
             'salary_grade' => $postdata['salary_grade'],
             'employment_terms' => $postdata['employment_terms'],
             'cadre' => $postdata['cadre'],
-            'facility_id' => $postdata['facility_id'],
-            'facility' => $postdata['facility'],
-            'institution_category' => $postdata['institution_category'],
-            'institutiontype_name' => $postdata['institutiontype_name'],
-            'institution_level' => $postdata['institution_level'],
-            'district_id' => $postdata['district_id']
+            'facility_id' => $facility_id,
+            'facility' => $facility_name,
+            'institution_category' => $postdata['institution_category'] ?? ($facility_row->institution_category ?? ''),
+            'institutiontype_name' => $postdata['institutiontype_name'] ?? ($facility_row->institution_type ?? ''),
+            'institution_level' => $postdata['institution_level'] ?? ($facility_row->institution_level ?? ''),
+            'district_id' => $postdata['district_id'] ?? ($facility_row->district_id ?? ''),
+            'district' => $postdata['district'] ?? ($facility_row->district_name ?? ''),
         );
 
         $qry = $this->db->insert("ihrisdata", $data);

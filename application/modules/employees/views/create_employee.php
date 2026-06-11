@@ -49,14 +49,18 @@
                             </div>
                             <div class="form-group">
                                 <label>Home District</label>
-                                <select type="text" class="form-control select2" name="home_district" required>
-                                    <option disabled>Select ...</option>
+                                <select class="form-control select2" name="home_district" required>
+                                    <option value="">Select ...</option>
                                     <?php
-                                    $districts = Modules::run('lists/get_all_districts');
-                                    foreach ($districts as $district) { ?>
-                                        <option value="<?php echo $district->name; ?>"><?php echo $district->name; ?></option>
+                                    $home_districts = (isset($districts) && is_array($districts)) ? $districts : [];
+                                    foreach ($home_districts as $district) {
+                                        $district_name = isset($district->name) ? trim((string) $district->name) : '';
+                                        if ($district_name === '') {
+                                            continue;
+                                        }
+                                    ?>
+                                        <option value="<?php echo htmlspecialchars($district_name, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($district_name, ENT_QUOTES, 'UTF-8'); ?></option>
                                     <?php } ?>
-
                                 </select>
                             </div>
 
@@ -119,14 +123,15 @@
                         <div class="card-body">
 
                             <div class="form-group">
-                                <label>Institution</label>
-                                <select type="text" class="form-control select2" id="facility" 
-                                name="facility" onchange="updateInstitutionFields(document.getElementById('facility').value)" required>
-
-                                    <option>Select ...</option>
-                                    <?php foreach ($facilities as $facility) { ?>
-                                        <option value="<?php echo $facility->facility; ?>"><?php echo $facility->facility; ?></option>
-                                    <?php } ?>
+                                <label><?php echo entity_label('facility'); ?></label>
+                                <select class="form-control select2" id="facility" name="facility" onchange="updateInstitutionFields(this.value)" required>
+                                    <option value="">Select ...</option>
+                                    <?php if (!empty($facilities)) { foreach ($facilities as $facility) { ?>
+                                        <option value="<?php echo htmlspecialchars($facility->facility, ENT_QUOTES, 'UTF-8'); ?>"
+                                                data-facility-id="<?php echo htmlspecialchars($facility->facility_id, ENT_QUOTES, 'UTF-8'); ?>">
+                                            <?php echo htmlspecialchars($facility->facility, ENT_QUOTES, 'UTF-8'); ?>
+                                        </option>
+                                    <?php } } ?>
                                 </select>
                             </div>
 
@@ -135,6 +140,7 @@
                             <input type="hidden" class="form-control" id="institutiontype_name" name="institutiontype_name">
                             <input type="hidden" class="form-control" id="institution_level" name="institution_level">
                             <input type="hidden" class="form-control" id="district_id" name="district_id">
+                            <input type="hidden" class="form-control" id="district" name="district">
 
                             <div class="form-group">
                                 <label>Job Title</label>
@@ -196,40 +202,47 @@
 <!-- /.content -->
 
 <script>
-    var facility_json = JSON.parse('<?php echo $facilities_json; ?>');
-    var job_json = JSON.parse('<?php echo $jobs_json; ?>');
+    var facility_json = <?php echo !empty($facilities_json) ? $facilities_json : '[]'; ?>;
+    var job_json = <?php echo !empty($jobs_json) ? $jobs_json : '[]'; ?>;
 
-    console.log(job_json);
-
-    function updateInstitutionFields(addressId) {
-
-        var as = $(facility_json).filter(function(i, n) {
-            return n.facility === addressId
+    function updateInstitutionFields(facilityName) {
+        var match = (facility_json || []).find(function(row) {
+            return row && row.facility === facilityName;
         });
-        console.log(as);
 
-        for (var i = 0; i < as.length; i++) {
-            document.getElementById('facility_id').value = as[i].facility_id;
-            document.getElementById('institution_category').value = as[i].institution_category;
-            document.getElementById('institution_level').value = as[i].institution_level;
-            document.getElementById('institutiontype_name').value = as[i].institution_type;
-
-            document.getElementById('district_id').value = as[i].name;
-
+        if (!match) {
+            document.getElementById('facility_id').value = '';
+            document.getElementById('institution_category').value = '';
+            document.getElementById('institution_level').value = '';
+            document.getElementById('institutiontype_name').value = '';
+            document.getElementById('district_id').value = '';
+            document.getElementById('district').value = '';
+            return;
         }
 
+        document.getElementById('facility_id').value = match.facility_id || '';
+        document.getElementById('institution_category').value = match.institution_category || '';
+        document.getElementById('institution_level').value = match.institution_level || '';
+        document.getElementById('institutiontype_name').value = match.institution_type || '';
+        document.getElementById('district_id').value = match.district_id || '';
+        document.getElementById('district').value = match.district_name || '';
     }
 
    function updateJobFields(job_title) {
 
-    var jb = $(job_json).filter(function(i, n) {
-        return n.job_title === job_title
+    var jb = (job_json || []).filter(function(n) {
+        return n.job_title === job_title;
     });
-    console.log(jb);
 
     for (var i = 0; i < jb.length; i++) {
         document.getElementById('job_id').value = jb[i].job_id;
     }
 
-    } 
+    }
+
+    $(document).ready(function() {
+        $('#facility').on('change', function() {
+            updateInstitutionFields(this.value);
+        });
+    });
 </script>

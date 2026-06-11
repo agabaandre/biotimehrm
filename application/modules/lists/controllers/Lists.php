@@ -131,7 +131,7 @@ class Lists extends MX_Controller
 	}
 	public function get_all_districts()
 	{
-		return $this->districts_mdl->get_all_Districts();
+		return $this->districts_mdl->getDistricts();
 	}
 	public function add_Districts()
 	{
@@ -250,7 +250,7 @@ class Lists extends MX_Controller
 
 	public function get_all_Facilities()
 	{
-		return $this->facilities_mdl->getAll();
+		return $this->facilities_mdl->getAllForEmployeeForm();
 	}
 
 	public function getFacility($id)

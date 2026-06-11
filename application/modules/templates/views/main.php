@@ -68,6 +68,11 @@ require_once("includes/sidenav.php");
               if (isset($setting)) $page_child_data['setting'] = $setting;
               if (isset($districts)) $page_child_data['districts'] = $districts;
               if (isset($import_template_headers)) $page_child_data['import_template_headers'] = $import_template_headers;
+              if (isset($facilities)) $page_child_data['facilities'] = $facilities;
+              if (isset($facilities_json)) $page_child_data['facilities_json'] = $facilities_json;
+              if (isset($jobs)) $page_child_data['jobs'] = $jobs;
+              if (isset($jobs_json)) $page_child_data['jobs_json'] = $jobs_json;
+              if (isset($cadres)) $page_child_data['cadres'] = $cadres;
               $page_child_data['permissions'] = is_array($permissions) ? $permissions : [];
               $this->load->view($module . "/" . $view, $page_child_data);
           ?>

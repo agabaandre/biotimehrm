@@ -26,6 +26,38 @@ class Facilities_mdl extends CI_Model {
  
 	}
 
+	/**
+	 * Facilities/schools for the add-employee form (from employee_facility).
+	 *
+	 * @return array<int, object>
+	 */
+	public function getAllForEmployeeForm()
+	{
+		$this->db->select(
+			'f.facility_id, f.facility, f.district_id, f.institution_category, f.institution_type, f.institution_level, d.name AS district_name',
+			false
+		);
+		$this->db->from($this->table . ' f');
+		$this->db->join('employee_districts d', 'd.id = f.district_id', 'LEFT');
+		$this->db->order_by('f.facility', 'ASC');
+
+		return $this->db->get()->result();
+	}
+
+	/**
+	 * @param string $facility_id
+	 * @return object|null
+	 */
+	public function getByFacilityId($facility_id)
+	{
+		$facility_id = trim((string) $facility_id);
+		if ($facility_id === '') {
+			return null;
+		}
+
+		return $this->db->get_where($this->table, ['facility_id' => $facility_id], 1)->row();
+	}
+
 	public function getFacilitiesByDistrict($district_id=FALSE)
 	{
 		$query = $this->db->select('f.id as fac_id, f.facility_id, f.facility, f.district_id, d.name,d.region')
