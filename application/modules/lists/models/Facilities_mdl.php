@@ -311,6 +311,261 @@ class Facilities_mdl extends CI_Model {
 	}
 
 	/**
+	 * Normalize a CSV header cell for comparison.
+	 *
+	 * @param string $label
+	 * @return string
+	 */
+	public function normalizeImportHeaderKey($label)
+	{
+		$label = (string) $label;
+		$label = preg_replace('/^\xEF\xBB\xBF/', '', $label);
+		$label = str_replace("\xC2\xA0", ' ', $label);
+		$label = strtolower(trim($label));
+		$label = preg_replace('/\s+/', ' ', $label);
+
+		return $label;
+	}
+
+	/**
+	 * Accepted header aliases keyed by import field name.
+	 *
+	 * @return array<string, array<int, string>>
+	 */
+	public function importColumnAliases()
+	{
+		$name_aliases = [
+			$this->normalizeImportHeaderKey(entity_label('entity_name')),
+			'facility name',
+			'school name',
+			'facility',
+			'school',
+			'name',
+		];
+
+		return [
+			'facility'             => array_values(array_unique($name_aliases)),
+			'district'             => ['district', 'district name', 'home district'],
+			'institution_category' => ['institution category', 'category', 'institution_category'],
+			'institution_type'     => ['institution type', 'type', 'institution_type'],
+			'institution_level'    => ['institution level', 'level', 'institution_level'],
+		];
+	}
+
+	/**
+	 * Map CSV header row to field indexes.
+	 *
+	 * @param array<int, string> $header_row
+	 * @return array<string, int>|null
+	 */
+	public function mapImportColumns(array $header_row)
+	{
+		$normalized = [];
+		foreach ($header_row as $i => $label) {
+			$key = $this->normalizeImportHeaderKey($label);
+			if ($key !== '') {
+				$normalized[$key] = $i;
+			}
+		}
+
+		$aliases = $this->importColumnAliases();
+		$map = [];
+
+		foreach (['facility', 'district'] as $required) {
+			$index = null;
+			foreach ($aliases[$required] as $alias) {
+				if (isset($normalized[$alias])) {
+					$index = $normalized[$alias];
+					break;
+				}
+			}
+			if ($index === null) {
+				$map = null;
+				break;
+			}
+			$map[$required] = $index;
+		}
+
+		if ($map !== null) {
+			foreach (['institution_category', 'institution_type', 'institution_level'] as $optional) {
+				foreach ($aliases[$optional] as $alias) {
+					if (isset($normalized[$alias])) {
+						$map[$optional] = $normalized[$alias];
+						break;
+					}
+				}
+			}
+
+			return $map;
+		}
+
+		return $this->mapImportColumnsByTemplateOrder($header_row);
+	}
+
+	/**
+	 * Fallback mapping using the downloaded template column order.
+	 *
+	 * @param array<int, string> $header_row
+	 * @return array<string, int>|null
+	 */
+	public function mapImportColumnsByTemplateOrder(array $header_row)
+	{
+		$template_headers = $this->importTemplateHeaders();
+		$field_order = ['facility', 'district', 'institution_category', 'institution_type', 'institution_level'];
+		$aliases = $this->importColumnAliases();
+
+		if (count($header_row) < 2) {
+			return null;
+		}
+
+		$map = [];
+		$limit = min(count($header_row), count($field_order));
+
+		for ($i = 0; $i < $limit; $i++) {
+			$field = $field_order[$i];
+			$header_key = $this->normalizeImportHeaderKey($header_row[$i]);
+			$template_key = $this->normalizeImportHeaderKey($template_headers[$i] ?? '');
+
+			$matches = ($header_key !== '' && ($header_key === $template_key || in_array($header_key, $aliases[$field], true)));
+			if (!$matches && $i < 2) {
+				return null;
+			}
+			if ($matches) {
+				$map[$field] = $i;
+			}
+		}
+
+		if (!isset($map['facility'], $map['district'])) {
+			return null;
+		}
+
+		return $map;
+	}
+
+	/**
+	 * @param string $line
+	 * @return string
+	 */
+	public function detectCsvDelimiter($line)
+	{
+		$candidates = [',', ';', "\t"];
+		$best = ',';
+		$best_count = 0;
+
+		foreach ($candidates as $delimiter) {
+			$count = count(str_getcsv((string) $line, $delimiter));
+			if ($count > $best_count) {
+				$best_count = $count;
+				$best = $delimiter;
+			}
+		}
+
+		return $best;
+	}
+
+	/**
+	 * @param string $content
+	 * @return string
+	 */
+	public function normalizeImportFileContents($content)
+	{
+		$content = (string) $content;
+
+		if (strncmp($content, "\xEF\xBB\xBF", 3) === 0) {
+			$content = substr($content, 3);
+		} elseif (strncmp($content, "\xFF\xFE", 2) === 0) {
+			$content = mb_convert_encoding($content, 'UTF-8', 'UTF-16LE');
+		} elseif (strncmp($content, "\xFE\xFF", 2) === 0) {
+			$content = mb_convert_encoding($content, 'UTF-8', 'UTF-16BE');
+		}
+
+		return $content;
+	}
+
+	/**
+	 * Parse an uploaded CSV using the same rules as the downloaded template.
+	 *
+	 * @param string $filepath
+	 * @return array{
+	 *   column_map: array<string, int>|null,
+	 *   rows: array<int, array<string, string>>,
+	 *   headers: array<int, string>,
+	 *   error: string|null
+	 * }
+	 */
+	public function parseImportCsvFile($filepath)
+	{
+		$result = [
+			'column_map' => null,
+			'rows'       => [],
+			'headers'    => [],
+			'error'      => null,
+		];
+
+		$content = @file_get_contents($filepath);
+		if ($content === false || $content === '') {
+			$result['error'] = 'The import file is empty.';
+			return $result;
+		}
+
+		$content = $this->normalizeImportFileContents($content);
+		$lines = preg_split('/\R/', $content);
+		$lines = array_values(array_filter($lines, function ($line) {
+			return trim((string) $line) !== '';
+		}));
+
+		if (empty($lines)) {
+			$result['error'] = 'The import file is empty.';
+			return $result;
+		}
+
+		$delimiter = $this->detectCsvDelimiter($lines[0]);
+		$header_row = str_getcsv($lines[0], $delimiter);
+		if (!is_array($header_row)) {
+			$result['error'] = 'Could not read header row from the import file.';
+			return $result;
+		}
+
+		$result['headers'] = $header_row;
+		$result['column_map'] = $this->mapImportColumns($header_row);
+		if ($result['column_map'] === null) {
+			$expected = implode(', ', $this->importTemplateHeaders());
+			$found = implode(', ', array_map('trim', $header_row));
+			$result['error'] = 'Invalid template headers. Expected: ' . $expected . '. Found: ' . $found;
+			return $result;
+		}
+
+		$row_template = [
+			'facility'             => '',
+			'district'             => '',
+			'institution_category' => '',
+			'institution_type'     => '',
+			'institution_level'    => '',
+		];
+
+		for ($i = 1, $count = count($lines); $i < $count; $i++) {
+			$data = str_getcsv($lines[$i], $delimiter);
+			if (!is_array($data) || count(array_filter($data, function ($v) {
+				return trim((string) $v) !== '';
+			})) === 0) {
+				continue;
+			}
+
+			$row = $row_template;
+			foreach ($result['column_map'] as $field => $index) {
+				$row[$field] = isset($data[$index]) ? trim((string) $data[$index]) : '';
+			}
+			$result['rows'][] = $row;
+		}
+
+		if (empty($result['rows'])) {
+			$result['error'] = 'No data rows found in the import file.';
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Resolve employee_districts.id from district name (case-insensitive).
 	 *
 	 * @param string $district_name
