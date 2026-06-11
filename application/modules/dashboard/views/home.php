@@ -349,7 +349,7 @@
           <h1 class="dashboard-title">
             <i class="fas fa-tachometer-alt mr-3"></i>Welcome back!
           </h1>
-          <p class="dashboard-subtitle text-muted">Here's what's happening with your facility today.</p>
+          <p class="dashboard-subtitle text-muted">Here's what's happening with your <?php echo strtolower(entity_label('facility')); ?> today.</p>
         </div>
       </div>
     </div>

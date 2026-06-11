@@ -58,6 +58,7 @@
          </div>
          <!-- /.card -->
 
+         <?php if (!is_education_deployment()) { ?>
          <div class="callout callout-info">
            <h5><i class="fas fa-file"></i> Schedule Reports</h5>
          </div>
@@ -132,6 +133,7 @@
 
          </div> -->
          <!-- /.card -->
+         <?php } ?>
 
 
        </section>

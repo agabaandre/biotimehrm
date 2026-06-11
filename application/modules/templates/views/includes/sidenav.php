@@ -114,7 +114,7 @@
 
 
 
-         <?php if (in_array('14', $permissions)) { ?>
+         <?php if (in_array('14', $permissions) && !is_education_deployment()) { ?>
            <li class="nav-item">
              <a href="<?php echo base_url(); ?>rosta/tabular" class="nav-link <?php echo ($this->uri->segment(1) == 'rosta' && $this->uri->segment(2) == 'tabular') ? 'active' : ''; ?>">
                <i class="fa fa-calendar"></i>
@@ -174,7 +174,7 @@
            </li>
          <?php } ?>
          <!--user perm 26-->
-         <?php if (in_array('32', $permissions)) { ?>
+         <?php if (in_array('32', $permissions) && !is_education_deployment()) { ?>
            <li class="nav-item has-treeview <?php echo ($this->uri->segment(1) == 'biometrics' || $this->uri->segment(1) == 'svariables') ? 'menu-open' : ''; ?>">
              <a href="#" class="nav-link <?php echo ($this->uri->segment(1) == 'biometrics' || $this->uri->segment(1) == 'svariables') ? 'active' : ''; ?>">
                <i class="fa fa-fingerprint"></i>
