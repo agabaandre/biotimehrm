@@ -462,11 +462,93 @@ class Employees extends MX_Controller
     $data['jobs'] = Modules::run('lists/get_all_jobs');
     $data['jobs_json'] = json_encode(Modules::run('lists/get_all_jobs'));
     $data['cadres'] = Modules::run('lists/get_all_cadres');
+    $data['can_import_staff'] = $this->canImportStaff();
+    if ($data['can_import_staff']) {
+      $data['import_template_headers'] = $this->empModel->importTemplateHeaders();
+    }
     $data['view'] = 'create_employee';
     $data['uptitle'] = "Add Employee";
     $data['module'] = "employees";
 
     echo Modules::run("templates/main", $data);
+  }
+
+  /**
+   * Permission 10 admins can bulk-import staff.
+   *
+   * @return bool
+   */
+  private function canImportStaff()
+  {
+    $perms = $this->session->userdata('permissions');
+    return is_array($perms) && (in_array('10', $perms) || in_array(10, $perms));
+  }
+
+  public function downloadEmployeeImportTemplate()
+  {
+    if (!$this->canImportStaff()) {
+      show_404();
+      return;
+    }
+
+    $headers = $this->empModel->importTemplateHeaders();
+    $sample = $this->empModel->importTemplateSampleRow();
+    $filename = 'staff_import_template_' . date('Y-m-d') . '.csv';
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache');
+
+    $fh = fopen('php://output', 'w');
+    fprintf($fh, chr(0xEF) . chr(0xBB) . chr(0xBF));
+    fputcsv($fh, $headers);
+    fputcsv($fh, $sample);
+    fclose($fh);
+    exit;
+  }
+
+  public function importEmployees()
+  {
+    if (!$this->canImportStaff()) {
+      return $this->_employeeSaveResponse('error', 'You are not allowed to import staff.');
+    }
+
+    if (empty($_FILES['import_file']['tmp_name'])) {
+      return $this->_employeeSaveResponse('error', 'Please choose a CSV file to import.');
+    }
+
+    $tmp = $_FILES['import_file']['tmp_name'];
+    $ext = strtolower(pathinfo((string) $_FILES['import_file']['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, ['csv', 'txt'], true)) {
+      return $this->_employeeSaveResponse('error', 'Only CSV files are supported.');
+    }
+
+    $parsed_file = $this->empModel->parseImportCsvFile($tmp);
+    if (!empty($parsed_file['error'])) {
+      return $this->_employeeSaveResponse('error', $parsed_file['error']);
+    }
+
+    $result = $this->empModel->importStaffFromRows($parsed_file['rows']);
+    $message = 'Imported ' . (int) $result['imported'] . ' staff';
+    if ($result['users_created'] > 0) {
+      $message .= ', created ' . (int) $result['users_created'] . ' user account(s)';
+    }
+    if ($result['skipped'] > 0) {
+      $message .= ', skipped ' . (int) $result['skipped'];
+    }
+    if (!empty($result['errors'])) {
+      $message .= '. ' . implode(' ', array_slice($result['errors'], 0, 5));
+      if (count($result['errors']) > 5) {
+        $message .= ' (and ' . (count($result['errors']) - 5) . ' more)';
+      }
+    }
+
+    $status = $result['imported'] > 0 ? 'success' : 'error';
+    if ($result['imported'] > 0 && !empty($result['errors'])) {
+      $status = 'success';
+    }
+
+    return $this->_employeeSaveResponse($status, $message);
   }
 
   public function saveEmployee()

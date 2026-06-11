@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PMDU Attendance Tracker</title>
+    <meta name="description" content="Office of the Prime Minister — Education and Health attendance tracking systems">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f6f9;
+            --card: #ffffff;
+            --text: #1a2332;
+            --muted: #5c6b7a;
+            --accent: #0b5cab;
+            --accent-dark: #084a8a;
+            --education: #1565c0;
+            --health: #2e7d32;
+            --border: #dde3ea;
+            --shadow: 0 10px 40px rgba(15, 35, 60, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(11, 92, 171, 0.08), transparent 35%),
+                radial-gradient(circle at bottom right, rgba(46, 125, 50, 0.07), transparent 30%),
+                var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.25rem;
+        }
+
+        .hero {
+            text-align: center;
+            max-width: 720px;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo-wrap {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.25rem;
+            padding: 0.75rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            box-shadow: var(--shadow);
+        }
+
+        .logo-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .eyebrow {
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        h1 {
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .subtitle {
+            font-size: 1.05rem;
+            color: var(--muted);
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .systems {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+            width: 100%;
+            max-width: 760px;
+        }
+
+        .system-card {
+            display: flex;
+            flex-direction: column;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .system-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(15, 35, 60, 0.12);
+        }
+
+        .system-card.education:hover {
+            border-color: rgba(21, 101, 192, 0.35);
+        }
+
+        .system-card.health:hover {
+            border-color: rgba(46, 125, 50, 0.35);
+        }
+
+        .system-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .system-card.education .system-icon {
+            background: rgba(21, 101, 192, 0.12);
+            color: var(--education);
+        }
+
+        .system-card.health .system-icon {
+            background: rgba(46, 125, 50, 0.12);
+            color: var(--health);
+        }
+
+        .system-card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .system-card p {
+            color: var(--muted);
+            font-size: 0.95rem;
+            flex: 1;
+            margin-bottom: 1.25rem;
+        }
+
+        .system-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .system-card.education .system-link {
+            color: var(--education);
+        }
+
+        .system-card.health .system-link {
+            color: var(--health);
+        }
+
+        .system-link svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.2s ease;
+        }
+
+        .system-card:hover .system-link svg {
+            transform: translateX(4px);
+        }
+
+        footer {
+            margin-top: 2.5rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.875rem;
+        }
+
+        footer strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="hero">
+            <div class="logo-wrap">
+                <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Coat_of_arms_of_Uganda.svg"
+                    alt="Coat of arms of Uganda"
+                    width="96"
+                    height="96"
+                >
+            </div>
+            <p class="eyebrow">Office of the Prime Minister</p>
+            <h1>PMDU Attendance Tracker</h1>
+            <p class="subtitle">
+                Select the attendance system for your sector. Sign in with your assigned credentials to record and manage duty attendance.
+            </p>
+        </header>
+
+        <section class="systems" aria-label="Attendance systems">
+            <a class="system-card education" href="educationattend/">
+                <div class="system-icon" aria-hidden="true">&#127979;</div>
+                <h2>Education Attendance</h2>
+                <p>School staff attendance tracking for the education sector.</p>
+                <span class="system-link">
+                    Open Education System
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M5 12h14M13 5l7 7-7 7"/>
+                    </svg>
+                </span>
+            </a>
+
+            <a class="system-card health" href="healthattend/">
+                <div class="system-icon" aria-hidden="true">&#127973;</div>
+                <h2>Health Attendance</h2>
+                <p>Facility staff attendance tracking for the health sector.</p>
+                <span class="system-link">
+                    Open Health System
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M5 12h14M13 5l7 7-7 7"/>
+                    </svg>
+                </span>
+            </a>
+        </section>
+
+        <footer>
+            <p><strong>Government of Uganda</strong> &middot; pmdu-data.opm.go.ug</p>
+        </footer>
+    </main>
+</body>
+</html>

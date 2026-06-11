@@ -308,6 +308,63 @@ class Auth_mdl extends CI_Model
 	}
 
 
+	public function addInchargeUserFromEmployee($ihris_pid)
+	{
+		$ihris_pid = trim((string) $ihris_pid);
+		if ($ihris_pid === '') {
+			return ['ok' => false, 'message' => 'Missing employee ID'];
+		}
+
+		$employee = $this->db->get_where('ihrisdata', ['ihris_pid' => $ihris_pid], 1)->row();
+		if (!$employee) {
+			return ['ok' => false, 'message' => 'Employee record not found'];
+		}
+
+		if ($this->db->get_where($this->table, ['username' => $ihris_pid], 1)->row()) {
+			return ['ok' => false, 'message' => 'User account already exists', 'skipped' => true];
+		}
+
+		$distid = trim((string) ($employee->district_id ?? ''));
+		$distn = trim((string) ($employee->district ?? ''));
+		if ($distn === '' && $distid !== '') {
+			$drow = $this->db->select('name')->from('employee_districts')->where('id', $distid)->limit(1)->get()->row();
+			if ($drow) {
+				$distn = trim((string) $drow->name);
+			}
+		}
+
+		$facid = trim((string) ($employee->facility_id ?? ''));
+		$facility = trim((string) ($employee->facility ?? ''));
+		$fullname = trim(preg_replace('/\s+/', ' ', trim(($employee->firstname ?? '') . ' ' . ($employee->othername ?? '') . ' ' . ($employee->surname ?? ''))));
+
+		$insert = [
+			'username'    => $ihris_pid,
+			'name'        => $fullname,
+			'email'       => trim((string) ($employee->email ?? '')),
+			'password'    => $this->password,
+			'facility_id' => $facid,
+			'facility'    => $facility,
+			'role'        => 21,
+			'department'  => '',
+			'district_id' => $distid,
+			'district'    => $distn,
+			'status'      => 1,
+		];
+
+		$this->db->insert($this->table, $insert);
+		if ($this->db->affected_rows() <= 0) {
+			return ['ok' => false, 'message' => 'Failed to create user account'];
+		}
+
+		$userid = (int) $this->db->insert_id();
+		$this->user_facilities([$facid . '_' . $facility], $userid);
+
+		$this->db->where('ihris_pid', $ihris_pid);
+		$this->db->update('ihrisdata', ['is_incharge' => '1']);
+
+		return ['ok' => true, 'message' => 'User account created'];
+	}
+
 	public function update_user_facilities($facilities, $userid)
 	{
 		//get district
@@ -470,6 +527,12 @@ class Auth_mdl extends CI_Model
 	}
 	public function getDistricts()
 	{
+		if (function_exists('is_education_deployment') && is_education_deployment()) {
+			$this->db->select('id AS district_id, name AS district');
+			$this->db->order_by('name', 'ASC');
+			return $this->db->get('employee_districts')->result();
+		}
+
 		$this->db->select('district,district_id');
 		$this->db->distinct('district');
 		$qry = $this->db->get('ihrisdata');
@@ -477,6 +540,12 @@ class Auth_mdl extends CI_Model
 	}
 	public function getFacilities()
 	{
+		if (function_exists('is_education_deployment') && is_education_deployment()) {
+			$this->db->select('facility_id, facility');
+			$this->db->order_by('facility', 'ASC');
+			return $this->db->get('employee_facility')->result();
+		}
+
 		$this->db->select('facility_id,facility');
 		$this->db->distinct('facility_id');
 		$qry = $this->db->get('ihrisdata');

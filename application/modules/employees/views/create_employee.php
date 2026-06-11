@@ -1,6 +1,28 @@
 <!-- Main content -->
 <section class="content">
     <div class="container-fluid">
+        <?php if (!empty($can_import_staff)) { ?>
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card card-outline card-info">
+                    <div class="card-body d-flex flex-wrap align-items-center justify-content-between">
+                        <div class="mb-2 mb-md-0">
+                            <strong><i class="fas fa-file-import mr-1"></i>Bulk Import Staff</strong>
+                            <div class="text-muted small mt-1">Download the template, add one row per staff member, then upload the CSV. Cadre is set to Education automatically. Imported staff are also created as incharge users (role 21).</div>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-outline-info btn-sm mr-2" data-toggle="modal" data-target="#importStaffModal">
+                                <i class="fas fa-upload mr-1"></i>Import Staff
+                            </button>
+                            <a href="<?php echo base_url('employees/downloadEmployeeImportTemplate'); ?>" class="btn btn-info btn-sm">
+                                <i class="fas fa-download mr-1"></i>Download Template
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php } ?>
         <form id="createEmployeeForm" class="district_form" method="post" action="<?php echo base_url(); ?>employees/saveEmployee">
             <input type="hidden" id="createEmployeeCsrf" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
             <div class="row">
@@ -208,6 +230,45 @@
 </section>
 <!-- /.content -->
 
+<?php if (!empty($can_import_staff)) { ?>
+<div class="modal fade" id="importStaffModal" tabindex="-1" role="dialog" aria-labelledby="importStaffModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="importStaffModalLabel">
+                    <i class="fas fa-file-import mr-2"></i>Import Staff
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="importStaffForm" method="post" enctype="multipart/form-data" action="<?php echo base_url('employees/importEmployees'); ?>">
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        Use the downloaded template columns exactly. The sample row is skipped automatically during import.
+                        Cadre is assigned as Education in the backend. Each imported staff member is saved to iHRIS and added to the users table with the incharge role.
+                    </p>
+                    <div class="form-group mb-0">
+                        <label for="importStaffFile"><i class="fas fa-file-csv text-info mr-1"></i>CSV File</label>
+                        <input type="file" class="form-control-file" id="importStaffFile" name="import_file" accept=".csv,text/csv" required>
+                        <small class="form-text text-muted">
+                            Columns: <?php echo htmlspecialchars(implode(', ', isset($import_template_headers) ? $import_template_headers : []), ENT_QUOTES, 'UTF-8'); ?>.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-upload mr-1"></i>Upload &amp; Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php } ?>
+
 <link rel="stylesheet" href="<?php echo base_url('assets/plugins/toastr/toastr.min.css'); ?>">
 <script src="<?php echo base_url('assets/plugins/toastr/toastr.min.js'); ?>"></script>
 
@@ -331,6 +392,45 @@
             window.setTimeout(function() {
                 resetEmployeeFormFields();
             }, 0);
+        });
+
+        $('#importStaffForm').on('submit', function(e) {
+            e.preventDefault();
+            var $form = $(this);
+            var $submit = $form.find('[type="submit"]');
+            var formData = new FormData(this);
+            $submit.prop('disabled', true);
+
+            $.ajax({
+                url: $form.attr('action'),
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(result) {
+                    refreshEmployeeCsrfToken(result.csrf_token);
+                    if (result.status === 'success') {
+                        toastr.success(result.message || 'Import completed.');
+                        $('#importStaffModal').modal('hide');
+                        $form[0].reset();
+                    } else {
+                        toastr.error(result.message || 'Import failed.');
+                    }
+                },
+                error: function(xhr) {
+                    if (xhr.status === 403) {
+                        toastr.error('Security token expired. Please refresh the page and try again.');
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        toastr.error(xhr.responseJSON.message);
+                    } else {
+                        toastr.error('Import failed. Please check your CSV file and try again.');
+                    }
+                },
+                complete: function() {
+                    $submit.prop('disabled', false);
+                }
+            });
         });
     });
 </script>

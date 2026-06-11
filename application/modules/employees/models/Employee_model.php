@@ -536,6 +536,23 @@ class Employee_model extends CI_Model
     public function get_ihris_facilities_for_district($district = null)
     {
         $list = [];
+        if (function_exists('is_education_deployment') && is_education_deployment()) {
+            $this->db->select('f.facility_id, f.facility, d.name AS district');
+            $this->db->from('employee_facility f');
+            $this->db->join('employee_districts d', 'd.id = f.district_id', 'LEFT');
+            if ($district !== null && $district !== '') {
+                $this->db->where('d.name', $district);
+            }
+            $this->db->order_by('f.facility', 'ASC');
+            foreach ($this->db->get()->result() as $row) {
+                $label = trim((string) $row->facility) !== '' ? $row->facility : $row->facility_id;
+                $this->_push_ihris_filter_option($list, $row->facility_id, $label, [
+                    'district' => $row->district,
+                ]);
+            }
+            return $list;
+        }
+
         if (!$this->db->table_exists('ihrisdata')) {
             return $list;
         }
@@ -2046,6 +2063,546 @@ class Employee_model extends CI_Model
 
     public function save_employee($postdata)
     {
+        $result = $this->insertEmployeeRecord($postdata);
+        return $result['message'];
+    }
+
+    /**
+     * CSV column headers for staff import template.
+     *
+     * @return array<int, string>
+     */
+    public function importTemplateHeaders()
+    {
+        return [
+            'First Name',
+            'Middle Name',
+            'Last Name',
+            'Gender',
+            'Date of Birth',
+            'Home District',
+            'Mobile',
+            'Telephone',
+            'Email',
+            'NIN',
+            'National ID Card Number',
+            'IPPS / HCM Number',
+            'Place of Residence',
+            entity_label('facility'),
+            'Job Title',
+            'Salary Grade',
+            'Employment Terms',
+        ];
+    }
+
+    /**
+     * Default cadre applied to imported staff rows.
+     *
+     * @return string
+     */
+    public function defaultImportCadre()
+    {
+        static $cadre = null;
+        if ($cadre !== null) {
+            return $cadre;
+        }
+
+        $row = $this->db->select('cadre')
+            ->from('employee_cadre')
+            ->group_start()
+            ->where('LOWER(TRIM(cadre))', 'education')
+            ->or_where('LOWER(TRIM(cadre))', 'eduction')
+            ->group_end()
+            ->limit(1)
+            ->get()
+            ->row();
+
+        $cadre = $row ? trim((string) $row->cadre) : 'Education';
+
+        return $cadre;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function importTemplateSampleRow()
+    {
+        $this->load->model('lists/facilities_mdl', 'facilities_mdl');
+
+        $district = $this->db->select('name')->from('employee_districts')->order_by('name', 'ASC')->limit(1)->get()->row();
+        $facility = $this->db->select('facility')->from('employee_facility')->order_by('facility', 'ASC')->limit(1)->get()->row();
+        $job = $this->db->select('job_title')->from('employee_jobs')->order_by('job_title', 'ASC')->limit(1)->get()->row();
+
+        return [
+            'Jane',
+            '',
+            'Doe',
+            'Female',
+            '1990-01-15',
+            $district ? $district->name : 'Example District',
+            '0700000000',
+            '',
+            'jane.doe@example.com',
+            '',
+            '',
+            '',
+            'Kampala',
+            $facility ? $facility->facility : 'Example ' . entity_label('facility'),
+            $job ? $job->job_title : 'Teacher',
+            'U4',
+            'Permanent',
+        ];
+    }
+
+    /**
+     * @param string $label
+     * @return string
+     */
+    public function normalizeImportHeaderKey($label)
+    {
+        $label = (string) $label;
+        $label = preg_replace('/^\xEF\xBB\xBF/', '', $label);
+        $label = str_replace("\xC2\xA0", ' ', $label);
+        $label = strtolower(trim($label));
+        $label = preg_replace('/\s+/', ' ', $label);
+
+        return $label;
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    public function importColumnAliases()
+    {
+        $facility_aliases = [
+            $this->normalizeImportHeaderKey(entity_label('facility')),
+            'facility',
+            'school',
+            'facility name',
+            'school name',
+            entity_label('entity_institution'),
+        ];
+
+        return [
+            'firstname'          => ['first name', 'firstname', 'first_name'],
+            'othername'          => ['middle name', 'othername', 'other name', 'middle_name'],
+            'surname'            => ['last name', 'surname', 'last_name'],
+            'gender'             => ['gender', 'sex'],
+            'birth_date'         => ['date of birth', 'birth date', 'birth_date', 'dob'],
+            'home_district'      => ['home district', 'home_district'],
+            'mobile'             => ['mobile', 'mobile phone', 'phone'],
+            'telephone'          => ['telephone', 'tel', 'landline'],
+            'email'              => ['email', 'email address'],
+            'nin'                => ['nin', 'national identification number (nin)', 'national identification number'],
+            'card_number'        => ['national id card number', 'card number', 'id card number'],
+            'ipps'               => ['ipps / hcm number', 'ipps', 'hcm number', 'ipps/hcm number'],
+            'place_of_residence' => ['place of residence', 'residence', 'address'],
+            'facility'           => array_values(array_unique(array_map([$this, 'normalizeImportHeaderKey'], $facility_aliases))),
+            'job'                => ['job title', 'job', 'job_title', 'title'],
+            'salary_grade'       => ['salary grade', 'salary_grade', 'grade'],
+            'employment_terms'   => ['employment terms', 'employment_terms', 'terms'],
+            'cadre'              => ['cadre'],
+        ];
+    }
+
+    /**
+     * @param array<int, string> $header_row
+     * @return array<string, int>|null
+     */
+    public function mapImportColumns(array $header_row)
+    {
+        $normalized = [];
+        foreach ($header_row as $i => $label) {
+            $key = $this->normalizeImportHeaderKey($label);
+            if ($key !== '') {
+                $normalized[$key] = $i;
+            }
+        }
+
+        $aliases = $this->importColumnAliases();
+        $required = ['firstname', 'surname', 'gender', 'home_district', 'mobile', 'place_of_residence', 'facility', 'job', 'salary_grade', 'employment_terms'];
+        $map = [];
+
+        foreach ($required as $field) {
+            $index = null;
+            foreach ($aliases[$field] as $alias) {
+                if (isset($normalized[$alias])) {
+                    $index = $normalized[$alias];
+                    break;
+                }
+            }
+            if ($index === null) {
+                $map = null;
+                break;
+            }
+            $map[$field] = $index;
+        }
+
+        if ($map !== null) {
+            foreach (['othername', 'birth_date', 'telephone', 'email', 'nin', 'card_number', 'ipps', 'cadre'] as $optional) {
+                foreach ($aliases[$optional] as $alias) {
+                    if (isset($normalized[$alias])) {
+                        $map[$optional] = $normalized[$alias];
+                        break;
+                    }
+                }
+            }
+
+            return $map;
+        }
+
+        return $this->mapImportColumnsByTemplateOrder($header_row);
+    }
+
+    /**
+     * @param array<int, string> $header_row
+     * @return array<string, int>|null
+     */
+    public function mapImportColumnsByTemplateOrder(array $header_row)
+    {
+        $template_headers = $this->importTemplateHeaders();
+        $field_order = [
+            'firstname', 'othername', 'surname', 'gender', 'birth_date', 'home_district',
+            'mobile', 'telephone', 'email', 'nin', 'card_number', 'ipps', 'place_of_residence',
+            'facility', 'job', 'salary_grade', 'employment_terms',
+        ];
+        $aliases = $this->importColumnAliases();
+
+        if (count($header_row) < 10) {
+            return null;
+        }
+
+        $map = [];
+        $limit = min(count($header_row), count($field_order));
+
+        for ($i = 0; $i < $limit; $i++) {
+            $field = $field_order[$i];
+            $header_key = $this->normalizeImportHeaderKey($header_row[$i]);
+            $template_key = $this->normalizeImportHeaderKey($template_headers[$i] ?? '');
+
+            $matches = ($header_key !== '' && ($header_key === $template_key || in_array($header_key, $aliases[$field], true)));
+            if (!$matches && in_array($field, ['firstname', 'surname', 'gender', 'home_district', 'mobile', 'place_of_residence', 'facility', 'job', 'salary_grade', 'employment_terms'], true)) {
+                return null;
+            }
+            if ($matches) {
+                $map[$field] = $i;
+            }
+        }
+
+        $required = ['firstname', 'surname', 'gender', 'home_district', 'mobile', 'place_of_residence', 'facility', 'job', 'salary_grade', 'employment_terms'];
+        foreach ($required as $field) {
+            if (!isset($map[$field])) {
+                return null;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param string $filepath
+     * @return array{column_map: array<string, int>|null, rows: array<int, array<string, string>>, headers: array<int, string>, error: string|null}
+     */
+    public function parseImportCsvFile($filepath)
+    {
+        $this->load->model('lists/facilities_mdl', 'facilities_mdl');
+
+        $result = [
+            'column_map' => null,
+            'rows'       => [],
+            'headers'    => [],
+            'error'      => null,
+        ];
+
+        $content = @file_get_contents($filepath);
+        if ($content === false || $content === '') {
+            $result['error'] = 'The import file is empty.';
+            return $result;
+        }
+
+        $content = $this->facilities_mdl->normalizeImportFileContents($content);
+        $lines = preg_split('/\R/', $content);
+        $lines = array_values(array_filter($lines, function ($line) {
+            return trim((string) $line) !== '';
+        }));
+
+        if (empty($lines)) {
+            $result['error'] = 'The import file is empty.';
+            return $result;
+        }
+
+        $delimiter = $this->facilities_mdl->detectCsvDelimiter($lines[0]);
+        $header_row = str_getcsv($lines[0], $delimiter);
+        if (!is_array($header_row)) {
+            $result['error'] = 'Could not read header row from the import file.';
+            return $result;
+        }
+
+        $result['headers'] = $header_row;
+        $result['column_map'] = $this->mapImportColumns($header_row);
+        if ($result['column_map'] === null) {
+            $expected = implode(', ', $this->importTemplateHeaders());
+            $found = implode(', ', array_map('trim', $header_row));
+            $result['error'] = 'Invalid template headers. Expected: ' . $expected . '. Found: ' . $found;
+            return $result;
+        }
+
+        $fields = array_keys($this->importColumnAliases());
+        for ($i = 1, $count = count($lines); $i < $count; $i++) {
+            $data = str_getcsv($lines[$i], $delimiter);
+            if (!is_array($data) || count(array_filter($data, function ($v) {
+                return trim((string) $v) !== '';
+            })) === 0) {
+                continue;
+            }
+
+            $row = [];
+            foreach ($fields as $field) {
+                $row[$field] = '';
+            }
+            foreach ($result['column_map'] as $field => $index) {
+                $row[$field] = isset($data[$index]) ? trim((string) $data[$index]) : '';
+            }
+            $result['rows'][] = $row;
+        }
+
+        if (empty($result['rows'])) {
+            $result['error'] = 'No data rows found in the import file.';
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, string> $row
+     * @param int $row_no
+     * @return array{ok: bool, message: string, data?: array<string, mixed>}
+     */
+    public function validateImportStaffRow(array $row, $row_no)
+    {
+        $this->load->model('lists/facilities_mdl', 'facilities_mdl');
+
+        $prefix = 'Row ' . $row_no . ': ';
+        $firstname = trim((string) ($row['firstname'] ?? ''));
+        $surname = trim((string) ($row['surname'] ?? ''));
+        $gender = trim((string) ($row['gender'] ?? ''));
+        $home_district = trim((string) ($row['home_district'] ?? ''));
+        $mobile = trim((string) ($row['mobile'] ?? ''));
+        $place_of_residence = trim((string) ($row['place_of_residence'] ?? ''));
+        $facility_name = trim((string) ($row['facility'] ?? ''));
+        $job_title = trim((string) ($row['job'] ?? ''));
+        $salary_grade = trim((string) ($row['salary_grade'] ?? ''));
+        $employment_terms = trim((string) ($row['employment_terms'] ?? ''));
+
+        if ($firstname === '' || stripos($firstname, 'example') !== false) {
+            return ['ok' => false, 'message' => $prefix . 'First name is required.'];
+        }
+        if ($surname === '') {
+            return ['ok' => false, 'message' => $prefix . 'Last name is required.'];
+        }
+        if (!in_array($gender, ['Male', 'Female'], true)) {
+            return ['ok' => false, 'message' => $prefix . 'Gender must be Male or Female.'];
+        }
+        if ($home_district === '') {
+            return ['ok' => false, 'message' => $prefix . 'Home district is required.'];
+        }
+        if ($mobile === '') {
+            return ['ok' => false, 'message' => $prefix . 'Mobile is required.'];
+        }
+        if ($place_of_residence === '') {
+            return ['ok' => false, 'message' => $prefix . 'Place of residence is required.'];
+        }
+        if ($facility_name === '') {
+            return ['ok' => false, 'message' => $prefix . entity_label('facility') . ' is required.'];
+        }
+        if ($job_title === '') {
+            return ['ok' => false, 'message' => $prefix . 'Job title is required.'];
+        }
+        if ($salary_grade === '') {
+            return ['ok' => false, 'message' => $prefix . 'Salary grade is required.'];
+        }
+        if ($employment_terms === '') {
+            return ['ok' => false, 'message' => $prefix . 'Employment terms are required.'];
+        }
+
+        $allowed_terms = ['Permanent', 'Contract', 'Probation', 'Full Time', 'Part Time'];
+        if (!in_array($employment_terms, $allowed_terms, true)) {
+            return ['ok' => false, 'message' => $prefix . 'Employment terms must be one of: ' . implode(', ', $allowed_terms) . '.'];
+        }
+
+        $district_row = $this->db->select('id, name')
+            ->from('employee_districts')
+            ->where('LOWER(TRIM(name))', strtolower($home_district))
+            ->limit(1)
+            ->get()
+            ->row();
+        if (!$district_row) {
+            return ['ok' => false, 'message' => $prefix . 'Home district "' . $home_district . '" was not found.'];
+        }
+
+        $facility_row = $this->db->select('facility_id, facility, district_id, institution_category, institution_type, institution_level')
+            ->from('employee_facility')
+            ->where('LOWER(TRIM(facility))', strtolower($facility_name))
+            ->limit(1)
+            ->get()
+            ->row();
+        if (!$facility_row) {
+            return ['ok' => false, 'message' => $prefix . entity_label('facility') . ' "' . $facility_name . '" was not found.'];
+        }
+
+        $job_row = $this->db->select('job_id, job_title')
+            ->from('employee_jobs')
+            ->where('LOWER(TRIM(job_title))', strtolower($job_title))
+            ->limit(1)
+            ->get()
+            ->row();
+        if (!$job_row) {
+            return ['ok' => false, 'message' => $prefix . 'Job title "' . $job_title . '" was not found.'];
+        }
+
+        if ($this->employeeImportDuplicateExists($firstname, $surname, $facility_row->facility_id, $mobile)) {
+            return ['ok' => false, 'message' => $prefix . 'Staff member already exists for this ' . strtolower(entity_label('facility')) . '.'];
+        }
+
+        $work_district_name = '';
+        $work_district = $this->db->select('name')
+            ->from('employee_districts')
+            ->where('id', (int) $facility_row->district_id)
+            ->limit(1)
+            ->get()
+            ->row();
+        if ($work_district) {
+            $work_district_name = trim((string) $work_district->name);
+        }
+
+        $birth_date = trim((string) ($row['birth_date'] ?? ''));
+        if ($birth_date !== '') {
+            $parsed = strtotime($birth_date);
+            $birth_date = $parsed ? date('Y-m-d', $parsed) : '';
+        }
+
+        return [
+            'ok'      => true,
+            'message' => '',
+            'data'    => [
+                'firstname'            => $firstname,
+                'othername'            => trim((string) ($row['othername'] ?? '')),
+                'surname'              => $surname,
+                'gender'               => $gender,
+                'birth_date'           => $birth_date,
+                'home_district'        => $district_row->name,
+                'mobile'               => $mobile,
+                'telephone'            => trim((string) ($row['telephone'] ?? '')),
+                'email'                => trim((string) ($row['email'] ?? '')),
+                'nin'                  => trim((string) ($row['nin'] ?? '')),
+                'card_number'          => trim((string) ($row['card_number'] ?? '')),
+                'ipps'                 => trim((string) ($row['ipps'] ?? '')),
+                'place_of_residence'   => $place_of_residence,
+                'facility'             => trim((string) $facility_row->facility),
+                'facility_id'          => trim((string) $facility_row->facility_id),
+                'institution_category' => trim((string) $facility_row->institution_category),
+                'institutiontype_name' => trim((string) $facility_row->institution_type),
+                'institution_level'    => trim((string) $facility_row->institution_level),
+                'district_id'          => (int) $facility_row->district_id,
+                'district'             => $work_district_name,
+                'job'                  => trim((string) $job_row->job_title),
+                'job_id'               => trim((string) $job_row->job_id),
+                'salary_grade'         => $salary_grade,
+                'employment_terms'     => $employment_terms,
+                'cadre'                => $this->defaultImportCadre(),
+            ],
+        ];
+    }
+
+    /**
+     * @param string $firstname
+     * @param string $surname
+     * @param string $facility_id
+     * @param string $mobile
+     * @return bool
+     */
+    public function employeeImportDuplicateExists($firstname, $surname, $facility_id, $mobile = '')
+    {
+        if ($mobile !== '') {
+            $exists = $this->db->select('ihris_pid')
+                ->from('ihrisdata')
+                ->where('mobile', $mobile)
+                ->limit(1)
+                ->get()
+                ->row();
+            if ($exists) {
+                return true;
+            }
+        }
+
+        return (bool) $this->db->select('ihris_pid')
+            ->from('ihrisdata')
+            ->where('firstname', $firstname)
+            ->where('surname', $surname)
+            ->where('facility_id', $facility_id)
+            ->limit(1)
+            ->get()
+            ->row();
+    }
+
+    /**
+     * @param array<int, array<string, string>> $rows
+     * @return array{imported: int, skipped: int, users_created: int, errors: array<int, string>}
+     */
+    public function importStaffFromRows(array $rows)
+    {
+        $this->load->model('auth/auth_mdl', 'auth_mdl');
+
+        $imported = 0;
+        $skipped = 0;
+        $users_created = 0;
+        $errors = [];
+
+        foreach ($rows as $index => $row) {
+            $row_no = $index + 2;
+            $firstname = trim((string) ($row['firstname'] ?? ''));
+            $email = trim((string) ($row['email'] ?? ''));
+
+            if ($firstname === '' || stripos($firstname, 'example') !== false || stripos($email, '@example.com') !== false) {
+                $skipped++;
+                continue;
+            }
+
+            $validated = $this->validateImportStaffRow($row, $row_no);
+            if (!$validated['ok']) {
+                $errors[] = $validated['message'];
+                continue;
+            }
+
+            $insert = $this->insertEmployeeRecord($validated['data']);
+            if (!$insert['ok']) {
+                $errors[] = 'Row ' . $row_no . ': ' . $insert['message'];
+                continue;
+            }
+
+            $imported++;
+            $user_result = $this->auth_mdl->addInchargeUserFromEmployee($insert['ihris_pid']);
+            if (!empty($user_result['ok'])) {
+                $users_created++;
+            } elseif (empty($user_result['skipped'])) {
+                $errors[] = 'Row ' . $row_no . ': Staff saved but user account failed - ' . ($user_result['message'] ?? 'unknown error');
+            }
+        }
+
+        return [
+            'imported'       => $imported,
+            'skipped'        => $skipped,
+            'users_created'  => $users_created,
+            'errors'         => $errors,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $postdata
+     * @return array{ok: bool, message: string, ihris_pid: string|null}
+     */
+    public function insertEmployeeRecord($postdata)
+    {
         $this->ensureIhrisdataEmployeeColumns();
 
         $facility_id = trim((string) ($postdata['facility_id'] ?? ''));
@@ -2062,7 +2619,11 @@ class Employee_model extends CI_Model
         }
 
         if ($facility_name === '' || $facility_id === '') {
-            return 'Please select a valid ' . strtolower(entity_label('facility')) . '.';
+            return [
+                'ok'        => false,
+                'message'   => 'Please select a valid ' . strtolower(entity_label('facility')) . '.',
+                'ihris_pid' => null,
+            ];
         }
 
         $data = array(
@@ -2070,7 +2631,7 @@ class Employee_model extends CI_Model
             'othername' => $postdata['othername'] ?? '',
             'surname' => $postdata['surname'] ?? '',
             'gender' => $postdata['gender'] ?? '',
-            'birth_date' => $postdata['birth_date'] !== '' ? $postdata['birth_date'] : null,
+            'birth_date' => !empty($postdata['birth_date']) ? $postdata['birth_date'] : null,
             'home_district' => $postdata['home_district'] ?? '',
             'mobile' => $postdata['mobile'] ?? '',
             'telephone' => $postdata['telephone'] ?? '',
@@ -2127,7 +2688,11 @@ class Employee_model extends CI_Model
             $this->db->insert('ihrisdata', $insert_data);
 
             if ($this->db->affected_rows() > 0) {
-                return 'Employee has been added successfully';
+                return [
+                    'ok'        => true,
+                    'message'   => 'Employee has been added successfully',
+                    'ihris_pid' => $pid,
+                ];
             }
 
             $err = $this->db->error();
@@ -2136,12 +2701,20 @@ class Employee_model extends CI_Model
             }
 
             if (!empty($err['message'])) {
-                return $err['message'];
+                return [
+                    'ok'        => false,
+                    'message'   => $err['message'],
+                    'ihris_pid' => null,
+                ];
             }
 
             break;
         }
 
-        return 'Operation failed';
+        return [
+            'ok'        => false,
+            'message'   => 'Operation failed',
+            'ihris_pid' => null,
+        ];
     }
 }

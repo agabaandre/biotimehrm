@@ -21,6 +21,14 @@ class Facilities_mdl extends CI_Model {
 
 	public function getFacilities($district_id=FALSE)
 	{
+		if (function_exists('is_education_deployment') && is_education_deployment()) {
+			$this->db->select('facility_id, facility');
+			if ($district_id) {
+				$this->db->where('district_id', $district_id);
+			}
+			$this->db->order_by('facility', 'ASC');
+			return $this->db->get('employee_facility')->result();
+		}
 
 		$this->db->select('distinct(facility),facility_id');
 
@@ -39,8 +47,17 @@ class Facilities_mdl extends CI_Model {
 
 	public function get_facility()
 	{
-		$district=$_SESSION['district'];
-		
+		$district = $_SESSION['district'];
+
+		if (function_exists('is_education_deployment') && is_education_deployment()) {
+			$this->db->select('facility_id, facility, district_id');
+			if ($district !== '') {
+				$this->db->where('district_id', $district);
+			}
+			$this->db->order_by('facility', 'ASC');
+			return $this->db->get('employee_facility')->result_array();
+		}
+
 		if($district!==""){
 		$query=$this->db->query("select distinct facility_id,facility,district_id from ihrisdata where district_id='$district' order by facility ASC");
 		
