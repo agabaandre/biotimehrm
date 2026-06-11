@@ -127,7 +127,7 @@ class Facilities_mdl extends CI_Model {
 
 		if($rows>0){
 
-			return "Facility has been Added Successfully";
+			return entity_label('entity_added');
 		}
 
 		else{
@@ -142,7 +142,7 @@ class Facilities_mdl extends CI_Model {
 	{
 		$id = isset($postdata['id']) ? (int) $postdata['id'] : 0;
 		if ($id <= 0) {
-			return 'Invalid facility';
+			return 'Invalid ' . strtolower(entity_label('facility'));
 		}
 
 		$data = array(
@@ -158,7 +158,7 @@ class Facilities_mdl extends CI_Model {
 		$rows = $this->db->affected_rows();
 
 		if ($rows > 0) {
-			return 'Facility has been updated successfully';
+			return entity_label('entity_updated');
 		}
 
 		return 'No changes made';
@@ -168,7 +168,7 @@ class Facilities_mdl extends CI_Model {
 	{
 		$id = (int) $id;
 		if ($id <= 0) {
-			return 'Invalid facility';
+			return 'Invalid ' . strtolower(entity_label('facility'));
 		}
 
 		$this->db->where('id', $id);
@@ -176,10 +176,10 @@ class Facilities_mdl extends CI_Model {
 		$rows = $this->db->affected_rows();
 
 		if ($rows > 0) {
-			return 'Facility has been deleted successfully';
+			return entity_label('entity_deleted');
 		}
 
-		return 'Facility could not be deleted';
+		return entity_label('entity_delete_failed');
 	}
 	
 	/**

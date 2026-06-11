@@ -179,7 +179,8 @@ class Lists extends MX_Controller
 		
 		$data['districts'] = $this->districts_mdl->getDistricts();
 		$data['module'] = "lists";
-		$data['title'] = "Facilities Management";
+		$data['title'] = entity_label('facility', true) . ' Management';
+		$data['uptitle'] = entity_label('facility', true) . ' Management';
 		$data['view'] = 'facilities/facilities';
 		echo Modules::run("templates/main", $data);
 	}
@@ -297,7 +298,7 @@ class Lists extends MX_Controller
 				->set_content_type('application/json')
 				->set_output(json_encode([
 					'status'  => 'error',
-					'message' => 'Facility not found',
+					'message' => entity_label('entity_not_found'),
 				]));
 		}
 

@@ -240,7 +240,7 @@
                        <li class="nav-item">
                          <a href="<?php echo base_url(); ?>lists/getFacilities" class="nav-link">
                            <i class="far fa-circle nav-icon"></i>
-                           <p>Facilities</p>
+                           <p><?php echo entity_label('facility', true); ?></p>
                          </a>
                        </li>
                      <?php } ?>

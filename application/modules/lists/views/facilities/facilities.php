@@ -10,8 +10,8 @@
                             <i class="fas fa-hospital fa-3x"></i>
                         </div>
                         <div>
-                            <h1 class="page-title mb-1">Facilities Management</h1>
-                            <p class="page-subtitle mb-0">Manage and view all healthcare facilities in the system</p>
+                            <h1 class="page-title mb-1"><?php echo entity_label('facility', true); ?> Management</h1>
+                            <p class="page-subtitle mb-0"><?php echo entity_label('facilities_manage_subtitle'); ?></p>
                         </div>
                     </div>
                 </div>
@@ -25,7 +25,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <h6 class="card-title">Total Facilities</h6>
+                                <h6 class="card-title">Total <?php echo entity_label('facility', true); ?></h6>
                                 <h2 class="mb-0" id="totalFacilities">0</h2>
                             </div>
                             <div class="align-self-center">
@@ -40,7 +40,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <h6 class="card-title">Active Facilities</h6>
+                                <h6 class="card-title">Active <?php echo entity_label('facility', true); ?></h6>
                                 <h2 class="mb-0" id="activeFacilities">0</h2>
                             </div>
                             <div class="align-self-center">
@@ -153,7 +153,7 @@
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">
-                                <i class="fas fa-table text-info mr-2"></i>Facilities Directory
+                                <i class="fas fa-table text-info mr-2"></i><?php echo entity_label('facility', true); ?> Directory
                             </h5>
                             <div class="d-flex align-items-center">
                                 <span class="badge badge-info mr-3" id="showingInfo">Showing 0 of 0 entries</span>
@@ -161,7 +161,7 @@
                                     <i class="fas fa-sync-alt mr-1"></i>Refresh
                                 </button>
                                 <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#addFacilityModal">
-                                    <i class="fas fa-plus mr-1"></i>Add Facility
+                                    <i class="fas fa-plus mr-1"></i>Add <?php echo entity_label('facility'); ?>
                                 </button>
                             </div>
                         </div>
@@ -172,7 +172,7 @@
                                 <thead class="thead-light">
                                     <tr>
                                         <th class="text-center" style="width: 50px;">#</th>
-                                        <th style="min-width: 200px;">Facility/Institution</th>
+                                        <th style="min-width: 200px;"><?php echo entity_label('entity_institution'); ?></th>
                                         <th style="width: 150px;">District</th>
                                         <th style="width: 120px;">Category</th>
                                         <th style="width: 120px;">Type</th>
@@ -198,7 +198,7 @@
         <div class="modal-content">
             <div class="modal-header bg-info text-white">
                 <h5 class="modal-title" id="addFacilityModalLabel">
-                    <i class="fas fa-plus mr-2"></i>Add New Facility
+                    <i class="fas fa-plus mr-2"></i>Add New <?php echo entity_label('facility'); ?>
                 </h5>
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
@@ -210,15 +210,15 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label><i class="fas fa-hashtag text-info mr-1"></i>School ID</label>
+                                <label><i class="fas fa-hashtag text-info mr-1"></i><?php echo entity_label('entity_id'); ?></label>
                                 <input type="text" class="form-control bg-light" name="facility_id" id="facilityIdField" readonly placeholder="Auto-generated">
                                 <small class="text-muted">Assigned automatically when you save.</small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label><i class="fas fa-hospital text-info mr-1"></i>Facility Name</label>
-                                <input type="text" class="form-control" name="facility" placeholder="Enter facility name" required>
+                                <label><i class="fas fa-hospital text-info mr-1"></i><?php echo entity_label('entity_name'); ?></label>
+                                <input type="text" class="form-control" name="facility" placeholder="<?php echo htmlspecialchars(entity_label('enter_entity_name'), ENT_QUOTES, 'UTF-8'); ?>" required>
                             </div>
                         </div>
                     </div>
@@ -318,7 +318,7 @@
                         <i class="fas fa-times mr-1"></i>Cancel
                     </button>
                     <button type="submit" class="btn btn-info">
-                        <i class="fas fa-save mr-1"></i>Save Facility
+                        <i class="fas fa-save mr-1"></i>Save <?php echo entity_label('facility'); ?>
                     </button>
                 </div>
             </form>
@@ -332,7 +332,7 @@
         <div class="modal-content">
             <div class="modal-header bg-secondary text-white">
                 <h5 class="modal-title" id="editFacilityModalLabel">
-                    <i class="fas fa-edit mr-2"></i>Edit Facility
+                    <i class="fas fa-edit mr-2"></i>Edit <?php echo entity_label('facility'); ?>
                 </h5>
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
@@ -345,13 +345,13 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label><i class="fas fa-hashtag text-info mr-1"></i>School ID</label>
+                                <label><i class="fas fa-hashtag text-info mr-1"></i><?php echo entity_label('entity_id'); ?></label>
                                 <input type="text" class="form-control bg-light" id="editFacilityIdField" readonly>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label><i class="fas fa-hospital text-info mr-1"></i>Facility Name</label>
+                                <label><i class="fas fa-hospital text-info mr-1"></i><?php echo entity_label('entity_name'); ?></label>
                                 <input type="text" class="form-control" name="facility" id="editFacilityName" required>
                             </div>
                         </div>
@@ -458,6 +458,18 @@
 
 <script>
     var csrfTokenName = <?php echo json_encode($this->security->get_csrf_token_name()); ?>;
+    var entityMessages = <?php echo json_encode([
+        'added' => entity_label('entity_added'),
+        'updated' => entity_label('entity_updated'),
+        'deleted' => entity_label('entity_deleted'),
+        'addFailed' => entity_label('entity_add_failed'),
+        'updateFailed' => entity_label('entity_update_failed'),
+        'deleteFailed' => entity_label('entity_delete_failed'),
+        'loadFailed' => entity_label('entities_load_failed'),
+        'notFound' => entity_label('entity_load_failed'),
+        'detailsLoadFailed' => entity_label('entity_details_load_failed'),
+        'deleteConfirm' => entity_label('entity_delete_confirm'),
+    ]); ?>;
     var facilitiesTable;
 
     function refreshFacilityCsrfToken(hash) {
@@ -537,7 +549,7 @@
             },
             error: function(xhr) {
                 console.error('Facilities table load failed:', xhr.status, xhr.responseText);
-                toastr.error('Failed to load facilities. Please refresh the page.');
+                toastr.error(entityMessages.loadFailed);
             }
         },
         columns: [
@@ -623,8 +635,8 @@
             info: "Showing _START_ to _END_ of _TOTAL_ entries",
             infoEmpty: "Showing 0 to 0 of 0 entries",
             infoFiltered: "(filtered from _MAX_ total entries)",
-            emptyTable: "No facilities data available",
-            zeroRecords: "No matching facilities found"
+            emptyTable: "No <?php echo strtolower(entity_label('facility', true)); ?> data available",
+            zeroRecords: "No matching <?php echo strtolower(entity_label('facility', true)); ?> found"
         },
         drawCallback: function(settings) {
             updateShowingInfo();
@@ -686,18 +698,18 @@
             success: function(result) {
                 refreshFacilityCsrfToken(result.csrf_token);
                 if (result.status === 'success') {
-                    toastr.success(result.message || 'Facility added successfully!');
+                    toastr.success(result.message || entityMessages.added);
                     $('#addFacilityModal').modal('hide');
                     facilitiesTable.ajax.reload();
                 } else {
-                    toastr.error(result.message || 'Failed to add facility');
+                    toastr.error(result.message || entityMessages.addFailed);
                 }
             },
             error: function(xhr) {
                 if (xhr.status === 403) {
                     toastr.error('Security token expired. Please refresh the page and try again.');
                 } else {
-                    toastr.error('Failed to add facility. Please try again.');
+                    toastr.error(entityMessages.addFailed);
                 }
             },
             complete: function() {
@@ -720,18 +732,18 @@
             success: function(result) {
                 refreshFacilityCsrfToken(result.csrf_token);
                 if (result.status === 'success') {
-                    toastr.success(result.message || 'Facility updated successfully!');
+                    toastr.success(result.message || entityMessages.updated);
                     $('#editFacilityModal').modal('hide');
                     facilitiesTable.ajax.reload();
                 } else {
-                    toastr.error(result.message || 'Failed to update facility');
+                    toastr.error(result.message || entityMessages.updateFailed);
                 }
             },
             error: function(xhr) {
                 if (xhr.status === 403) {
                     toastr.error('Security token expired. Please refresh the page and try again.');
                 } else {
-                    toastr.error('Failed to update facility. Please try again.');
+                    toastr.error(entityMessages.updateFailed);
                 }
             },
             complete: function() {
@@ -745,7 +757,7 @@ function editFacility(id) {
     $.getJSON('<?php echo base_url("lists/getFacilityRecord/"); ?>' + id)
         .done(function(data) {
             if (data.status !== 'success' || !data.facility) {
-                toastr.error(data.message || 'Could not load facility');
+                toastr.error(data.message || entityMessages.notFound);
                 return;
             }
             refreshFacilityCsrfToken(data.csrf_token);
@@ -763,12 +775,12 @@ function editFacility(id) {
             $('#editFacilityModal').modal('show');
         })
         .fail(function() {
-            toastr.error('Failed to load facility details');
+            toastr.error(entityMessages.detailsLoadFailed);
         });
 }
 
 function deleteFacility(id) {
-    if (!confirm('Are you sure you want to delete this facility?')) {
+    if (!confirm(entityMessages.deleteConfirm)) {
         return;
     }
     $.ajax({
@@ -783,7 +795,7 @@ function deleteFacility(id) {
         success: function(result) {
             refreshFacilityCsrfToken(result.csrf_token);
             if (result.status === 'success') {
-                toastr.success(result.message || 'Facility deleted');
+                toastr.success(result.message || entityMessages.deleted);
                 if (facilitiesTable) {
                     facilitiesTable.ajax.reload();
                 }
@@ -795,7 +807,7 @@ function deleteFacility(id) {
             if (xhr.status === 403) {
                 toastr.error('Security token expired. Please refresh the page.');
             } else {
-                toastr.error('Failed to delete facility');
+                toastr.error(entityMessages.deleteFailed);
             }
         }
     });
