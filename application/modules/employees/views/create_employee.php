@@ -247,7 +247,7 @@
                 <div class="modal-body">
                     <p class="text-muted mb-3">
                         Use the downloaded template columns exactly. The sample row is skipped automatically during import.
-                        Cadre is assigned as Education in the backend. Each imported staff member is saved to iHRIS and added to the users table with the incharge role.
+                        Date of birth must be <strong>YYYY-MM-DD</strong> (e.g. 1990-01-15). Cadre is assigned as Education in the backend.
                     </p>
                     <div class="form-group mb-0">
                         <label for="importStaffFile"><i class="fas fa-file-csv text-info mr-1"></i>CSV File</label>

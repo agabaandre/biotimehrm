@@ -2079,7 +2079,7 @@ class Employee_model extends CI_Model
             'Middle Name',
             'Last Name',
             'Gender',
-            'Date of Birth',
+            'Date of Birth (YYYY-MM-DD)',
             'Home District',
             'Mobile',
             'Telephone',
@@ -2184,7 +2184,7 @@ class Employee_model extends CI_Model
             'othername'          => ['middle name', 'othername', 'other name', 'middle_name'],
             'surname'            => ['last name', 'surname', 'last_name'],
             'gender'             => ['gender', 'sex'],
-            'birth_date'         => ['date of birth', 'birth date', 'birth_date', 'dob'],
+            'birth_date'         => ['date of birth (yyyy-mm-dd)', 'date of birth', 'birth date', 'birth_date', 'dob'],
             'home_district'      => ['home district', 'home_district'],
             'mobile'             => ['mobile', 'mobile phone', 'phone'],
             'telephone'          => ['telephone', 'tel', 'landline'],
@@ -2372,6 +2372,46 @@ class Employee_model extends CI_Model
     }
 
     /**
+     * Parse and validate import date of birth (strict YYYY-MM-DD).
+     *
+     * @param string $value
+     * @param string $row_prefix e.g. "Row 2: "
+     * @return array{ok: bool, message: string, date: string|null}
+     */
+    public function parseImportBirthDate($value, $row_prefix = '')
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return ['ok' => true, 'message' => '', 'date' => null];
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return [
+                'ok'      => false,
+                'message' => $row_prefix . 'Date of birth must use YYYY-MM-DD format (e.g. 1990-01-15).',
+                'date'    => null,
+            ];
+        }
+
+        $dt = DateTime::createFromFormat('!Y-m-d', $value);
+        $errors = DateTime::getLastErrors();
+        if (
+            !$dt
+            || $dt->format('Y-m-d') !== $value
+            || ($errors['warning_count'] ?? 0) > 0
+            || ($errors['error_count'] ?? 0) > 0
+        ) {
+            return [
+                'ok'      => false,
+                'message' => $row_prefix . 'Date of birth is not a valid calendar date (use YYYY-MM-DD).',
+                'date'    => null,
+            ];
+        }
+
+        return ['ok' => true, 'message' => '', 'date' => $value];
+    }
+
+    /**
      * @param array<string, string> $row
      * @param int $row_no
      * @return array{ok: bool, message: string, data?: array<string, mixed>}
@@ -2473,11 +2513,12 @@ class Employee_model extends CI_Model
             $work_district_name = trim((string) $work_district->name);
         }
 
-        $birth_date = trim((string) ($row['birth_date'] ?? ''));
-        if ($birth_date !== '') {
-            $parsed = strtotime($birth_date);
-            $birth_date = $parsed ? date('Y-m-d', $parsed) : '';
+        $birth_date_raw = trim((string) ($row['birth_date'] ?? ''));
+        $birth_parsed = $this->parseImportBirthDate($birth_date_raw, $prefix);
+        if (!$birth_parsed['ok']) {
+            return ['ok' => false, 'message' => $birth_parsed['message']];
         }
+        $birth_date = $birth_parsed['date'];
 
         return [
             'ok'      => true,
