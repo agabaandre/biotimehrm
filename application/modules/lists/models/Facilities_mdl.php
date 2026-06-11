@@ -60,16 +60,51 @@ class Facilities_mdl extends CI_Model {
 	}
 
 
+	/**
+	 * Generate the next facility / school ID (e.g. edu1 -> edu2, or SCH0001).
+	 *
+	 * @return string
+	 */
+	public function generateNextFacilityId()
+	{
+		$this->db->select('facility_id');
+		$this->db->from($this->table);
+		$this->db->order_by('id', 'DESC');
+		$this->db->limit(1);
+		$last = $this->db->get()->row();
+
+		if (!$last || trim((string) $last->facility_id) === '') {
+			return 'SCH0001';
+		}
+
+		$last_id = trim((string) $last->facility_id);
+		if (preg_match('/^(.*?)(\d+)$/', $last_id, $m)) {
+			$width = strlen($m[2]);
+			$next = (int) $m[2] + 1;
+			return $m[1] . str_pad((string) $next, $width, '0', STR_PAD_LEFT);
+		}
+
+		$row = $this->db->select_max('id')->get($this->table)->row();
+		$next = ($row && !empty($row->id)) ? ((int) $row->id + 1) : 1;
+
+		return 'SCH' . str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+	}
+
     // to save in the facility /.....
 	public function saveFacility($postdata){
 
+		$facility_id = isset($postdata['facility_id']) ? trim((string) $postdata['facility_id']) : '';
+		if ($facility_id === '') {
+			$facility_id = $this->generateNextFacilityId();
+		}
+
 		$data=array(
-		'facility_id'=>$postdata['facility_id'],
-		'facility'=>$postdata['facility'],
-		'institution_category'=>$postdata['institution_category'],
-		'institution_type'=>$postdata['institution_type'],
-		'institution_level'=>$postdata['institution_level'],
-		'district_id'=>$postdata['district_id']
+		'facility_id'=>$facility_id,
+		'facility'=>isset($postdata['facility']) ? trim((string) $postdata['facility']) : '',
+		'institution_category'=>isset($postdata['institution_category']) ? $postdata['institution_category'] : '',
+		'institution_type'=>isset($postdata['institution_type']) ? $postdata['institution_type'] : '',
+		'institution_level'=>isset($postdata['institution_level']) ? $postdata['institution_level'] : '',
+		'district_id'=>isset($postdata['district_id']) ? $postdata['district_id'] : ''
 		);
 
 		$qry=$this->db->insert($this->table, $data);
@@ -135,7 +170,7 @@ class Facilities_mdl extends CI_Model {
 	public function getFacilitiesCount($search = '', $district_filter = '', $category_filter = '', $type_filter = '')
 	{
 		try {
-			$this->db->select('COUNT(DISTINCT facility_id) as total');
+			$this->db->select('COUNT(*) as total', false);
 			$this->db->from($this->table);
 			
 			if (!empty($search)) {
@@ -204,10 +239,12 @@ class Facilities_mdl extends CI_Model {
 				$this->db->where('institution_type', $type_filter);
 			}
 			
-			// Apply ordering
-			$columns = ['id', 'facility_id', 'facility', 'district_id', 'institution_category', 'institution_type', 'institution_level'];
+			// Column indices match DataTables columns on facilities page.
+			$columns = ['id', 'facility', 'district_id', 'institution_category', 'institution_type', 'institution_level'];
 			if (isset($columns[$order_column])) {
 				$this->db->order_by($columns[$order_column], $order_dir);
+			} else {
+				$this->db->order_by('facility', 'asc');
 			}
 			
 			// Apply pagination
@@ -244,22 +281,25 @@ class Facilities_mdl extends CI_Model {
 	 */
 	private function _getDistrictName($district_id)
 	{
-		if (empty($district_id)) return 'N/A';
-		
-		// Try to get from employee_districts table first
-		$this->db->select('name, district');
+		if (empty($district_id)) {
+			return 'N/A';
+		}
+
+		$this->db->select('name');
 		$this->db->from('employee_districts');
 		$this->db->where('id', $district_id);
 		$this->db->limit(1);
-		
+
 		$query = $this->db->get();
-		$result = $query->row();
-		
-		if ($result) {
-			return $result->name ?: $result->district ?: 'N/A';
+		if (!$query) {
+			return (string) $district_id;
 		}
-		
-		// If not found, return the district_id as is
-		return $district_id;
+
+		$result = $query->row();
+		if ($result && !empty($result->name)) {
+			return $result->name;
+		}
+
+		return (string) $district_id;
 	}
 }

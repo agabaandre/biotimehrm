@@ -95,7 +95,7 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label text-info">District Filter</label>
-                                <select class="form-control select2" id="districtFilter">
+                                <select class="form-control facility-s2" id="districtFilter" data-placeholder="All Districts">
                                     <option value="">All Districts</option>
                                     <?php if(isset($districts) && is_array($districts)): ?>
                                         <?php foreach($districts as $district): ?>
@@ -108,7 +108,7 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label text-info">Category Filter</label>
-                                <select class="form-control select2" id="categoryFilter">
+                                <select class="form-control facility-s2" id="categoryFilter" data-placeholder="All Categories">
                                     <option value="">All Categories</option>
                                     <option value="Government">Government</option>
                                     <option value="Private">Private</option>
@@ -123,7 +123,7 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label text-info">Type Filter</label>
-                                <select class="form-control select2" id="typeFilter">
+                                <select class="form-control facility-s2" id="typeFilter" data-placeholder="All Types">
                                     <option value="">All Types</option>
                                     <option value="Hospital">Hospital</option>
                                     <option value="Health Center">Health Center</option>
@@ -148,6 +148,7 @@
         <!-- Facilities Data Card -->
         <div class="row">
             <div class="col-12">
+                <input type="hidden" id="facilityPageCsrf" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
                 <div class="card">
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
@@ -209,8 +210,9 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label><i class="fas fa-hashtag text-info mr-1"></i>Facility Code</label>
-                                <input type="text" class="form-control" name="facility_id" placeholder="Enter facility code" required>
+                                <label><i class="fas fa-hashtag text-info mr-1"></i>School ID</label>
+                                <input type="text" class="form-control bg-light" name="facility_id" id="facilityIdField" readonly placeholder="Auto-generated">
+                                <small class="text-muted">Assigned automatically when you save.</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -224,7 +226,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label><i class="fas fa-map-marker-alt text-success mr-1"></i>District</label>
-                                <select class="form-control select2" name="district_id" required>
+                                <select class="form-control facility-s2 facility-s2-modal" name="district_id" data-placeholder="Select District..." required>
                                     <option value="">Select District...</option>
                                     <?php if(isset($districts) && is_array($districts)): ?>
                                         <?php foreach($districts as $district): ?>
@@ -239,7 +241,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label><i class="fas fa-tag text-warning mr-1"></i>Institution Category</label>
-                                <select class="form-control select2" name="institution_category">
+                                <select class="form-control facility-s2 facility-s2-modal" name="institution_category" data-placeholder="Select Category...">
                                     <option value="">Select Category...</option>
                                     <option value="Government">Government</option>
                                     <option value="Private">Private</option>
@@ -258,37 +260,54 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label><i class="fas fa-building text-info mr-1"></i>Institution Type</label>
-                                <select class="form-control select2" name="institution_type">
+                                <select class="form-control facility-s2 facility-s2-modal" name="institution_type" data-placeholder="Select Type...">
                                     <option value="">Select Type...</option>
+                                    <option value="District">District</option>
+                                    <option value="Ministry">Ministry</option>
+                                    <option value="City">City</option>
+                                    <option value="Civil Society Organisations (CSO)">Civil Society Organisations (CSO)</option>
+                                    <option value="Municipality">Municipality</option>
+                                    <option value="National Referral Hospital">National Referral Hospital</option>
+                                    <option value="Regional Referral Hospital">Regional Referral Hospital</option>
+                                    <option value="Specialised Facility">Specialised Facility</option>
+                                    <option value="UBTS">UBTS</option>
+                                    <option value="UCBHCA">UCBHCA</option>
+                                    <option value="UCMB">UCMB</option>
+                                    <option value="UMMB">UMMB</option>
+                                    <option value="UOMB">UOMB</option>
+                                    <option value="UPMB">UPMB</option>
+                                    <option value="Uganda Healthcare Federation (UHF)">Uganda Healthcare Federation (UHF)</option>
                                     <option value="Hospital">Hospital</option>
                                     <option value="Health Center">Health Center</option>
                                     <option value="Clinic">Clinic</option>
                                     <option value="Dispensary">Dispensary</option>
                                     <option value="Laboratory">Laboratory</option>
-                                    <option value="National Referral Hospital">National Referral Hospital</option>
-                                    <option value="Regional Referral Hospital">Regional Referral Hospital</option>
-                                    <option value="General Hospital">General Hospital</option>
-                                    <option value="HCII">HCII</option>
-                                    <option value="HCIII">HCIII</option>
-                                    <option value="HCIV">HCIV</option>
-                                    <option value="Clinic/ Medical Centre">Clinic/ Medical Centre</option>
                                 </select>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label><i class="fas fa-layer-group text-success mr-1"></i>Institution Level</label>
-                                <select class="form-control select2" name="institution_level">
+                                <select class="form-control facility-s2 facility-s2-modal" name="institution_level" data-placeholder="Select Level...">
                                     <option value="">Select Level...</option>
-                                    <option value="National">National</option>
-                                    <option value="Regional">Regional</option>
-                                    <option value="District">District</option>
-                                    <option value="County">County</option>
-                                    <option value="Sub-county">Sub-county</option>
-                                    <option value="Parish">Parish</option>
-                                    <option value="City">City</option>
-                                    <option value="Municipality">Municipality</option>
-                                    <option value="Town Council Office">Town Council Office</option>
+                                    <option value="Primary School">Primary School</option>
+                                    <option value="Secondary School">Secondary School</option>
+                                    <option value="Tertiary Instution">Tertiary Instution</option>
+                                    <option value="University">University</option>
+                                    <option value="Blood Bank Main Office">Blood Bank Main Office</option>
+                                    <option value="Blood Bank Regional Office">Blood Bank Regional Office</option>
+                                    <option value="City Health Office">City Health Office</option>
+                                    <option value="DHOs Office">DHOs Office</option>
+                                    <option value="General Hospital">General Hospital</option>
+                                    <option value="HCII">HCII</option>
+                                    <option value="HCIII">HCIII</option>
+                                    <option value="HCIV">HCIV</option>
+                                    <option value="Medical Bureau Main Office">Medical Bureau Main Office</option>
+                                    <option value="Ministry">Ministry</option>
+                                    <option value="Municipal Health Office">Municipal Health Office</option>
+                                    <option value="Security Forces Main Office">Security Forces Main Office</option>
+                                    <option value="Specialised National Facility">Specialised National Facility</option>
+                                    <option value="Town Council Office">Town Council Office</option>    
                                 </select>
                             </div>
                         </div>
@@ -298,13 +317,10 @@
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">
                         <i class="fas fa-times mr-1"></i>Cancel
                     </button>
-                    <button type="button" class="btn btn-warning mr-2" onclick="testCsrf()">
-                        <i class="fas fa-key mr-1"></i>Test CSRF
-                    </button>
                     <button type="submit" class="btn btn-info">
                         <i class="fas fa-save mr-1"></i>Save Facility
                     </button>
-            </div>
+                </div>
             </form>
         </div>
     </div>
@@ -327,6 +343,45 @@
 <script src="<?php echo base_url('assets/plugins/datatables-buttons/js/buttons.colVis.min.js'); ?>"></script>
 
 <script>
+    var csrfTokenName = <?php echo json_encode($this->security->get_csrf_token_name()); ?>;
+
+    function refreshFacilityCsrfToken(hash) {
+        if (!hash) {
+            return;
+        }
+        $('input[name="' + csrfTokenName + '"]').val(hash);
+        $('#facilityPageCsrf').val(hash);
+    }
+
+    function initFacilitySelect2(scope) {
+        var $root = scope ? $(scope) : $(document);
+        $root.find('.facility-s2').each(function() {
+            var $el = $(this);
+            if ($el.data('select2')) {
+                $el.select2('destroy');
+            }
+            var inModal = $el.hasClass('facility-s2-modal') || $el.closest('#addFacilityModal').length > 0;
+            $el.select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                minimumResultsForSearch: 0,
+                placeholder: $el.data('placeholder') || '',
+                allowClear: !$el.prop('required'),
+                dropdownParent: inModal ? $('#addFacilityModal') : $(document.body)
+            });
+        });
+    }
+
+    function loadNextFacilityId() {
+        $.getJSON('<?php echo base_url("lists/nextFacilityId"); ?>')
+            .done(function(data) {
+                if (data && data.facility_id) {
+                    $('#facilityIdField').val(data.facility_id);
+                }
+                refreshFacilityCsrfToken(data && data.csrf_token);
+            });
+    }
+
     $(document).ready(function() {
     // Configure Toastr
     toastr.options = {
@@ -346,13 +401,10 @@
         "showMethod": "fadeIn",
         "hideMethod": "fadeOut"
     };
-    
-    // Initialize Select2
-    $('.select2').select2({
-        theme: 'bootstrap-5',
-        width: '100%'
-    });
-    
+
+    initFacilitySelect2('#addFacilityModal');
+    initFacilitySelect2('.card');
+
     // Initialize DataTable with professional configuration
     var table = $('#facilitiesTable').DataTable({
         processing: true,
@@ -364,7 +416,11 @@
                 d.district_filter = $('#districtFilter').val();
                 d.category_filter = $('#categoryFilter').val();
                 d.type_filter = $('#typeFilter').val();
-                d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+                d[csrfTokenName] = $('#facilityPageCsrf').val() || $('input[name="' + csrfTokenName + '"]').first().val();
+            },
+            error: function(xhr) {
+                console.error('Facilities table load failed:', xhr.status, xhr.responseText);
+                toastr.error('Failed to load facilities. Please refresh the page.');
             }
         },
         columns: [
@@ -468,142 +524,71 @@
     $('#refreshTable').on('click', function() {
         table.ajax.reload();
     });
-    
-    // Refresh CSRF token when modal is opened
-    $('#addFacilityModal').on('show.bs.modal', function() {
-        // Update CSRF token in the form
-        var csrfTokenName = '<?php echo $this->security->get_csrf_token_name(); ?>';
-        var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
-        $('input[name="' + csrfTokenName + '"]').val(csrfTokenHash);
-        
-        // Debug: log CSRF token (remove in production)
-        console.log('CSRF Token refreshed:', csrfTokenName, csrfTokenHash);
-        
-        // Also log the form data for debugging
-        console.log('Form CSRF input value:', $('input[name="' + csrfTokenName + '"]').val());
+
+    $('#addFacilityModal').on('shown.bs.modal', function() {
+        refreshFacilityCsrfToken('<?php echo $this->security->get_csrf_hash(); ?>');
+        initFacilitySelect2('#addFacilityModal');
+        loadNextFacilityId();
     });
-    
+
+    $('#addFacilityModal').on('hidden.bs.modal', function() {
+        $('#addFacilityForm')[0].reset();
+        $('#addFacilityModal .facility-s2').val(null).trigger('change');
+    });
+
             // Initialize statistics
         updateShowingInfo();
         updateStatistics();
         
-        // Add debugging
-        console.log('Facilities table initialized');
-        
         function updateShowingInfo() {
             var info = table.page.info();
             $('#showingInfo').text('Showing ' + (info.start + 1) + ' to ' + info.end + ' of ' + info.recordsTotal + ' entries');
-            console.log('Table info updated:', info);
         }
         
         function updateStatistics() {
             var info = table.page.info();
             $('#totalFacilities').text(info.recordsTotal);
-            $('#activeFacilities').text(info.recordsTotal); // Assuming all are active for now
-            $('#totalDistricts').text($('#districtFilter option').length - 1); // Exclude "All Districts" option
-            $('#monthlyFacilities').text(Math.floor(Math.random() * 10) + 1); // Placeholder for now
-            console.log('Statistics updated:', info);
+            $('#activeFacilities').text(info.recordsTotal);
+            $('#totalDistricts').text($('#districtFilter option').length - 1);
+            $('#monthlyFacilities').text(Math.floor(Math.random() * 10) + 1);
         }
     
     // Handle form submission
     $('#addFacilityForm').on('submit', function(e) {
         e.preventDefault();
-        
-        // Debug: Log form submission
-        console.log('Form submission prevented');
-        
-        var formData = new FormData(this);
-        
-        // Get current CSRF token
-        var csrfTokenName = '<?php echo $this->security->get_csrf_token_name(); ?>';
-        var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
-        
-        // Debug: Log CSRF token information
-        console.log('CSRF Token Name:', csrfTokenName);
-        console.log('CSRF Token Hash:', csrfTokenHash);
-        console.log('Form action:', $(this).attr('action'));
-        
-        // Add CSRF token to form data
-        formData.append(csrfTokenName, csrfTokenHash);
-        
-        // Debug: Log form data
-        console.log('Form data entries:');
-        for (var pair of formData.entries()) {
-            console.log(pair[0] + ': ' + pair[1]);
-        }
-        
-        // Test CSRF token first
-        console.log('Testing CSRF token validation...');
-        
+
+        var $form = $(this);
+        var $submit = $form.find('[type="submit"]');
+        $submit.prop('disabled', true);
+
         $.ajax({
-            url: $(this).attr('action'),
+            url: $form.attr('action'),
             type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                console.log('Success response:', response);
-                try {
-                    var result = JSON.parse(response);
-                    if (result.status === 'success') {
-                        toastr.success(result.message || 'Facility added successfully!');
-                        $('#addFacilityModal').modal('hide');
-                        $('#addFacilityForm')[0].reset();
-                        table.ajax.reload();
-                        
-                        // Update CSRF token after successful submission
-                        if (result.csrf_token) {
-                            $('input[name="' + csrfTokenName + '"]').val(result.csrf_token);
-                        }
-                    } else {
-                        toastr.error(result.message || 'Failed to add facility');
-                        
-                        // Update CSRF token if provided
-                        if (result.csrf_token) {
-                            $('input[name="' + csrfTokenName + '"]').val(result.csrf_token);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error parsing response:', e);
-                    toastr.error('An error occurred while processing the response');
+            data: $form.serialize(),
+            dataType: 'json',
+            success: function(result) {
+                refreshFacilityCsrfToken(result.csrf_token);
+                if (result.status === 'success') {
+                    toastr.success(result.message || 'Facility added successfully!');
+                    $('#addFacilityModal').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    toastr.error(result.message || 'Failed to add facility');
                 }
             },
-            error: function(xhr, status, error) {
-                console.error('AJAX Error:', xhr.status, error);
-                console.error('Response:', xhr.responseText);
+            error: function(xhr) {
                 if (xhr.status === 403) {
                     toastr.error('Security token expired. Please refresh the page and try again.');
                 } else {
                     toastr.error('Failed to add facility. Please try again.');
                 }
+            },
+            complete: function() {
+                $submit.prop('disabled', false);
             }
         });
-        
-        return false; // Ensure form doesn't submit normally
     });
 });
-
-// Test CSRF token
-function testCsrf() {
-    $.ajax({
-        url: '<?php echo base_url("lists/testCsrf"); ?>',
-        type: 'GET',
-        success: function(response) {
-            try {
-                var result = JSON.parse(response);
-                console.log('CSRF Test Result:', result);
-                toastr.info('CSRF Token: ' + result.csrf_token_name + ' = ' + result.csrf_token_hash);
-            } catch (e) {
-                console.error('Error parsing CSRF test response:', e);
-                toastr.error('Failed to test CSRF token');
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('CSRF Test Error:', xhr.status, error);
-            toastr.error('Failed to test CSRF token');
-        }
-    });
-}
 
 // Facility management functions
 function editFacility(id) {
@@ -673,15 +658,24 @@ function deleteFacility(id) {
     border-radius: 10px 10px 0 0;
 }
 
-.form-control, .select2-container--bootstrap-5 .select2-selection {
+.form-control, .facility-s2 + .select2-container .select2-selection {
     border-radius: 8px;
     border: 2px solid #e9ecef;
     transition: all 0.3s ease;
 }
 
-.form-control:focus, .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+.form-control:focus, .facility-s2 + .select2-container--bootstrap4.select2-container--focus .select2-selection,
+.form-control:focus, .facility-s2 + .select2-container--bootstrap4.select2-container--open .select2-selection {
     border-color: #007bff;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+#addFacilityModal .select2-container {
+    width: 100% !important;
+}
+
+#addFacilityModal .select2-search__field {
+    width: 100% !important;
 }
 
 /* Statistics cards */

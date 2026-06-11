@@ -169,8 +169,8 @@ class Lists extends MX_Controller
 	//FACILITIES
 	public function getFacilities()
 	{
-		// Handle AJAX requests for server-side pagination
-		if ($this->input->is_ajax_request()) {
+		// DataTables POST includes draw; some clients omit X-Requested-With.
+		if ($this->input->is_ajax_request() || $this->input->post('draw') !== null) {
 			$this->_handleFacilitiesAjaxRequest();
 			return;
 		}
@@ -186,16 +186,33 @@ class Lists extends MX_Controller
 	 * Handle AJAX requests for facilities server-side pagination
 	 */
 	private function _handleFacilitiesAjaxRequest() {
+		$draw = (int) $this->input->post('draw');
 		try {
-			$draw = $this->input->post('draw');
-			$start = $this->input->post('start');
-			$length = $this->input->post('length');
-			$search = $this->input->post('search')['value'];
-			$order_column = $this->input->post('order')[0]['column'];
-			$order_dir = $this->input->post('order')[0]['dir'];
-			$district_filter = $this->input->post('district_filter');
-			$category_filter = $this->input->post('category_filter');
-			$type_filter = $this->input->post('type_filter');
+			$start = (int) $this->input->post('start');
+			$length = (int) $this->input->post('length');
+			if ($length <= 0) {
+				$length = 25;
+			}
+
+			$search_post = $this->input->post('search');
+			$search = (is_array($search_post) && isset($search_post['value']))
+				? trim((string) $search_post['value'])
+				: '';
+
+			$order_post = $this->input->post('order');
+			$order_column = 1;
+			$order_dir = 'asc';
+			if (is_array($order_post) && isset($order_post[0]) && is_array($order_post[0])) {
+				$order_column = isset($order_post[0]['column']) ? (int) $order_post[0]['column'] : 1;
+				$order_dir = isset($order_post[0]['dir']) ? strtolower((string) $order_post[0]['dir']) : 'asc';
+			}
+			if (!in_array($order_dir, ['asc', 'desc'], true)) {
+				$order_dir = 'asc';
+			}
+
+			$district_filter = (string) $this->input->post('district_filter');
+			$category_filter = (string) $this->input->post('category_filter');
+			$type_filter = (string) $this->input->post('type_filter');
 			
 			// Get total count
 			$total_records = $this->facilities_mdl->getFacilitiesCount();
@@ -214,7 +231,7 @@ class Lists extends MX_Controller
 			);
 			
 			$this->output->set_content_type('application/json')->set_output(json_encode($response));
-		} catch (Exception $e) {
+		} catch (Throwable $e) {
 			log_message('error', 'Facilities AJAX Error: ' . $e->getMessage());
 			$response = array(
 				"draw" => intval($draw),
@@ -241,53 +258,45 @@ class Lists extends MX_Controller
 	public function saveFacility()
 	{
 		$data = $this->input->post();
-		
-		// Validate CSRF token
-		$csrf_token_name = $this->security->get_csrf_token_name();
-		$csrf_token_hash = $this->security->get_csrf_hash();
-		
-		// Debug: Log the CSRF validation
-		log_message('debug', 'CSRF Token Name: ' . $csrf_token_name);
-		log_message('debug', 'CSRF Token Hash: ' . $csrf_token_hash);
-		log_message('debug', 'Posted CSRF Token: ' . $this->input->post($csrf_token_name));
-		log_message('debug', 'All POST data: ' . json_encode($this->input->post()));
-		
-		// Check if CSRF token is present
-		if (!$this->input->post($csrf_token_name)) {
-			log_message('error', 'CSRF token not found in POST data');
-			if ($this->input->is_ajax_request()) {
-				echo json_encode(['status' => 'error', 'message' => 'CSRF token not found']);
-				return;
-			}
-			$this->session->set_flashdata('error', 'CSRF token not found');
-			redirect('lists/getFacilities');
+		if (empty($data)) {
+			return $this->_facilitySaveResponse('error', 'No data received');
 		}
-		
-		// Check if CSRF token matches
-		if ($this->input->post($csrf_token_name) !== $csrf_token_hash) {
-			log_message('error', 'CSRF validation failed for saveFacility');
-			log_message('error', 'Expected: ' . $csrf_token_hash);
-			log_message('error', 'Received: ' . $this->input->post($csrf_token_name));
-			if ($this->input->is_ajax_request()) {
-				echo json_encode(['status' => 'error', 'message' => 'Invalid security token']);
-				return;
-			}
-			$this->session->set_flashdata('error', 'Invalid security token');
-			redirect('lists/getFacilities');
-		}
-		
+
+		// CSRF is validated globally by CodeIgniter (token is removed from POST after verify).
 		$result = $this->facilities_mdl->saveFacility($data);
-		
+		$ok = stripos($result, 'Successfully') !== false;
+
+		return $this->_facilitySaveResponse($ok ? 'success' : 'error', $result);
+	}
+
+	/**
+	 * Next facility / school ID for the add-facility form.
+	 */
+	public function nextFacilityId()
+	{
+		$this->output->set_content_type('application/json')->set_output(json_encode([
+			'facility_id' => $this->facilities_mdl->generateNextFacilityId(),
+			'csrf_token'  => $this->security->get_csrf_hash(),
+		]));
+	}
+
+	/**
+	 * @param string $status
+	 * @param string $message
+	 */
+	private function _facilitySaveResponse($status, $message)
+	{
+		$payload = [
+			'status'     => $status,
+			'message'    => $message,
+			'csrf_token' => $this->security->get_csrf_hash(),
+		];
+
 		if ($this->input->is_ajax_request()) {
-			$response = [
-				'status' => strpos($result, 'Successfully') !== false ? 'success' : 'error',
-				'message' => $result,
-				'csrf_token' => $this->security->get_csrf_hash()
-			];
-			echo json_encode($response);
-			return;
+			return $this->output->set_content_type('application/json')->set_output(json_encode($payload));
 		}
-		
+
+		$this->session->set_flashdata($status === 'success' ? 'success' : 'error', $message);
 		redirect('lists/getFacilities');
 	}
 
