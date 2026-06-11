@@ -108,65 +108,120 @@ class Facilities_mdl extends CI_Model {
 	}
 
 	/**
-	 * Generate the next facility / school ID (e.g. edu1 -> edu2, or SCH0001).
+	 * Generate the next facility / school ID (e.g. SCH0001).
 	 *
 	 * @return string
 	 */
 	public function generateNextFacilityId()
 	{
 		$this->db->select('facility_id');
+		$rows = $this->db->get($this->table)->result();
+
+		$prefix = 'SCH';
+		$width = 4;
+		$max_num = 0;
+
+		foreach ($rows as $row) {
+			$facility_id = trim((string) $row->facility_id);
+			if ($facility_id === '') {
+				continue;
+			}
+			if (preg_match('/^(.*?)(\d+)$/', $facility_id, $m)) {
+				$prefix = $m[1];
+				$width = max($width, strlen($m[2]));
+				$max_num = max($max_num, (int) $m[2]);
+			}
+		}
+
+		return $prefix . str_pad((string) ($max_num + 1), $width, '0', STR_PAD_LEFT);
+	}
+
+	/**
+	 * @param string $facility_id
+	 * @param int|null $exclude_id
+	 * @return bool
+	 */
+	public function facilityIdExists($facility_id, $exclude_id = null)
+	{
+		$facility_id = trim((string) $facility_id);
+		if ($facility_id === '') {
+			return false;
+		}
+
 		$this->db->from($this->table);
-		$this->db->order_by('id', 'DESC');
-		$this->db->limit(1);
-		$last = $this->db->get()->row();
-
-		if (!$last || trim((string) $last->facility_id) === '') {
-			return 'SCH0001';
+		$this->db->where('facility_id', $facility_id);
+		if ($exclude_id !== null) {
+			$this->db->where('id !=', (int) $exclude_id);
 		}
 
-		$last_id = trim((string) $last->facility_id);
-		if (preg_match('/^(.*?)(\d+)$/', $last_id, $m)) {
-			$width = strlen($m[2]);
-			$next = (int) $m[2] + 1;
-			return $m[1] . str_pad((string) $next, $width, '0', STR_PAD_LEFT);
-		}
+		return $this->db->count_all_results() > 0;
+	}
 
-		$row = $this->db->select_max('id')->get($this->table)->row();
-		$next = ($row && !empty($row->id)) ? ((int) $row->id + 1) : 1;
-
-		return 'SCH' . str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+	/**
+	 * @param int $errno
+	 * @return bool
+	 */
+	private function isDuplicateKeyError($errno)
+	{
+		return in_array((int) $errno, [1062, 1586, 1022], true);
 	}
 
     // to save in the facility /.....
 	public function saveFacility($postdata){
 
-		$facility_id = isset($postdata['facility_id']) ? trim((string) $postdata['facility_id']) : '';
-		if ($facility_id === '') {
-			$facility_id = $this->generateNextFacilityId();
+		$district_id = (int) ($postdata['district_id'] ?? 0);
+		$facility_name = trim((string) ($postdata['facility'] ?? ''));
+		$provided_id = trim((string) ($postdata['facility_id'] ?? ''));
+
+		if ($facility_name === '' || $district_id <= 0) {
+			return 'Please provide a valid ' . strtolower(entity_label('facility')) . ' name and district.';
 		}
 
-		$data=array(
-		'facility_id'=>$facility_id,
-		'facility'=>isset($postdata['facility']) ? trim((string) $postdata['facility']) : '',
-		'institution_category'=>isset($postdata['institution_category']) ? $postdata['institution_category'] : '',
-		'institution_type'=>isset($postdata['institution_type']) ? $postdata['institution_type'] : '',
-		'institution_level'=>isset($postdata['institution_level']) ? $postdata['institution_level'] : '',
-		'district_id'=>isset($postdata['district_id']) ? $postdata['district_id'] : ''
+		if ($this->facilityExistsInDistrict($facility_name, $district_id)) {
+			return entity_label('facility') . ' name already exists in this district.';
+		}
+
+		if ($provided_id !== '' && $this->facilityIdExists($provided_id)) {
+			return entity_label('entity_id') . ' already exists.';
+		}
+
+		$data = array(
+			'facility'             => $facility_name,
+			'institution_category' => isset($postdata['institution_category']) ? $postdata['institution_category'] : '',
+			'institution_type'     => isset($postdata['institution_type']) ? $postdata['institution_type'] : '',
+			'institution_level'    => isset($postdata['institution_level']) ? $postdata['institution_level'] : '',
+			'district_id'          => $district_id,
 		);
 
-		$qry=$this->db->insert($this->table, $data);
-		$rows=$this->db->affected_rows();
+		$max_attempts = 5;
+		for ($attempt = 0; $attempt < $max_attempts; $attempt++) {
+			$facility_id = $provided_id !== '' ? $provided_id : $this->generateNextFacilityId();
+			if ($this->facilityIdExists($facility_id)) {
+				if ($provided_id !== '') {
+					return entity_label('entity_id') . ' already exists.';
+				}
+				continue;
+			}
 
-		if($rows>0){
+			$data['facility_id'] = $facility_id;
+			$this->db->insert($this->table, $data);
 
-			return entity_label('entity_added');
+			if ($this->db->affected_rows() > 0) {
+				return entity_label('entity_added');
+			}
+
+			$err = $this->db->error();
+			if (!empty($err['code']) && $this->isDuplicateKeyError($err['code'])) {
+				if ($provided_id !== '') {
+					return entity_label('entity_id') . ' already exists.';
+				}
+				continue;
+			}
+
+			break;
 		}
 
-		else{
-
-			return "Operation failed";
-		}
-
+		return entity_label('entity_add_failed');
 	}
 
 	
@@ -177,9 +232,20 @@ class Facilities_mdl extends CI_Model {
 			return 'Invalid ' . strtolower(entity_label('facility'));
 		}
 
+		$district_id = (int) ($postdata['district_id'] ?? 0);
+		$facility_name = isset($postdata['facility']) ? trim((string) $postdata['facility']) : '';
+
+		if ($facility_name === '' || $district_id <= 0) {
+			return 'Please provide a valid ' . strtolower(entity_label('facility')) . ' name and district.';
+		}
+
+		if ($this->facilityExistsInDistrict($facility_name, $district_id, $id)) {
+			return entity_label('facility') . ' name already exists in this district.';
+		}
+
 		$data = array(
-			'facility'             => isset($postdata['facility']) ? trim((string) $postdata['facility']) : '',
-			'district_id'          => isset($postdata['district_id']) ? $postdata['district_id'] : '',
+			'facility'             => $facility_name,
+			'district_id'          => $district_id,
 			'institution_category' => isset($postdata['institution_category']) ? $postdata['institution_category'] : '',
 			'institution_type'     => isset($postdata['institution_type']) ? $postdata['institution_type'] : '',
 			'institution_level'    => isset($postdata['institution_level']) ? $postdata['institution_level'] : '',
@@ -270,23 +336,27 @@ class Facilities_mdl extends CI_Model {
 	/**
 	 * @param string $facility_name
 	 * @param int $district_id
+	 * @param int|null $exclude_id
+	 * @return bool
 	 */
-	public function facilityExistsInDistrict($facility_name, $district_id)
+	public function facilityExistsInDistrict($facility_name, $district_id, $exclude_id = null)
 	{
 		$facility_name = trim((string) $facility_name);
+		$district_id = (int) $district_id;
 		if ($facility_name === '' || $district_id <= 0) {
 			return false;
 		}
 
-		$row = $this->db->select('id')
-			->from($this->table)
-			->where('district_id', $district_id)
-			->where('LOWER(TRIM(facility))', strtolower($facility_name))
-			->limit(1)
-			->get()
-			->row();
+		$this->db->select('id');
+		$this->db->from($this->table);
+		$this->db->where('district_id', $district_id);
+		$this->db->where('LOWER(TRIM(facility))', strtolower($facility_name));
+		if ($exclude_id !== null) {
+			$this->db->where('id !=', (int) $exclude_id);
+		}
+		$this->db->limit(1);
 
-		return (bool) $row;
+		return (bool) $this->db->get()->row();
 	}
 
 	/**

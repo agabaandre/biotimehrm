@@ -145,7 +145,9 @@ class Lists extends MX_Controller
 	public function save_district()
 	{
 		$data = $this->input->post();
-		$distr = $this->districts_mdl->save_district($data);
+		$result = $this->districts_mdl->save_district($data);
+		$ok = stripos($result, 'success') !== false || stripos($result, 'added') !== false;
+		$this->session->set_flashdata($ok ? 'success' : 'error', $result);
 		redirect('lists/getDistricts');
 	}
 
@@ -153,7 +155,8 @@ class Lists extends MX_Controller
 	{
 		$data = $this->input->post();
 		$message = $this->districts_mdl->updateDistrict($data);
-		$this->session->set_flashdata('success', $message);
+		$ok = stripos($message, 'updated') !== false;
+		$this->session->set_flashdata($ok ? 'success' : 'error', $message);
 		redirect('lists/getDistricts');
 	}
 
@@ -267,7 +270,7 @@ class Lists extends MX_Controller
 
 		// CSRF is validated globally by CodeIgniter (token is removed from POST after verify).
 		$result = $this->facilities_mdl->saveFacility($data);
-		$ok = stripos($result, 'Successfully') !== false;
+		$ok = stripos($result, 'success') !== false || stripos($result, 'added') !== false;
 
 		return $this->_facilitySaveResponse($ok ? 'success' : 'error', $result);
 	}
@@ -620,32 +623,24 @@ class Lists extends MX_Controller
 
 	public function saveJob()
 	{
-		// Validate CSRF token
-		if (!$this->security->get_csrf_hash() || $this->input->post($this->security->get_csrf_token_name()) !== $this->security->get_csrf_hash()) {
-			$this->session->set_flashdata('error', 'Invalid security token');
-			redirect('lists/getJobs');
-		}
-		
 		$data = $this->input->post();
-		
-		// Check for duplicate job title
-		if ($this->jobs_mdl->isJobTitleDuplicate($data['job_title'])) {
-			$this->session->set_flashdata('error', 'Job title already exists. Please use a different title.');
+		if (empty($data['job_title'])) {
+			$this->session->set_flashdata('error', 'Job title is required.');
 			redirect('lists/getJobs');
 		}
-		
-		// Generate job ID if not provided
-		if (empty($data['job_id'])) {
-			$data['job_id'] = $this->jobs_mdl->generateJobId();
-		}
-		
+
 		$result = $this->jobs_mdl->saveJob($data);
-		
+		$ok = stripos($result, 'success') !== false || stripos($result, 'added') !== false;
+
 		if ($this->input->is_ajax_request()) {
-			echo json_encode(['status' => 'success', 'message' => $result]);
+			echo json_encode([
+				'status'  => $ok ? 'success' : 'error',
+				'message' => $result,
+			]);
 			return;
 		}
-		
+
+		$this->session->set_flashdata($ok ? 'success' : 'error', $result);
 		redirect('lists/getJobs');
 	}
 	
@@ -709,7 +704,9 @@ class Lists extends MX_Controller
 	public function updateJob()
 	{
 		$data = $this->input->post();
-		$this->jobs_mdl->updateJob($data);
+		$message = $this->jobs_mdl->updateJob($data);
+		$ok = stripos($message, 'updated') !== false;
+		$this->session->set_flashdata($ok ? 'success' : 'error', $message);
 		redirect('lists/getJobs');
 	}
 

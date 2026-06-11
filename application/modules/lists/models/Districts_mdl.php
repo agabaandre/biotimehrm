@@ -64,14 +64,41 @@ class Districts_mdl extends CI_Model {
 		return $query->result();
 	}
 		// to save in the district database /.....
+	public function districtNameExists($name, $exclude_id = null)
+	{
+		$name = trim((string) $name);
+		if ($name === '') {
+			return false;
+		}
+
+		$this->db->from($this->table);
+		$this->db->where('LOWER(TRIM(name))', strtolower($name));
+		if ($exclude_id !== null) {
+			$this->db->where('id !=', (int) $exclude_id);
+		}
+
+		return $this->db->count_all_results() > 0;
+	}
+
 	public function save_district($postdata){
 
+		$name = trim((string) ($postdata['name'] ?? ''));
+		$region = trim((string) ($postdata['region'] ?? ''));
+
+		if ($name === '') {
+			return 'District name is required.';
+		}
+
+		if ($this->districtNameExists($name)) {
+			return 'A district with this name already exists.';
+		}
+
 		$data=array(
-		'name'=>$postdata['name'],
-		'region'=>$postdata['region']
+		'name'=>$name,
+		'region'=>$region
 		);
 
-		$qry=$this->db->insert($this->table, $data);
+		$this->db->insert($this->table, $data);
 		$rows=$this->db->affected_rows();
 
 		if($rows>0){
@@ -79,11 +106,12 @@ class Districts_mdl extends CI_Model {
 			return "District has been Added Successfully";
 		}
 
-		else{
-
-			return "Operation failed";
+		$err = $this->db->error();
+		if (!empty($err['code']) && in_array((int) $err['code'], [1062, 1586, 1022], true)) {
+			return 'A district with this name already exists.';
 		}
 
+		return "Operation failed";
 	}
 
 	public function getDistrict($id){
@@ -145,6 +173,14 @@ class Districts_mdl extends CI_Model {
 			'name'   => isset($postdata['name']) ? trim((string) $postdata['name']) : '',
 			'region' => isset($postdata['region']) ? trim((string) $postdata['region']) : '',
 		);
+
+		if ($data['name'] === '') {
+			return 'District name is required.';
+		}
+
+		if ($this->districtNameExists($data['name'], $id)) {
+			return 'A district with this name already exists.';
+		}
 
 		$this->db->where('id', $id);
 		$this->db->update($this->table, $data);

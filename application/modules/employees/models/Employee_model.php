@@ -835,10 +835,63 @@ class Employee_model extends CI_Model
      */
     private function generateNewIhrisPid()
     {
-        $row = $this->db->select_max('id', 'max_id')->get('ihrisdata')->row();
-        $next_id = ($row && !empty($row->max_id)) ? ((int) $row->max_id + 1) : 1;
+        $max = 0;
 
-        return 'person|' . $next_id;
+        $this->db->select('ihris_pid');
+        $this->db->like('ihris_pid', 'person|', 'after');
+        foreach ($this->db->get('ihrisdata')->result() as $row) {
+            if (preg_match('/^person\|(\d+)$/', trim((string) $row->ihris_pid), $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
+
+        $id_row = $this->db->select_max('id', 'max_id')->get('ihrisdata')->row();
+        if ($id_row && !empty($id_row->max_id)) {
+            $max = max($max, (int) $id_row->max_id);
+        }
+
+        return 'person|' . ($max + 1);
+    }
+
+    /**
+     * @param string $pid
+     * @return bool
+     */
+    private function ihrisPidExists($pid)
+    {
+        return (bool) $this->db->get_where('ihrisdata', ['ihris_pid' => $pid], 1)->row();
+    }
+
+    /**
+     * @param int $errno
+     * @return bool
+     */
+    private function isDuplicateKeyError($errno)
+    {
+        return in_array((int) $errno, [1062, 1586, 1022], true);
+    }
+
+    /**
+     * Allocate a unique ihris_pid, retrying when concurrent saves collide.
+     *
+     * @return string|null
+     */
+    private function allocateIhrisPid()
+    {
+        $base = $this->generateNewIhrisPid();
+        $start = 1;
+        if (preg_match('/^person\|(\d+)$/', $base, $m)) {
+            $start = (int) $m[1];
+        }
+
+        for ($offset = 0; $offset < 25; $offset++) {
+            $pid = 'person|' . ($start + $offset);
+            if (!$this->ihrisPidExists($pid)) {
+                return $pid;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -2013,7 +2066,6 @@ class Employee_model extends CI_Model
         }
 
         $data = array(
-            'ihris_pid' => $this->generateNewIhrisPid(),
             'firstname' => $postdata['firstname'] ?? '',
             'othername' => $postdata['othername'] ?? '',
             'surname' => $postdata['surname'] ?? '',
@@ -2064,16 +2116,30 @@ class Employee_model extends CI_Model
             }
         }
 
-        $this->db->insert('ihrisdata', $insert_data);
-        $rows = $this->db->affected_rows();
+        $max_attempts = 10;
+        for ($attempt = 0; $attempt < $max_attempts; $attempt++) {
+            $pid = $this->allocateIhrisPid();
+            if ($pid === null) {
+                break;
+            }
 
-        if ($rows > 0) {
-            return 'Employee has been added successfully';
-        }
+            $insert_data['ihris_pid'] = $pid;
+            $this->db->insert('ihrisdata', $insert_data);
 
-        $err = $this->db->error();
-        if (!empty($err['message'])) {
-            return $err['message'];
+            if ($this->db->affected_rows() > 0) {
+                return 'Employee has been added successfully';
+            }
+
+            $err = $this->db->error();
+            if (!empty($err['code']) && $this->isDuplicateKeyError($err['code'])) {
+                continue;
+            }
+
+            if (!empty($err['message'])) {
+                return $err['message'];
+            }
+
+            break;
         }
 
         return 'Operation failed';
