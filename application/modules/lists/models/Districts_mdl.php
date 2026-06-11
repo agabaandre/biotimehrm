@@ -21,6 +21,31 @@ class Districts_mdl extends CI_Model {
 		return $query->result();
  
 	}
+
+	/**
+	 * Distinct non-empty region names from employee_districts.
+	 *
+	 * @return string[]
+	 */
+	public function getDistinctRegions()
+	{
+		$this->db->distinct();
+		$this->db->select('region');
+		$this->db->where('region !=', '');
+		$this->db->where('region IS NOT NULL', null, false);
+		$this->db->order_by('region', 'ASC');
+		$query = $this->db->get($this->table);
+
+		$regions = [];
+		foreach ($query->result() as $row) {
+			$region = trim((string) $row->region);
+			if ($region !== '') {
+				$regions[] = $region;
+			}
+		}
+
+		return $regions;
+	}
 	
 	public function switch_all_Districts()
 	{

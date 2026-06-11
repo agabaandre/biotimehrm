@@ -21,6 +21,7 @@ class Lists extends MX_Controller
 	public function getDistricts()
 	{
 		$data['districts'] = $this->districts_mdl->getDistricts();
+		$data['regions'] = $this->districts_mdl->getDistinctRegions();
 		$data['module'] = "lists";
 		$data['title'] = "";
 		$data['view'] = 'districts/districts';

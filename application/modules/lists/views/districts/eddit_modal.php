@@ -18,9 +18,24 @@
                    <input type="text" name="name" value="<?php echo $district->name; ?>" 
                    class="form-control"  required /> 
 
-                   <strong style="margin-right: 1em;">Region</strong> 
-                   <input type="text" name="region" value="<?php echo $district->region; ?>" 
-                   class="form-control"  required /> 
+                   <strong style="margin-right: 1em;">Region</strong>
+                   <?php
+                   $district_regions = isset($regions) && is_array($regions) ? $regions : [];
+                   $current_region = trim((string) $district->region);
+                   if ($current_region !== '' && !in_array($current_region, $district_regions, true)) {
+                       $district_regions[] = $current_region;
+                       sort($district_regions, SORT_NATURAL | SORT_FLAG_CASE);
+                   }
+                   ?>
+                   <select name="region" class="form-control" required>
+                       <option value="">Select region...</option>
+                       <?php foreach ($district_regions as $region): ?>
+                           <option value="<?php echo htmlspecialchars($region, ENT_QUOTES, 'UTF-8'); ?>"
+                               <?php echo $current_region === $region ? 'selected' : ''; ?>>
+                               <?php echo htmlspecialchars($region, ENT_QUOTES, 'UTF-8'); ?>
+                           </option>
+                       <?php endforeach; ?>
+                   </select>
                 
                 </div>
                 <div class="modal-footer">

@@ -76,7 +76,15 @@
                             </div>
                             <div class="form-group">
                                 <label>Region</label>
-                                <input type="text" class="form-control" name="region" required>
+                                <?php $region_options = isset($regions) && is_array($regions) ? $regions : []; ?>
+                                <select class="form-control" name="region" required>
+                                    <option value="">Select region...</option>
+                                    <?php foreach ($region_options as $region): ?>
+                                        <option value="<?php echo htmlspecialchars($region, ENT_QUOTES, 'UTF-8'); ?>">
+                                            <?php echo htmlspecialchars($region, ENT_QUOTES, 'UTF-8'); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <!-- /.card-body -->
 

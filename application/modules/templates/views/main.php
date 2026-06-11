@@ -67,6 +67,7 @@ require_once("includes/sidenav.php");
               }
               if (isset($setting)) $page_child_data['setting'] = $setting;
               if (isset($districts)) $page_child_data['districts'] = $districts;
+              if (isset($regions)) $page_child_data['regions'] = $regions;
               if (isset($import_template_headers)) $page_child_data['import_template_headers'] = $import_template_headers;
               if (isset($facilities)) $page_child_data['facilities'] = $facilities;
               if (isset($facilities_json)) $page_child_data['facilities_json'] = $facilities_json;
