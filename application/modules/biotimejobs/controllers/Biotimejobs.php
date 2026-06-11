@@ -2340,7 +2340,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $console("Date Range: $start_date to $end_date ($total_days days)", 'info');
             if ($terminal_sn) {
                 $console("Terminal: $terminal_sn", 'info');
-            }
+            } 
             if ($facility) {
                 $console("Facility: $facility", 'info');
             }
