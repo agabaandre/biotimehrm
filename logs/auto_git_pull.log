@@ -148,3 +148,21 @@ fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could n
 [2026-06-10 23:19:18] ERROR: git fetch failed
 [2026-06-11 09:00:07] OK: up to date (HEAD=102a4510b76338f36e83d22d17fa8ec030b3ad67)
 [2026-06-11 10:00:33] OK: up to date (HEAD=3619b2d9d87ce968a1a5b3ff362a996533ae825b)
+[2026-06-11 10:25:44] INFO: stashed local changes as 'auto_git_pull 2026-06-11 10:25:44'
+[2026-06-11 10:25:45] OK: pulled to 02016a134f6abc50b04e429f526e04942b03bfbc
+error: Your local changes to the following files would be overwritten by merge:
+	logs/auto_git_pull.log
+Please commit your changes or stash them before you merge.
+Aborting
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   logs/auto_git_pull.log
+
+no changes added to commit (use "git add" and/or "git commit -a")
+The stash entry is kept in case you need it again.
+[2026-06-11 10:25:45] WARN: stash pop reported conflicts; resolve with 'git stash list' / 'git stash pop'

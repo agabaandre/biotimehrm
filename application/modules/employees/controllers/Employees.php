@@ -508,7 +508,6 @@ class Employees extends MX_Controller
     header('Cache-Control: no-cache');
 
     $fh = fopen('php://output', 'w');
-    fprintf($fh, chr(0xEF) . chr(0xBB) . chr(0xBF));
     fputcsv($fh, $headers);
     fputcsv($fh, $sample);
     fclose($fh);

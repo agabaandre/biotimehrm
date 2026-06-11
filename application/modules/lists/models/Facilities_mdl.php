@@ -311,6 +311,41 @@ class Facilities_mdl extends CI_Model {
 	}
 
 	/**
+	 * Clean a CSV cell value (BOM, mojibake, wrapping quotes).
+	 *
+	 * @param string $value
+	 * @return string
+	 */
+	public function sanitizeImportCell($value)
+	{
+		$value = (string) $value;
+
+		// UTF-8 BOM bytes (anywhere in cell)
+		$value = str_replace("\xEF\xBB\xBF", '', $value);
+
+		// UTF-8 BOM misread as Latin-1/Windows-1252 (e.g. Ôªø)
+		if (strncmp($value, 'Ôªø', strlen('Ôªø')) === 0) {
+			$value = substr($value, strlen('Ôªø'));
+		}
+		if (strncmp($value, 'ï»¿', strlen('ï»¿')) === 0) {
+			$value = substr($value, strlen('ï»¿'));
+		}
+
+		// Unicode BOM / non-breaking space
+		$value = preg_replace('/^[\x{FEFF}\x{00A0}]+/u', '', $value);
+		$value = str_replace("\xC2\xA0", ' ', $value);
+
+		$value = trim($value);
+
+		// Strip wrapping quotes Excel sometimes leaves in the cell text
+		if (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"') {
+			$value = substr($value, 1, -1);
+		}
+
+		return trim($value, " \t\n\r\0\x0B\"'");
+	}
+
+	/**
 	 * Normalize a CSV header cell for comparison.
 	 *
 	 * @param string $label
@@ -318,13 +353,11 @@ class Facilities_mdl extends CI_Model {
 	 */
 	public function normalizeImportHeaderKey($label)
 	{
-		$label = (string) $label;
-		$label = preg_replace('/^\xEF\xBB\xBF/', '', $label);
-		$label = str_replace("\xC2\xA0", ' ', $label);
-		$label = strtolower(trim($label));
+		$label = $this->sanitizeImportCell($label);
+		$label = strtolower($label);
 		$label = preg_replace('/\s+/', ' ', $label);
 
-		return $label;
+		return trim($label);
 	}
 
 	/**
@@ -526,6 +559,8 @@ class Facilities_mdl extends CI_Model {
 			return $result;
 		}
 
+		$header_row = array_map([$this, 'sanitizeImportCell'], $header_row);
+
 		$result['headers'] = $header_row;
 		$result['column_map'] = $this->mapImportColumns($header_row);
 		if ($result['column_map'] === null) {
@@ -553,7 +588,7 @@ class Facilities_mdl extends CI_Model {
 
 			$row = $row_template;
 			foreach ($result['column_map'] as $field => $index) {
-				$row[$field] = isset($data[$index]) ? trim((string) $data[$index]) : '';
+				$row[$field] = isset($data[$index]) ? $this->sanitizeImportCell($data[$index]) : '';
 			}
 			$result['rows'][] = $row;
 		}

@@ -2160,13 +2160,9 @@ class Employee_model extends CI_Model
      */
     public function normalizeImportHeaderKey($label)
     {
-        $label = (string) $label;
-        $label = preg_replace('/^\xEF\xBB\xBF/', '', $label);
-        $label = str_replace("\xC2\xA0", ' ', $label);
-        $label = strtolower(trim($label));
-        $label = preg_replace('/\s+/', ' ', $label);
+        $this->load->model('lists/facilities_mdl', 'facilities_mdl');
 
-        return $label;
+        return $this->facilities_mdl->normalizeImportHeaderKey($label);
     }
 
     /**
@@ -2338,6 +2334,8 @@ class Employee_model extends CI_Model
             return $result;
         }
 
+        $header_row = array_map([$this->facilities_mdl, 'sanitizeImportCell'], $header_row);
+
         $result['headers'] = $header_row;
         $result['column_map'] = $this->mapImportColumns($header_row);
         if ($result['column_map'] === null) {
@@ -2361,7 +2359,7 @@ class Employee_model extends CI_Model
                 $row[$field] = '';
             }
             foreach ($result['column_map'] as $field => $index) {
-                $row[$field] = isset($data[$index]) ? trim((string) $data[$index]) : '';
+                $row[$field] = isset($data[$index]) ? $this->facilities_mdl->sanitizeImportCell($data[$index]) : '';
             }
             $result['rows'][] = $row;
         }
