@@ -3,12 +3,12 @@
     <div class="modal-dialog modal-md" >
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Are you sure you want to Delete</b>  <i><u><?php echo $district->district; ?></u></i>  district ?</h4>
+                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Are you sure you want to Delete</b>  <i><u><?php echo htmlspecialchars($district->name, ENT_QUOTES, 'UTF-8'); ?></u></i>  district ?</h4>
             </div>
 
             <form enctype="multipart/form-data" method="post" 
                     action="<?php echo base_url(); ?>lists/deleteDistrict">
-
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
             <div class="modal-body"> 
 
               <div style="text-align: center; color: red;">

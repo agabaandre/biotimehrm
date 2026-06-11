@@ -3,12 +3,12 @@
     <div class="modal-dialog modal-md" >
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Edit</b> <i><u><?php echo $district->district; ?></u></i> District</h4>
+                <h4 class="modal-title" id="defaultModalLabel" style="text-align: center;"><b>Edit</b> <i><u><?php echo htmlspecialchars($district->name, ENT_QUOTES, 'UTF-8'); ?></u></i> District</h4>
             </div>
 
             <form class="update_district" enctype="multipart/form-data"
                   method="post" action="<?php echo base_url(); ?>lists/updateDistrict">
-
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
                 <div class="modal-body">
 
                   <input type="hidden" name="id" value="<?php echo $district->id; ?>" 

@@ -151,7 +151,8 @@ class Lists extends MX_Controller
 	public function updateDistrict()
 	{
 		$data = $this->input->post();
-		$this->districts_mdl->updateDistrict($data);
+		$message = $this->districts_mdl->updateDistrict($data);
+		$this->session->set_flashdata('success', $message);
 		redirect('lists/getDistricts');
 	}
 
@@ -159,7 +160,8 @@ class Lists extends MX_Controller
 	public function deleteDistrict()
 	{
 		$data = $this->input->post();
-		$distr_delete = $this->districts_mdl->deleteDistrict($data);
+		$message = $this->districts_mdl->deleteDistrict($data);
+		$this->session->set_flashdata('success', $message);
 		redirect('lists/getDistricts');
 	}
 
@@ -278,6 +280,62 @@ class Lists extends MX_Controller
 			'facility_id' => $this->facilities_mdl->generateNextFacilityId(),
 			'csrf_token'  => $this->security->get_csrf_hash(),
 		]));
+	}
+
+	/**
+	 * JSON record for edit facility modal.
+	 *
+	 * @param int|null $id
+	 */
+	public function getFacilityRecord($id = null)
+	{
+		$id = (int) ($id ?: $this->input->post('id'));
+		$row = $this->facilities_mdl->getFacilityById($id);
+
+		if (!$row) {
+			return $this->output->set_status_header(404)
+				->set_content_type('application/json')
+				->set_output(json_encode([
+					'status'  => 'error',
+					'message' => 'Facility not found',
+				]));
+		}
+
+		return $this->output->set_content_type('application/json')->set_output(json_encode([
+			'status'   => 'success',
+			'facility' => [
+				'id'                   => (int) $row->id,
+				'facility_id'          => $row->facility_id,
+				'facility'             => $row->facility,
+				'district_id'          => $row->district_id,
+				'institution_category' => $row->institution_category,
+				'institution_type'     => $row->institution_type,
+				'institution_level'    => $row->institution_level,
+			],
+			'csrf_token' => $this->security->get_csrf_hash(),
+		]));
+	}
+
+	public function updateFacility()
+	{
+		$data = $this->input->post();
+		if (empty($data)) {
+			return $this->_facilitySaveResponse('error', 'No data received');
+		}
+
+		$result = $this->facilities_mdl->updateFacility($data);
+		$ok = stripos($result, 'successfully') !== false;
+
+		return $this->_facilitySaveResponse($ok ? 'success' : 'error', $result);
+	}
+
+	public function deleteFacility()
+	{
+		$id = (int) $this->input->post('id');
+		$result = $this->facilities_mdl->deleteFacilityById($id);
+		$ok = stripos($result, 'successfully') !== false;
+
+		return $this->_facilitySaveResponse($ok ? 'success' : 'error', $result);
 	}
 
 	/**

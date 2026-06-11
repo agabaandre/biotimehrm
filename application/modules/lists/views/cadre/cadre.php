@@ -21,9 +21,7 @@
                                 <th>Cadres</th>
                                 <th>Details</th>
                                 <th>Section</th>
-                                <th>
-                                    <?php print_r($permissions); ?>
-                                </th>
+                                <th>Actions</th>
                             </tr>
 
                             <?php  $no=1;   foreach($cadres as $cadre): ?>

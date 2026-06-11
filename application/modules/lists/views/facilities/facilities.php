@@ -326,6 +326,120 @@
     </div>
 </div>
 
+<!-- Edit Facility Modal -->
+<div class="modal fade" id="editFacilityModal" tabindex="-1" role="dialog" aria-labelledby="editFacilityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="editFacilityModalLabel">
+                    <i class="fas fa-edit mr-2"></i>Edit Facility
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editFacilityForm" method="post" action="<?php echo base_url(); ?>lists/updateFacility">
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                <input type="hidden" name="id" id="editFacilityDbId" value="">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><i class="fas fa-hashtag text-info mr-1"></i>School ID</label>
+                                <input type="text" class="form-control bg-light" id="editFacilityIdField" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><i class="fas fa-hospital text-info mr-1"></i>Facility Name</label>
+                                <input type="text" class="form-control" name="facility" id="editFacilityName" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><i class="fas fa-map-marker-alt text-success mr-1"></i>District</label>
+                                <select class="form-control facility-s2 facility-s2-modal" name="district_id" id="editFacilityDistrict" data-placeholder="Select District..." required>
+                                    <option value="">Select District...</option>
+                                    <?php if(isset($districts) && is_array($districts)): ?>
+                                        <?php foreach($districts as $district): ?>
+                                            <option value="<?php echo $district->id ?? $district->district_id; ?>">
+                                                <?php echo $district->name ?? $district->district; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><i class="fas fa-tag text-warning mr-1"></i>Institution Category</label>
+                                <select class="form-control facility-s2 facility-s2-modal" name="institution_category" id="editInstitutionCategory" data-placeholder="Select Category...">
+                                    <option value="">Select Category...</option>
+                                    <option value="Government">Government</option>
+                                    <option value="Private">Private</option>
+                                    <option value="Mission">Mission</option>
+                                    <option value="NGO">NGO</option>
+                                    <option value="Central Government">Central Government</option>
+                                    <option value="Local Government (LG)">Local Government (LG)</option>
+                                    <option value="Private for Profit (PFPs)">Private for Profit (PFPs)</option>
+                                    <option value="Private not for Profit (PNFPs)">Private not for Profit (PNFPs)</option>
+                                    <option value="Security Forces">Security Forces</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><i class="fas fa-building text-info mr-1"></i>Institution Type</label>
+                                <select class="form-control facility-s2 facility-s2-modal" name="institution_type" id="editInstitutionType" data-placeholder="Select Type...">
+                                    <option value="">Select Type...</option>
+                                    <option value="District">District</option>
+                                    <option value="Ministry">Ministry</option>
+                                    <option value="City">City</option>
+                                    <option value="Primary School">Primary School</option>
+                                    <option value="Secondary School">Secondary School</option>
+                                    <option value="Hospital">Hospital</option>
+                                    <option value="Health Center">Health Center</option>
+                                    <option value="Clinic">Clinic</option>
+                                    <option value="Dispensary">Dispensary</option>
+                                    <option value="Laboratory">Laboratory</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><i class="fas fa-layer-group text-success mr-1"></i>Institution Level</label>
+                                <select class="form-control facility-s2 facility-s2-modal" name="institution_level" id="editInstitutionLevel" data-placeholder="Select Level...">
+                                    <option value="">Select Level...</option>
+                                    <option value="Primary School">Primary School</option>
+                                    <option value="Secondary School">Secondary School</option>
+                                    <option value="Tertiary Instution">Tertiary Instution</option>
+                                    <option value="University">University</option>
+                                    <option value="General Hospital">General Hospital</option>
+                                    <option value="HCII">HCII</option>
+                                    <option value="HCIII">HCIII</option>
+                                    <option value="HCIV">HCIV</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save mr-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Toastr Notifications -->
 <link rel="stylesheet" href="<?php echo base_url('assets/plugins/toastr/toastr.min.css'); ?>">
 <script src="<?php echo base_url('assets/plugins/toastr/toastr.min.js'); ?>"></script>
@@ -344,6 +458,7 @@
 
 <script>
     var csrfTokenName = <?php echo json_encode($this->security->get_csrf_token_name()); ?>;
+    var facilitiesTable;
 
     function refreshFacilityCsrfToken(hash) {
         if (!hash) {
@@ -360,14 +475,15 @@
             if ($el.data('select2')) {
                 $el.select2('destroy');
             }
-            var inModal = $el.hasClass('facility-s2-modal') || $el.closest('#addFacilityModal').length > 0;
+            var inModal = $el.hasClass('facility-s2-modal') || $el.closest('#addFacilityModal, #editFacilityModal').length > 0;
+            var $modalParent = $el.closest('#addFacilityModal, #editFacilityModal');
             $el.select2({
                 theme: 'bootstrap4',
                 width: '100%',
                 minimumResultsForSearch: 0,
                 placeholder: $el.data('placeholder') || '',
                 allowClear: !$el.prop('required'),
-                dropdownParent: inModal ? $('#addFacilityModal') : $(document.body)
+                dropdownParent: $modalParent.length ? $modalParent : $(document.body)
             });
         });
     }
@@ -403,10 +519,11 @@
     };
 
     initFacilitySelect2('#addFacilityModal');
+    initFacilitySelect2('#editFacilityModal');
     initFacilitySelect2('.card');
 
     // Initialize DataTable with professional configuration
-    var table = $('#facilitiesTable').DataTable({
+    facilitiesTable = $('#facilitiesTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
@@ -517,12 +634,12 @@
     
     // Filter change handlers
     $('#districtFilter, #categoryFilter, #typeFilter').on('change', function() {
-        table.ajax.reload();
+        facilitiesTable.ajax.reload();
     });
     
     // Refresh table
     $('#refreshTable').on('click', function() {
-        table.ajax.reload();
+        facilitiesTable.ajax.reload();
     });
 
     $('#addFacilityModal').on('shown.bs.modal', function() {
@@ -541,12 +658,12 @@
         updateStatistics();
         
         function updateShowingInfo() {
-            var info = table.page.info();
+            var info = facilitiesTable.page.info();
             $('#showingInfo').text('Showing ' + (info.start + 1) + ' to ' + info.end + ' of ' + info.recordsTotal + ' entries');
         }
         
         function updateStatistics() {
-            var info = table.page.info();
+            var info = facilitiesTable.page.info();
             $('#totalFacilities').text(info.recordsTotal);
             $('#activeFacilities').text(info.recordsTotal);
             $('#totalDistricts').text($('#districtFilter option').length - 1);
@@ -571,7 +688,7 @@
                 if (result.status === 'success') {
                     toastr.success(result.message || 'Facility added successfully!');
                     $('#addFacilityModal').modal('hide');
-                    table.ajax.reload();
+                    facilitiesTable.ajax.reload();
                 } else {
                     toastr.error(result.message || 'Failed to add facility');
                 }
@@ -588,19 +705,100 @@
             }
         });
     });
+
+    $('#editFacilityForm').on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $submit = $form.find('[type="submit"]');
+        $submit.prop('disabled', true);
+
+        $.ajax({
+            url: $form.attr('action'),
+            type: 'POST',
+            data: $form.serialize(),
+            dataType: 'json',
+            success: function(result) {
+                refreshFacilityCsrfToken(result.csrf_token);
+                if (result.status === 'success') {
+                    toastr.success(result.message || 'Facility updated successfully!');
+                    $('#editFacilityModal').modal('hide');
+                    facilitiesTable.ajax.reload();
+                } else {
+                    toastr.error(result.message || 'Failed to update facility');
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 403) {
+                    toastr.error('Security token expired. Please refresh the page and try again.');
+                } else {
+                    toastr.error('Failed to update facility. Please try again.');
+                }
+            },
+            complete: function() {
+                $submit.prop('disabled', false);
+            }
+        });
+    });
 });
 
-// Facility management functions
 function editFacility(id) {
-    // Implement edit functionality
-    toastr.info('Edit functionality will be implemented here');
+    $.getJSON('<?php echo base_url("lists/getFacilityRecord/"); ?>' + id)
+        .done(function(data) {
+            if (data.status !== 'success' || !data.facility) {
+                toastr.error(data.message || 'Could not load facility');
+                return;
+            }
+            refreshFacilityCsrfToken(data.csrf_token);
+            var f = data.facility;
+            $('#editFacilityDbId').val(f.id);
+            $('#editFacilityIdField').val(f.facility_id);
+            $('#editFacilityName').val(f.facility);
+            $('#editFacilityDistrict').val(String(f.district_id)).trigger('change');
+            $('#editInstitutionCategory').val(f.institution_category || '').trigger('change');
+            $('#editInstitutionType').val(f.institution_type || '').trigger('change');
+            $('#editInstitutionLevel').val(f.institution_level || '').trigger('change');
+            if (typeof initFacilitySelect2 === 'function') {
+                initFacilitySelect2('#editFacilityModal');
+            }
+            $('#editFacilityModal').modal('show');
+        })
+        .fail(function() {
+            toastr.error('Failed to load facility details');
+        });
 }
 
 function deleteFacility(id) {
-    if (confirm('Are you sure you want to delete this facility?')) {
-        // Implement delete functionality
-        toastr.info('Delete functionality will be implemented here');
+    if (!confirm('Are you sure you want to delete this facility?')) {
+        return;
     }
+    $.ajax({
+        url: '<?php echo base_url("lists/deleteFacility"); ?>',
+        type: 'POST',
+        data: (function() {
+            var payload = { id: id };
+            payload[csrfTokenName] = $('#facilityPageCsrf').val();
+            return payload;
+        })(),
+        dataType: 'json',
+        success: function(result) {
+            refreshFacilityCsrfToken(result.csrf_token);
+            if (result.status === 'success') {
+                toastr.success(result.message || 'Facility deleted');
+                if (facilitiesTable) {
+                    facilitiesTable.ajax.reload();
+                }
+            } else {
+                toastr.error(result.message || 'Delete failed');
+            }
+        },
+        error: function(xhr) {
+            if (xhr.status === 403) {
+                toastr.error('Security token expired. Please refresh the page.');
+            } else {
+                toastr.error('Failed to delete facility');
+            }
+        }
+    });
 }
 </script>
 

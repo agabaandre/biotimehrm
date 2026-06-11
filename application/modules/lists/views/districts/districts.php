@@ -20,9 +20,7 @@
                                 <th style="width:2%;">#</th>
                                 <th>District</th>
                                 <th>Region</th>
-                                <th>
-                                    <?php print_r($permissions); ?>
-                                </th>
+                                <th>Actions</th>
                             </tr>
 
                             <?php  $no=1;   foreach($districts as $district): ?>
@@ -75,6 +73,7 @@
                     <!-- /.card-header -->
                     <!-- form start -->
                     <form class="district_form" method="post" action="<?php echo base_url(); ?>lists/save_district">
+                        <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
                         <div class="card-body">
 
                             <div class="form-group">

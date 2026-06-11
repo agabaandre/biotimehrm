@@ -111,33 +111,40 @@ class Districts_mdl extends CI_Model {
 	
 	public function updateDistrict($postdata){
 
-	    $id = $postdata['id'];
-		$this->db->where('id',$id);
-		$this->db->update($this->table, $postdata);
-		$rows=$this->db->affected_rows();
-
-		if($rows>0){
-
-			return "The ".$postdata['name']." "." district has been updated";
+	    $id = isset($postdata['id']) ? (int) $postdata['id'] : 0;
+		if ($id <= 0) {
+			return 'Invalid district';
 		}
 
-		else{
+		$data = array(
+			'name'   => isset($postdata['name']) ? trim((string) $postdata['name']) : '',
+			'region' => isset($postdata['region']) ? trim((string) $postdata['region']) : '',
+		);
 
-			return "No Operation made, seems like no changes made";
+		$this->db->where('id', $id);
+		$this->db->update($this->table, $data);
+		$rows = $this->db->affected_rows();
+
+		if ($rows > 0) {
+			return 'The ' . $data['name'] . ' district has been updated';
 		}
+
+		return 'No changes made';
 	}
 	 
 
-	 public function deleteDistrict(){
+	 public function deleteDistrict($postdata = null){
 
-	    $data=$this->input->post('id');
-		$this->db->where('id',$data);
+	    $id = $postdata !== null && isset($postdata['id'])
+			? $postdata['id']
+			: $this->input->post('id');
+		$this->db->where('id', $id);
 		$this->db->delete($this->table);
 
 		$rows = $this->db->affected_rows();
 		if($rows>0){
 
-			return "The district has been updated";
+			return "The district has been deleted";
 		}
 
 		else{

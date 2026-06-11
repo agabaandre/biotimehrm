@@ -61,6 +61,21 @@ class Facilities_mdl extends CI_Model {
 
 
 	/**
+	 * @param int $id
+	 * @return object|null
+	 */
+	public function getFacilityById($id)
+	{
+		$id = (int) $id;
+		if ($id <= 0) {
+			return null;
+		}
+
+		$query = $this->db->get_where($this->table, ['id' => $id], 1);
+		return $query->row();
+	}
+
+	/**
 	 * Generate the next facility / school ID (e.g. edu1 -> edu2, or SCH0001).
 	 *
 	 * @return string
@@ -123,45 +138,48 @@ class Facilities_mdl extends CI_Model {
 	}
 
 	
-	public function updateFacility(){
-
-	    $data=$this->input->post('id');
-		$this->db->where('id',$data);
-
-		$this->db->update($this->table);
-		$rows=$this->db->affected_rows();
-
-		if($rows>0){
-
-			return "The Facility has been updated";
+	public function updateFacility($postdata)
+	{
+		$id = isset($postdata['id']) ? (int) $postdata['id'] : 0;
+		if ($id <= 0) {
+			return 'Invalid facility';
 		}
 
-		else{
+		$data = array(
+			'facility'             => isset($postdata['facility']) ? trim((string) $postdata['facility']) : '',
+			'district_id'          => isset($postdata['district_id']) ? $postdata['district_id'] : '',
+			'institution_category' => isset($postdata['institution_category']) ? $postdata['institution_category'] : '',
+			'institution_type'     => isset($postdata['institution_type']) ? $postdata['institution_type'] : '',
+			'institution_level'    => isset($postdata['institution_level']) ? $postdata['institution_level'] : '',
+		);
 
-			return "No Operation made, seems like no changes made";
+		$this->db->where('id', $id);
+		$this->db->update($this->table, $data);
+		$rows = $this->db->affected_rows();
+
+		if ($rows > 0) {
+			return 'Facility has been updated successfully';
 		}
+
+		return 'No changes made';
 	}
 
-	
+	public function deleteFacilityById($id)
+	{
+		$id = (int) $id;
+		if ($id <= 0) {
+			return 'Invalid facility';
+		}
 
-
-	public function deleteFacility(){
-
-	    $data=$this->input->post('id');
-		$this->db->where('id',$data);
-
+		$this->db->where('id', $id);
 		$this->db->delete($this->table);
-		$rows=$this->db->affected_rows();
+		$rows = $this->db->affected_rows();
 
-		if($rows>0){
-
-			return "The facility has been updated";
+		if ($rows > 0) {
+			return 'Facility has been deleted successfully';
 		}
 
-		else{
-
-			return "No Operation made, seems like no changes made";
-		}
+		return 'Facility could not be deleted';
 	}
 	
 	/**
