@@ -181,6 +181,7 @@ public function login($user_id = FALSE)
             "ihris_pid" => $person->ihris_pid,
             "username" => $person->username,
             "role" => $person->group_name,
+            "role_id" => $person->role,
             "state" => $person->status,
             "dateChanged" => isset($person->changed) ? $person->changed : null,
             "changed" => isset($person->isChanged) ? $person->isChanged : null,

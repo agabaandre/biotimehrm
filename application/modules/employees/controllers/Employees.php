@@ -474,14 +474,22 @@ class Employees extends MX_Controller
   }
 
   /**
-   * Permission 10 admins can bulk-import staff.
+   * Users with role_id 10 (user.role) can bulk-import staff.
    *
    * @return bool
    */
   private function canImportStaff()
   {
-    $perms = $this->session->userdata('permissions');
-    return is_array($perms) && (in_array('10', $perms) || in_array(10, $perms));
+    $role_id = $this->session->userdata('role_id');
+    if ($role_id === null || $role_id === '') {
+      $user_id = $this->session->userdata('user_id');
+      if ($user_id) {
+        $row = $this->db->select('role')->from('user')->where('user_id', $user_id)->limit(1)->get()->row();
+        $role_id = $row ? $row->role : null;
+      }
+    }
+
+    return (int) $role_id === 10;
   }
 
   public function downloadEmployeeImportTemplate()
