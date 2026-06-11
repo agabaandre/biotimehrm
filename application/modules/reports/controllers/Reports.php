@@ -399,7 +399,7 @@ class Reports extends MX_Controller
 
 		$exportable = [
 			array(
-				str_replace("_", " ", strtoupper($grouped_by)),
+				strtoupper(group_by_label($grouped_by)),
 				'DUTY DATE',
 				'PRESENT',
 				'LEAVE',
@@ -544,7 +544,7 @@ class Reports extends MX_Controller
 		ini_set('max_execution_time', 0);
 
 		$header = array(
-			str_replace('_', ' ', strtoupper($grouped_by)),
+			strtoupper(group_by_label($grouped_by)),
 			'DUTY DATE',
 			'PRESENT',
 			'LEAVE',

@@ -1,6 +1,14 @@
 <!-- Main content -->
 <section class="content">
      <div class="container-fluid">
+       <div class="row mb-3">
+         <div class="col-12">
+           <h4 class="mb-1"><i class="fas fa-clipboard-list text-info"></i> Person Attendance</h4>
+           <?php if (!empty($_SESSION['facility_name'])) { ?>
+           <p class="text-muted mb-0"><?php echo entity_label('facility'); ?>: <?php echo htmlspecialchars($_SESSION['facility_name'], ENT_QUOTES, 'UTF-8'); ?></p>
+           <?php } ?>
+         </div>
+       </div>
        <!-- Main row -->
        <div class="row">
          <section class="col-lg-12 ">

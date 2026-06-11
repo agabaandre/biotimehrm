@@ -437,13 +437,13 @@ if (!function_exists('switch_facility_district_option_value')) {
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Switch Facility</h5>
+                <h5 class="modal-title" id="exampleModalLabel"><?php echo entity_label('switch_facility'); ?></h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <?php if (!empty($switch_facility_cache_meta['generated_at'])) { ?>
-                <p class="text-muted small px-3 mb-0">Facility list cached: <?php echo htmlspecialchars($switch_facility_cache_meta['generated_at'], ENT_QUOTES, 'UTF-8'); ?>
+                <p class="text-muted small px-3 mb-0"><?php echo entity_label('facility'); ?> list cached: <?php echo htmlspecialchars($switch_facility_cache_meta['generated_at'], ENT_QUOTES, 'UTF-8'); ?>
                 <?php if ($switch_can_rebuild_cache) { ?>
                     · <a href="<?php echo base_url('lists/rebuild_switch_facility_cache?redirect=' . urlencode($linkquery)); ?>">Refresh list</a>
                 <?php } ?>
@@ -477,9 +477,9 @@ if (!function_exists('switch_facility_district_option_value')) {
                         </div>
                         <div class="col-md-12">
                             <div class="form-group">
-                                <label>Facility</label>
+                                <label><?php echo entity_label('facility'); ?></label>
                                 <select name="facility" id="switchFacility" class="sfacility form-control select2dist" required>
-                                    <option value="">Select Facility</option>
+                                    <option value=""><?php echo entity_label('select_facility'); ?></option>
                                 </select>
                             </div>
                         </div>
@@ -595,6 +595,7 @@ if (!function_exists('switch_facility_district_option_value')) {
     });
 </script>
 <script>
+    var switchSelectFacilityLabel = <?php echo json_encode(entity_label('select_facility')); ?>;
     var facilitySwitchCache = null;
     var facilitySwitchCacheLoading = false;
     var switchFacilitiesUpdating = false;
@@ -652,7 +653,7 @@ if (!function_exists('switch_facility_district_option_value')) {
     function renderSwitchFacilities(distValue) {
         switchFacilitiesUpdating = true;
         var districtId = resolveSwitchDistrictId(parseSwitchDistrictId(distValue));
-        var html = "<option value=''>Select Facility</option>";
+        var html = "<option value=''>" + switchSelectFacilityLabel + "</option>";
         var $sfac = $switchModal.find('.sfacility');
 
         function finishSwitchFacilities() {

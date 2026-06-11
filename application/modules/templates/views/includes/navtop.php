@@ -33,7 +33,7 @@
       <li class="nav-item">
         <a class="btn-modern nav-link" href="#" data-toggle="modal" data-target="#switch" role="button" style="cursor: pointer;">
           <i class="fas fa-toggle-on" style="font-size: 0.75rem; margin-right: 0.3rem;"></i>
-          <span class="hidden-mobile">Change Facility</span>
+          <span class="hidden-mobile"><?php echo entity_label('change_facility'); ?></span>
         </a>
       </li>
     <?php } ?>

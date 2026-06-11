@@ -103,7 +103,7 @@
 						<div class="row mt-2">
 							<div class="col-md-4">
 								<div class="control-group">
-									<label>Facility</label>
+									<label><?php echo entity_label('facility'); ?></label>
 									<select class="form-control aa-filter-s2" name="facility_name" id="aa_facility_name">
 										<option value="">All (select district to narrow)</option>
 									</select>
@@ -143,7 +143,7 @@
 									<select class="form-control aa-filter-s2" name="group_by" id="aa_group_by">
 										<?php foreach ($aggregations as $key => $value): ?>
 											<option value="<?php echo $value; ?>" <?php echo ($grouped_by == $value) ? "selected" : ""; ?>>
-												<?php echo ucwords(str_replace("_", " ", $value)); ?>
+												<?php echo htmlspecialchars(group_by_label($value), ENT_QUOTES, 'UTF-8'); ?>
 											</option>
 										<?php endforeach; ?>
 									</select>
@@ -175,7 +175,7 @@
 		</div>
 		<div class="col-md-12" style="border-right: 0; border-left: 0; border-top: 0;">
 				<p style="font-size: 16px; font-weight:bold; margin:0 auto;">
-					AGGREGATED ATTENDANCE TO DUTY SUMMARY BY <span id="aa_group_by_label"><?php echo ucwords(str_replace("_", " ", $grouped_by)); ?></span>
+					AGGREGATED ATTENDANCE TO DUTY SUMMARY BY <span id="aa_group_by_label"><?php echo htmlspecialchars(group_by_label($grouped_by), ENT_QUOTES, 'UTF-8'); ?></span>
 				</p>
 			</div>
 
@@ -184,7 +184,7 @@
 					<thead>
 						<tr>
 							<th>#</th>
-							<th id="group_by_header"><?php echo ucwords(str_replace("_", " ", $grouped_by)); ?></th>
+							<th id="group_by_header"><?php echo htmlspecialchars(group_by_label($grouped_by), ENT_QUOTES, 'UTF-8'); ?></th>
 							<th>Period</th>
 							<th>Present</th>
 							<th>Off Duty</th>
@@ -208,11 +208,18 @@
 </section>
 
 <script type="text/javascript">
+<?php
+$aa_group_by_labels = [];
+foreach ($aggregations as $agg) {
+	$aa_group_by_labels[$agg] = group_by_label($agg);
+}
+?>
 $(document).ready(function() {
 	var table;
 	var csrfTokenName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 	var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 	var baseUrl = '<?php echo base_url(); ?>';
+	var groupByLabels = <?php echo json_encode($aa_group_by_labels); ?>;
 
 	function nonEmptyList(vals) {
 		return (vals || []).filter(function(v) { return v !== null && v !== undefined && String(v).trim() !== ''; });
@@ -349,7 +356,7 @@ $(document).ready(function() {
 
 	function updateGroupByLabel() {
 		var groupBy = $('#aa_group_by').val();
-		var label = groupBy.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+		var label = groupByLabels[groupBy] || groupBy.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
 		$('#aa_group_by_label').text(label);
 		$('#group_by_header').text(label);
 	}

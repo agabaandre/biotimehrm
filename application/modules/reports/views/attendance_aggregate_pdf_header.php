@@ -32,7 +32,7 @@
 			</td>
 			<td>
 				<p class="report-title">Aggregated Attendance to Duty Summary</p>
-				<p class="report-subtitle">By <?php echo ucwords(str_replace('_', ' ', isset($grouped_by) ? $grouped_by : 'district')); ?> — Period: <?php echo isset($period_label) ? htmlspecialchars($period_label) : ''; ?></p>
+				<p class="report-subtitle">By <?php echo htmlspecialchars(group_by_label(isset($grouped_by) ? $grouped_by : 'district'), ENT_QUOTES, 'UTF-8'); ?> — Period: <?php echo isset($period_label) ? htmlspecialchars($period_label) : ''; ?></p>
 			</td>
 		</tr>
 	</table>
@@ -40,7 +40,7 @@
 		<thead>
 			<tr>
 				<th style="width: 28px;">#</th>
-				<th class="text-left" style="width: 14%;"><?php echo ucwords(str_replace('_', ' ', isset($grouped_by) ? $grouped_by : 'District')); ?></th>
+				<th class="text-left" style="width: 14%;"><?php echo htmlspecialchars(group_by_label(isset($grouped_by) ? $grouped_by : 'district'), ENT_QUOTES, 'UTF-8'); ?></th>
 				<th class="text-left" style="width: 10%;">Period</th>
 				<th class="num" style="width: 7%;">Present</th>
 				<th class="num" style="width: 7%;">Off Duty</th>
