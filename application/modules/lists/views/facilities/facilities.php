@@ -160,6 +160,9 @@
                                 <button type="button" class="btn btn-sm btn-outline-info mr-2" id="refreshTable">
                                     <i class="fas fa-sync-alt mr-1"></i>Refresh
                                 </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mr-2" data-toggle="modal" data-target="#importFacilityModal">
+                                    <i class="fas fa-file-import mr-1"></i>Import
+                                </button>
                                 <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#addFacilityModal">
                                     <i class="fas fa-plus mr-1"></i>Add <?php echo entity_label('facility'); ?>
                                 </button>
@@ -440,6 +443,52 @@
     </div>
 </div>
 
+<!-- Import Schools/Facilities Modal -->
+<div class="modal fade" id="importFacilityModal" tabindex="-1" role="dialog" aria-labelledby="importFacilityModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="importFacilityModalLabel">
+                    <i class="fas fa-file-import mr-2"></i>Import <?php echo entity_label('facility', true); ?>
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="importFacilityForm" method="post" enctype="multipart/form-data" action="<?php echo base_url('lists/importFacilities'); ?>">
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        Download the template, fill in one row per <?php echo strtolower(entity_label('facility')); ?>, then upload the CSV file.
+                        The sample row uses <strong>Government</strong>, <strong>District</strong>, and <strong>Primary School</strong> as defaults.
+                    </p>
+                    <div class="mb-3">
+                        <a href="<?php echo base_url('lists/downloadFacilityImportTemplate'); ?>" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-download mr-1"></i>Download Import Template
+                        </a>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label for="importFacilityFile"><i class="fas fa-file-csv text-info mr-1"></i>CSV File</label>
+                        <input type="file" class="form-control-file" id="importFacilityFile" name="import_file" accept=".csv,text/csv" required>
+                        <small class="form-text text-muted">
+                            Columns: <?php echo htmlspecialchars(implode(', ', isset($import_template_headers) ? $import_template_headers : []), ENT_QUOTES, 'UTF-8'); ?>.
+                            <?php echo entity_label('entity_id'); ?> is assigned automatically on import.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-upload mr-1"></i>Upload &amp; Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Toastr Notifications -->
 <link rel="stylesheet" href="<?php echo base_url('assets/plugins/toastr/toastr.min.css'); ?>">
 <script src="<?php echo base_url('assets/plugins/toastr/toastr.min.js'); ?>"></script>
@@ -480,14 +529,30 @@
         $('#facilityPageCsrf').val(hash);
     }
 
-    function initFacilitySelect2(scope) {
-        var $root = scope ? $(scope) : $(document);
-        $root.find('.facility-s2').each(function() {
-            var $el = $(this);
-            if ($el.data('select2')) {
+    function destroyFacilitySelect2($el) {
+        if (!$el || !$el.length) {
+            return;
+        }
+        try {
+            if ($el.hasClass('select2-hidden-accessible') && $el.data('select2')) {
                 $el.select2('destroy');
             }
-            var inModal = $el.hasClass('facility-s2-modal') || $el.closest('#addFacilityModal, #editFacilityModal').length > 0;
+        } catch (err) {
+            // Select2 may already be torn down.
+        }
+        while ($el.next('.select2-container').length) {
+            $el.next('.select2-container').remove();
+        }
+        $el.removeClass('select2-hidden-accessible');
+        $el.removeAttr('data-select2-id aria-hidden tabindex');
+    }
+
+    function initFacilitySelect2(scope, modalOnly) {
+        var $root = scope ? $(scope) : $(document);
+        var selector = modalOnly ? '.facility-s2-modal' : '.facility-s2:not(.facility-s2-modal)';
+        $root.find(selector).each(function() {
+            var $el = $(this);
+            destroyFacilitySelect2($el);
             var $modalParent = $el.closest('#addFacilityModal, #editFacilityModal');
             $el.select2({
                 theme: 'bootstrap4',
@@ -497,6 +562,13 @@
                 allowClear: !$el.prop('required'),
                 dropdownParent: $modalParent.length ? $modalParent : $(document.body)
             });
+        });
+    }
+
+    function destroyModalFacilitySelect2(scope) {
+        var $root = scope ? $(scope) : $(document);
+        $root.find('.facility-s2-modal').each(function() {
+            destroyFacilitySelect2($(this));
         });
     }
 
@@ -530,9 +602,7 @@
         "hideMethod": "fadeOut"
     };
 
-    initFacilitySelect2('#addFacilityModal');
-    initFacilitySelect2('#editFacilityModal');
-    initFacilitySelect2('.card');
+    initFacilitySelect2('.card', false);
 
     // Initialize DataTable with professional configuration
     facilitiesTable = $('#facilitiesTable').DataTable({
@@ -656,13 +726,21 @@
 
     $('#addFacilityModal').on('shown.bs.modal', function() {
         refreshFacilityCsrfToken('<?php echo $this->security->get_csrf_hash(); ?>');
-        initFacilitySelect2('#addFacilityModal');
+        initFacilitySelect2('#addFacilityModal', true);
         loadNextFacilityId();
     });
 
     $('#addFacilityModal').on('hidden.bs.modal', function() {
         $('#addFacilityForm')[0].reset();
-        $('#addFacilityModal .facility-s2').val(null).trigger('change');
+        destroyModalFacilitySelect2('#addFacilityModal');
+    });
+
+    $('#editFacilityModal').on('shown.bs.modal', function() {
+        initFacilitySelect2('#editFacilityModal', true);
+    });
+
+    $('#editFacilityModal').on('hidden.bs.modal', function() {
+        destroyModalFacilitySelect2('#editFacilityModal');
     });
 
             // Initialize statistics
@@ -751,6 +829,44 @@
             }
         });
     });
+
+    $('#importFacilityForm').on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $submit = $form.find('[type="submit"]');
+        var formData = new FormData(this);
+        $submit.prop('disabled', true);
+
+        $.ajax({
+            url: $form.attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function(result) {
+                refreshFacilityCsrfToken(result.csrf_token);
+                if (result.status === 'success') {
+                    toastr.success(result.message || 'Import completed.');
+                    $('#importFacilityModal').modal('hide');
+                    $form[0].reset();
+                    facilitiesTable.ajax.reload();
+                } else {
+                    toastr.error(result.message || 'Import failed.');
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 403) {
+                    toastr.error('Security token expired. Please refresh the page and try again.');
+                } else {
+                    toastr.error('Import failed. Please check your CSV file and try again.');
+                }
+            },
+            complete: function() {
+                $submit.prop('disabled', false);
+            }
+        });
+    });
 });
 
 function editFacility(id) {
@@ -762,16 +878,14 @@ function editFacility(id) {
             }
             refreshFacilityCsrfToken(data.csrf_token);
             var f = data.facility;
+            destroyModalFacilitySelect2('#editFacilityModal');
             $('#editFacilityDbId').val(f.id);
             $('#editFacilityIdField').val(f.facility_id);
             $('#editFacilityName').val(f.facility);
             $('#editFacilityDistrict').val(String(f.district_id)).trigger('change');
             $('#editInstitutionCategory').val(f.institution_category || '').trigger('change');
             $('#editInstitutionType').val(f.institution_type || '').trigger('change');
-            $('#editInstitutionLevel').val(f.institution_level || '').trigger('change');
-            if (typeof initFacilitySelect2 === 'function') {
-                initFacilitySelect2('#editFacilityModal');
-            }
+            $('#editInstitutionLevel').val(f.institution_level || '');
             $('#editFacilityModal').modal('show');
         })
         .fail(function() {
@@ -874,14 +988,33 @@ function deleteFacility(id) {
     transition: all 0.3s ease;
 }
 
+select.facility-s2.select2-hidden-accessible {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
 .form-control:focus, .facility-s2 + .select2-container--bootstrap4.select2-container--focus .select2-selection,
 .form-control:focus, .facility-s2 + .select2-container--bootstrap4.select2-container--open .select2-selection {
     border-color: #007bff;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-#addFacilityModal .select2-container {
+#addFacilityModal .select2-container,
+#editFacilityModal .select2-container {
     width: 100% !important;
+    display: block;
+}
+
+#addFacilityModal .form-group .select2-container + .select2-container,
+#editFacilityModal .form-group .select2-container + .select2-container {
+    display: none !important;
 }
 
 #addFacilityModal .select2-search__field {

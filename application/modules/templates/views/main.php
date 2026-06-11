@@ -66,6 +66,8 @@ require_once("includes/sidenav.php");
                   $page_child_data['filter_options'] = $filter_options;
               }
               if (isset($setting)) $page_child_data['setting'] = $setting;
+              if (isset($districts)) $page_child_data['districts'] = $districts;
+              if (isset($import_template_headers)) $page_child_data['import_template_headers'] = $import_template_headers;
               $page_child_data['permissions'] = is_array($permissions) ? $permissions : [];
               $this->load->view($module . "/" . $view, $page_child_data);
           ?>

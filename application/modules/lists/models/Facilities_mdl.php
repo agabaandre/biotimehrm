@@ -181,6 +181,142 @@ class Facilities_mdl extends CI_Model {
 
 		return entity_label('entity_delete_failed');
 	}
+
+	/**
+	 * Default values pre-filled in the import template sample row.
+	 *
+	 * @return array<string, string>
+	 */
+	public function importDefaultFieldValues()
+	{
+		return [
+			'institution_category' => 'Government',
+			'institution_type'     => 'District',
+			'institution_level'    => 'Primary School',
+		];
+	}
+
+	/**
+	 * CSV column headers for the import template.
+	 *
+	 * @return array<int, string>
+	 */
+	public function importTemplateHeaders()
+	{
+		return [
+			entity_label('entity_name'),
+			'District',
+			'Institution Category',
+			'Institution Type',
+			'Institution Level',
+		];
+	}
+
+	/**
+	 * Resolve employee_districts.id from district name (case-insensitive).
+	 *
+	 * @param string $district_name
+	 * @return int|null
+	 */
+	public function resolveDistrictIdByName($district_name)
+	{
+		$district_name = trim((string) $district_name);
+		if ($district_name === '') {
+			return null;
+		}
+
+		$row = $this->db->select('id')
+			->from('employee_districts')
+			->where('LOWER(TRIM(name))', strtolower($district_name))
+			->limit(1)
+			->get()
+			->row();
+
+		return $row ? (int) $row->id : null;
+	}
+
+	/**
+	 * @param string $facility_name
+	 * @param int $district_id
+	 */
+	public function facilityExistsInDistrict($facility_name, $district_id)
+	{
+		$facility_name = trim((string) $facility_name);
+		if ($facility_name === '' || $district_id <= 0) {
+			return false;
+		}
+
+		$row = $this->db->select('id')
+			->from($this->table)
+			->where('district_id', $district_id)
+			->where('LOWER(TRIM(facility))', strtolower($facility_name))
+			->limit(1)
+			->get()
+			->row();
+
+		return (bool) $row;
+	}
+
+	/**
+	 * Import facilities/schools from parsed CSV rows.
+	 *
+	 * @param array<int, array<string, string>> $rows
+	 * @return array{imported: int, skipped: int, errors: array<int, string>}
+	 */
+	public function importFacilitiesFromRows(array $rows)
+	{
+		$defaults = $this->importDefaultFieldValues();
+		$imported = 0;
+		$skipped = 0;
+		$errors = [];
+
+		foreach ($rows as $index => $row) {
+			$row_no = $index + 2;
+			$facility_name = trim((string) ($row['facility'] ?? ''));
+			$district_name = trim((string) ($row['district'] ?? ''));
+
+			if ($facility_name === '' || stripos($facility_name, 'example') !== false) {
+				$skipped++;
+				continue;
+			}
+
+			$district_id = $this->resolveDistrictIdByName($district_name);
+			if (!$district_id) {
+				$errors[] = 'Row ' . $row_no . ': District "' . $district_name . '" not found.';
+				continue;
+			}
+
+			if ($this->facilityExistsInDistrict($facility_name, $district_id)) {
+				$skipped++;
+				continue;
+			}
+
+			$category = trim((string) ($row['institution_category'] ?? ''));
+			$type = trim((string) ($row['institution_type'] ?? ''));
+			$level = trim((string) ($row['institution_level'] ?? ''));
+
+			$result = $this->saveFacility([
+				'facility_id'          => '',
+				'facility'               => $facility_name,
+				'district_id'            => $district_id,
+				'institution_category'   => $category !== '' ? $category : $defaults['institution_category'],
+				'institution_type'       => $type !== '' ? $type : $defaults['institution_type'],
+				'institution_level'      => $level !== '' ? $level : $defaults['institution_level'],
+			]);
+
+			if (stripos((string) $result, 'success') !== false || stripos((string) $result, 'added') !== false) {
+				$imported++;
+			} else {
+				$errors[] = 'Row ' . $row_no . ': ' . $result;
+			}
+		}
+
+		return [
+			'imported' => $imported,
+			'skipped'  => $skipped,
+			'errors'   => $errors,
+		];
+	}
 	
 	/**
 	 * Get total count of facilities

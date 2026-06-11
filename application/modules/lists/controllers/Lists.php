@@ -181,6 +181,7 @@ class Lists extends MX_Controller
 		$data['module'] = "lists";
 		$data['title'] = entity_label('facility', true) . ' Management';
 		$data['uptitle'] = entity_label('facility', true) . ' Management';
+		$data['import_template_headers'] = $this->facilities_mdl->importTemplateHeaders();
 		$data['view'] = 'facilities/facilities';
 		echo Modules::run("templates/main", $data);
 	}
@@ -357,6 +358,175 @@ class Lists extends MX_Controller
 
 		$this->session->set_flashdata($status === 'success' ? 'success' : 'error', $message);
 		redirect('lists/getFacilities');
+	}
+
+	/**
+	 * Download CSV template for bulk school/facility import.
+	 */
+	public function downloadFacilityImportTemplate()
+	{
+		$districts = $this->districts_mdl->getDistricts();
+		$example_district = '';
+		if (!empty($districts)) {
+			$first = $districts[0];
+			$example_district = $first->name ?? '';
+		}
+
+		$defaults = $this->facilities_mdl->importDefaultFieldValues();
+		$headers = $this->facilities_mdl->importTemplateHeaders();
+		$entity_plural = strtolower(entity_label('facility', true));
+		$filename = $entity_plural . '_import_template_' . date('Y-m-d') . '.csv';
+
+		header('Content-Type: text/csv; charset=UTF-8');
+		header('Content-Disposition: attachment; filename="' . $filename . '"');
+		header('Cache-Control: no-cache');
+
+		$fh = fopen('php://output', 'w');
+		fprintf($fh, chr(0xEF) . chr(0xBB) . chr(0xBF));
+		fputcsv($fh, $headers);
+		fputcsv($fh, [
+			'Example ' . entity_label('facility'),
+			$example_district,
+			$defaults['institution_category'],
+			$defaults['institution_type'],
+			$defaults['institution_level'],
+		]);
+		fclose($fh);
+		exit;
+	}
+
+	/**
+	 * Import schools/facilities from uploaded CSV.
+	 */
+	public function importFacilities()
+	{
+		if (empty($_FILES['import_file']['tmp_name'])) {
+			return $this->_facilitySaveResponse('error', 'Please choose a CSV file to import.');
+		}
+
+		$tmp = $_FILES['import_file']['tmp_name'];
+		$ext = strtolower(pathinfo((string) $_FILES['import_file']['name'], PATHINFO_EXTENSION));
+		if (!in_array($ext, ['csv', 'txt'], true)) {
+			return $this->_facilitySaveResponse('error', 'Only CSV files are supported.');
+		}
+
+		$handle = fopen($tmp, 'r');
+		if (!$handle) {
+			return $this->_facilitySaveResponse('error', 'Could not read the uploaded file.');
+		}
+
+		$header_row = fgetcsv($handle);
+		if (!$header_row) {
+			fclose($handle);
+			return $this->_facilitySaveResponse('error', 'The import file is empty.');
+		}
+
+		if (isset($header_row[0])) {
+			$header_row[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header_row[0]);
+		}
+
+		$column_map = $this->_facilityImportColumnMap($header_row);
+		if ($column_map === null) {
+			fclose($handle);
+			return $this->_facilitySaveResponse('error', 'Invalid template headers. Download the import template and use those column names.');
+		}
+
+		$parsed = [];
+		while (($data = fgetcsv($handle)) !== false) {
+			if (!is_array($data) || count(array_filter($data, function ($v) {
+				return trim((string) $v) !== '';
+			})) === 0) {
+				continue;
+			}
+			$row = [
+				'facility'             => '',
+				'district'             => '',
+				'institution_category' => '',
+				'institution_type'     => '',
+				'institution_level'    => '',
+			];
+			foreach ($column_map as $field => $index) {
+				$row[$field] = isset($data[$index]) ? trim((string) $data[$index]) : '';
+			}
+			$parsed[] = $row;
+		}
+		fclose($handle);
+
+		if (empty($parsed)) {
+			return $this->_facilitySaveResponse('error', 'No data rows found in the import file.');
+		}
+
+		$result = $this->facilities_mdl->importFacilitiesFromRows($parsed);
+		$message = 'Imported ' . (int) $result['imported'] . ' ' . strtolower(entity_label('facility', true));
+		if ($result['skipped'] > 0) {
+			$message .= ', skipped ' . (int) $result['skipped'];
+		}
+		if (!empty($result['errors'])) {
+			$message .= '. ' . implode(' ', array_slice($result['errors'], 0, 5));
+			if (count($result['errors']) > 5) {
+				$message .= ' (and ' . (count($result['errors']) - 5) . ' more)';
+			}
+		}
+
+		$status = $result['imported'] > 0 ? 'success' : 'error';
+		if ($result['imported'] > 0 && !empty($result['errors'])) {
+			$status = 'success';
+		}
+
+		return $this->_facilitySaveResponse($status, $message);
+	}
+
+	/**
+	 * @param array<int, string> $header_row
+	 * @return array<string, int>|null
+	 */
+	private function _facilityImportColumnMap(array $header_row)
+	{
+		$normalized = [];
+		foreach ($header_row as $i => $label) {
+			$key = strtolower(trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $label)));
+			$normalized[$key] = $i;
+		}
+
+		$name_keys = [
+			strtolower(entity_label('entity_name')),
+			'facility name',
+			'school name',
+			'facility',
+			'school',
+			'name',
+		];
+		$name_index = null;
+		foreach ($name_keys as $key) {
+			if (isset($normalized[$key])) {
+				$name_index = $normalized[$key];
+				break;
+			}
+		}
+		if ($name_index === null || !isset($normalized['district'])) {
+			return null;
+		}
+
+		$map = [
+			'facility' => $name_index,
+			'district' => $normalized['district'],
+		];
+
+		$optional = [
+			'institution_category' => ['institution category', 'category'],
+			'institution_type'     => ['institution type', 'type'],
+			'institution_level'    => ['institution level', 'level'],
+		];
+		foreach ($optional as $field => $aliases) {
+			foreach ($aliases as $alias) {
+				if (isset($normalized[$alias])) {
+					$map[$field] = $normalized[$alias];
+					break;
+				}
+			}
+		}
+
+		return $map;
 	}
 
 	/**
