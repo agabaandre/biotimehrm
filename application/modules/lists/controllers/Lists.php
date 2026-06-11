@@ -331,11 +331,7 @@ class Lists extends MX_Controller
 
 	public function deleteFacility()
 	{
-		$id = (int) $this->input->post('id');
-		$result = $this->facilities_mdl->deleteFacilityById($id);
-		$ok = stripos($result, 'successfully') !== false;
-
-		return $this->_facilitySaveResponse($ok ? 'success' : 'error', $result);
+		return $this->_facilitySaveResponse('error', 'Deleting ' . strtolower(entity_label('facility', true)) . ' is not allowed.');
 	}
 
 	/**

@@ -510,14 +510,11 @@
     var entityMessages = <?php echo json_encode([
         'added' => entity_label('entity_added'),
         'updated' => entity_label('entity_updated'),
-        'deleted' => entity_label('entity_deleted'),
         'addFailed' => entity_label('entity_add_failed'),
         'updateFailed' => entity_label('entity_update_failed'),
-        'deleteFailed' => entity_label('entity_delete_failed'),
         'loadFailed' => entity_label('entities_load_failed'),
         'notFound' => entity_label('entity_load_failed'),
         'detailsLoadFailed' => entity_label('entity_details_load_failed'),
-        'deleteConfirm' => entity_label('entity_delete_confirm'),
     ]); ?>;
     var facilitiesTable;
 
@@ -636,9 +633,6 @@
                     <div class="btn-group" role="group">
                         <button type="button" class="btn btn-sm btn-outline-info" onclick="editFacility(${row.id})" title="Edit">
                             <i class="fas fa-edit"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteFacility(${row.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 `;
@@ -891,40 +885,6 @@ function editFacility(id) {
         .fail(function() {
             toastr.error(entityMessages.detailsLoadFailed);
         });
-}
-
-function deleteFacility(id) {
-    if (!confirm(entityMessages.deleteConfirm)) {
-        return;
-    }
-    $.ajax({
-        url: '<?php echo base_url("lists/deleteFacility"); ?>',
-        type: 'POST',
-        data: (function() {
-            var payload = { id: id };
-            payload[csrfTokenName] = $('#facilityPageCsrf').val();
-            return payload;
-        })(),
-        dataType: 'json',
-        success: function(result) {
-            refreshFacilityCsrfToken(result.csrf_token);
-            if (result.status === 'success') {
-                toastr.success(result.message || entityMessages.deleted);
-                if (facilitiesTable) {
-                    facilitiesTable.ajax.reload();
-                }
-            } else {
-                toastr.error(result.message || 'Delete failed');
-            }
-        },
-        error: function(xhr) {
-            if (xhr.status === 403) {
-                toastr.error('Security token expired. Please refresh the page.');
-            } else {
-                toastr.error(entityMessages.deleteFailed);
-            }
-        }
-    });
 }
 </script>
 
