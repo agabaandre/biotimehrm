@@ -1,474 +1,623 @@
 <?php
+defined('BASEPATH') OR exit('No direct script access allowed');
 
-// Get data with error handling
 try {
-    $usergroups = Modules::run("auth/getUserGroups") ?: [];
+    $usergroups = Modules::run('auth/getUserGroups') ?: [];
 } catch (Exception $e) {
     $usergroups = [];
-    log_message('error', 'Failed to get user groups: ' . $e->getMessage());
 }
 
 try {
-    $departments = Modules::run("departments/getAll_departments") ?: [];
-} catch (Exception $e) {
-    $departments = [];
-    log_message('error', 'Failed to get departments: ' . $e->getMessage());
-}
-
-try {
-    $districts = Modules::run("auth/getDistricts") ?: [];
+    $districts = Modules::run('auth/getDistricts') ?: [];
 } catch (Exception $e) {
     $districts = [];
-    log_message('error', 'Failed to get districts: ' . $e->getMessage());
 }
 
 try {
-    $facilities = Modules::run("auth/getFacilities") ?: [];
+    $variables = Modules::run('svariables/getSettings') ?: (object) ['default_password' => 'rKET2XW5Xvnp2ds'];
 } catch (Exception $e) {
-    $facilities = [];
-    log_message('error', 'Failed to get facilities: ' . $e->getMessage());
+    $variables = (object) ['default_password' => 'rKET2XW5Xvnp2ds'];
 }
 
-try {
-    $variables = Modules::run("svariables/getSettings") ?: (object)['default_password' => 'rKET2XW5Xvnp2ds'];
-} catch (Exception $e) {
-    $variables = (object)['default_password' => 'rKET2XW5Xvnp2ds'];
-    log_message('error', 'Failed to get settings: ' . $e->getMessage());
+$users = isset($users) && is_array($users) ? $users : [];
+$links = isset($links) ? $links : '';
+$total_rows = isset($total_rows) ? (int) $total_rows : count($users);
+$is_education = function_exists('is_education_deployment') && is_education_deployment();
+$facility_label = entity_label('facility');
+$default_password = isset($variables->default_password) ? $variables->default_password : '';
+$search_status = $this->input->post('status');
+if ($search_status === null || $search_status === '') {
+    $search_status = '1';
 }
-
-//print_r($variables);
-
-
+$search_key = $this->input->post('search_key') ?: '';
 ?>
 
-<div class="row">
+<style>
+.user-mgmt {
+  --um-primary: #0d6efd;
+  --um-primary-soft: #e8f1ff;
+  --um-success: #198754;
+  --um-danger: #dc3545;
+  --um-muted: #6c757d;
+  --um-border: #e9ecef;
+  --um-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  --um-radius: 12px;
+}
+.user-mgmt .um-hero {
+  background: linear-gradient(135deg, #0d6efd 0%, #084298 100%);
+  border-radius: var(--um-radius);
+  color: #fff;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--um-shadow);
+}
+.user-mgmt .um-hero h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+}
+.user-mgmt .um-hero p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.92rem;
+}
+.user-mgmt .um-stat {
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  text-align: center;
+  min-width: 90px;
+}
+.user-mgmt .um-stat strong {
+  display: block;
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+.user-mgmt .um-stat span {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.user-mgmt .um-card {
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius);
+  box-shadow: var(--um-shadow);
+  background: #fff;
+  margin-bottom: 1.25rem;
+}
+.user-mgmt .um-card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--um-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.user-mgmt .um-card-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #212529;
+}
+.user-mgmt .um-card-header h3 i {
+  color: var(--um-primary);
+  margin-right: 0.4rem;
+}
+.user-mgmt .um-card-body {
+  padding: 1.25rem;
+}
+.user-mgmt .um-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+.user-mgmt .um-search .form-group {
+  margin-bottom: 0;
+  flex: 1 1 180px;
+}
+.user-mgmt .um-search label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--um-muted);
+  margin-bottom: 0.25rem;
+}
+.user-mgmt .um-table-wrap {
+  position: relative;
+}
+.user-mgmt .um-table thead th {
+  background: #f8fafc;
+  border-bottom: 2px solid var(--um-border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--um-muted);
+  white-space: nowrap;
+}
+.user-mgmt .um-table tbody tr {
+  transition: background 0.15s ease;
+}
+.user-mgmt .um-table tbody tr:hover {
+  background: #f8fbff;
+}
+.user-mgmt .um-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.user-mgmt .um-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--um-primary-soft);
+  color: var(--um-primary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.user-mgmt .um-user-name {
+  display: block;
+  font-size: 0.92rem;
+  color: #212529;
+}
+.user-mgmt .um-user-meta {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--um-muted);
+}
+.user-mgmt .um-user-email {
+  display: block;
+  font-size: 0.75rem;
+  color: #adb5bd;
+}
+.user-mgmt .um-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.user-mgmt .um-badge-group {
+  background: #eef2ff;
+  color: #4338ca;
+}
+.user-mgmt .um-badge-active {
+  background: #d1e7dd;
+  color: var(--um-success);
+}
+.user-mgmt .um-badge-active i {
+  font-size: 0.45rem;
+}
+.user-mgmt .um-badge-blocked {
+  background: #f8d7da;
+  color: var(--um-danger);
+}
+.user-mgmt .um-badge-blocked i {
+  font-size: 0.45rem;
+}
+.user-mgmt .um-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+.user-mgmt .um-actions .btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.user-mgmt .um-btn-edit {
+  background: var(--um-primary-soft);
+  color: var(--um-primary);
+  border: none;
+}
+.user-mgmt .um-btn-block {
+  background: #fff3cd;
+  color: #856404;
+  border: none;
+}
+.user-mgmt .um-btn-unblock {
+  background: #d1e7dd;
+  color: var(--um-success);
+  border: none;
+}
+.user-mgmt .um-btn-reset {
+  background: #f1f3f5;
+  color: #495057;
+  border: none;
+}
+.user-mgmt .um-empty {
+  padding: 2.5rem 1rem !important;
+  color: var(--um-muted);
+}
+.user-mgmt .um-empty-icon {
+  font-size: 2rem;
+  opacity: 0.35;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.user-mgmt .um-pagination {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--um-border);
+}
+.user-mgmt .um-form-card {
+  position: sticky;
+  top: 1rem;
+}
+.user-mgmt .um-form-card .form-group label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #495057;
+}
+.user-mgmt .um-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.user-mgmt .um-form-actions .btn-primary {
+  background: var(--um-primary);
+  border-color: var(--um-primary);
+  border-radius: 8px;
+  font-weight: 600;
+}
+.user-mgmt .um-form-actions .btn-light {
+  border-radius: 8px;
+}
+.user-mgmt .um-hint {
+  font-size: 0.78rem;
+  color: var(--um-muted);
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+.user-mgmt .um-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.75);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  border-radius: 0 0 var(--um-radius) var(--um-radius);
+}
+.user-mgmt .um-loading.is-active {
+  display: flex;
+}
+.user-mgmt .um-status {
+  min-height: 1.25rem;
+  font-size: 0.85rem;
+}
+@media (max-width: 991px) {
+  .user-mgmt .um-form-card {
+    position: static;
+  }
+}
+</style>
 
-  <div class="col-md-12">
-    <!-- general form elements disabled -->
-    <div class="card card-default">
-      <div class="card-header">
-        <h3 class="card-title">Add User (Use for Only Users who aren't in IHRIS Manage)</h3>
+<div class="user-mgmt">
+  <div class="um-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div>
+      <h2><i class="fas fa-users-cog mr-2"></i>User Management</h2>
+      <p>Manage system accounts, roles, and <?php echo strtolower(htmlspecialchars($facility_label, ENT_QUOTES, 'UTF-8')); ?> access.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="um-stat">
+        <strong id="um-total-count"><?php echo (int) $total_rows; ?></strong>
+        <span>Total</span>
       </div>
-      <!-- /.card-header -->
-      <div class="card-body">
-        <form class="user_form" method="post" action="<?php echo base_url()?>auth/addUser" enctype="multipart/form-data">
-          <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-          <div class="row">
-            <div class="col-md-12">
-              <button type="submit" class="btn btn-info btn-outline">Save</button>
-              <button type="reset" class="btn  btnkey bg-gray-dark color-pale ">Reset All</button>
-            </div>
-            <div class="col-md-12" style="margin:0 auto;">
-              <span class="status"></span>
-            </div>
-            <div class="col-sm-4">
-              <!-- text input -->
-              <div class="form-group">
-                <label>Name</label>
-                <input type="text" name="name" autocomplete="off" class="form-control" placeholder="Full Name" required />
-              </div>
-            </div>
-            <div class="col-sm-4">
-              <div class="form-group">
-                <label>User Group</label>
-                <select name="role" style="width:100%;" class="role form-control select2" required>
-                  <option value="" disabled selected>USER GROUP</option>
-                  <?php if (!empty($usergroups)): ?>
-                    <?php foreach ($usergroups as $usergroup): ?>
-                      <option value="<?php echo $usergroup->group_id; ?>"><?php echo $usergroup->group_name; ?></option>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <option value="" disabled>No user groups available</option>
-                  <?php endif; ?>
-                </select>
-              </div>
-            </div>
+    </div>
+  </div>
 
-            <div class="col-sm-4">
-              <!-- textarea -->
-              <div class="form-group">
-                <label>Username</label>
-                <input type="text" required name="username" autocomplete="off" class="form-control" placeholder="Username" required />
-              </div>
+  <div class="row">
+    <div class="col-lg-8 order-lg-1 order-2">
+      <div class="um-card">
+        <div class="um-card-header">
+          <h3><i class="fas fa-list"></i>Users</h3>
+        </div>
+        <div class="um-card-body pb-0">
+          <form id="um-search-form" class="um-search mb-3" method="post" action="<?php echo base_url('auth/users'); ?>">
+            <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+            <div class="form-group">
+              <label for="um-search-key">Search</label>
+              <input type="text" id="um-search-key" name="search_key" class="form-control" placeholder="Name or username…" value="<?php echo htmlspecialchars($search_key, ENT_QUOTES, 'UTF-8'); ?>">
             </div>
-            <div class="col-sm-4">
-              <!-- textarea -->
-              <div class="form-group">
-                <label>Default Password</label>
-                (rKET2XW5Xvnp2ds)
-                <input type="hidden" required name="password" value="<?php echo $variables = Modules::run("svariables/getSettings")->default_password; ?> " class="form-control" readonly />
-              </div>
+            <div class="form-group" style="flex: 0 1 160px;">
+              <label for="um-search-status">Status</label>
+              <select id="um-search-status" name="status" class="form-control">
+                <option value="1" <?php echo $search_status === '1' ? 'selected' : ''; ?>>Active</option>
+                <option value="0" <?php echo $search_status === '0' ? 'selected' : ''; ?>>Blocked / New</option>
+              </select>
             </div>
-            <div class="col-sm-4">
-              <div class="form-group">
-                <label>Email</label>
-                <input type="email" required name="email" class="form-control" placeholder="Email" required />
-              </div>
+            <div class="form-group" style="flex: 0 0 auto;">
+              <label>&nbsp;</label>
+              <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-search mr-1"></i> Search</button>
             </div>
-            <div class="col-sm-4">
-              <div class="form-group">
-                <label>District</label>
-                <select onChange="getuserFacs($(this).val());" name="district_id" class="form-control select2 userdistrict" style="width:100%;">
-                  <option value="" disabled selected>DISTRICT</option>
-                  <?php if (!empty($districts)): ?>
-                    <?php foreach ($districts as $district): ?>
-                      <option value="<?php echo $district->district_id; ?>"><?php echo $district->district; ?></option>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <option value="" disabled>No districts available</option>
-                  <?php endif; ?>
-                </select>
+          </form>
+        </div>
 
-              </div>
+        <div id="users-list-container" style="position:relative;">
+          <div class="um-loading" id="users-list-loading"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></div>
+          <?php
+          $this->load->view('partials/users_list', [
+            'users'      => $users,
+            'links'      => $links,
+            'total_rows' => $total_rows,
+            'row_offset' => ($this->uri->segment(3)) ? (int) $this->uri->segment(3) : 0,
+            'usergroups' => $usergroups,
+            'districts'  => $districts,
+          ]);
+          ?>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 order-lg-2 order-1">
+      <div class="um-card um-form-card">
+        <div class="um-card-header">
+          <h3><i class="fas fa-user-plus"></i>Add User</h3>
+        </div>
+        <div class="um-card-body">
+          <p class="text-muted small mb-3">For users not already in iHRIS Manage.</p>
+          <form class="user_form" method="post" action="<?php echo base_url('auth/addUser'); ?>" enctype="multipart/form-data">
+            <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+
+            <div class="form-group">
+              <label>Full name</label>
+              <input type="text" name="name" autocomplete="off" class="form-control" placeholder="Full name" required>
             </div>
-
-            <div class="col-sm-4">
-              <div class="form-group">
-                <label>Facility (Click to select)</label>
-                <select id="facility" onChange="getuserDeps($(this).val());" name="facility_id[]" class="form-control select2 userfacility" style="width:100%;" multiple required>
-
-
-                </select>
-
-
-              </div>
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" name="username" autocomplete="off" class="form-control" placeholder="Username" required>
             </div>
-            <?php if (!function_exists('is_education_deployment') || !is_education_deployment()) { ?>
-            <div class="col-sm-4">
-              <div class="form-group">
-                <label>Department</label>
-                <select id="department" name="department_id" class="form-control select2 userdepartment" style="width:100%;">
-                  <option value="" disabled selected>DEPARTMENT</option>
-
-                </select>
-
-              </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" name="email" class="form-control" placeholder="email@example.com" required>
+            </div>
+            <div class="form-group">
+              <label>User group</label>
+              <select name="role" class="role form-control select2" style="width:100%;" required>
+                <option value="" disabled selected>Select group</option>
+                <?php foreach ($usergroups as $usergroup) { ?>
+                  <option value="<?php echo (int) $usergroup->group_id; ?>"><?php echo htmlspecialchars($usergroup->group_name, ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php } ?>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>District</label>
+              <select onchange="getuserFacs($(this).val());" name="district_id" class="form-control select2 userdistrict" style="width:100%;" required>
+                <option value="" disabled selected>Select district</option>
+                <?php foreach ($districts as $district) { ?>
+                  <option value="<?php echo htmlspecialchars($district->district_id, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($district->district, ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php } ?>
+              </select>
+            </div>
+            <div class="form-group">
+              <label><?php echo htmlspecialchars($facility_label, ENT_QUOTES, 'UTF-8'); ?></label>
+              <select id="facility" onchange="getuserDeps($(this).val());" name="facility_id[]" class="form-control select2 userfacility" style="width:100%;" multiple required></select>
+            </div>
+            <?php if (!$is_education) { ?>
+            <div class="form-group">
+              <label>Department</label>
+              <select id="department" name="department_id" class="form-control select2 userdepartment" style="width:100%;">
+                <option value="" disabled selected>Department</option>
+              </select>
             </div>
             <?php } else { ?>
             <input type="hidden" name="department_id" value="">
             <?php } ?>
+            <input type="hidden" name="password" value="<?php echo htmlspecialchars($default_password, ENT_QUOTES, 'UTF-8'); ?>">
 
-
-          </div>
-      </div>
-      </form>
-
-    </div>
-    <!-- /.card-body -->
-  </div>
-
-
-
-  <div class="col-md-12">
-    <!-- general form elements disabled -->
-    <div class="card card-default">
-      <div class="card-header">
-        <h3 class="card-title">User List</h3><br>
-        <form class="form-horizontal" action="<?php echo base_url() ?>auth/users" method="post" style="margin-top: 4px !important;">
-          <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-
-          <div class="form-group col-md-12">
-            <label>Advanced User Search</label>
-            <div class="input-group mb-3">
-              <input type="text" name="search_key" class="form-control" placeholder="Username or Name">
-              </div>
+            <div class="um-status status mb-2"></div>
+            <div class="um-form-actions">
+              <button type="submit" class="btn btn-primary flex-fill"><i class="fas fa-save mr-1"></i> Create user</button>
+              <button type="reset" class="btn btn-light clear">Reset</button>
             </div>
-              <label> Account status</label>
-              <div class="input-group mb-3">
-                <select class="form-control" name="status">
-                  <option value="0">New Users / Blocked</option>
-                  <option value="1" selected> Active Users</option>
-                </select>
-               
-              </div>
-                <div class="input-group-append">
-                  <button class="btn btn-default" type="submit">Search</button>
-                </div>
-
-
-
-        </form>
-
+            <div class="um-hint">
+              <i class="fas fa-info-circle mr-1"></i>
+              Default password is applied automatically. User should change it on first login.
+            </div>
+          </form>
+        </div>
       </div>
-      <!-- /.card-header -->
-      <div class="card-body">
-
-        <?php echo $links; ?>
-
-        <table id="mytab2" class="table table-striped ">
-          <thead>
-
-            <tr>
-              <th style="width:2%;">#</th>
-              <th>Name</th>
-              <th>Username</th>
-              <th>User Group</th>
-              <th>District</th>
-              <th>Facility</th>
-              <th>Department</th>
-              <th>Actions</th>
-
-
-            </tr>
-          </thead>
-          <?php
-
-          $no = 1;
-
-          foreach ($users as $user) : ?>
-            <tbody>
-
-              <tr>
-                <td><?php echo $no; ?>. </td>
-                <td><?php echo $user->name; ?></td>
-                <td><?php echo $user->username; ?></td>
-                <td><?php echo $user->group_name; ?></td>
-                <td><?php echo $user->district; ?></td>
-                <td><?php echo $user->facility; ?></td>
-                <td><?php echo htmlspecialchars((string) ($user->department ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                <td><a data-toggle="modal" data-target="#user<?php echo $user->user_id; ?>" href="#">Edit</a>
-
-                  <?php if ($user->status == 1) { ?>
-
-                    <a data-toggle="modal" data-target="#block<?php echo $user->user_id; ?>" href="#">Block</a>
-                  <?php } else { ?>
-
-                    <a data-toggle="modal" data-target="#unblock<?php echo $user->user_id; ?>" href="#">Activate</a>
-
-                  <?php } ?>
-
-
-
-                  <a data-toggle="modal" data-target="#reset<?php echo $user->user_id; ?>" href="#">Reset</a>
-
-                </td>
-
-              </tr>
-
-
-              <!--small modal to show Image-->
-              <?php $userPhoto = isset($user->photo) ? trim((string) $user->photo) : ''; ?>
-              <?php if ($userPhoto !== '') { ?>
-              <div class="modal" id="img<?php echo $user->user_id; ?>">
-                <div class="modal-dialog">
-                  <div class="modal-body">
-
-                    <h1><a href="#" style="color: #FFF;" class="pull-right" data-dismiss="modal">&times;</a></h1>
-
-                    <img class="img img-thumbnail" src="<?php echo base_url() . 'assets/images/sm/' . htmlspecialchars($userPhoto, ENT_QUOTES, 'UTF-8'); ?>" alt="User photo" />
-
-                  </div>
-                </div>
-              </div>
-              <?php } ?>
-              <!--/small modal to show Image-->
-
-              <!---include supporting modal-->
-
-            <?php
-
-            include('user_details_modal.php');
-            include('confirm_reset.php');
-            include('confirm_block.php');
-
-            if ($user->status == 0) {
-
-              include('confirm_unblock.php');
-            }
-
-            $no++;
-          endforeach ?>
-
-            </tbody>
-
-        </table>
-
-        <?php echo $links; ?>
-
-      </div>
-      <!-- /.card-body -->
     </div>
   </div>
+</div>
 
+<script>
+(function() {
+  var listUrl = '<?php echo base_url('auth/usersListFragment'); ?>';
+  var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
+  var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 
-
-  <script>
-    //get selected item
-    function changeVal(selTag) {
-      var x = selTag.options[selTag.selectedIndex].text;
-      return x;
+  function parseJsonResponse(raw) {
+    if (typeof raw !== 'string') {
+      return raw;
     }
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return { success: raw.indexOf('Added') !== -1 || raw.indexOf('updated') !== -1, message: raw };
+    }
+  }
 
+  function notifyMsg(msg, type) {
+    if (typeof $.notify === 'function') {
+      $.notify(msg, type || 'info');
+    }
+  }
 
-    $(document).ready(function() {
+  window.reloadUsersList = function(page) {
+    var $container = $('#users-list-container');
+    var $loading = $('#users-list-loading');
+    var params = {
+      search_key: $('#um-search-key').val() || '',
+      status: $('#um-search-status').val() || '1',
+      page: (page !== undefined && page !== null) ? page : 0
+    };
+    params[csrfName] = csrfHash;
 
+    $loading.addClass('is-active');
+    return $.ajax({
+      url: listUrl,
+      method: 'GET',
+      data: params,
+      cache: false
+    }).done(function(html) {
+      $container.html('<div class="um-loading is-active" id="users-list-loading"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></div>' + html);
+      var cnt = $('#users-list-container .um-total-rows').data('count');
+      if (cnt !== undefined) {
+        $('#um-total-count').text(cnt);
+      }
+      if (typeof $.fn.select2 === 'function') {
+        $('#users-list-container .select2').select2({ width: '100%' });
+      }
+    }).fail(function() {
+      notifyMsg('Could not refresh user list. Please reload the page.', 'error');
+    }).always(function() {
+      $('#users-list-loading').removeClass('is-active');
+    });
+  };
 
-      //Submit new user data
+  function resetAddUserForm($form) {
+    $form[0].reset();
+    $form.find('.select2').val(null).trigger('change');
+    $form.find('.userfacility').empty();
+    <?php if (!$is_education) { ?>
+    $form.find('.userdepartment').html('<option value="" disabled selected>Department</option>');
+    <?php } ?>
+  }
 
-      $(".user_form").submit(function(e) {
+  function bindUserListEvents() {
+    $(document).off('click.umPage', '#users-list-container .um-pagination a, #users-list-container .pagination a');
+    $(document).on('click.umPage', '#users-list-container .um-pagination a, #users-list-container .pagination a', function(e) {
+      var href = $(this).attr('href');
+      if (!href || href === '#') {
+        return;
+      }
+      e.preventDefault();
+      var match = href.match(/[?&]page=(\d+)/) || href.match(/\/usersListFragment\/(\d+)/);
+      var page = match ? parseInt(match[1], 10) : 0;
+      reloadUsersList(page);
+    });
+  }
 
-        e.preventDefault();
+  $(document).ready(function() {
+    bindUserListEvents();
 
-        $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
-        var formData = $(this).serialize();
-        // console.log(formData);
-        var url = "<?php echo base_url(); ?>auth/addUser";
-        $.ajax({
-          url: url,
-          method: 'post',
-          data: formData,
-          success: function(result) {
-            console.log(result);
-            setTimeout(function() {
-              $('.status').html(result);
-              $.notify(result, 'info');
-              $('.status').html('');
-              $('.clear').click();
-            }, 1000);
+    $('#um-search-form').on('submit', function(e) {
+      e.preventDefault();
+      reloadUsersList(0);
+    });
 
+    $('.user_form').on('submit', function(e) {
+      e.preventDefault();
+      var $form = $(this);
+      var $status = $form.find('.status');
+      $status.html('<span class="text-muted"><i class="fas fa-spinner fa-spin"></i> Saving…</span>');
 
-          }
-        }); //ajax
-
-      }); //form submit
-
-
-      //Submit user update (include CSRF token so POST is not 403 Forbidden)
-      $(".update_user").submit(function(e) {
-        e.preventDefault();
-        $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
-        var formData = new FormData(this);
-        formData.append('<?php echo $this->security->get_csrf_token_name(); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
-        var url = "<?php echo base_url(); ?>auth/updateUser";
-        $.ajax({
-          url: url,
-          method: 'post',
-          contentType: false,
-          processData: false,
-          data: formData,
-          success: function(result) {
-            console.log(result);
-            setTimeout(function() {
-              $('.status').html(result);
-              $.notify(result, 'info');
-              $('.status').html('');
-              $('.clear').click();
-            }, 3000);
-          },
-          error: function(xhr) {
-            $('.status').html('');
-            var msg = (xhr.status === 403) ? 'Update blocked (session or security token). Please refresh the page and try again.' : ('Update failed: ' + (xhr.statusText || xhr.responseText || 'Unknown error'));
-            $.notify(msg, 'error');
-          }
-        });
-      }); //form submit
-
-
-
-      $(".reset").submit(function(e) {
-        e.preventDefault();
-        $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
-        var formData = $(this).serialize() + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo urlencode($this->security->get_csrf_hash()); ?>';
-        var url = "<?php echo base_url(); ?>auth/resetPass";
-        $.ajax({
-          url: url,
-          method: 'post',
-          data: formData,
-          success: function(result) {
-            setTimeout(function() {
-              $('.status').html(result);
-              $.notify(result, 'info');
-              $('.status').html('');
-              $('.clear').click();
-            }, 3000);
-          },
-          error: function(xhr) {
-            $('.status').html('');
-            var msg = (xhr.status === 403) ? 'Blocked (session or security token). Refresh the page and try again.' : ('Request failed: ' + (xhr.statusText || 'Unknown error'));
-            $.notify(msg, 'error');
-          }
-        });
-      });
-
-      $(".block").submit(function(e) {
-        e.preventDefault();
-        $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
-        var formData = $(this).serialize() + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo urlencode($this->security->get_csrf_hash()); ?>';
-        var url = "<?php echo base_url(); ?>auth/blockUser";
-        $.ajax({
-          url: url,
-          method: 'post',
-          data: formData,
-          success: function(result) {
-            setTimeout(function() {
-              $('.status').html(result);
-              $.notify(result, 'info');
-              $('.status').html('');
-              $('.clear').click();
-            }, 3000);
-          },
-          error: function(xhr) {
-            $('.status').html('');
-            var msg = (xhr.status === 403) ? 'Blocked (session or security token). Refresh the page and try again.' : ('Request failed: ' + (xhr.statusText || 'Unknown error'));
-            $.notify(msg, 'error');
-          }
-        });
-      });
-
-      $(".unblock").submit(function(e) {
-        e.preventDefault();
-        $('.status').html('<img style="max-height:50px" src="<?php echo base_url(); ?>assets/img/loading.gif">');
-        var formData = $(this).serialize() + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo urlencode($this->security->get_csrf_hash()); ?>';
-        var url = "<?php echo base_url(); ?>auth/unblockUser";
-        $.ajax({
-          url: url,
-          method: 'post',
-          data: formData,
-          success: function(result) {
-            setTimeout(function() {
-              $('.status').html(result);
-              $.notify(result, 'info');
-              $('.status').html('');
-              $('.clear').click();
-            }, 3000);
-          },
-          error: function(xhr) {
-            $('.status').html('');
-            var msg = (xhr.status === 403) ? 'Blocked (session or security token). Refresh the page and try again.' : ('Request failed: ' + (xhr.statusText || 'Unknown error'));
-            $.notify(msg, 'error');
-          }
-        });
-      });
-
-
-    }); //doc ready
-    //get user facilities
-    function getuserFacs(val) {
       $.ajax({
-        method: "GET",
-        url: "<?php echo base_url(); ?>departments/get_facilities",
-        data: 'dist_data=' + val,
-        success: function(data) {
-          //alert(data);
-          $(".userfacility").html(data);
+        url: '<?php echo base_url('auth/addUser'); ?>',
+        method: 'POST',
+        data: $form.serialize(),
+        dataType: 'text'
+      }).done(function(res) {
+        var parsed = parseJsonResponse(res);
+        var ok = parsed.success === true;
+        var msg = parsed.message || (ok ? 'User created' : 'Could not create user');
+        $status.html(ok ? '<span class="text-success">' + msg + '</span>' : '<span class="text-danger">' + msg + '</span>');
+        notifyMsg(msg, ok ? 'success' : 'error');
+        if (ok) {
+          resetAddUserForm($form);
+          reloadUsersList(0).done(function() {
+            $('html, body').animate({ scrollTop: $('#users-list-container').offset().top - 80 }, 400);
+          });
         }
+      }).fail(function(xhr) {
+        var msg = xhr.status === 403 ? 'Session expired. Refresh the page.' : 'Failed to create user.';
+        $status.html('<span class="text-danger">' + msg + '</span>');
+        notifyMsg(msg, 'error');
       });
-    }
-    //get user deps
-    function getDeps(val) {
-      <?php if (function_exists('is_education_deployment') && is_education_deployment()) { ?>
-      return;
-      <?php } ?>
+    });
+
+    $(document).on('submit', '.update_user', function(e) {
+      e.preventDefault();
+      var $form = $(this);
+      var $status = $form.find('.status');
+      $status.html('<span class="text-muted"><i class="fas fa-spinner fa-spin"></i> Updating…</span>');
+      var formData = new FormData(this);
+      formData.append(csrfName, csrfHash);
+
       $.ajax({
-        method: "GET",
-        url: "<?php echo base_url(); ?>departments/get_departments",
-        data: 'fac_data=' + val,
-        success: function(data) {
-          $(".sdepartment, .userdepartment").html(data);
+        url: '<?php echo base_url('auth/updateUser'); ?>',
+        method: 'POST',
+        contentType: false,
+        processData: false,
+        data: formData
+      }).done(function(result) {
+        var parsed = parseJsonResponse(result);
+        var msg = parsed.message || result;
+        var ok = parsed.success !== false && (String(msg).indexOf('updated') !== -1 || String(msg).indexOf('Updated') !== -1);
+        notifyMsg(msg, ok ? 'success' : 'info');
+        $status.html('');
+        if (ok) {
+          $form.closest('.modal').modal('hide');
+          reloadUsersList();
         }
+      }).fail(function(xhr) {
+        var msg = xhr.status === 403 ? 'Update blocked. Refresh the page.' : 'Update failed.';
+        notifyMsg(msg, 'error');
+        $status.html('');
+      });
+    });
+
+    function handleActionForm(selector, url) {
+      $(document).on('submit', selector, function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var data = $form.serialize() + '&' + csrfName + '=' + encodeURIComponent(csrfHash);
+        $.post(url, data).done(function(result) {
+          notifyMsg(result, 'info');
+          $form.closest('.modal').modal('hide');
+          reloadUsersList();
+        }).fail(function() {
+          notifyMsg('Action failed. Refresh the page.', 'error');
+        });
       });
     }
-    function getuserDeps(val) {
-      getDeps(val);
-    }
-  </script>
+
+    handleActionForm('.reset', '<?php echo base_url('auth/resetPass'); ?>');
+    handleActionForm('.block', '<?php echo base_url('auth/blockUser'); ?>');
+    handleActionForm('.unblock', '<?php echo base_url('auth/unblockUser'); ?>');
+  });
+
+  window.getuserFacs = function(val) {
+    $.get('<?php echo base_url('departments/get_facilities'); ?>', { dist_data: val }, function(data) {
+      $('.userfacility').html(data).trigger('change');
+    });
+  };
+
+  window.getDeps = function(val) {
+    <?php if ($is_education) { ?>return;<?php } ?>
+    $.get('<?php echo base_url('departments/get_departments'); ?>', { fac_data: val }, function(data) {
+      $('.sdepartment, .userdepartment').html(data);
+    });
+  };
+
+  window.getuserDeps = function(val) {
+    getDeps(val);
+  };
+})();
+</script>

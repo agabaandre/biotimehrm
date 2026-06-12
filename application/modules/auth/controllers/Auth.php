@@ -354,6 +354,10 @@ public function login($user_id = FALSE)
         log_message('error', 'Error getting users: ' . $e->getMessage());
         $data['users'] = array();
       }
+
+      $data['total_rows'] = $total_rows;
+      $data['usergroups'] = Modules::run('auth/getUserGroups') ?: [];
+      $data['districts'] = Modules::run('auth/getDistricts') ?: [];
       
       $data['module'] = "auth";
       $data['view'] = "add_users";
@@ -372,6 +376,80 @@ public function login($user_id = FALSE)
     } catch (Throwable $e) {
       log_message('error', 'Error in auth/users: ' . $e->getMessage());
       show_error('An error occurred while loading the users page. Please contact the administrator.', 500);
+    }
+  }
+
+  /**
+   * HTML fragment for user table + modals (AJAX refresh after add/edit/block).
+   */
+  public function usersListFragment()
+  {
+    if (!$this->session->userdata('isLoggedIn')) {
+      $this->output->set_status_header(401);
+      $this->output->set_content_type('application/json')->set_output(json_encode(['error' => 'Unauthorized']));
+      return;
+    }
+
+    try {
+      if (!isset($this->auth_mdl)) {
+        $this->load->model('auth_mdl');
+      }
+
+      $searchkey = $this->input->get_post('search_key');
+      $searchkey = $searchkey !== null ? trim((string) $searchkey) : '';
+      $status = $this->input->get_post('status');
+      if ($status === null || $status === '') {
+        $status = '1';
+      }
+
+      $this->load->library('pagination');
+      $total_rows = $this->auth_mdl->count_Users($searchkey, $status);
+      $per_page = 20;
+      $page = (int) $this->input->get_post('page');
+      if ($page < 0) {
+        $page = 0;
+      }
+
+      $config = [
+        'base_url'             => base_url('auth/usersListFragment'),
+        'total_rows'           => $total_rows,
+        'per_page'             => $per_page,
+        'page_query_string'    => true,
+        'query_string_segment' => 'page',
+        'full_tag_open'        => '<ul class="pagination pagination-sm mb-0">',
+        'full_tag_close'   => '</ul>',
+        'attributes'       => ['class' => 'page-link um-page-link'],
+        'first_link'       => false,
+        'last_link'        => false,
+        'prev_link'        => '&laquo;',
+        'prev_tag_open'    => '<li class="page-item">',
+        'prev_tag_close'   => '</li>',
+        'next_link'        => '&raquo;',
+        'next_tag_open'    => '<li class="page-item">',
+        'next_tag_close'   => '</li>',
+        'cur_tag_open'     => '<li class="page-item active"><span class="page-link">',
+        'cur_tag_close'    => '</span></li>',
+        'num_tag_open'     => '<li class="page-item">',
+        'num_tag_close'    => '</li>',
+        'reuse_query_string' => true,
+      ];
+      $this->pagination->initialize($config);
+
+      $data = [
+        'users'       => $this->auth_mdl->getAll($per_page, $page, $searchkey, $status),
+        'links'       => $this->pagination->create_links(),
+        'total_rows'  => $total_rows,
+        'row_offset'  => $page,
+        'usergroups'  => Modules::run('auth/getUserGroups') ?: [],
+        'districts'   => Modules::run('auth/getDistricts') ?: [],
+      ];
+
+      $html = $this->load->view('partials/users_list', $data, true);
+      $this->output->set_content_type('text/html')->set_output($html);
+    } catch (Throwable $e) {
+      log_message('error', 'usersListFragment: ' . $e->getMessage());
+      $this->output->set_status_header(500);
+      $this->output->set_output('<div class="alert alert-danger mb-0">Could not load users. Please refresh the page.</div>');
     }
   }
   
@@ -409,7 +487,11 @@ public function login($user_id = FALSE)
   {
     $postdata = $this->input->post();
     $res = $this->auth_mdl->addUser($postdata);
-    echo json_encode($res);
+    $success = stripos((string) $res, 'Added') !== false;
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => $success,
+      'message' => $res,
+    ]));
   }
   public function updateUser()
   {
