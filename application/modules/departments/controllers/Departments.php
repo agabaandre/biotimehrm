@@ -299,14 +299,15 @@ class Departments extends MX_Controller
   public function getAll_departments()
   {
     try {
-      // Ensure model is loaded
-      if (!isset($this->departModel)) {
-        $this->load->model('Department_model', 'departModel');
+      if (!isset($this->departModel) || !is_object($this->departModel)) {
+        $this->load->model('departments/Department_model', 'departModel');
+      }
+      if (!is_object($this->departModel)) {
+        return array();
       }
 
-    $depart = $this->departModel->getAll_departments();
+      $depart = $this->departModel->getAll_departments();
 
-      // Return empty array if null to prevent errors
       return $depart ? $depart : array();
     } catch (Throwable $e) {
       log_message('error', 'Error in getAll_departments: ' . $e->getMessage());

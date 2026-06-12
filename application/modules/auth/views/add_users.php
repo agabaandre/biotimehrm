@@ -133,6 +133,7 @@ try {
 
               </div>
             </div>
+            <?php if (!function_exists('is_education_deployment') || !is_education_deployment()) { ?>
             <div class="col-sm-4">
               <div class="form-group">
                 <label>Department</label>
@@ -143,6 +144,9 @@ try {
 
               </div>
             </div>
+            <?php } else { ?>
+            <input type="hidden" name="department_id" value="">
+            <?php } ?>
 
 
           </div>
@@ -221,7 +225,7 @@ try {
                 <td><?php echo $user->group_name; ?></td>
                 <td><?php echo $user->district; ?></td>
                 <td><?php echo $user->facility; ?></td>
-                <td><?php echo $user->department; ?></td>
+                <td><?php echo htmlspecialchars((string) ($user->department ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                 <td><a data-toggle="modal" data-target="#user<?php echo $user->user_id; ?>" href="#">Edit</a>
 
                   <?php if ($user->status == 1) { ?>
@@ -243,17 +247,20 @@ try {
 
 
               <!--small modal to show Image-->
+              <?php $userPhoto = isset($user->photo) ? trim((string) $user->photo) : ''; ?>
+              <?php if ($userPhoto !== '') { ?>
               <div class="modal" id="img<?php echo $user->user_id; ?>">
                 <div class="modal-dialog">
                   <div class="modal-body">
 
                     <h1><a href="#" style="color: #FFF;" class="pull-right" data-dismiss="modal">&times;</a></h1>
 
-                    <img class="img img-thumbnail" src="<?php echo base_url() . "assets/images/sm/" . $user->photo; ?>" alt="No Image" />
+                    <img class="img img-thumbnail" src="<?php echo base_url() . 'assets/images/sm/' . htmlspecialchars($userPhoto, ENT_QUOTES, 'UTF-8'); ?>" alt="User photo" />
 
                   </div>
                 </div>
               </div>
+              <?php } ?>
               <!--/small modal to show Image-->
 
               <!---include supporting modal-->
@@ -449,15 +456,19 @@ try {
     }
     //get user deps
     function getDeps(val) {
+      <?php if (function_exists('is_education_deployment') && is_education_deployment()) { ?>
+      return;
+      <?php } ?>
       $.ajax({
         method: "GET",
         url: "<?php echo base_url(); ?>departments/get_departments",
         data: 'fac_data=' + val,
         success: function(data) {
-          //alert(data);
-          $(".sdepartment").html(data);
+          $(".sdepartment, .userdepartment").html(data);
         }
-        //  console.log('iwioowiiwoow');
       });
+    }
+    function getuserDeps(val) {
+      getDeps(val);
     }
   </script>

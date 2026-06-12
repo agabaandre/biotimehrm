@@ -17,7 +17,8 @@ Class Department_model extends CI_Model
                 parent::__construct();
 
                 $this->table="departments";
-                $this->department=$this->session->userdata['department_id'];
+                $ud = $this->session->userdata();
+                $this->department = (is_array($ud) && isset($ud['department_id'])) ? $ud['department_id'] : null;
         }
 
     //gets all departments from the department table

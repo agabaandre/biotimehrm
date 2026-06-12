@@ -23,6 +23,16 @@ class Jobs extends MX_Controller {
         $this->lockFile = APPPATH . 'logs/jobs_master.lock';
     }
 
+    /**
+     * Job titles for employee forms (delegates to lists / employee_jobs).
+     *
+     * @return array
+     */
+    public function getJobs()
+    {
+        return Modules::run('lists/get_all_jobs') ?: [];
+    }
+
     /* ============================================================
      * MASTER SCHEDULER
      * Runs every minute from cron

@@ -54,8 +54,8 @@
             <select onchange="getuserDeps($(this).val());" name="facility_id[]" class="form-control select2 userfacility" style="width:100%;" multiple>
 
 
-              <option value="<?php echo $user->facility_id; ?>" selected>
-                <?php echo $user->facility; ?>
+              <option value="<?php echo htmlspecialchars($user->facility_id . '_' . $user->facility, ENT_QUOTES, 'UTF-8'); ?>" selected>
+                <?php echo htmlspecialchars($user->facility, ENT_QUOTES, 'UTF-8'); ?>
 
               </option>
 
@@ -64,13 +64,17 @@
 
 
             <br><br>
+            <?php if (!function_exists('is_education_deployment') || !is_education_deployment()) { ?>
             <strong style="margin-right: 1em;">Department </strong>
-            <select name="department_id" class="form-control select2 sdepartment" style="width:100%;" multiple>
+            <select name="department_id" class="form-control select2 sdepartment" style="width:100%;">
 
-              <option value="<?php echo $user->department_id; ?>">
-                <?php echo $user->department_id; ?>
+              <option value="<?php echo htmlspecialchars((string) ($user->department_id ?? $user->department ?? ''), ENT_QUOTES, 'UTF-8'); ?>" selected>
+                <?php echo htmlspecialchars((string) ($user->department ?? $user->department_id ?? ''), ENT_QUOTES, 'UTF-8'); ?>
               </option>
             </select>
+            <?php } else { ?>
+            <input type="hidden" name="department_id" value="<?php echo htmlspecialchars((string) ($user->department_id ?? $user->department ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+            <?php } ?>
 
 
 

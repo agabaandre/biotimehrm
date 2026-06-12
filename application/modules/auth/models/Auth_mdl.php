@@ -236,20 +236,21 @@ class Auth_mdl extends CI_Model
 	}
 	public function addUser($postdata)
 	{
+		$distid = isset($postdata['district_id']) ? $postdata['district_id'] : '';
+		$facilities = $this->normalizeFacilitySelection(isset($postdata['facility_id']) ? $postdata['facility_id'] : []);
+		if (empty($facilities)) {
+			return 'Please select at least one facility';
+		}
 
-		$distid = $postdata['district_id'];
-		$facilities = $postdata['facility_id'];
-		$facids = $postdata['facility_id'][0];
-				$facd = explode("_", $facids);
-				//dd($facd);
-		$facid = $facd[0];
-		$facility = $facd[1];
+		$facids = $facilities[0];
+		$facd = explode('_', (string) $facids, 2);
+		$facid = isset($facd[0]) ? trim($facd[0]) : '';
+		$facility = isset($facd[1]) ? $facd[1] : '';
+
+		$department_id = $this->normalizeDepartmentId(isset($postdata['department_id']) ? $postdata['department_id'] : '');
 
 		//get district
 		$distn = $this->lookupDistrictName($distid);
-		//get facility
-		// $facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
-		// $facn = $facname->row()->facility;
 
 		$insert = array(
 			'username' => $postdata['username'],
@@ -259,7 +260,7 @@ class Auth_mdl extends CI_Model
 			'facility_id' => "$facid",
 			'facility' => "$facility",
 			"role" => 21, // Role 21 for facility incharges
-			'department' => $postdata['department_id'],
+			'department' => $department_id,
 			'district_id' => "$distid", // Use district ID, not name
 			'district' => "$distn",
 			'status' => 1
@@ -282,8 +283,7 @@ class Auth_mdl extends CI_Model
 	}
 	public function user_facilities($facilities, $userid)
 	{
-		//get district
-	
+		$facilities = $this->normalizeFacilitySelection($facilities);
 
 		for ($i = 1; $i < count($facilities); $i++) :
 
@@ -365,12 +365,12 @@ class Auth_mdl extends CI_Model
 
 	public function update_user_facilities($facilities, $userid)
 	{
-		//get district
+		$facilities = $this->normalizeFacilitySelection($facilities);
 
-              if($userid){
-				$this->db->query("DELETE from user_facilities WHERE user_id=$userid");
-			  }
-		for ($i = 1; $i < count($facilities); $i++):
+		if ($userid) {
+			$this->db->query("DELETE from user_facilities WHERE user_id=$userid");
+		}
+		for ($i = 1; $i < count($facilities); $i++) :
 
 			$fac_id = explode('_', $facilities[$i]);
 			$facid = $fac_id[0];
@@ -392,37 +392,59 @@ class Auth_mdl extends CI_Model
 	// update user's details
 	public function updateUser($postdata)
 	{
-		$distid = $postdata['district_id'];
-		$facilities = $postdata['facility_id'];
-		$facdata = $postdata['facility_id'][0];
-		$depid = $postdata['user_id'];
+		$uid = isset($postdata['user_id']) ? (int) $postdata['user_id'] : 0;
+		if ($uid <= 0) {
+			return 'Invalid user';
+		}
+
+		$existing = $this->db->get_where($this->table, ['user_id' => $uid], 1)->row();
+
+		$distid = isset($postdata['district_id']) ? $postdata['district_id'] : ($existing ? $existing->district_id : '');
+		$facilities = $this->normalizeFacilitySelection(isset($postdata['facility_id']) ? $postdata['facility_id'] : []);
+		$facdata = isset($facilities[0]) ? $facilities[0] : ($existing ? $existing->facility_id : '');
+
+		$department_id = $this->normalizeDepartmentId(isset($postdata['department_id']) ? $postdata['department_id'] : '');
+		if ($department_id === '' && $existing) {
+			$department_id = trim((string) ($existing->department_id ?? $existing->department ?? ''));
+		}
+
 		//get district
 		$distn = $this->lookupDistrictName($distid);
+		if ($distn === '' && $existing) {
+			$distn = trim((string) ($existing->district ?? ''));
+		}
 		//get facility
-		$facd = explode("_", $facdata);
-		$fac_id = $facd[0];
+		$facd = explode('_', (string) $facdata, 2);
+		$fac_id = isset($facd[0]) ? trim($facd[0]) : '';
 		$facility = isset($facd[1]) ? $facd[1] : '';
-		$facn = $this->lookupFacilityName($fac_id, $facility);
+		if ($fac_id === '' && $existing) {
+			$fac_id = trim((string) ($existing->facility_id ?? ''));
+		}
+		$facn = $this->lookupFacilityName($fac_id, $facility !== '' ? $facility : ($existing ? ($existing->facility ?? '') : ''));
 		$savedata = array(
-			"name" => $postdata['name'],
-			"district" => $distn,
-			"district_id" => $postdata['district_id'],
-			"facility_id" => $fac_id,
-			"facility" => $facn,
-			'email' => $postdata['email'],
-			"department" => $postdata['department_id'],
-			"department_id" => $postdata['department_id'],
-			"role" => $postdata['role']
+			'name' => isset($postdata['name']) ? $postdata['name'] : ($existing ? $existing->name : ''),
+			'district' => $distn,
+			'district_id' => $distid,
+			'facility_id' => $fac_id,
+			'facility' => $facn,
+			'email' => isset($postdata['email']) ? $postdata['email'] : ($existing ? $existing->email : ''),
+			'department' => $department_id,
+			'department_id' => $department_id,
+			'role' => isset($postdata['role']) ? $postdata['role'] : ($existing ? $existing->role : null),
 		);
-		$uid = $postdata['user_id'];
+		if (isset($postdata['photo']) && trim((string) $postdata['photo']) !== '') {
+			$savedata['photo'] = trim((string) $postdata['photo']);
+		}
 		$this->db->where('user_id', $uid);
 		$query = $this->db->update($this->table, $savedata);
 		if ($query) {
-			$this->update_user_facilities($facilities, $uid);
-			return "User details updated";
-		} else {
-			return "No changes made";
+			if (!empty($facilities)) {
+				$this->update_user_facilities($facilities, $uid);
+			}
+			return 'User details updated';
 		}
+
+		return 'No changes made';
 	}
 	// change password
 	public function changePass($postdata)
@@ -627,5 +649,25 @@ class Auth_mdl extends CI_Model
 			'SELECT DISTINCT facility FROM ihrisdata WHERE facility_id = ' . $this->db->escape($facid) . ' LIMIT 1'
 		);
 		return ($q->num_rows() > 0) ? trim((string) $q->row()->facility) : $fallback;
+	}
+
+	protected function normalizeFacilitySelection($facilities)
+	{
+		if (!is_array($facilities)) {
+			return ($facilities !== '' && $facilities !== null) ? [(string) $facilities] : [];
+		}
+
+		return array_values(array_filter($facilities, function ($value) {
+			return trim((string) $value) !== '';
+		}));
+	}
+
+	protected function normalizeDepartmentId($department_id)
+	{
+		if (is_array($department_id)) {
+			$department_id = isset($department_id[0]) ? $department_id[0] : '';
+		}
+
+		return trim((string) $department_id);
 	}
 }
