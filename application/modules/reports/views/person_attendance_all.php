@@ -162,26 +162,14 @@
 	var month = '<?php echo isset($month) ? addslashes($month) : date("m"); ?>';
 	var year = '<?php echo isset($year) ? addslashes($year) : date("Y"); ?>';
 	var redisAvailable = <?php echo !empty($paa_cache['redis']) ? 'true' : 'false'; ?>;
-	var paaCacheNoticeShown = false;
 
 	function showPaaCacheNotice(meta) {
-		if (!meta || !meta.message) {
+		if (!meta || !meta.message || meta.redis_available) {
 			return;
 		}
 		var $notice = $('#paa-cache-notice');
 		$('#paa-cache-notice-text').text(meta.message);
-		if (!meta.redis_available) {
-			$notice.removeClass('paa-cache-info').addClass('paa-cache-warn').show();
-		} else if (meta.source === 'database') {
-			$notice.removeClass('paa-cache-info').addClass('paa-cache-warn').show();
-		} else {
-			$notice.removeClass('paa-cache-warn').addClass('paa-cache-info').show();
-			if (paaCacheNoticeShown && meta.cached) {
-				return;
-			}
-		}
-		paaCacheNoticeShown = true;
-		$notice.show();
+		$notice.removeClass('paa-cache-info').addClass('paa-cache-warn').show();
 		if (!redisAvailable && typeof $.notify === 'function') {
 			$.notify(meta.message, 'warn');
 		}

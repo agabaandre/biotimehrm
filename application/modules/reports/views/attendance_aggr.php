@@ -250,27 +250,14 @@ $(document).ready(function() {
 	var baseUrl = '<?php echo base_url(); ?>';
 	var groupByLabels = <?php echo json_encode($aa_group_by_labels); ?>;
 	var redisAvailable = <?php echo !empty($aa_cache['redis']) ? 'true' : 'false'; ?>;
-	var cacheNoticeShown = false;
 
 	function showCacheNotice(meta) {
-		if (!meta || !meta.message) {
+		if (!meta || !meta.message || meta.redis_available) {
 			return;
 		}
 		var $notice = $('#aa-cache-notice');
-		var $text = $('#aa-cache-notice-text');
-		$text.text(meta.message);
-		if (!meta.redis_available) {
-			$notice.removeClass('aa-cache-info').addClass('aa-cache-warn').show();
-		} else if (meta.source === 'database') {
-			$notice.removeClass('aa-cache-info').addClass('aa-cache-warn').show();
-		} else {
-			$notice.removeClass('aa-cache-warn').addClass('aa-cache-info').show();
-			if (cacheNoticeShown && meta.cached) {
-				return;
-			}
-		}
-		cacheNoticeShown = true;
-		$notice.show();
+		$('#aa-cache-notice-text').text(meta.message);
+		$notice.removeClass('aa-cache-info').addClass('aa-cache-warn').show();
 		if (!redisAvailable && typeof $.notify === 'function') {
 			$.notify(meta.message, 'warn');
 		}

@@ -1005,12 +1005,6 @@ class Reports extends MX_Controller
 
 		if (!$avail['redis']) {
 			$meta['message'] = 'Redis cache is not available. Report data is loaded from the database and may take longer than usual.';
-		} elseif ($source === 'database') {
-			$meta['message'] = 'Building report from the database (first load for these filters). Subsequent pages will be faster.';
-		} elseif ($cached && $source === 'redis') {
-			$meta['message'] = 'Loaded from Redis cache.';
-		} elseif ($cached && $source === 'memcached') {
-			$meta['message'] = 'Loaded from Memcached.';
 		}
 
 		return $meta;

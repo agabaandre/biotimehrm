@@ -11,6 +11,11 @@ Options All -Indexes
 	Options +FollowSymlinks
 	RewriteEngine On
 
+	# Apache/php-fpm on pmdu-data blocks PATH_INFO (index.php/controller → 403).
+	# Internally rewrite to query-string routing so old bookmarks and redirects still work.
+	RewriteCond %{REQUEST_URI} index\.php/.+ [NC]
+	RewriteRule ^index\.php/(.*)$ index.php?/$1 [L,QSA]
+
 	# If you installed CodeIgniter in a subfolder, you will need to
 	# change the following line to match the subfolder you need.
 	# http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
