@@ -1260,6 +1260,9 @@ waitForHighcharts(function() {
             $('#live-feed').html('<li class="live-feed-empty">Facility required for live check-ins.</li>');
           } else if (data && data.error === 'unauthorized') {
             setLiveIndicator('offline', 'Session expired — refresh the page', '');
+          } else if (data && data.error === 'server_error' && data.message) {
+            setLiveIndicator('offline', data.message, '');
+            $('#live-feed').html('<li class="live-feed-empty">Live feed will retry automatically…</li>');
           } else {
             setLiveIndicator('stale', 'Live feed paused', '');
           }

@@ -19,8 +19,38 @@ class Dashboard_mdl extends CI_Model
      */
     protected function sessionFacility()
     {
+        $dashboard_facility = $this->session->userdata('dashboard_facility');
+        if ($dashboard_facility !== null && $dashboard_facility !== false && trim((string) $dashboard_facility) !== '') {
+            return trim((string) $dashboard_facility);
+        }
+
         $facility = $this->session->userdata('facility');
-        return ($facility !== null && $facility !== false) ? trim((string) $facility) : '';
+        if ($facility !== null && $facility !== false && trim((string) $facility) !== '') {
+            return trim((string) $facility);
+        }
+
+        $facility_id = $this->session->userdata('facility_id');
+        return ($facility_id !== null && $facility_id !== false) ? trim((string) $facility_id) : '';
+    }
+
+    /**
+     * @param string $sql
+     * @param array  $params
+     * @return object|null
+     */
+    protected function safeQuery($sql, array $params = [])
+    {
+        $q = $this->db->query($sql, $params);
+        return $q ? $q : null;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isEducationDeployment()
+    {
+        $this->load->helper('deployment_helper');
+        return function_exists('is_education_deployment') && is_education_deployment();
     }
 
     public function getData()
@@ -469,14 +499,20 @@ class Dashboard_mdl extends CI_Model
         $userdata = $this->session->userdata();
         $year = isset($userdata['year']) && $userdata['year'] ? (int) $userdata['year'] : (int) date('Y');
         $month = isset($userdata['month']) && $userdata['month'] ? (int) $userdata['month'] : (int) date('m');
+        if ($month < 1 || $month > 12) {
+            $month = (int) date('m');
+        }
         $dashboard_empid = (string) $this->session->userdata('dashboard_empid');
         $today = date('Y-m-d');
         $month_start = $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '-01';
         $month_end = date('Y-m-t', strtotime($month_start));
         $status_date = (substr($today, 0, 7) === substr($month_start, 0, 7)) ? $today : $month_end;
 
-        $staff_q = $this->db->query('SELECT COUNT(*) AS c FROM ihrisdata WHERE facility_id = ?', [$facility]);
-        $mystaff = ($staff_q && $staff_q->num_rows() > 0) ? (int) $staff_q->row()->c : 0;
+        $mystaff = 0;
+        $staff_q = $this->safeQuery('SELECT COUNT(*) AS c FROM ihrisdata WHERE facility_id = ?', [$facility]);
+        if ($staff_q && $staff_q->num_rows() > 0) {
+            $mystaff = (int) $staff_q->row()->c;
+        }
 
         $data = [
             'live' => true,
@@ -491,6 +527,33 @@ class Dashboard_mdl extends CI_Model
             'recent' => [],
             'clock_ins_today' => 0,
         ];
+
+        if ($this->isEducationDeployment()) {
+            $this->_applyEducationLiveCounts($data, $facility, $status_date, $dashboard_empid);
+        } else {
+            $this->_applyActualsLiveCounts($data, $facility, $status_date, $dashboard_empid);
+        }
+
+        $sum_accounted = (int) $data['present'] + (int) $data['offduty'] + (int) $data['request'] + (int) $data['leave'];
+        $data['absent'] = max(0, $mystaff - $sum_accounted);
+
+        if ($dashboard_empid === '' && $status_date === $today) {
+            $data['recent'] = $this->_recentClockIns($facility, $today, 10);
+        }
+
+        return $data;
+    }
+
+    /**
+     * MOH: duty status from actuals (BioTime / roster pipeline).
+     */
+    protected function _applyActualsLiveCounts(array &$data, $facility, $status_date, $dashboard_empid)
+    {
+        if (!$this->db->table_exists('actuals')) {
+            $data['clock_ins_today'] = $this->_countMobileClockIns($facility, $status_date, $dashboard_empid);
+            $data['present'] = $data['clock_ins_today'];
+            return;
+        }
 
         $attendance_query = '
             SELECT schedule_id, COUNT(DISTINCT ihris_pid) AS count
@@ -511,22 +574,57 @@ class Dashboard_mdl extends CI_Model
             23 => 'request',
         ];
 
-        $attendance_result = $this->db->query($attendance_query, $params);
-        foreach ($attendance_result->result() as $row) {
-            if (isset($schedule_mapping[$row->schedule_id])) {
-                $data[$schedule_mapping[$row->schedule_id]] = (int) $row->count;
+        $attendance_result = $this->safeQuery($attendance_query, $params);
+        if ($attendance_result) {
+            foreach ($attendance_result->result() as $row) {
+                if (isset($schedule_mapping[$row->schedule_id])) {
+                    $data[$schedule_mapping[$row->schedule_id]] = (int) $row->count;
+                }
             }
         }
 
-        $sum_accounted = (int) $data['present'] + (int) $data['offduty'] + (int) $data['request'] + (int) $data['leave'];
-        $data['absent'] = max(0, $mystaff - $sum_accounted);
         $data['clock_ins_today'] = (int) $data['present'];
+    }
 
-        if ($dashboard_empid === '' && $status_date === $today) {
-            $data['recent'] = $this->_recentClockIns($facility, $today, 10);
+    /**
+     * Education: mobile clock-ins (no BioTime / actuals pipeline).
+     */
+    protected function _applyEducationLiveCounts(array &$data, $facility, $status_date, $dashboard_empid)
+    {
+        $clock_ins = $this->_countMobileClockIns($facility, $status_date, $dashboard_empid);
+        $data['present'] = $clock_ins;
+        $data['clock_ins_today'] = $clock_ins;
+    }
+
+    /**
+     * @param string $facility
+     * @param string $date
+     * @param string $dashboard_empid
+     * @return int
+     */
+    protected function _countMobileClockIns($facility, $date, $dashboard_empid = '')
+    {
+        if (!$this->db->table_exists('mobileclk_log')) {
+            return 0;
         }
 
-        return $data;
+        $sql = "
+            SELECT COUNT(DISTINCT ihris_pid) AS c
+            FROM mobileclk_log
+            WHERE facility_id = ? AND date = ? AND time_in IS NOT NULL
+        ";
+        $params = [$facility, $date];
+        if ($dashboard_empid !== '') {
+            $sql .= ' AND ihris_pid = ?';
+            $params[] = $dashboard_empid;
+        }
+
+        $q = $this->safeQuery($sql, $params);
+        if ($q && $q->num_rows() > 0) {
+            return (int) $q->row()->c;
+        }
+
+        return 0;
     }
 
     /**
@@ -541,12 +639,12 @@ class Dashboard_mdl extends CI_Model
         $limit = max(1, (int) $limit);
 
         if ($this->db->table_exists('mobileclk_log')) {
-            $q = $this->db->query("
+            $q = $this->safeQuery("
                 SELECT m.ihris_pid, m.time_in, 'mobile' AS source,
                     TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS staff_name
                 FROM mobileclk_log m
                 LEFT JOIN ihrisdata i ON i.ihris_pid = m.ihris_pid
-                WHERE m.facility_id = ? AND m.date = ? AND m.time_in IS NOT NULL AND m.time_in != ''
+                WHERE m.facility_id = ? AND m.date = ? AND m.time_in IS NOT NULL
                 ORDER BY m.time_in DESC
                 LIMIT ?
             ", [$facility, $date, $limit]);
@@ -567,12 +665,12 @@ class Dashboard_mdl extends CI_Model
         if (count($items) < $limit && $this->db->table_exists('clk_log')) {
             $seen = array_column($items, 'ihris_pid');
             $need = $limit - count($items);
-            $q = $this->db->query("
+            $q = $this->safeQuery("
                 SELECT cl.ihris_pid, cl.time_in, COALESCE(cl.source, 'device') AS source,
                     TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS staff_name
                 FROM clk_log cl
                 LEFT JOIN ihrisdata i ON i.ihris_pid = cl.ihris_pid
-                WHERE cl.facility_id = ? AND cl.date = ? AND cl.time_in IS NOT NULL AND cl.time_in != ''
+                WHERE cl.facility_id = ? AND cl.date = ? AND cl.time_in IS NOT NULL
                 ORDER BY cl.time_in DESC
                 LIMIT ?
             ", [$facility, $date, $need + count($seen)]);
