@@ -475,6 +475,78 @@ class Reports_mdl extends CI_Model
 	}
 
 	/**
+	 * Full aggregate result set for caching (no search/pagination).
+	 *
+	 * @param array|null $filters
+	 * @param string     $group_by
+	 * @return array<int, object>
+	 */
+	public function fetchAllAttendanceAggregatesAjax($filters = null, $group_by = 'district')
+	{
+		$sql = $this->buildAttendanceAggregatesSql($filters, $group_by, '', false, 0, 0);
+		return $this->db->query($sql)->result();
+	}
+
+	/**
+	 * Stable cache key material for aggregate filters.
+	 *
+	 * @param array|null $filters
+	 * @param string     $group_by
+	 * @return string
+	 */
+	public function aggregateCacheKeyMaterial($filters = null, $group_by = 'district')
+	{
+		$group_by = $this->_aggregate_group_by_column($group_by);
+		$normalized = [];
+		if (is_array($filters)) {
+			foreach ($filters as $key => $value) {
+				if ($value === null || $value === '' || (is_array($value) && empty($value))) {
+					continue;
+				}
+				if ($key === 'duty_date') {
+					$dates = is_array($value) ? $value : [$value];
+					$dates = array_values(array_filter(array_map('strval', $dates), 'strlen'));
+					sort($dates);
+					$normalized[$key] = $dates;
+					continue;
+				}
+				if ($key === 'region' && is_array($value)) {
+					$regions = array_values(array_filter(array_map('strval', $value), 'strlen'));
+					sort($regions);
+					$normalized[$key] = $regions;
+					continue;
+				}
+				$normalized[$key] = $value;
+			}
+		}
+		ksort($normalized);
+
+		return md5(json_encode(['filters' => $normalized, 'group_by' => $group_by]));
+	}
+
+	/**
+	 * @param array<int, object|array<string, mixed>> $rows
+	 * @param string                                  $group_by
+	 * @param string                                  $search
+	 * @return array<int, object>
+	 */
+	public function filterAggregateRows(array $rows, $group_by, $search = '')
+	{
+		$group_by = $this->_aggregate_group_by_column($group_by);
+		$needle = strtolower(trim((string) $search));
+		if ($needle === '') {
+			return $rows;
+		}
+
+		return array_values(array_filter($rows, function ($row) use ($group_by, $needle) {
+			$data = is_object($row) ? (array) $row : $row;
+			$group_val = strtolower((string) ($data[$group_by] ?? ''));
+			$duty_date = strtolower((string) ($data['duty_date'] ?? ''));
+			return (strpos($group_val, $needle) !== false) || (strpos($duty_date, $needle) !== false);
+		}));
+	}
+
+	/**
 	 * @param string|null $district
 	 * @return array<int, string>
 	 */
@@ -715,15 +787,76 @@ class Reports_mdl extends CI_Model
 		$this->db->group_by('a.facility_id');
 		$this->db->order_by('facility_name', 'ASC');
 		$this->db->order_by('fullname', 'ASC');
-		if ($limit) {
-			$this->db->limit($limit, $start);
+		if ($limit !== null && (int) $limit > 0) {
+			$this->db->limit((int) $limit, (int) $start);
 		}
 		$data = $this->db->get()->result();
 		return $data;
 	}
 
+	/**
+	 * @param array|null $filters
+	 * @return array<int, object>
+	 */
+	public function fetchAllPersonAttendanceAll($filters = null)
+	{
+		return $this->person_attendance_all($filters, null, null, '');
+	}
+
+	/**
+	 * @param array|null $filters
+	 * @return string
+	 */
+	public function personAttendanceCacheKeyMaterial($filters = null)
+	{
+		$session_facility = isset($_SESSION['facility']) ? trim((string) $_SESSION['facility']) : '';
+		$normalized = [];
+		if (is_array($filters)) {
+			foreach ($filters as $key => $value) {
+				if ($value === null || $value === '' || (is_array($value) && empty($value))) {
+					continue;
+				}
+				if ($key === 'duty_date') {
+					$dates = is_array($value) ? $value : [$value];
+					$dates = array_values(array_filter(array_map('strval', $dates), 'strlen'));
+					sort($dates);
+					$normalized[$key] = $dates;
+					continue;
+				}
+				$normalized[$key] = $value;
+			}
+		}
+		ksort($normalized);
+
+		return md5(json_encode(['filters' => $normalized, 'session_facility' => $session_facility]));
+	}
+
+	/**
+	 * @param array<int, object|array<string, mixed>> $rows
+	 * @param string                                  $search
+	 * @return array<int, object>
+	 */
+	public function filterPersonAttendanceRows(array $rows, $search = '')
+	{
+		$needle = strtolower(trim((string) $search));
+		if ($needle === '') {
+			return $rows;
+		}
+
+		return array_values(array_filter($rows, function ($row) use ($needle) {
+			$data = is_object($row) ? (array) $row : $row;
+			foreach (['fullname', 'district', 'facility_name', 'ihris_pid'] as $field) {
+				if (strpos(strtolower((string) ($data[$field] ?? '')), $needle) !== false) {
+					return true;
+				}
+			}
+			return false;
+		}));
+	}
+
 	private function apply_person_attendance_all_actuals_filter($filters = null, $search_like = '')
 	{
+		$this->db->reset_query();
 		$session_facility = isset($_SESSION['facility']) ? trim((string) $_SESSION['facility']) : '';
 		$this->db->from('actuals a');
 		$this->db->join('schedules s', 's.schedule_id = a.schedule_id', 'left');
@@ -738,13 +871,16 @@ class Reports_mdl extends CI_Model
 		if (!empty($filters)) {
 			if (isset($filters['duty_date']) && !empty($filters['duty_date'])) {
 				$dd = is_array($filters['duty_date']) ? $filters['duty_date'] : array($filters['duty_date']);
-				$this->db->where_in("DATE_FORMAT(a.date,'%Y-%m')", $dd, false);
+				$dd = array_values(array_filter(array_map('trim', array_map('strval', $dd)), 'strlen'));
+				if (!empty($dd)) {
+					$this->db->where_in("DATE_FORMAT(a.date,'%Y-%m')", $dd);
+				}
 			}
 			if (isset($filters['district']) && $filters['district'] !== '') {
 				$district_names = $this->_aggregate_district_names_for_filter($filters['district']);
 				if (count($district_names) > 1) {
 					$this->db->where_in('i.district', $district_names);
-				} else {
+				} elseif (count($district_names) === 1) {
 					$this->db->where('i.district', $district_names[0]);
 				}
 			}

@@ -275,6 +275,9 @@ class Reports extends MX_Controller
 		$data['facilities'] = [];
 		$data['aggregations'] = ["job", "facility_name", "facility_type_name", "cadre", "institution_type", "district", "region", "department_id", "gender"];
 
+		$this->load->library('report_cache_store', null, 'report_cache');
+		$data['aggregate_cache'] = $this->report_cache->availability();
+
 		$data['view'] = 'attendance_aggr';
 		$data['title'] = 'Attendance Form Summary';
 		$data['uptitle'] = 'Attendance Form Summary';
@@ -320,66 +323,30 @@ class Reports extends MX_Controller
 		}
 
 		try {
-			// Counts
-			$total_records = $this->reports_mdl->countAttendanceAggregatesAjax($filters, $group_by, '');
-			$filtered_records = $this->reports_mdl->countAttendanceAggregatesAjax($filters, $group_by, $search);
+			$cache_result = $this->_get_aggregate_rows_cached($filters, $group_by);
+			$all_rows = $cache_result['rows'];
+			$filtered_rows = $this->reports_mdl->filterAggregateRows($all_rows, $group_by, $search);
+			$total_records = count($all_rows);
+			$filtered_records = count($filtered_rows);
+			$page_rows = ($length > 0)
+				? array_slice($filtered_rows, $start, $length)
+				: $filtered_rows;
 
-			// Fetch data
-			$records = $this->reports_mdl->fetchAttendanceAggregatesAjax($filters, $group_by, $start, $length, $search);
-
-			// Format data for DataTables
-			$data = array();
+			$data = [];
 			$row_num = $start + 1;
-			foreach ($records as $row) {
-				$supposed_days = $row->days_supposed ?? 0;
-				$days_worked = ($supposed_days - ($row->days_absent ?? 0));
-
-				// Prevent division by zero
-				if ($supposed_days > 0) {
-					$attendance_rate = ($days_worked / $supposed_days) * 100;
-					$absentism_rate = (($row->days_absent ?? 0) / $supposed_days) * 100;
-					$present = (($row->present ?? 0) / $supposed_days) * 100;
-					$on_leave = (($row->own_leave ?? 0) / $supposed_days) * 100;
-					$official = (($row->official ?? 0) / $supposed_days) * 100;
-					$off = (($row->off ?? 0) / $supposed_days) * 100;
-					$holiday = (($row->holiday ?? 0) / $supposed_days) * 100;
-					$absent = (($row->absent ?? 0) / $supposed_days) * 100;
-				} else {
-					$attendance_rate = 0;
-					$absentism_rate = 0;
-					$present = 0;
-					$on_leave = 0;
-					$official = 0;
-					$off = 0;
-					$holiday = 0;
-					$absent = 0;
-				}
-
-				$grouped_value = $row->{$group_by} ?? 'N/A';
-
-				$data[] = array(
-					$row_num++,
-					$grouped_value,
-					$row->duty_date ?? '',
-					number_format($present, 1) . '%',
-					number_format($off, 1) . '%',
-					number_format($official, 1) . '%',
-					number_format($on_leave, 1) . '%',
-					number_format($holiday, 1) . '%',
-					number_format($absent, 1) . '%',
-					number_format($days_worked, 1),
-					number_format($supposed_days, 1),
-					number_format($attendance_rate, 1) . '%',
-					number_format($absentism_rate, 1) . '%'
-				);
+			foreach ($page_rows as $row) {
+				$data[] = $this->_format_aggregate_datatable_row($row, $group_by, $row_num++);
 			}
 
-			echo json_encode(array(
+			$cache_meta = $this->_aggregate_cache_meta($cache_result);
+
+			echo json_encode([
 				'draw' => $draw,
 				'recordsTotal' => $total_records,
 				'recordsFiltered' => $filtered_records,
-				'data' => $data
-			));
+				'data' => $data,
+				'cache_meta' => $cache_meta,
+			]);
 			exit;
 		} catch (Throwable $e) {
 			log_message('error', 'attendanceAggregateAjax error: ' . $e->getMessage());
@@ -712,6 +679,9 @@ class Reports extends MX_Controller
 		$data['links'] = '';
 		$data['records'] = array();
 
+		$this->load->library('report_cache_store', null, 'report_cache');
+		$data['report_cache'] = $this->report_cache->availability();
+
 		$data['view'] = 'person_attendance_all';
 		$data['title'] = 'Person Attendance All';
 		$data['uptitle'] = 'Person Attendance All';
@@ -740,6 +710,9 @@ class Reports extends MX_Controller
 			$year = date('Y');
 			$month = date('m');
 		}
+		$year = (int) $year;
+		$month = max(1, min(12, (int) $month));
+		$month = str_pad((string) $month, 2, '0', STR_PAD_LEFT);
 		$duty_date = $year . '-' . $month;
 		$filters = array('duty_date' => $duty_date);
 		if ($district !== '') {
@@ -750,53 +723,37 @@ class Reports extends MX_Controller
 		}
 
 		try {
-			$total_records = $this->reports_mdl->count_person_attendance($filters, '');
-			$filtered_records = $this->reports_mdl->count_person_attendance($filters, $search);
-			$rows = $this->reports_mdl->person_attendance_all($filters, $length, $start, $search);
+			$cache_result = $this->_get_person_attendance_rows_cached($filters);
+			$all_rows = $cache_result['rows'];
+			$filtered_rows = $this->reports_mdl->filterPersonAttendanceRows($all_rows, $search);
+			$total_records = count($all_rows);
+			$filtered_records = count($filtered_rows);
+			$page_rows = ($length > 0)
+				? array_slice($filtered_rows, $start, $length)
+				: $filtered_rows;
 
-			$month_days = cal_days_in_month(CAL_GREGORIAN, (int) $month, (int) $year);
-			$data = array();
+			$data = [];
 			$row_num = $start + 1;
-			foreach ($rows as $row) {
-				$p = isset($row->P) ? (int) $row->P : 0;
-				$o = isset($row->O) ? (int) $row->O : 0;
-				$r = isset($row->R) ? (int) $row->R : 0;
-				$l = isset($row->L) ? (int) $row->L : 0;
-				$h = isset($row->H) ? (int) $row->H : 0;
-				$absent = $month_days - ($p + $o + $r + $l);
-				$abrate = $month_days > 0 ? number_format(($absent / $month_days) * 100, 1) : 0;
-				$data[] = array(
-					$row_num++,
-					isset($row->fullname) ? $row->fullname : '',
-					isset($row->district) ? $row->district : '',
-					isset($row->facility_name) ? $row->facility_name : '',
-					isset($row->duty_date) ? $row->duty_date : $duty_date,
-					$p,
-					$o,
-					$r,
-					$l,
-					$h,
-					$absent,
-					$abrate . '%'
-				);
+			foreach ($page_rows as $row) {
+				$data[] = $this->_format_person_attendance_datatable_row($row, $duty_date, (int) $month, (int) $year, $row_num++);
 			}
 
-			echo json_encode(array(
+			echo json_encode([
 				'draw' => $draw,
 				'recordsTotal' => $total_records,
 				'recordsFiltered' => $filtered_records,
-				'data' => $data
-			));
+				'data' => $data,
+				'cache_meta' => $this->_aggregate_cache_meta($cache_result),
+			]);
 			return;
 		} catch (Throwable $e) {
 			log_message('error', 'person_attendance_all_ajax: ' . $e->getMessage());
-			echo json_encode(array(
+			echo json_encode([
 				'draw' => $draw,
 				'recordsTotal' => 0,
 				'recordsFiltered' => 0,
-				'data' => array(),
-				'error' => 'Failed to load data'
-			));
+				'data' => [],
+			]);
 		}
 	}
 
@@ -969,5 +926,224 @@ class Reports extends MX_Controller
 		$footer_html = $this->load->view('person_attendance_all_pdf_footer', array(), true);
 		$this->m_pdf->pdf->WriteHTML(mb_convert_encoding($footer_html, 'UTF-8', 'UTF-8'));
 		$this->m_pdf->pdf->Output($filename, 'I');
+	}
+
+	/**
+	 * @param array|null $filters
+	 * @param string     $group_by
+	 * @return array{rows: array<int, object>, cached: bool, source: string}
+	 */
+	private function _get_aggregate_rows_cached($filters, $group_by)
+	{
+		$this->load->library('report_cache_store', null, 'report_cache');
+		$this->config->load('report_cache', true, true);
+		$cfg = $this->config->item('report_cache');
+		$ttl = is_array($cfg) && isset($cfg['aggregate_ttl']) ? (int) $cfg['aggregate_ttl'] : 300;
+
+		$key = 'agg_' . $this->reports_mdl->aggregateCacheKeyMaterial($filters, $group_by);
+		$cached = $this->report_cache->read($key);
+		if (is_array($cached) && isset($cached['rows']) && is_array($cached['rows'])) {
+			return [
+				'rows' => $this->_aggregate_arrays_to_objects($cached['rows']),
+				'cached' => true,
+				'source' => (string) ($this->report_cache->lastReadSource() ?: 'redis'),
+			];
+		}
+
+		$records = $this->reports_mdl->fetchAllAttendanceAggregatesAjax($filters, $group_by);
+		$row_arrays = [];
+		foreach ($records as $row) {
+			$row_arrays[] = (array) $row;
+		}
+
+		$avail = $this->report_cache->availability();
+		if ($avail['redis'] || $avail['memcached']) {
+			$this->report_cache->write($key, [
+				'rows' => $row_arrays,
+				'stored_at' => date('c'),
+			], $ttl);
+		}
+
+		return [
+			'rows' => $records,
+			'cached' => false,
+			'source' => 'database',
+		];
+	}
+
+	/**
+	 * @param array<int, array<string, mixed>> $rows
+	 * @return array<int, object>
+	 */
+	private function _aggregate_arrays_to_objects(array $rows)
+	{
+		$objects = [];
+		foreach ($rows as $row) {
+			$objects[] = (object) $row;
+		}
+		return $objects;
+	}
+
+	/**
+	 * @param array{cached: bool, source: string} $cache_result
+	 * @return array<string, mixed>
+	 */
+	private function _aggregate_cache_meta(array $cache_result)
+	{
+		$this->load->library('report_cache_store', null, 'report_cache');
+		$avail = $this->report_cache->availability();
+		$source = $cache_result['source'] ?? 'database';
+		$cached = !empty($cache_result['cached']);
+
+		$meta = [
+			'redis_available' => !empty($avail['redis']),
+			'memcached_available' => !empty($avail['memcached']),
+			'source' => $source,
+			'cached' => $cached,
+			'message' => '',
+		];
+
+		if (!$avail['redis']) {
+			$meta['message'] = 'Redis cache is not available. Report data is loaded from the database and may take longer than usual.';
+		} elseif ($source === 'database') {
+			$meta['message'] = 'Building report from the database (first load for these filters). Subsequent pages will be faster.';
+		} elseif ($cached && $source === 'redis') {
+			$meta['message'] = 'Loaded from Redis cache.';
+		} elseif ($cached && $source === 'memcached') {
+			$meta['message'] = 'Loaded from Memcached.';
+		}
+
+		return $meta;
+	}
+
+	/**
+	 * @param array|null $filters
+	 * @return array{rows: array<int, object>, cached: bool, source: string}
+	 */
+	private function _get_person_attendance_rows_cached($filters)
+	{
+		$this->load->library('report_cache_store', null, 'report_cache');
+		$this->config->load('report_cache', true, true);
+		$cfg = $this->config->item('report_cache');
+		$ttl = is_array($cfg) && isset($cfg['person_attendance_ttl'])
+			? (int) $cfg['person_attendance_ttl']
+			: (is_array($cfg) && isset($cfg['aggregate_ttl']) ? (int) $cfg['aggregate_ttl'] : 300);
+
+		$key = 'paa_' . $this->reports_mdl->personAttendanceCacheKeyMaterial($filters);
+		$cached = $this->report_cache->read($key);
+		if (is_array($cached) && isset($cached['rows']) && is_array($cached['rows'])) {
+			return [
+				'rows' => $this->_aggregate_arrays_to_objects($cached['rows']),
+				'cached' => true,
+				'source' => (string) ($this->report_cache->lastReadSource() ?: 'redis'),
+			];
+		}
+
+		$records = $this->reports_mdl->fetchAllPersonAttendanceAll($filters);
+		$row_arrays = [];
+		foreach ($records as $row) {
+			$row_arrays[] = (array) $row;
+		}
+
+		$avail = $this->report_cache->availability();
+		if ($avail['redis'] || $avail['memcached']) {
+			$this->report_cache->write($key, [
+				'rows' => $row_arrays,
+				'stored_at' => date('c'),
+			], $ttl);
+		}
+
+		return [
+			'rows' => $records,
+			'cached' => false,
+			'source' => 'database',
+		];
+	}
+
+	/**
+	 * @param object|array<string, mixed> $row
+	 * @param string                      $duty_date
+	 * @param int                         $month
+	 * @param int                         $year
+	 * @param int                         $row_num
+	 * @return array<int, string|int>
+	 */
+	private function _format_person_attendance_datatable_row($row, $duty_date, $month, $year, $row_num)
+	{
+		$row = is_object($row) ? $row : (object) $row;
+		$p = isset($row->P) ? (int) $row->P : 0;
+		$o = isset($row->O) ? (int) $row->O : 0;
+		$r = isset($row->R) ? (int) $row->R : 0;
+		$l = isset($row->L) ? (int) $row->L : 0;
+		$h = isset($row->H) ? (int) $row->H : 0;
+		$month_days = (int) date('t', strtotime(sprintf('%04d-%02d-01', $year, $month)));
+		$absent = $month_days - ($p + $o + $r + $l);
+		$abrate = $month_days > 0 ? number_format(($absent / $month_days) * 100, 1) : '0.0';
+
+		return [
+			$row_num,
+			isset($row->fullname) ? $row->fullname : '',
+			isset($row->district) ? $row->district : '',
+			isset($row->facility_name) ? $row->facility_name : '',
+			isset($row->duty_date) ? $row->duty_date : $duty_date,
+			$p,
+			$o,
+			$r,
+			$l,
+			$h,
+			$absent,
+			$abrate . '%',
+		];
+	}
+
+	/**
+	 * @param object|array<string, mixed> $row
+	 * @param string                      $group_by
+	 * @param int                         $row_num
+	 * @return array<int, string|int>
+	 */
+	private function _format_aggregate_datatable_row($row, $group_by, $row_num)
+	{
+		$row = is_object($row) ? $row : (object) $row;
+		$supposed_days = $row->days_supposed ?? 0;
+		$days_worked = ($supposed_days - ($row->days_absent ?? 0));
+
+		if ($supposed_days > 0) {
+			$attendance_rate = ($days_worked / $supposed_days) * 100;
+			$absentism_rate = (($row->days_absent ?? 0) / $supposed_days) * 100;
+			$present = (($row->present ?? 0) / $supposed_days) * 100;
+			$on_leave = (($row->own_leave ?? 0) / $supposed_days) * 100;
+			$official = (($row->official ?? 0) / $supposed_days) * 100;
+			$off = (($row->off ?? 0) / $supposed_days) * 100;
+			$holiday = (($row->holiday ?? 0) / $supposed_days) * 100;
+			$absent = (($row->absent ?? 0) / $supposed_days) * 100;
+		} else {
+			$attendance_rate = 0;
+			$absentism_rate = 0;
+			$present = 0;
+			$on_leave = 0;
+			$official = 0;
+			$off = 0;
+			$holiday = 0;
+			$absent = 0;
+		}
+
+		$grouped_value = $row->{$group_by} ?? 'N/A';
+
+		return [
+			$row_num,
+			$grouped_value,
+			$row->duty_date ?? '',
+			number_format($present, 1) . '%',
+			number_format($off, 1) . '%',
+			number_format($official, 1) . '%',
+			number_format($on_leave, 1) . '%',
+			number_format($holiday, 1) . '%',
+			number_format($absent, 1) . '%',
+			number_format($days_worked, 1),
+			number_format($supposed_days, 1),
+			number_format($attendance_rate, 1) . '%',
+			number_format($absentism_rate, 1) . '%',
+		];
 	}
 }

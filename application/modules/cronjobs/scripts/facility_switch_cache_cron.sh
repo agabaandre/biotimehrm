@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Rebuild Switch Facility district/facility cache from ihrisdata.
+# Rebuild Switch Facility district/facility cache (MOH: ihrisdata; education: local tables).
 # Run weekly at midnight (Sunday 00:00):
 #   0 0 * * 0 /path/to/attend/application/modules/cronjobs/scripts/facility_switch_cache_cron.sh
 

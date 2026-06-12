@@ -20,7 +20,22 @@
 		word-wrap: break-word;
 		line-height: 1.2;
 		padding: 6px 4px;
-}
+	}
+	#paa-cache-notice {
+		border-radius: 8px;
+		font-size: 0.88rem;
+		margin: 10px 0;
+	}
+	#paa-cache-notice.paa-cache-warn {
+		background: #fff8e6;
+		border: 1px solid #ffe08a;
+		color: #856404;
+	}
+	#paa-cache-notice.paa-cache-info {
+		background: #e8f6f3;
+		border: 1px solid #b8e6d8;
+		color: #005662;
+	}
 </style>
 <section class="content">
     <div class="container-fluid">
@@ -101,6 +116,19 @@
 							MONTHLY ATTENDANCE TO DUTY SUMMARY - <span id="paa_period_label"><?php echo isset($period) ? date('F, Y', strtotime($period . '-01')) : date('F, Y'); ?></span>
                 </p>
             </div>
+					<?php
+					$paa_cache = isset($report_cache) && is_array($report_cache) ? $report_cache : ['redis' => false, 'memcached' => false];
+					$paa_redis_missing = empty($paa_cache['redis']);
+					?>
+					<div id="paa-cache-notice" class="alert <?php echo $paa_redis_missing ? 'paa-cache-warn' : 'paa-cache-info'; ?>" role="status" style="<?php echo $paa_redis_missing ? '' : 'display:none;'; ?>">
+						<i class="fas fa-<?php echo $paa_redis_missing ? 'exclamation-triangle' : 'info-circle'; ?> mr-1"></i>
+						<span id="paa-cache-notice-text">
+							<?php if ($paa_redis_missing) { ?>
+								Redis cache is not available. This report is loaded from the database and may take longer than usual.
+							<?php } ?>
+						</span>
+					</div>
+
 					<div class="table-responsive" style="margin-top: 10px;">
 						<table id="personAttendanceAllTable" class="table table-striped table-bordered" style="width:100%;">
 							<thead>
@@ -133,6 +161,31 @@
 	var baseUrl = '<?php echo base_url(); ?>';
 	var month = '<?php echo isset($month) ? addslashes($month) : date("m"); ?>';
 	var year = '<?php echo isset($year) ? addslashes($year) : date("Y"); ?>';
+	var redisAvailable = <?php echo !empty($paa_cache['redis']) ? 'true' : 'false'; ?>;
+	var paaCacheNoticeShown = false;
+
+	function showPaaCacheNotice(meta) {
+		if (!meta || !meta.message) {
+			return;
+		}
+		var $notice = $('#paa-cache-notice');
+		$('#paa-cache-notice-text').text(meta.message);
+		if (!meta.redis_available) {
+			$notice.removeClass('paa-cache-info').addClass('paa-cache-warn').show();
+		} else if (meta.source === 'database') {
+			$notice.removeClass('paa-cache-info').addClass('paa-cache-warn').show();
+		} else {
+			$notice.removeClass('paa-cache-warn').addClass('paa-cache-info').show();
+			if (paaCacheNoticeShown && meta.cached) {
+				return;
+			}
+		}
+		paaCacheNoticeShown = true;
+		$notice.show();
+		if (!redisAvailable && typeof $.notify === 'function') {
+			$.notify(meta.message, 'warn');
+		}
+	}
 
 	function updateExportLinks() {
 		var m = $('#paa_month').val() || month;
@@ -167,12 +220,30 @@
 			ajax: {
 				url: baseUrl + 'reports/person_attendance_all_ajax',
 				type: 'POST',
+				dataType: 'json',
 				data: function(d) {
 					d.month = $('#paa_month').val() || month;
 					d.year = $('#paa_year').val() || year;
 					d.district = $('#paa_district').val() || '';
 					d.facility_name = $('#paa_facility_name').val() || '';
 					d['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
+				},
+				dataSrc: function(json) {
+					if (json && json.cache_meta) {
+						showPaaCacheNotice(json.cache_meta);
+					}
+					return json.data || [];
+				},
+				error: function(xhr) {
+					var msg = 'Failed to load attendance data.';
+					if (xhr.status === 403) {
+						msg = 'Session or security token expired. Please refresh the page.';
+					}
+					$('#paa-cache-notice-text').text(msg);
+					$('#paa-cache-notice').removeClass('paa-cache-info').addClass('paa-cache-warn').show();
+					if (typeof $.notify === 'function') {
+						$.notify(msg, 'error');
+					}
 				}
 			},
 			columns: [

@@ -62,20 +62,42 @@ $config['cron_jobs'] = [
 
     /*
     |--------------------------------------------------------------------------
-    | Switch Facility cache (districts + facilities from ihrisdata)
+    | Switch Facility cache
     |--------------------------------------------------------------------------
+    | MOH: districts/facilities from ihrisdata
+    | Education: from employee_districts / employee_facility (see Facility_switch_cache)
     | Cron Expression: 0 0 * * 0  (Sunday at midnight)
     */
     'facility_switch_cache' => [
         'enabled' => TRUE,
         'cron_expression' => '0 0 * * 0',
         'controller' => 'cronjobs/FacilitySwitchCacheCron/rebuild',
-        'description' => 'Rebuild Switch Facility district/facility JSON cache from ihrisdata',
+        'description' => 'Rebuild Switch Facility district/facility JSON cache',
         'timezone' => 'Africa/Kampala',
         'max_execution_time' => 120,
         'log_level' => 'info',
         'retry_attempts' => 2,
         'retry_delay' => 300,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard cache warm (MOH only)
+    |--------------------------------------------------------------------------
+    | Bumps per-facility dashboard cache versions after BioTime sync windows.
+    | Cron Expression: 15 * * * *  (every hour at :15, via jobs master on MOH)
+    */
+    'dashboard_cache_warm' => [
+        'enabled' => TRUE,
+        'cron_expression' => '15 * * * *',
+        'controller' => 'cronjobs/DashboardCacheCron/warm',
+        'description' => 'Invalidate MOH dashboard cache per facility (health deployment only)',
+        'timezone' => 'Africa/Kampala',
+        'max_execution_time' => 120,
+        'log_level' => 'info',
+        'retry_attempts' => 1,
+        'retry_delay' => 300,
+        'moh_only' => TRUE,
     ],
 ];
 

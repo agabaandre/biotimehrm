@@ -13,6 +13,7 @@ class Jobs extends MX_Controller {
     {
         parent::__construct();
 
+        $this->load->helper('deployment_helper');
         $this->load->model('jobs_mdl', 'jobMdl');
 
         // Restrict master scheduler to CLI only
@@ -44,51 +45,47 @@ class Jobs extends MX_Controller {
         $hour   = date('H', $now);
         $day    = date('d', $now);
 
+        $education = is_education_deployment();
+
         echo "\n============================================\n";
         echo " JOBS MASTER STARTED: ".date('Y-m-d H:i:s')."\n";
+        echo " Deployment: ".($education ? 'education' : 'moh')."\n";
         echo "============================================\n\n";
 
         $jobsToRun = [];
+        $dow = (int) date('w', $now);
 
         /* ----------------------------------------------------------
-         * 1️⃣ INTERVAL SYNC JOBS (Light DB usage)
+         * MOH ONLY — BioTime / iHRIS sync (not used in education)
          * ---------------------------------------------------------- */
+        if (!$education) {
+            if ($minute % 20 == 0) $jobsToRun[] = 'biotimejobs terminals';
+            if ($minute % 30 == 0) $jobsToRun[] = 'biotimejobs saveEnrolled';
+            if ($minute % 35 == 0) $jobsToRun[] = 'biotimejobs transfer_employees';
+            if ($minute % 45 == 0) $jobsToRun[] = 'biotimejobs biotimeFacilities';
+            if ($minute % 55 == 0) $jobsToRun[] = 'biotimejobs multiple_new_users';
 
-        if ($minute % 20 == 0) $jobsToRun[] = 'biotimejobs terminals';
-        if ($minute % 30 == 0) $jobsToRun[] = 'biotimejobs saveEnrolled';
-        if ($minute % 35 == 0) $jobsToRun[] = 'biotimejobs transfer_employees';
-        if ($minute % 45 == 0) $jobsToRun[] = 'biotimejobs biotimeFacilities';
-        if ($minute % 55 == 0) $jobsToRun[] = 'biotimejobs multiple_new_users';
+            if ($hour == 7 && $minute == 5)  $jobsToRun[] = 'biotimejobs biotime_jobs';
+            if ($hour == 7 && $minute == 15) $jobsToRun[] = 'biotimejobs biotimedepartments';
+            if ($hour == 7 && $minute == 37) $jobsToRun[] = 'biotimejobs rostatoAttend';
+            if ($hour == 7 && $minute == 40) $jobsToRun[] = 'biotimejobs biotime_employees';
+
+            if ($hour % 5 == 0 && $minute == 0)
+                $jobsToRun[] = 'biotimejobs get_ihrisdata';
+
+            if ($day == 1 && $hour == 0 && $minute == 0)
+                $jobsToRun[] = 'cronjobs AutoMohRoster';
+
+            if ($minute == 15)
+                $jobsToRun[] = 'cronjobs/DashboardCacheCron/warm';
+        }
 
         /* ----------------------------------------------------------
-         * 2️⃣ DAILY STRUCTURE JOBS (Staggered to avoid DB spikes)
+         * SHARED — monthly / summary / cache rebuild
          * ---------------------------------------------------------- */
-
-        if ($hour == 7 && $minute == 5)  $jobsToRun[] = 'biotimejobs biotime_jobs';
-        if ($hour == 7 && $minute == 15) $jobsToRun[] = 'biotimejobs biotimedepartments';
-        if ($hour == 7 && $minute == 37) $jobsToRun[] = 'biotimejobs rostatoAttend';
-        if ($hour == 7 && $minute == 40) $jobsToRun[] = 'biotimejobs biotime_employees';
-
-        /* ----------------------------------------------------------
-         * 2b. IHRIS DATA SYNC (every 5 hours)
-         * ---------------------------------------------------------- */
-
-        if ($hour % 5 == 0 && $minute == 0)
-            $jobsToRun[] = 'biotimejobs get_ihrisdata';
-
-        /* ----------------------------------------------------------
-         * 3️⃣ MONTHLY SYSTEM JOBS
-         * ---------------------------------------------------------- */
-
-        if ($day == 1 && $hour == 0 && $minute == 0)
-            $jobsToRun[] = 'cronjobs AutoMohRoster';
 
         if ($day == 1 && $hour == 15 && $minute == 0)
             $jobsToRun[] = 'cronjobs publicdaystoAttend';
-
-        /* ----------------------------------------------------------
-         * 4️⃣ SUMMARY REPORTS
-         * ---------------------------------------------------------- */
 
         if ($hour == 2 && $minute == 0 && $day % 5 == 0)
             $jobsToRun[] = 'cronjobs/DutyRosterSummaryCron/updateDutyRosterSummary';
@@ -96,12 +93,8 @@ class Jobs extends MX_Controller {
         if ($hour % 6 == 0 && $minute == 0)
             $jobsToRun[] = 'cronjobs/AttendanceSummaryCron/updateAttendanceSummary';
 
-        /* ----------------------------------------------------------
-         * 5️⃣ DASHBOARD CACHE (Low impact)
-         * ---------------------------------------------------------- */
-
-        if ($minute == 15)
-            $jobsToRun[] = 'biotime_jobs cache_dash_Data';
+        if ($dow === 0 && $hour == 0 && $minute == 0)
+            $jobsToRun[] = 'cronjobs/FacilitySwitchCacheCron/rebuild';
 
         /* ============================================================
          * LOCK PROTECTION (Skip heavy overlap)
@@ -138,7 +131,7 @@ class Jobs extends MX_Controller {
          * ATTENDANCE FETCH (Runs WITHOUT lock)
          * ============================================================ */
 
-        if ($hour % 4 == 0 && $minute == 0) {
+        if (!$education && $hour % 4 == 0 && $minute == 0) {
             echo "\nRunning attendance fetch (no lock)...\n";
             $this->run('biotimejobs fetch_daily_attendance');
         }

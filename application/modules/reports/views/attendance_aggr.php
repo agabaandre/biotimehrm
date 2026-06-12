@@ -29,6 +29,22 @@
 		width: 100% !important;
 		max-width: 100%;
 	}
+
+	#aa-cache-notice {
+		border-radius: 8px;
+		font-size: 0.88rem;
+		margin-bottom: 1rem;
+	}
+	#aa-cache-notice.aa-cache-warn {
+		background: #fff8e6;
+		border: 1px solid #ffe08a;
+		color: #856404;
+	}
+	#aa-cache-notice.aa-cache-info {
+		background: #e8f6f3;
+		border: 1px solid #b8e6d8;
+		color: #005662;
+	}
 </style>
 <script>
 	function limitSelection(select) {
@@ -179,6 +195,19 @@
 				</p>
 			</div>
 
+			<?php
+			$aa_cache = isset($aggregate_cache) && is_array($aggregate_cache) ? $aggregate_cache : ['redis' => false, 'memcached' => false];
+			$aa_redis_missing = empty($aa_cache['redis']);
+			?>
+			<div id="aa-cache-notice" class="alert <?php echo $aa_redis_missing ? 'aa-cache-warn' : 'aa-cache-info'; ?>" role="status" style="<?php echo $aa_redis_missing ? '' : 'display:none;'; ?>">
+				<i class="fas fa-<?php echo $aa_redis_missing ? 'exclamation-triangle' : 'info-circle'; ?> mr-1"></i>
+				<span id="aa-cache-notice-text">
+					<?php if ($aa_redis_missing) { ?>
+						Redis cache is not available. This report is loaded from the database and may take longer than usual.
+					<?php } ?>
+				</span>
+			</div>
+
 			<div class="table-responsive mt-3">
 				<table id="attendanceAggregateTable" class="table table-striped table-bordered" style="width:100%">
 					<thead>
@@ -220,6 +249,32 @@ $(document).ready(function() {
 	var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 	var baseUrl = '<?php echo base_url(); ?>';
 	var groupByLabels = <?php echo json_encode($aa_group_by_labels); ?>;
+	var redisAvailable = <?php echo !empty($aa_cache['redis']) ? 'true' : 'false'; ?>;
+	var cacheNoticeShown = false;
+
+	function showCacheNotice(meta) {
+		if (!meta || !meta.message) {
+			return;
+		}
+		var $notice = $('#aa-cache-notice');
+		var $text = $('#aa-cache-notice-text');
+		$text.text(meta.message);
+		if (!meta.redis_available) {
+			$notice.removeClass('aa-cache-info').addClass('aa-cache-warn').show();
+		} else if (meta.source === 'database') {
+			$notice.removeClass('aa-cache-info').addClass('aa-cache-warn').show();
+		} else {
+			$notice.removeClass('aa-cache-warn').addClass('aa-cache-info').show();
+			if (cacheNoticeShown && meta.cached) {
+				return;
+			}
+		}
+		cacheNoticeShown = true;
+		$notice.show();
+		if (!redisAvailable && typeof $.notify === 'function') {
+			$.notify(meta.message, 'warn');
+		}
+	}
 
 	function nonEmptyList(vals) {
 		return (vals || []).filter(function(v) { return v !== null && v !== undefined && String(v).trim() !== ''; });
@@ -387,6 +442,12 @@ $(document).ready(function() {
 					d.institution_type = filters.institution_type;
 					d.duty_date = filters.duty_date;
 					d.group_by = filters.group_by;
+				},
+				dataSrc: function(json) {
+					if (json && json.cache_meta) {
+						showCacheNotice(json.cache_meta);
+					}
+					return json.data || [];
 				},
 				error: function(xhr, error, thrown) {
 					console.error('Attendance Aggregate DataTables error', { xhr: xhr, error: error, thrown: thrown, responseText: xhr.responseText });

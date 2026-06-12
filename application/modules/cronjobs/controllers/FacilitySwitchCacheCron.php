@@ -2,7 +2,7 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Weekly rebuild of Switch Facility district/facility cache from ihrisdata.
+ * Weekly rebuild of Switch Facility district/facility cache (MOH: ihrisdata; education: local tables).
  *
  * Cron (Sunday midnight, Africa/Kampala):
  *   0 0 * * 0 cd /path/to/attend && php index.php cronjobs/FacilitySwitchCacheCron/rebuild
