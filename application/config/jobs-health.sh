@@ -5,8 +5,10 @@
 #
 # APP_ROOT=/var/www/attend.health.go.ug
 
-# Master scheduler (replaces individual curl lines for biotimejobs/*)
-* * * * * cd /var/www/attend.health.go.ug && /usr/bin/php index.php jobs master >> /var/log/attend-jobs-master.log 2>&1
+# Master scheduler — prefer supervisor (install once):
+#   sudo /var/www/attend.health.go.ug/scripts/setup_supervisor_jobs.sh --app-root /var/www/attend.health.go.ug
+# Fallback cron if supervisor is not used:
+# * * * * * cd /var/www/attend.health.go.ug && /usr/bin/php index.php jobs master >> /var/log/attend-jobs-master.log 2>&1
 
 # Weekly Switch Facility cache rebuild (ihrisdata → JSON / Redis)
 0 0 * * 0 /var/www/attend.health.go.ug/application/modules/cronjobs/scripts/facility_switch_cache_cron.sh
@@ -20,5 +22,5 @@
 * 20 * * * curl https://attend.health.go.ug/staff/person/get_ihrisdata
 * * * * * cd /var/www/staff && php index.php person send_mails
 
-# BioTime supervisor (attendance fetch fallback)
-0 */4 * * * /usr/bin/supervisorctl start biotimejobs
+# BioTime on-demand fetch (registered by setup_supervisor_jobs.sh on MOH)
+# 0 */4 * * * /usr/bin/supervisorctl start biotimejobs

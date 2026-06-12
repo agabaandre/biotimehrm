@@ -34,6 +34,17 @@ class Jobs extends MX_Controller {
         return Modules::run('lists/get_all_jobs') ?: [];
     }
 
+    /**
+     * CLI helper for deploy scripts: echoes "moh" or "education".
+     */
+    public function deployment_type()
+    {
+        if (!$this->input->is_cli_request()) {
+            exit("CLI only.");
+        }
+        echo is_education_deployment() ? "education\n" : "moh\n";
+    }
+
     /* ============================================================
      * MASTER SCHEDULER
      * Runs every minute from cron
