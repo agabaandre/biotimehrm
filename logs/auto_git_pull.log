@@ -219,3 +219,5 @@ fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could n
 [2026-06-11 18:46:44] ERROR: git fetch failed
 [2026-06-12 10:00:02] OK: up to date (HEAD=4e9fb201f0364deeca1957e389ca7c25d83d676c)
 [2026-06-12 11:00:26] OK: up to date (HEAD=46679dd81f6817c658849ab040726437e565ffb6)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-12 12:36:13] ERROR: git fetch failed
