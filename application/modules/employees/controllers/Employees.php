@@ -452,8 +452,27 @@ class Employees extends MX_Controller
   }
 
 
+  /**
+   * Manual staff create/import is only for education deployments (MOH uses iHRIS sync).
+   *
+   * @return bool
+   */
+  private function canCreateStaffLocally()
+  {
+    if (!function_exists('is_education_deployment') || !is_education_deployment()) {
+      return false;
+    }
+    $permissions = $this->session->userdata('permissions') ?: [];
+    return in_array('45', $permissions, true) || in_array(45, $permissions, true);
+  }
+
   public function createEmployee()
   {
+    if (!$this->canCreateStaffLocally()) {
+      show_404();
+      return;
+    }
+
     $this->empModel->ensureIhrisdataEmployeeColumns();
     $data['title'] = "Staff";
     $data['facilities'] = Modules::run("lists/get_all_Facilities");
@@ -494,7 +513,7 @@ class Employees extends MX_Controller
 
   public function downloadEmployeeImportTemplate()
   {
-    if (!$this->canImportStaff()) {
+    if (!$this->canCreateStaffLocally() || !$this->canImportStaff()) {
       show_404();
       return;
     }
@@ -516,6 +535,9 @@ class Employees extends MX_Controller
 
   public function importEmployees()
   {
+    if (!$this->canCreateStaffLocally()) {
+      return $this->_employeeSaveResponse('error', 'Staff import is only available in education deployments.');
+    }
     if (!$this->canImportStaff()) {
       return $this->_employeeSaveResponse('error', 'You are not allowed to import staff.');
     }
@@ -560,6 +582,10 @@ class Employees extends MX_Controller
 
   public function saveEmployee()
   {
+    if (!$this->canCreateStaffLocally()) {
+      return $this->_employeeSaveResponse('error', 'Adding staff manually is only available in education deployments.');
+    }
+
     $data = $this->input->post();
     if (empty($data)) {
       return $this->_employeeSaveResponse('error', 'No data received');

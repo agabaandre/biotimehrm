@@ -101,7 +101,7 @@
                    <i class="far fa-circle nav-icon"></i>
                    All iHRIS Staff</a></li>
                <?php } ?>
-               <?php if (($setting->deployment_type != "moh") && (in_array('45', $permissions))) { ?>
+               <?php if (is_education_deployment() && in_array('45', $permissions)) { ?>
                  <li class="nav-item">
                    <a href="<?php echo base_url() ?>employees/createEmployee" class="nav-link <?php echo ($this->uri->segment(1) == 'employees' && $this->uri->segment(2) == 'createEmployee') ? 'active' : ''; ?>">
                      <i class="far fa-circle nav-icon"></i>

@@ -49,18 +49,6 @@ class Svariables extends MX_Controller
 	 */
 	private function _handleAjaxRequest() {
 		$csrf_name = $this->security->get_csrf_token_name();
-		$csrf_hash = $this->security->get_csrf_hash();
-		$post_token = $this->input->post($csrf_name);
-		if (!$csrf_hash || $post_token === null || $post_token === '' || !hash_equals((string) $csrf_hash, (string) $post_token)) {
-			$this->output->set_content_type('application/json')->set_output(json_encode([
-				'status' => 'error',
-				'message' => 'Invalid security token. Please refresh the page and try again.',
-				'csrf_name' => $csrf_name,
-				'csrf_hash' => $this->security->get_csrf_hash()
-			]));
-			return;
-		}
-
 		$postdata = $this->input->post();
 		unset($postdata[$csrf_name]);
 		$result = $this->svariables_mdl->update_variables($postdata);

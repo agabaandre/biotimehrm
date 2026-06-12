@@ -17,7 +17,9 @@ class Svariables_mdl extends CI_Model {
 		if (empty($data['id'])) {
 			return false;
 		}
-		$this->db->where('id', $data['id']);
+		$id = (int) $data['id'];
+		unset($data['id']);
+		$this->db->where('id', $id);
 		$query = $this->db->update('setting', $data);
 		return $query ? true : false;
 	}
