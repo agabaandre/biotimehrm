@@ -221,45 +221,22 @@ class Dashboard extends MX_Controller {
 	 */
 	public function searchEmployees() {
 		$this->output->set_content_type('application/json');
+
+		if (!$this->session->userdata('isLoggedIn')) {
+			return $this->output->set_status_header(401)->set_output(json_encode(['results' => []]));
+		}
+
 		$term = trim((string) $this->input->get('term'));
 		$facility_param = trim((string) $this->input->get('facility_id'));
+		$facility = $this->_dashboardFacility($facility_param);
+		$district_id = $this->_dashboardDistrictId();
 
-		// Resolve facility: GET param (role-10), then session (same source as Dashboard_mdl::stats()).
-		$facility = $facility_param;
-		if ($facility === '') {
-			$facility = isset($_SESSION['facility']) ? (string) $_SESSION['facility'] : (string) $this->session->userdata('facility');
-		}
-		$district_id = isset($_SESSION['district_id']) ? (string) $_SESSION['district_id'] : (string) $this->session->userdata('district_id');
-
-		// Need at least facility or district to scope the list.
 		if ($facility === '' && $district_id === '') {
 			return $this->output->set_output(json_encode(['results' => []]));
 		}
 
-		$this->db->select('ihris_pid, surname, firstname, othername', false);
-		$this->db->from('ihrisdata');
-		if ($facility !== '') {
-			$this->db->where('facility_id', $facility);
-		} else {
-			$this->db->where('district_id', $district_id);
-		}
-		if ($term !== '') {
-			$this->db->group_start();
-			$this->db->like('surname', $term);
-			$this->db->or_like('firstname', $term);
-			$this->db->or_like('othername', $term);
-			$this->db->or_like('ihris_pid', $term);
-			$this->db->group_end();
-		}
-		$this->db->order_by('surname', 'ASC');
-		$this->db->limit(50);
-
-		$q = $this->db->get();
-		$results = [];
-		foreach ($q->result() as $r) {
-			$fullname = trim(implode(' ', array_filter([$r->surname, $r->firstname, $r->othername], 'strlen')));
-			$results[] = ['id' => $r->ihris_pid, 'text' => $fullname !== '' ? $fullname : (string) $r->ihris_pid];
-		}
+		$this->load->library('dashboard_staff_cache', null, 'dash_staff');
+		$results = $this->dash_staff->search($facility, $district_id, $term, 50);
 
 		return $this->output->set_output(json_encode(['results' => $results]));
 	}
@@ -269,30 +246,72 @@ class Dashboard extends MX_Controller {
 	 */
 	public function searchFacilities() {
 		$this->output->set_content_type('application/json');
+
+		if (!$this->session->userdata('isLoggedIn')) {
+			return $this->output->set_status_header(401)->set_output(json_encode(['results' => []]));
+		}
+
 		$term = trim((string) $this->input->get('term'));
-		$district_id = (string) $this->session->userdata('district_id');
-		if (!$district_id) {
+		$district_id = $this->_dashboardDistrictId();
+		if ($district_id === '') {
 			return $this->output->set_output(json_encode(['results' => []]));
 		}
 
-		$this->db->select('DISTINCT facility_id as id, facility as text', false);
-		$this->db->from('ihrisdata');
-		$this->db->where('district_id', $district_id);
-		if ($term !== '') {
-			$this->db->group_start();
-			$this->db->like('facility', $term);
-			$this->db->or_like('facility_id', $term);
-			$this->db->group_end();
-		}
-		$this->db->order_by('facility', 'ASC');
-		$this->db->limit(20);
-
-		$q = $this->db->get();
+		$this->load->library('facility_switch_cache', null, 'fsc');
+		$facilities = $this->fsc->get_facilities_for_district($district_id);
+		$needle = strtolower($term);
 		$results = [];
-		foreach ($q->result() as $r) {
-			$results[] = ['id' => $r->id, 'text' => $r->text];
+		foreach ($facilities as $f) {
+			$id = (string) $f->facility_id;
+			$text = (string) $f->facility;
+			if ($needle !== '' && strpos(strtolower($text . ' ' . $id), $needle) === false) {
+				continue;
+			}
+			$results[] = ['id' => $id, 'text' => $text];
+			if (count($results) >= 20) {
+				break;
+			}
 		}
+
 		return $this->output->set_output(json_encode(['results' => $results]));
+	}
+
+	/**
+	 * @param string $override GET facility_id from role-10 filter
+	 */
+	private function _dashboardFacility($override = '')
+	{
+		$override = trim((string) $override);
+		if ($override !== '') {
+			return $override;
+		}
+
+		foreach (['dashboard_facility', 'facility', 'facility_id'] as $key) {
+			$value = $this->session->userdata($key);
+			if ($value !== null && $value !== false && trim((string) $value) !== '') {
+				return trim((string) $value);
+			}
+		}
+
+		if (isset($_SESSION['facility']) && trim((string) $_SESSION['facility']) !== '') {
+			return trim((string) $_SESSION['facility']);
+		}
+
+		return '';
+	}
+
+	private function _dashboardDistrictId()
+	{
+		$value = $this->session->userdata('district_id');
+		if ($value !== null && $value !== false && trim((string) $value) !== '') {
+			return trim((string) $value);
+		}
+
+		if (isset($_SESSION['district_id']) && trim((string) $_SESSION['district_id']) !== '') {
+			return trim((string) $_SESSION['district_id']);
+		}
+
+		return '';
 	}
 
 	public function cache_stats(){

@@ -975,7 +975,12 @@ waitForHighcharts(function() {
 							dataType: 'json',
 							delay: 250,
 							data: function(params) { return { term: params.term || '' }; },
-							processResults: function(data) { return data; },
+							processResults: function(data) {
+								if (!data || !Array.isArray(data.results)) {
+									return { results: [] };
+								}
+								return data;
+							},
 							cache: true
 						}
 					});
@@ -1007,7 +1012,12 @@ waitForHighcharts(function() {
 								facility_id: $('#dash_facility').length ? ($('#dash_facility').val() || '') : ''
 							};
 						},
-						processResults: function(data) { return data; },
+						processResults: function(data) {
+							if (!data || !Array.isArray(data.results)) {
+								return { results: [] };
+							}
+							return data;
+						},
 						cache: true
 					}
 				});
