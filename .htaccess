@@ -21,9 +21,9 @@ Options All -Indexes
 	# http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
 	# RewriteBase /
     #RewriteBase /attend/
-	# Redirect Trailing Slashes...
+	# Redirect Trailing Slashes (relative target keeps /healthattend/ or /educationattend/ prefix)
 	RewriteCond %{REQUEST_FILENAME} !-d
-	RewriteRule ^(.*)/$ /$1 [L,R=301]
+	RewriteRule ^(.+)/$ $1 [L,R=301]
 
 	# Rewrite "www.example.com -> example.com"
 	RewriteCond %{HTTPS} !=on
