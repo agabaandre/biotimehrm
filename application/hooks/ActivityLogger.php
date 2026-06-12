@@ -167,11 +167,14 @@ class ActivityLogger {
                 'assets',
                 'uploads',
                 'auth/checkSession',
+                'auth/extendSession',
+                'auth/refreshCsrf',
+                'dashboard/dashboardData',
+                'dashboard/dashboardLivePulse',
                 'admin/getLogs', // Avoid logging the logs page itself
                 'lists/getFacilities', // Skip AJAX calls
                 'employees', // Skip AJAX calls
                 'employees/district_employees', // Skip AJAX calls
-                'auth/refreshCsrf' // Skip CSRF refresh calls
             );
             
             foreach ($skip_routes as $skip_route) {

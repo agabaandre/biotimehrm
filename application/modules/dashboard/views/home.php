@@ -1247,11 +1247,21 @@ waitForHighcharts(function() {
         type: 'GET',
         url: '<?php echo base_url('dashboard/dashboardLivePulse'); ?>',
         dataType: 'json',
-        timeout: 20000
+        timeout: 20000,
+        cache: false,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
       }).done(function(data) {
         if (!data || data.live === false) {
           if (data && data.reason === 'historical') {
             setLiveIndicator('stale', 'Live updates paused (historical month selected)', '');
+            $('#live-feed').html('<li class="live-feed-empty">Switch to the current month for live check-ins.</li>');
+          } else if (data && data.error === 'no_facility') {
+            setLiveIndicator('offline', 'No facility in session — switch facility or log in again', '');
+            $('#live-feed').html('<li class="live-feed-empty">Facility required for live check-ins.</li>');
+          } else if (data && data.error === 'unauthorized') {
+            setLiveIndicator('offline', 'Session expired — refresh the page', '');
+          } else {
+            setLiveIndicator('stale', 'Live feed paused', '');
           }
           return;
         }
@@ -1279,8 +1289,29 @@ waitForHighcharts(function() {
           cacheHint = 'Updated ' + ago;
         }
         setLiveIndicator('live', data.clock_ins_today + ' checked in today · updated ' + ago, cacheHint);
-      }).fail(function() {
-        setLiveIndicator('offline', 'Live feed unavailable', '');
+      }).fail(function(xhr, status) {
+        var parsed = null;
+        try {
+          if (xhr && xhr.responseText) {
+            parsed = JSON.parse(xhr.responseText);
+          }
+        } catch (e) { /* not JSON */ }
+        if (parsed && parsed.live === false) {
+          if (parsed.reason === 'historical') {
+            setLiveIndicator('stale', 'Live updates paused (historical month selected)', '');
+          } else if (parsed.error === 'no_facility') {
+            setLiveIndicator('offline', 'No facility in session — switch facility or log in again', '');
+          } else if (parsed.message) {
+            setLiveIndicator('offline', parsed.message, '');
+          }
+          return;
+        }
+        var hint = status === 'timeout' ? 'Request timed out' : 'Live feed unavailable';
+        if (xhr && xhr.status === 401) {
+          hint = 'Session expired — refresh the page';
+        }
+        setLiveIndicator('offline', hint, '');
+        console.error('dashboardLivePulse failed', status, xhr && xhr.status, xhr && xhr.responseText);
       });
     }
 

@@ -25,6 +25,11 @@ class Dashboard extends MX_Controller {
 	public function dashboardData()
 	{
 		$this->output->set_content_type('application/json');
+
+		if (!$this->session->userdata('isLoggedIn')) {
+			return $this->output->set_status_header(401)->set_output(json_encode(['error' => 'unauthorized']));
+		}
+
 		$this->load->library('dashboard_cache_store', null, 'dash_cache');
 		$this->config->load('dashboard_cache', true, true);
 		$cfg = $this->config->item('dashboard_cache');
@@ -58,44 +63,68 @@ class Dashboard extends MX_Controller {
 	public function dashboardLivePulse()
 	{
 		$this->output->set_content_type('application/json');
-		$this->load->library('dashboard_cache_store', null, 'dash_cache');
-		$this->config->load('dashboard_cache', true, true);
-		$cfg = $this->config->item('dashboard_cache');
-		$live_ttl = is_array($cfg) && isset($cfg['live_ttl']) ? (int) $cfg['live_ttl'] : 10;
 
-		$facility = (string) $this->session->userdata('facility');
-		if ($facility === '') {
-			return $this->output->set_output(json_encode(['live' => false, 'error' => 'no_facility']));
-		}
-
-		$year = (string) ($this->session->userdata('year') ?: date('Y'));
-		$month = (string) ($this->session->userdata('month') ?: date('m'));
-		$empid = (string) ($this->session->userdata('dashboard_empid') ?: '');
-		$current_month = date('Y-m');
-		$selected_month = substr($year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT), 0, 7);
-
-		if ($selected_month !== $current_month) {
-			return $this->output->set_output(json_encode([
+		if (!$this->session->userdata('isLoggedIn')) {
+			return $this->output->set_status_header(401)->set_output(json_encode([
 				'live' => false,
-				'reason' => 'historical',
-				'generated_at' => date('c'),
+				'error' => 'unauthorized',
 			]));
 		}
 
-		$ver = $this->dash_cache->facilityVersion($facility);
-		$cache_key = 'live_' . md5(implode('|', [$facility, $empid, $ver, date('Y-m-d')]));
-		$cached = $this->dash_cache->read($cache_key);
-		if (is_array($cached)) {
-			$cached['cached'] = true;
-			return $this->output->set_output(json_encode($cached));
+		try {
+			$this->load->library('dashboard_cache_store', null, 'dash_cache');
+			$this->config->load('dashboard_cache', true, true);
+			$cfg = $this->config->item('dashboard_cache');
+			$live_ttl = is_array($cfg) && isset($cfg['live_ttl']) ? (int) $cfg['live_ttl'] : 10;
+
+			$facility = trim((string) $this->session->userdata('facility'));
+			if ($facility === '') {
+				return $this->output->set_output(json_encode([
+					'live' => false,
+					'error' => 'no_facility',
+					'message' => 'No facility selected in your session.',
+				]));
+			}
+
+			$year = (string) ($this->session->userdata('year') ?: date('Y'));
+			$month = (string) ($this->session->userdata('month') ?: date('m'));
+			$empid = (string) ($this->session->userdata('dashboard_empid') ?: '');
+			$current_month = date('Y-m');
+			$selected_month = substr($year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT), 0, 7);
+
+			if ($selected_month !== $current_month) {
+				return $this->output->set_output(json_encode([
+					'live' => false,
+					'reason' => 'historical',
+					'generated_at' => date('c'),
+				]));
+			}
+
+			$ver = $this->dash_cache->facilityVersion($facility);
+			$cache_key = 'live_' . md5(implode('|', [$facility, $empid, $ver, date('Y-m-d')]));
+			$cached = $this->dash_cache->read($cache_key);
+			if (is_array($cached)) {
+				$cached['cached'] = true;
+				return $this->output->set_output(json_encode($cached, JSON_UNESCAPED_UNICODE));
+			}
+
+			$data = $this->dash_mdl->livePulse();
+			if (!is_array($data)) {
+				$data = ['live' => false, 'error' => 'pulse_failed'];
+			}
+			$data['cached'] = false;
+			$data['cache_layer'] = $this->dash_cache->availability();
+			$this->dash_cache->write($cache_key, $data, $live_ttl);
+
+			return $this->output->set_output(json_encode($data, JSON_UNESCAPED_UNICODE));
+		} catch (Throwable $e) {
+			log_message('error', 'dashboardLivePulse: ' . $e->getMessage());
+			return $this->output->set_status_header(500)->set_output(json_encode([
+				'live' => false,
+				'error' => 'server_error',
+				'message' => 'Could not load live attendance feed.',
+			]));
 		}
-
-		$data = $this->dash_mdl->livePulse();
-		$data['cached'] = false;
-		$data['cache_layer'] = $this->dash_cache->availability();
-		$this->dash_cache->write($cache_key, $data, $live_ttl);
-
-		return $this->output->set_output(json_encode($data));
 	}
 
 	/**

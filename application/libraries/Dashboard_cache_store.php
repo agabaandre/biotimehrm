@@ -114,9 +114,25 @@ class Dashboard_cache_store {
 	 */
 	public function availability()
 	{
+		if ($this->supported['redis'] === false) {
+			$redis = false;
+		} elseif ($this->supported['redis'] === true) {
+			$redis = true;
+		} else {
+			$redis = extension_loaded('redis');
+		}
+
+		if ($this->supported['memcached'] === false) {
+			$memcached = false;
+		} elseif ($this->supported['memcached'] === true) {
+			$memcached = true;
+		} else {
+			$memcached = extension_loaded('memcached') || extension_loaded('memcache');
+		}
+
 		return [
-			'redis'     => $this->_redis_cache() !== null,
-			'memcached' => $this->_memcached_cache() !== null,
+			'redis'     => $redis,
+			'memcached' => $memcached,
 		];
 	}
 

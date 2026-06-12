@@ -11,11 +11,21 @@ class Dashboard_mdl extends CI_Model
     {
 
         parent::__Construct();
-        @$this->department = $this->session->userdata['department_id'];
+        $this->department = $this->session->userdata('department_id');
     }
+
+    /**
+     * @return string
+     */
+    protected function sessionFacility()
+    {
+        $facility = $this->session->userdata('facility');
+        return ($facility !== null && $facility !== false) ? trim((string) $facility) : '';
+    }
+
     public function getData()
     {
-        $facility = $_SESSION['facility'];
+        $facility = $this->sessionFacility();
         //count health workers
         $userdata = $this->session->userdata();
         $date = $userdata['year'] . '-' . $userdata['month'];
@@ -162,7 +172,24 @@ class Dashboard_mdl extends CI_Model
 
     public function stats()
     {
-        $facility = $_SESSION['facility'];
+        $facility = $this->sessionFacility();
+        if ($facility === '') {
+            return [
+                'workers' => 0,
+                'facilities' => 0,
+                'departments' => 0,
+                'jobs' => 0,
+                'mystaff' => 0,
+                'biometrics' => 0,
+                'cadres' => 0,
+                'present' => 0,
+                'offduty' => 0,
+                'leave' => 0,
+                'request' => 0,
+                'absent' => 0,
+                'error' => 'no_facility',
+            ];
+        }
         $userdata = $this->session->userdata();
         $year = isset($userdata['year']) && $userdata['year'] ? (int) $userdata['year'] : (int) date('Y');
         $month = isset($userdata['month']) && $userdata['month'] ? (int) $userdata['month'] : (int) date('m');
@@ -434,7 +461,7 @@ class Dashboard_mdl extends CI_Model
      */
     public function livePulse()
     {
-        $facility = isset($_SESSION['facility']) ? (string) $_SESSION['facility'] : '';
+        $facility = $this->sessionFacility();
         if ($facility === '') {
             return ['live' => false, 'error' => 'no_facility'];
         }

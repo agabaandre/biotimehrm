@@ -21,6 +21,10 @@ class SessionKeepAlive {
         if (!$this->CI->session->userdata('isLoggedIn')) {
             return;
         }
+
+        if ($this->_isBackgroundJsonRequest()) {
+            return;
+        }
         
         // Get current session data
         $session_id = $this->CI->session->session_id;
@@ -58,6 +62,31 @@ class SessionKeepAlive {
     /**
      * Extend session cookie lifetime
      */
+    /**
+     * Skip cookie refresh for dashboard/API JSON endpoints (avoids header warnings on XHR).
+     */
+    private function _isBackgroundJsonRequest() {
+        if ($this->CI->input->is_ajax_request()) {
+            return true;
+        }
+
+        $uri = (string) $this->CI->uri->uri_string();
+        $skip = [
+            'dashboard/dashboardData',
+            'dashboard/dashboardLivePulse',
+            'auth/checkSession',
+            'auth/extendSession',
+            'auth/refreshCsrf',
+        ];
+        foreach ($skip as $route) {
+            if ($uri === $route || strpos($uri, $route) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function _extendSessionCookie() {
         $cookie_name = $this->CI->config->item('sess_cookie_name');
         $cookie_expire = time() + $this->CI->config->item('sess_expiration');
