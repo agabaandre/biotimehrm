@@ -97,6 +97,20 @@ if (!function_exists('entity_label')) {
     }
 }
 
+if (!function_exists('invalidate_dropdown_cache')) {
+    /**
+     * Clear district/facility dropdown cache (Redis, Memcached, file) and rebuild from DB.
+     *
+     * @return array
+     */
+    function invalidate_dropdown_cache()
+    {
+        $CI =& get_instance();
+        $CI->load->library('facility_switch_cache', null, 'fsc');
+        return $CI->fsc->invalidate();
+    }
+}
+
 if (!function_exists('group_by_label')) {
     function group_by_label($key)
     {

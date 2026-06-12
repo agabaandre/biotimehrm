@@ -147,6 +147,9 @@ class Lists extends MX_Controller
 		$data = $this->input->post();
 		$result = $this->districts_mdl->save_district($data);
 		$ok = stripos($result, 'success') !== false || stripos($result, 'added') !== false;
+		if ($ok && function_exists('invalidate_dropdown_cache')) {
+			invalidate_dropdown_cache();
+		}
 		$this->session->set_flashdata($ok ? 'success' : 'error', $result);
 		redirect('lists/getDistricts');
 	}
@@ -156,6 +159,9 @@ class Lists extends MX_Controller
 		$data = $this->input->post();
 		$message = $this->districts_mdl->updateDistrict($data);
 		$ok = stripos($message, 'updated') !== false;
+		if ($ok && function_exists('invalidate_dropdown_cache')) {
+			invalidate_dropdown_cache();
+		}
 		$this->session->set_flashdata($ok ? 'success' : 'error', $message);
 		redirect('lists/getDistricts');
 	}
@@ -257,8 +263,8 @@ class Lists extends MX_Controller
 
 	public function getFacility($id)
 	{
-		$facility = $this->facilities_mdl->getFacilitiesByDistrict($id);
-		return $facility;
+		$this->load->library('facility_switch_cache', null, 'fsc');
+		return $this->fsc->get_facilities_for_district($id);
 	}
 
 	public function saveFacility()
@@ -271,6 +277,9 @@ class Lists extends MX_Controller
 		// CSRF is validated globally by CodeIgniter (token is removed from POST after verify).
 		$result = $this->facilities_mdl->saveFacility($data);
 		$ok = stripos($result, 'success') !== false || stripos($result, 'added') !== false;
+		if ($ok && function_exists('invalidate_dropdown_cache')) {
+			invalidate_dropdown_cache();
+		}
 
 		return $this->_facilitySaveResponse($ok ? 'success' : 'error', $result);
 	}
@@ -329,6 +338,9 @@ class Lists extends MX_Controller
 
 		$result = $this->facilities_mdl->updateFacility($data);
 		$ok = stripos($result, 'successfully') !== false;
+		if ($ok && function_exists('invalidate_dropdown_cache')) {
+			invalidate_dropdown_cache();
+		}
 
 		return $this->_facilitySaveResponse($ok ? 'success' : 'error', $result);
 	}
@@ -413,6 +425,9 @@ class Lists extends MX_Controller
 		}
 
 		$result = $this->facilities_mdl->importFacilitiesFromRows($parsed_file['rows']);
+		if ($result['imported'] > 0 && function_exists('invalidate_dropdown_cache')) {
+			invalidate_dropdown_cache();
+		}
 		$message = 'Imported ' . (int) $result['imported'] . ' ' . strtolower(entity_label('facility', true));
 		if ($result['skipped'] > 0) {
 			$message .= ', skipped ' . (int) $result['skipped'];

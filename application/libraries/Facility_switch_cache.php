@@ -2,7 +2,7 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * File cache of districts and facilities from ihrisdata for Switch Facility UI.
+ * District / facility dropdown cache: Redis → Memcached → file → database fallback.
  */
 class Facility_switch_cache {
 
@@ -18,18 +18,31 @@ class Facility_switch_cache {
 	/** @var string */
 	protected $timezone;
 
+	/** @var string */
+	protected $cache_key;
+
+	/** @var Dropdown_cache_store */
+	protected $store;
+
 	public function __construct()
 	{
 		$this->ci =& get_instance();
 		$this->ci->config->load('facility_switch_cache', true, true);
 		$cfg = $this->ci->config->item('facility_switch_cache');
-		$default_cache = APPPATH . 'cache/facility_switch_ihris.json';
 		if (function_exists('is_education_deployment') && is_education_deployment()) {
-			$default_cache = APPPATH . 'cache/facility_switch_education.json';
+			$this->cache_file = APPPATH . 'cache/facility_switch_education.json';
+			$this->cache_key = 'facility_switch_education';
+		} else {
+			$this->cache_file = isset($cfg['cache_file'])
+				? $cfg['cache_file']
+				: APPPATH . 'cache/facility_switch_ihris.json';
+			$this->cache_key = 'facility_switch_ihris';
 		}
-		$this->cache_file = isset($cfg['cache_file']) ? $cfg['cache_file'] : $default_cache;
 		$this->max_age_seconds = isset($cfg['max_age_seconds']) ? (int) $cfg['max_age_seconds'] : 604800;
 		$this->timezone = isset($cfg['timezone']) ? $cfg['timezone'] : 'Africa/Kampala';
+		$key_prefix = isset($cfg['cache_key_prefix']) ? $cfg['cache_key_prefix'] : 'attend_df_';
+		$this->ci->load->library('dropdown_cache_store', ['key_prefix' => $key_prefix], 'dropdown_cache');
+		$this->store = $this->ci->dropdown_cache;
 	}
 
 	/**
@@ -39,10 +52,36 @@ class Facility_switch_cache {
 	 */
 	public function rebuild()
 	{
-		if (function_exists('is_education_deployment') && is_education_deployment()) {
-			return $this->_rebuild_from_employee_tables();
+		$payload = $this->_build_payload_from_db();
+		$this->_persist_payload($payload);
+
+		$facility_count = 0;
+		foreach ($payload['facilities_by_district'] as $rows) {
+			$facility_count += count($rows);
 		}
 
+		return [
+			'status'        => 'success',
+			'districts'     => count($payload['districts']),
+			'facilities'    => $facility_count,
+			'generated_at'  => $payload['generated_at_iso'],
+			'cache_file'    => $this->cache_file,
+			'cache_key'     => $this->cache_key,
+			'availability'  => $this->store->availability(),
+		];
+	}
+
+	protected function _build_payload_from_db()
+	{
+		if (function_exists('is_education_deployment') && is_education_deployment()) {
+			return $this->_build_education_payload();
+		}
+
+		return $this->_build_moh_payload();
+	}
+
+	protected function _build_moh_payload()
+	{
 		$tz = new DateTimeZone($this->timezone);
 		$now = new DateTime('now', $tz);
 
@@ -110,29 +149,89 @@ class Facility_switch_cache {
 		}
 
 		$merged = $this->_merge_district_groups($districts, $raw_facilities_by_district, $district_names);
-		$facilities_by_district = $merged['facilities_by_district'];
-		$district_id_aliases = $merged['district_id_aliases'];
-		$facility_count = $merged['facility_count'];
-		// Keep every district_id from ihrisdata in the dropdown (e.g. KAMPALA and KAMPALA City).
 
-		$payload = [
+		return [
+			'generated_at'           => $now->getTimestamp(),
+			'generated_at_iso'       => $now->format('Y-m-d H:i:s'),
+			'timezone'               => $this->timezone,
+			'districts'              => $merged['districts'],
+			'facilities_by_district' => $merged['facilities_by_district'],
+			'district_id_aliases'    => $merged['district_id_aliases'],
+		];
+	}
+
+	protected function _build_education_payload()
+	{
+		$tz = new DateTimeZone($this->timezone);
+		$now = new DateTime('now', $tz);
+
+		$district_rows = $this->ci->db->query(
+			"SELECT CAST(id AS CHAR) AS district_id, TRIM(name) AS district
+			 FROM employee_districts
+			 WHERE TRIM(name) != ''
+			 ORDER BY TRIM(name) ASC"
+		)->result();
+
+		$districts = [];
+		foreach ($district_rows as $row) {
+			$districts[] = [
+				'district_id' => trim((string) $row->district_id),
+				'district'    => trim((string) $row->district),
+			];
+		}
+
+		$facilities_by_district = [];
+		$facility_rows = $this->ci->db->query(
+			"SELECT CAST(district_id AS CHAR) AS district_id,
+			        TRIM(facility_id) AS facility_id,
+			        TRIM(facility) AS facility
+			 FROM employee_facility
+			 WHERE district_id IS NOT NULL
+			   AND TRIM(facility_id) != ''
+			   AND TRIM(facility) != ''
+			 ORDER BY district_id ASC, TRIM(facility) ASC"
+		)->result();
+
+		foreach ($facility_rows as $row) {
+			$district_id = trim((string) $row->district_id);
+			if ($district_id === '') {
+				continue;
+			}
+			if (!isset($facilities_by_district[$district_id])) {
+				$facilities_by_district[$district_id] = [];
+			}
+			$facilities_by_district[$district_id][] = [
+				'facility_id' => trim((string) $row->facility_id),
+				'facility'    => trim((string) $row->facility),
+			];
+		}
+
+		return [
 			'generated_at'           => $now->getTimestamp(),
 			'generated_at_iso'       => $now->format('Y-m-d H:i:s'),
 			'timezone'               => $this->timezone,
 			'districts'              => $districts,
 			'facilities_by_district' => $facilities_by_district,
-			'district_id_aliases'    => $district_id_aliases,
+			'district_id_aliases'    => [],
 		];
+	}
 
-		$this->_write_cache_file($payload);
+	protected function _persist_payload(array $payload)
+	{
+		return $this->store->write(
+			$this->cache_key,
+			$payload,
+			$this->max_age_seconds,
+			$this->cache_file
+		);
+	}
 
-		return [
-			'status'        => 'success',
-			'districts'     => count($districts),
-			'facilities'    => $facility_count,
-			'generated_at'  => $payload['generated_at_iso'],
-			'cache_file'    => $this->cache_file,
-		];
+	protected function _is_valid_payload($data)
+	{
+		return is_array($data)
+			&& isset($data['districts'], $data['facilities_by_district'])
+			&& is_array($data['districts'])
+			&& is_array($data['facilities_by_district']);
 	}
 
 	/**
@@ -215,6 +314,10 @@ class Facility_switch_cache {
 			? $data['facilities_by_district'][$district_id]
 			: [];
 
+		if (empty($list)) {
+			$list = $this->_fetch_facilities_for_district_from_db($district_id, $data);
+		}
+
 		$out = [];
 		foreach ($list as $row) {
 			if ($only_facility_id !== null && $only_facility_id !== '' && $row['facility_id'] !== $only_facility_id) {
@@ -235,35 +338,33 @@ class Facility_switch_cache {
 	 */
 	public function get_data($auto_rebuild_if_missing = true, $auto_rebuild_if_stale = true)
 	{
-		if (!is_readable($this->cache_file)) {
+		$data = $this->store->read($this->cache_key, $this->cache_file);
+
+		if (!$this->_is_valid_payload($data)) {
 			if ($auto_rebuild_if_missing) {
 				$this->rebuild();
-			} else {
-				return $this->_empty_payload();
+				$data = $this->store->read($this->cache_key, $this->cache_file);
+			}
+			if (!$this->_is_valid_payload($data)) {
+				$data = $this->_build_payload_from_db();
 			}
 		}
 
-		$raw = @file_get_contents($this->cache_file);
-		$data = $raw ? json_decode($raw, true) : null;
-		if (!is_array($data) || !isset($data['districts'], $data['facilities_by_district'])) {
-			if ($auto_rebuild_if_missing) {
-				$this->rebuild();
-				$raw = @file_get_contents($this->cache_file);
-				$data = $raw ? json_decode($raw, true) : null;
-			}
-		}
-
-		if (!is_array($data) || !isset($data['districts'], $data['facilities_by_district'])) {
+		if (!$this->_is_valid_payload($data)) {
 			return $this->_empty_payload();
 		}
 
 		if ($auto_rebuild_if_stale && $this->is_stale($data)) {
 			$this->rebuild();
-			$raw = @file_get_contents($this->cache_file);
-			$data = $raw ? json_decode($raw, true) : $data;
+			$fresh = $this->store->read($this->cache_key, $this->cache_file);
+			if ($this->_is_valid_payload($fresh)) {
+				$data = $fresh;
+			} else {
+				$data = $this->_build_payload_from_db();
+			}
 		}
 
-		return $data;
+		return $this->_is_valid_payload($data) ? $data : $this->_empty_payload();
 	}
 
 	/**
@@ -272,11 +373,7 @@ class Facility_switch_cache {
 	public function is_stale($data = null)
 	{
 		if ($data === null) {
-			if (!is_readable($this->cache_file)) {
-				return true;
-			}
-			$raw = @file_get_contents($this->cache_file);
-			$data = $raw ? json_decode($raw, true) : null;
+			$data = $this->store->read($this->cache_key, $this->cache_file);
 		}
 		if (!is_array($data) || empty($data['generated_at'])) {
 			return true;
@@ -289,111 +386,87 @@ class Facility_switch_cache {
 	 */
 	public function status()
 	{
-		if (!is_readable($this->cache_file)) {
+		$data = $this->store->read($this->cache_key, $this->cache_file);
+		if (!$this->_is_valid_payload($data)) {
 			return [
-				'status'     => 'missing',
-				'is_stale'   => true,
-				'cache_file' => $this->cache_file,
+				'status'       => 'missing',
+				'is_stale'     => true,
+				'cache_file'   => $this->cache_file,
+				'cache_key'    => $this->cache_key,
+				'read_source'  => null,
+				'availability' => $this->store->availability(),
 			];
 		}
-		$raw = @file_get_contents($this->cache_file);
-		$data = $raw ? json_decode($raw, true) : null;
+
 		return [
 			'status'       => 'ok',
 			'generated_at' => isset($data['generated_at_iso']) ? $data['generated_at_iso'] : null,
 			'is_stale'     => $this->is_stale($data),
 			'cache_file'   => $this->cache_file,
+			'cache_key'    => $this->cache_key,
+			'read_source'  => $this->store->read_source($this->cache_key, $this->cache_file),
+			'availability' => $this->store->availability(),
 		];
 	}
 
 	/**
-	 * Build switch-facility cache from education employee_districts / employee_facility tables.
+	 * Invalidate all cache tiers and rebuild from the database.
 	 *
-	 * @return array{status:string,districts:int,facilities:int,generated_at:string,cache_file:string}
+	 * @return array
 	 */
-	protected function _rebuild_from_employee_tables()
+	public function invalidate()
 	{
-		$tz = new DateTimeZone($this->timezone);
-		$now = new DateTime('now', $tz);
+		$this->store->delete($this->cache_key, $this->cache_file);
+		return $this->rebuild();
+	}
 
-		$district_rows = $this->ci->db->query(
-			"SELECT CAST(id AS CHAR) AS district_id, TRIM(name) AS district
-			 FROM employee_districts
-			 WHERE TRIM(name) != ''
-			 ORDER BY TRIM(name) ASC"
-		)->result();
-
-		$districts = [];
-		foreach ($district_rows as $row) {
-			$districts[] = [
-				'district_id' => trim((string) $row->district_id),
-				'district'    => trim((string) $row->district),
-			];
+	/**
+	 * DB fallback for a single district's facility dropdown (when cache slice is empty).
+	 *
+	 * @param string $district_id
+	 * @param array|null $data
+	 * @return array<int, array{facility_id:string,facility:string}>
+	 */
+	protected function _fetch_facilities_for_district_from_db($district_id, $data = null)
+	{
+		$district_id = $this->resolve_district_id($district_id, $data);
+		if ($district_id === '') {
+			return [];
 		}
 
-		$facilities_by_district = [];
-		$facility_count = 0;
-		$facility_rows = $this->ci->db->query(
-			"SELECT CAST(district_id AS CHAR) AS district_id,
-			        TRIM(facility_id) AS facility_id,
-			        TRIM(facility) AS facility
-			 FROM employee_facility
-			 WHERE district_id IS NOT NULL
-			   AND TRIM(facility_id) != ''
-			   AND TRIM(facility) != ''
-			 ORDER BY district_id ASC, TRIM(facility) ASC"
-		)->result();
+		if (function_exists('is_education_deployment') && is_education_deployment()) {
+			$rows = $this->ci->db->query(
+				"SELECT TRIM(facility_id) AS facility_id, TRIM(facility) AS facility
+				 FROM employee_facility
+				 WHERE CAST(district_id AS CHAR) = ?
+				   AND TRIM(facility_id) != ''
+				   AND TRIM(facility) != ''
+				 ORDER BY TRIM(facility) ASC",
+				[$district_id]
+			)->result();
+		} else {
+			$this->ci->load->helper('mysql8_ihris');
+			$rows = $this->ci->db->query(
+				"SELECT TRIM(facility_id) AS facility_id, TRIM(facility) AS facility
+				 FROM ihrisdata
+				 WHERE TRIM(district_id) = ?
+				   AND " . mysql8_nonempty_sql('facility_id') . "
+				   AND " . mysql8_nonempty_sql('facility') . "
+				 GROUP BY TRIM(facility_id), TRIM(facility)
+				 ORDER BY TRIM(facility) ASC",
+				[$district_id]
+			)->result();
+		}
 
-		foreach ($facility_rows as $row) {
-			$district_id = trim((string) $row->district_id);
-			if ($district_id === '') {
-				continue;
-			}
-			if (!isset($facilities_by_district[$district_id])) {
-				$facilities_by_district[$district_id] = [];
-			}
-			$facilities_by_district[$district_id][] = [
+		$list = [];
+		foreach ($rows as $row) {
+			$list[] = [
 				'facility_id' => trim((string) $row->facility_id),
 				'facility'    => trim((string) $row->facility),
 			];
-			$facility_count++;
 		}
 
-		$payload = [
-			'generated_at'           => $now->getTimestamp(),
-			'generated_at_iso'       => $now->format('Y-m-d H:i:s'),
-			'timezone'               => $this->timezone,
-			'districts'              => $districts,
-			'facilities_by_district' => $facilities_by_district,
-			'district_id_aliases'    => [],
-		];
-
-		$this->_write_cache_file($payload);
-
-		return [
-			'status'       => 'success',
-			'districts'    => count($districts),
-			'facilities'   => $facility_count,
-			'generated_at' => $payload['generated_at_iso'],
-			'cache_file'   => $this->cache_file,
-		];
-	}
-
-	protected function _write_cache_file(array $payload)
-	{
-		$dir = dirname($this->cache_file);
-		if (!is_dir($dir)) {
-			@mkdir($dir, 0755, true);
-		}
-		$json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-		$tmp = $this->cache_file . '.tmp';
-		if (@file_put_contents($tmp, $json, LOCK_EX) === false) {
-			throw new RuntimeException('Could not write facility switch cache to ' . $tmp);
-		}
-		if (!@rename($tmp, $this->cache_file)) {
-			@unlink($tmp);
-			throw new RuntimeException('Could not publish facility switch cache at ' . $this->cache_file);
-		}
+		return $list;
 	}
 
 	protected function _empty_payload()

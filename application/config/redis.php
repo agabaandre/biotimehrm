@@ -1,4 +1,21 @@
 <?php
-$config['redis_slave']['host'] = '::1';		// IP address or host
-$config['redis_slave']['port'] = '6379';			// Default Redis port is 6379
-$config['redis_slave']['password'] = '';
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/*
+| CodeIgniter Redis cache driver (used by Dropdown_cache_store and CI cache library).
+| Override host/port/password per environment when Redis is available.
+*/
+$config['redis'] = [
+	'socket_type' => 'tcp',
+	'host'        => '127.0.0.1',
+	'port'        => 6379,
+	'password'    => null,
+	'timeout'     => 1,
+];
+
+// Legacy alias (unused elsewhere; kept for reference deployments).
+$config['redis_slave'] = [
+	'host'     => '127.0.0.1',
+	'port'     => '6379',
+	'password' => '',
+];

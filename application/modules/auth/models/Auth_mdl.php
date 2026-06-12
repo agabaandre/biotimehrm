@@ -246,8 +246,7 @@ class Auth_mdl extends CI_Model
 		$facility = $facd[1];
 
 		//get district
-		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
-		$distn = $distname->row()->district;
+		$distn = $this->lookupDistrictName($distid);
 		//get facility
 		// $facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
 		// $facn = $facname->row()->facility;
@@ -290,8 +289,7 @@ class Auth_mdl extends CI_Model
 
 			$fac_id = explode('_',$facilities[$i]);
 			$facid = $fac_id[0];
-			$facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
-			$facn = $facname->row()->facility;
+			$facn = $this->lookupFacilityName($facid, isset($fac_id[1]) ? $fac_id[1] : '');
 			$insert = array(
 				"user_id" => $userid,
 				"facility_id" => "$facid",
@@ -376,8 +374,7 @@ class Auth_mdl extends CI_Model
 
 			$fac_id = explode('_', $facilities[$i]);
 			$facid = $fac_id[0];
-			$facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$facid'");
-			$facn = $facname->row()->facility;
+			$facn = $this->lookupFacilityName($facid, isset($fac_id[1]) ? $fac_id[1] : '');
 			$insert = array(
 				"user_id" => $userid,
 				"facility_id" => "$facid",
@@ -400,14 +397,12 @@ class Auth_mdl extends CI_Model
 		$facdata = $postdata['facility_id'][0];
 		$depid = $postdata['user_id'];
 		//get district
-		$distname = $this->db->query("SELECT distinct district from ihrisdata where district_id='$distid'");
-		$distn = $distname->row()->district;
+		$distn = $this->lookupDistrictName($distid);
 		//get facility
 		$facd = explode("_", $facdata);
 		$fac_id = $facd[0];
-		$facility = $facd[1];
-		$facname = $this->db->query("SELECT distinct facility from ihrisdata where facility_id='$fac_id'");
-		$facn = $facname->row()->facility;
+		$facility = isset($facd[1]) ? $facd[1] : '';
+		$facn = $this->lookupFacilityName($fac_id, $facility);
 		$savedata = array(
 			"name" => $postdata['name'],
 			"district" => $distn,
@@ -527,29 +522,32 @@ class Auth_mdl extends CI_Model
 	}
 	public function getDistricts()
 	{
-		if (function_exists('is_education_deployment') && is_education_deployment()) {
-			$this->db->select('id AS district_id, name AS district');
-			$this->db->order_by('name', 'ASC');
-			return $this->db->get('employee_districts')->result();
-		}
-
-		$this->db->select('district,district_id');
-		$this->db->distinct('district');
-		$qry = $this->db->get('ihrisdata');
-		return $qry->result();
+		$this->load->library('facility_switch_cache', null, 'fsc');
+		return $this->fsc->get_districts();
 	}
 	public function getFacilities()
 	{
-		if (function_exists('is_education_deployment') && is_education_deployment()) {
-			$this->db->select('facility_id, facility');
-			$this->db->order_by('facility', 'ASC');
-			return $this->db->get('employee_facility')->result();
+		$this->load->library('facility_switch_cache', null, 'fsc');
+		$data = $this->fsc->get_data();
+		$out = [];
+		$seen = [];
+		foreach ($data['facilities_by_district'] as $rows) {
+			foreach ($rows as $row) {
+				$fid = isset($row['facility_id']) ? (string) $row['facility_id'] : '';
+				if ($fid === '' || isset($seen[$fid])) {
+					continue;
+				}
+				$seen[$fid] = true;
+				$o = new stdClass();
+				$o->facility_id = $fid;
+				$o->facility = isset($row['facility']) ? (string) $row['facility'] : '';
+				$out[] = $o;
+			}
 		}
-
-		$this->db->select('facility_id,facility');
-		$this->db->distinct('facility_id');
-		$qry = $this->db->get('ihrisdata');
-		return $qry->result();
+		usort($out, function ($a, $b) {
+			return strcasecmp($a->facility, $b->facility);
+		});
+		return $out;
 	}
 	public function getPermissions()
 	{
@@ -597,5 +595,37 @@ class Auth_mdl extends CI_Model
 			return $save;
 		}
 		return false;
+	}
+
+	protected function lookupDistrictName($distid)
+	{
+		$distid = trim((string) $distid);
+		if ($distid === '') {
+			return '';
+		}
+		if (function_exists('is_education_deployment') && is_education_deployment()) {
+			$drow = $this->db->select('name')->from('employee_districts')->where('id', $distid)->limit(1)->get()->row();
+			return $drow ? trim((string) $drow->name) : '';
+		}
+		$q = $this->db->query(
+			'SELECT DISTINCT district FROM ihrisdata WHERE district_id = ' . $this->db->escape($distid) . ' LIMIT 1'
+		);
+		return ($q->num_rows() > 0) ? trim((string) $q->row()->district) : '';
+	}
+
+	protected function lookupFacilityName($facid, $fallback = '')
+	{
+		$facid = trim((string) $facid);
+		if ($facid === '') {
+			return $fallback;
+		}
+		if (function_exists('is_education_deployment') && is_education_deployment()) {
+			$frow = $this->db->select('facility')->from('employee_facility')->where('facility_id', $facid)->limit(1)->get()->row();
+			return $frow ? trim((string) $frow->facility) : $fallback;
+		}
+		$q = $this->db->query(
+			'SELECT DISTINCT facility FROM ihrisdata WHERE facility_id = ' . $this->db->escape($facid) . ' LIMIT 1'
+		);
+		return ($q->num_rows() > 0) ? trim((string) $q->row()->facility) : $fallback;
 	}
 }
