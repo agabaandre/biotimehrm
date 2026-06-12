@@ -57,7 +57,9 @@ if (isset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME'])) {
 | variable so that it is blank.
 |
 */
-$config['index_page'] = 'index.php';
+// Query-string routing (index.php?/controller) avoids Apache 403 on PATH_INFO
+// after php-fpm/mod_security changes; works with or without AcceptPathInfo.
+$config['index_page'] = 'index.php?';
 
 /*
 |--------------------------------------------------------------------------
