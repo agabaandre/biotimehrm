@@ -22,21 +22,80 @@ class Dashboard extends MX_Controller {
 		$data['view']= "home";
 		echo Modules::run('templates/main',$data);
 	}
-	public function dashboardData(){
+	public function dashboardData()
+	{
+		$this->output->set_content_type('application/json');
+		$this->load->library('dashboard_cache_store', null, 'dash_cache');
+		$this->config->load('dashboard_cache', true, true);
+		$cfg = $this->config->item('dashboard_cache');
+		$stats_ttl = is_array($cfg) && isset($cfg['stats_ttl']) ? (int) $cfg['stats_ttl'] : 60;
 
-    //   if (($this->cache->memcached->get('dashboard')) && ($this->session->userdata('facility')==$this->cache->memcached->get('facility'))) {
-    // // Data not found in cache, perform your data retrieval or processing logic here
-	// 	$data = $this->cache->memcached->get('dashboard');
-    // // Store the processed data in the cache
-	// 	} 
-	// 	else {
+		$facility = (string) $this->session->userdata('facility');
+		$year = (string) ($this->session->userdata('year') ?: date('Y'));
+		$month = (string) ($this->session->userdata('month') ?: date('m'));
+		$empid = (string) ($this->session->userdata('dashboard_empid') ?: '');
+		$ver = $this->dash_cache->facilityVersion($facility);
+		$cache_key = 'stats_' . md5(implode('|', [$facility, $year, $month, $empid, $ver]));
+
+		$cached = $this->dash_cache->read($cache_key);
+		if (is_array($cached)) {
+			$cached['cached'] = true;
+			return $this->output->set_output(json_encode($cached));
+		}
+
 		$data = $this->dash_mdl->stats();
-		// $this->cache->memcached->save('dashboard', $data, 10800); //e
-				
-		// }
+		$data['cached'] = false;
+		$data['generated_at'] = date('c');
+		$data['cache_layer'] = $this->dash_cache->availability();
+		$this->dash_cache->write($cache_key, $data, $stats_ttl);
 
-		
-	echo json_encode($data);
+		return $this->output->set_output(json_encode($data));
+	}
+
+	/**
+	 * Near-real-time attendance pulse (Redis/Memcached backed, short TTL).
+	 */
+	public function dashboardLivePulse()
+	{
+		$this->output->set_content_type('application/json');
+		$this->load->library('dashboard_cache_store', null, 'dash_cache');
+		$this->config->load('dashboard_cache', true, true);
+		$cfg = $this->config->item('dashboard_cache');
+		$live_ttl = is_array($cfg) && isset($cfg['live_ttl']) ? (int) $cfg['live_ttl'] : 10;
+
+		$facility = (string) $this->session->userdata('facility');
+		if ($facility === '') {
+			return $this->output->set_output(json_encode(['live' => false, 'error' => 'no_facility']));
+		}
+
+		$year = (string) ($this->session->userdata('year') ?: date('Y'));
+		$month = (string) ($this->session->userdata('month') ?: date('m'));
+		$empid = (string) ($this->session->userdata('dashboard_empid') ?: '');
+		$current_month = date('Y-m');
+		$selected_month = substr($year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT), 0, 7);
+
+		if ($selected_month !== $current_month) {
+			return $this->output->set_output(json_encode([
+				'live' => false,
+				'reason' => 'historical',
+				'generated_at' => date('c'),
+			]));
+		}
+
+		$ver = $this->dash_cache->facilityVersion($facility);
+		$cache_key = 'live_' . md5(implode('|', [$facility, $empid, $ver, date('Y-m-d')]));
+		$cached = $this->dash_cache->read($cache_key);
+		if (is_array($cached)) {
+			$cached['cached'] = true;
+			return $this->output->set_output(json_encode($cached));
+		}
+
+		$data = $this->dash_mdl->livePulse();
+		$data['cached'] = false;
+		$data['cache_layer'] = $this->dash_cache->availability();
+		$this->dash_cache->write($cache_key, $data, $live_ttl);
+
+		return $this->output->set_output(json_encode($data));
 	}
 
 	/**
@@ -234,23 +293,9 @@ class Dashboard extends MX_Controller {
 	 * Clear all cache entries for a specific facility
 	 */
 	private function _clearFacilityCache($facility) {
-		if (!$this->cache->memcached->is_supported()) {
-			return;
-		}
-		
-		// Clear all dashboard cache for the facility
-		$cache_keys = [
-			'dashboard_' . $facility . '_' . date('Y-m-d'),
-			'dashboard_essential_' . $facility . '_' . date('Y-m-d'),
-			'dashboard_' . $facility . '_' . date('Y-m-d', strtotime('-1 day')),
-			'dashboard_essential_' . $facility . '_' . date('Y-m-d', strtotime('-1 day'))
-		];
-		
-		foreach ($cache_keys as $key) {
-			$this->cache->memcached->delete($key);
-		}
-		
-		log_message('debug', 'All cache cleared for facility: ' . $facility);
+		$this->load->library('dashboard_cache_store', null, 'dash_cache');
+		$this->dash_cache->invalidateFacility($facility);
+		log_message('debug', 'Dashboard cache invalidated for facility: ' . $facility);
 	}
 	
 	/**

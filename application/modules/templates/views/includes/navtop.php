@@ -39,10 +39,15 @@
     <?php } ?>
     
     <li class="nav-item dropdown user-dropdown">
+      <?php
+      $nav_photo = isset($userdata['photo']) && trim((string) $userdata['photo']) !== ''
+        ? base_url('assets/images/sm/' . rawurlencode($userdata['photo']))
+        : base_url('assets/img/user.jpg');
+      ?>
       <a href="#" data-toggle="dropdown" role="button" aria-expanded="false" class="nav-link dropdown-toggle user-profile">
         <div class="user-info">
-          <span class="user-name"><?php echo $userdata['names']; ?></span>
-          <img src="<?php echo base_url(); ?>assets/img/user.jpg" alt="User" class="user-avatar" />
+          <span class="user-name"><?php echo htmlspecialchars($userdata['names'], ENT_QUOTES, 'UTF-8'); ?></span>
+          <img src="<?php echo htmlspecialchars($nav_photo, ENT_QUOTES, 'UTF-8'); ?>" alt="Profile" class="user-avatar" />
         </div>
       </a>
       <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right modern-dropdown">
@@ -51,8 +56,11 @@
           <span>User Menu</span>
         </div>
         <div class="dropdown-divider"></div>
-        <a href="#" class="dropdown-item" data-toggle="modal" data-target="#profile">
-          <i class="fas fa-user"></i> Profile
+        <a href="<?php echo base_url('auth/myprofile'); ?>" class="dropdown-item">
+          <i class="fas fa-user"></i> My Profile
+        </a>
+        <a href="<?php echo base_url('auth/myprofile'); ?>#change-password" class="dropdown-item">
+          <i class="fas fa-key"></i> Change Password
         </a>
         <div class="dropdown-divider"></div>
         <a href="<?php echo base_url(); ?>auth/logout" class="dropdown-item">

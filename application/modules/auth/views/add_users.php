@@ -34,17 +34,20 @@ $search_key = $this->input->post('search_key') ?: '';
 
 <style>
 .user-mgmt {
-  --um-primary: #0d6efd;
-  --um-primary-soft: #e8f1ff;
+  --um-teal: #005662;
+  --um-teal-dark: #00424d;
+  --um-mint: #20c198;
+  --um-primary: #005662;
+  --um-primary-soft: #e8f6f3;
   --um-success: #198754;
   --um-danger: #dc3545;
   --um-muted: #6c757d;
   --um-border: #e9ecef;
-  --um-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  --um-shadow: 0 4px 20px rgba(0, 86, 98, 0.12);
   --um-radius: 12px;
 }
 .user-mgmt .um-hero {
-  background: linear-gradient(135deg, #0d6efd 0%, #084298 100%);
+  background: linear-gradient(135deg, var(--um-teal) 0%, var(--um-mint) 100%);
   border-radius: var(--um-radius);
   color: #fff;
   padding: 1.5rem 1.75rem;
@@ -143,7 +146,7 @@ $search_key = $this->input->post('search_key') ?: '';
   transition: background 0.15s ease;
 }
 .user-mgmt .um-table tbody tr:hover {
-  background: #f8fbff;
+  background: #f0faf8;
 }
 .user-mgmt .um-user-cell {
   display: flex;
@@ -188,8 +191,8 @@ $search_key = $this->input->post('search_key') ?: '';
   font-weight: 600;
 }
 .user-mgmt .um-badge-group {
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--um-primary-soft);
+  color: var(--um-teal);
 }
 .user-mgmt .um-badge-active {
   background: #d1e7dd;
@@ -266,11 +269,40 @@ $search_key = $this->input->post('search_key') ?: '';
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.user-mgmt .um-form-actions .btn-primary {
-  background: var(--um-primary);
-  border-color: var(--um-primary);
+.user-mgmt .um-form-actions .btn-primary,
+.user-mgmt .btn-primary {
+  background: var(--um-teal);
+  border-color: var(--um-teal);
   border-radius: 8px;
   font-weight: 600;
+}
+.user-mgmt .um-form-actions .btn-primary:hover,
+.user-mgmt .btn-primary:hover,
+.user-mgmt .um-form-actions .btn-primary:focus,
+.user-mgmt .btn-primary:focus {
+  background: var(--um-teal-dark);
+  border-color: var(--um-teal-dark);
+  box-shadow: 0 0 0 0.2rem rgba(0, 86, 98, 0.25);
+}
+.user-mgmt .um-form-actions .btn-primary {
+  border-radius: 8px;
+  font-weight: 600;
+}
+.user-mgmt .pagination .page-item.active .page-link,
+.user-mgmt .pagination .page-item.active span.page-link {
+  background-color: var(--um-teal);
+  border-color: var(--um-teal);
+  color: #fff;
+}
+.user-mgmt .pagination .page-link {
+  color: var(--um-teal);
+}
+.user-mgmt .pagination .page-link:hover {
+  color: var(--um-teal-dark);
+}
+.user-mgmt .um-loading .text-primary,
+.user-mgmt .fa-spinner.text-primary {
+  color: var(--um-teal) !important;
 }
 .user-mgmt .um-form-actions .btn-light {
   border-radius: 8px;

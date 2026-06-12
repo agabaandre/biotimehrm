@@ -427,4 +427,174 @@ class Dashboard_mdl extends CI_Model
         ];
     }
 
+    /**
+     * Lightweight live snapshot: today's counts + recent check-ins.
+     *
+     * @return array<string, mixed>
+     */
+    public function livePulse()
+    {
+        $facility = isset($_SESSION['facility']) ? (string) $_SESSION['facility'] : '';
+        if ($facility === '') {
+            return ['live' => false, 'error' => 'no_facility'];
+        }
+
+        $userdata = $this->session->userdata();
+        $year = isset($userdata['year']) && $userdata['year'] ? (int) $userdata['year'] : (int) date('Y');
+        $month = isset($userdata['month']) && $userdata['month'] ? (int) $userdata['month'] : (int) date('m');
+        $dashboard_empid = (string) $this->session->userdata('dashboard_empid');
+        $today = date('Y-m-d');
+        $month_start = $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '-01';
+        $month_end = date('Y-m-t', strtotime($month_start));
+        $status_date = (substr($today, 0, 7) === substr($month_start, 0, 7)) ? $today : $month_end;
+
+        $staff_q = $this->db->query('SELECT COUNT(*) AS c FROM ihrisdata WHERE facility_id = ?', [$facility]);
+        $mystaff = ($staff_q && $staff_q->num_rows() > 0) ? (int) $staff_q->row()->c : 0;
+
+        $data = [
+            'live' => true,
+            'present' => 0,
+            'offduty' => 0,
+            'leave' => 0,
+            'request' => 0,
+            'absent' => 0,
+            'mystaff' => $mystaff,
+            'status_date' => $status_date,
+            'generated_at' => date('c'),
+            'recent' => [],
+            'clock_ins_today' => 0,
+        ];
+
+        $attendance_query = '
+            SELECT schedule_id, COUNT(DISTINCT ihris_pid) AS count
+            FROM actuals
+            WHERE facility_id = ? AND date = ?
+        ';
+        $params = [$facility, $status_date];
+        if ($dashboard_empid !== '') {
+            $attendance_query .= ' AND ihris_pid = ?';
+            $params[] = $dashboard_empid;
+        }
+        $attendance_query .= ' GROUP BY schedule_id';
+
+        $schedule_mapping = [
+            22 => 'present',
+            24 => 'offduty',
+            25 => 'leave',
+            23 => 'request',
+        ];
+
+        $attendance_result = $this->db->query($attendance_query, $params);
+        foreach ($attendance_result->result() as $row) {
+            if (isset($schedule_mapping[$row->schedule_id])) {
+                $data[$schedule_mapping[$row->schedule_id]] = (int) $row->count;
+            }
+        }
+
+        $sum_accounted = (int) $data['present'] + (int) $data['offduty'] + (int) $data['request'] + (int) $data['leave'];
+        $data['absent'] = max(0, $mystaff - $sum_accounted);
+        $data['clock_ins_today'] = (int) $data['present'];
+
+        if ($dashboard_empid === '' && $status_date === $today) {
+            $data['recent'] = $this->_recentClockIns($facility, $today, 10);
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param string $facility
+     * @param string $date
+     * @param int    $limit
+     * @return array<int, array<string, string>>
+     */
+    private function _recentClockIns($facility, $date, $limit = 10)
+    {
+        $items = [];
+        $limit = max(1, (int) $limit);
+
+        if ($this->db->table_exists('mobileclk_log')) {
+            $q = $this->db->query("
+                SELECT m.ihris_pid, m.time_in, 'mobile' AS source,
+                    TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS staff_name
+                FROM mobileclk_log m
+                LEFT JOIN ihrisdata i ON i.ihris_pid = m.ihris_pid
+                WHERE m.facility_id = ? AND m.date = ? AND m.time_in IS NOT NULL AND m.time_in != ''
+                ORDER BY m.time_in DESC
+                LIMIT ?
+            ", [$facility, $date, $limit]);
+            if ($q) {
+                foreach ($q->result() as $r) {
+                    $name = trim((string) $r->staff_name);
+                    $items[] = [
+                        'ihris_pid' => (string) $r->ihris_pid,
+                        'name' => $name !== '' ? $name : (string) $r->ihris_pid,
+                        'time' => $this->_formatClockTime($r->time_in),
+                        'time_raw' => (string) $r->time_in,
+                        'source' => 'mobile',
+                    ];
+                }
+            }
+        }
+
+        if (count($items) < $limit && $this->db->table_exists('clk_log')) {
+            $seen = array_column($items, 'ihris_pid');
+            $need = $limit - count($items);
+            $q = $this->db->query("
+                SELECT cl.ihris_pid, cl.time_in, COALESCE(cl.source, 'device') AS source,
+                    TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS staff_name
+                FROM clk_log cl
+                LEFT JOIN ihrisdata i ON i.ihris_pid = cl.ihris_pid
+                WHERE cl.facility_id = ? AND cl.date = ? AND cl.time_in IS NOT NULL AND cl.time_in != ''
+                ORDER BY cl.time_in DESC
+                LIMIT ?
+            ", [$facility, $date, $need + count($seen)]);
+            if ($q) {
+                foreach ($q->result() as $r) {
+                    if (in_array((string) $r->ihris_pid, $seen, true)) {
+                        continue;
+                    }
+                    $name = trim((string) $r->staff_name);
+                    $source = strtolower((string) $r->source);
+                    $items[] = [
+                        'ihris_pid' => (string) $r->ihris_pid,
+                        'name' => $name !== '' ? $name : (string) $r->ihris_pid,
+                        'time' => $this->_formatClockTime($r->time_in),
+                        'time_raw' => (string) $r->time_in,
+                        'source' => ($source === 'bio-time') ? 'biotime' : 'device',
+                    ];
+                    if (count($items) >= $limit) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        usort($items, function ($a, $b) {
+            return strcmp((string) $b['time_raw'], (string) $a['time_raw']);
+        });
+
+        $items = array_slice($items, 0, $limit);
+        foreach ($items as &$item) {
+            unset($item['time_raw']);
+        }
+        unset($item);
+
+        return $items;
+    }
+
+    /**
+     * @param mixed $time
+     * @return string
+     */
+    private function _formatClockTime($time)
+    {
+        $time = trim((string) $time);
+        if ($time === '') {
+            return '';
+        }
+        $ts = strtotime($time);
+        return $ts ? date('H:i', $ts) : $time;
+    }
+
    }

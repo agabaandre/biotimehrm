@@ -1,23 +1,22 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Jobs_mdl extends CI_Model {
+class Employee_jobs_mdl extends CI_Model {
 
 	protected $table;
-	
-	public function __construct(){
 
+	public function __construct()
+	{
 		parent::__construct();
-		$this->table="employee_jobs";
-
+		$this->table = 'employee_jobs';
 	}
 
-	public function getJobs(){
+	public function getJobs()
+	{
 		$this->db->select('job_title,description,id,job_id,created_at');
-	    $this->db->order_by('job_title', 'ASC');
-		$query=$this->db->get($this->table);
+		$this->db->order_by('job_title', 'ASC');
+		$query = $this->db->get($this->table);
 		return $query->result();
- 
 	}
 
 	/**
@@ -98,7 +97,8 @@ class Jobs_mdl extends CI_Model {
 		return in_array((int) $errno, [1062, 1586, 1022], true);
 	}
 
-	public function saveJob($postdata){
+	public function saveJob($postdata)
+	{
 		$job_title = trim((string) ($postdata['job_title'] ?? ''));
 		$provided_job_id = trim((string) ($postdata['job_id'] ?? ''));
 
@@ -114,10 +114,10 @@ class Jobs_mdl extends CI_Model {
 			return 'Job ID already exists.';
 		}
 
-		$data = array(
+		$data = [
 			'job_title'   => $job_title,
 			'description' => $postdata['description'] ?? '',
-		);
+		];
 
 		$max_attempts = 5;
 		for ($attempt = 0; $attempt < $max_attempts; $attempt++) {
@@ -150,9 +150,9 @@ class Jobs_mdl extends CI_Model {
 		return 'Operation failed';
 	}
 
-	public function updateJob($postdata){
-
-	    $id = isset($postdata['id']) ? (int) $postdata['id'] : 0;
+	public function updateJob($postdata)
+	{
+		$id = isset($postdata['id']) ? (int) $postdata['id'] : 0;
 		if ($id <= 0) {
 			return 'Invalid job';
 		}
@@ -172,45 +172,34 @@ class Jobs_mdl extends CI_Model {
 			return 'Job ID already exists.';
 		}
 
-		$data = array(
+		$data = [
 			'job_title'   => $job_title,
 			'job_id'      => $job_id,
 			'description' => $postdata['description'] ?? '',
-		);
+		];
 
 		$this->db->where('id', $id);
 		$this->db->update($this->table, $data);
 		$rows = $this->db->affected_rows();
 
-		if($rows>0){
+		if ($rows > 0) {
 			return 'The Job has been updated';
 		}
 
 		return 'No Operation made, seems like no changes made';
 	}
-	 
 
-	 public function deleteJob(){
-
-	    $data=$this->input->post('id');
-		$this->db->where('id',$data);
+	public function deleteJob()
+	{
+		$data = $this->input->post('id');
+		$this->db->where('id', $data);
 		$this->db->delete($this->table);
 
 		$rows = $this->db->affected_rows();
-		if($rows>0){
-
-			return "The Job has been updated";
+		if ($rows > 0) {
+			return 'The Job has been updated';
 		}
 
-		else{
-
-			return "No Operation made, seems like no changes made";
-		}
+		return 'No Operation made, seems like no changes made';
 	}
-
-
-
-	
-
-
 }

@@ -13,7 +13,7 @@ class Lists extends MX_Controller
 		$this->load->model('districts_mdl');
 		$this->load->model('facilities_mdl');
 		$this->load->model('cadre_mdl');
-		$this->load->model('jobs_mdl');
+		$this->load->model('employee_jobs_mdl');
 	}
 
 
@@ -523,7 +523,7 @@ class Lists extends MX_Controller
 	//JOBS-----------
 	public function getJobs()
 	{
-		$data['jobs'] = $this->jobs_mdl->getJobs();
+		$data['jobs'] = $this->employee_jobs_mdl->getJobs();
 		$data['module'] = "lists";
 		$data['title'] = "";
 		$data['view'] = 'jobs/jobs';
@@ -532,13 +532,13 @@ class Lists extends MX_Controller
 
 	public function getJob($id)
 	{
-		$district = $this->jobs_mdl->getJob($id);
+		$district = $this->employee_jobs_mdl->getJob($id);
 		return $district;
 	}
 
 	public function get_all_jobs()
 	{
-		return $this->jobs_mdl->getJobs();
+		return $this->employee_jobs_mdl->getJobs();
 	}
 
 	public function saveJob()
@@ -549,7 +549,7 @@ class Lists extends MX_Controller
 			redirect('lists/getJobs');
 		}
 
-		$result = $this->jobs_mdl->saveJob($data);
+		$result = $this->employee_jobs_mdl->saveJob($data);
 		$ok = stripos($result, 'success') !== false || stripos($result, 'added') !== false;
 
 		if ($this->input->is_ajax_request()) {
@@ -589,7 +589,7 @@ class Lists extends MX_Controller
 		}
 		
 		$upload_data = $this->upload->data();
-		$result = $this->jobs_mdl->processJobsUpload($upload_data['full_path']);
+		$result = $this->employee_jobs_mdl->processJobsUpload($upload_data['full_path']);
 		
 		if ($result['status'] === 'success') {
 			$this->session->set_flashdata('success', $result['message']);
@@ -624,7 +624,7 @@ class Lists extends MX_Controller
 	public function updateJob()
 	{
 		$data = $this->input->post();
-		$message = $this->jobs_mdl->updateJob($data);
+		$message = $this->employee_jobs_mdl->updateJob($data);
 		$ok = stripos($message, 'updated') !== false;
 		$this->session->set_flashdata($ok ? 'success' : 'error', $message);
 		redirect('lists/getJobs');

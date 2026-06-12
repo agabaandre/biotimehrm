@@ -20,13 +20,15 @@ class Jobs_mdl extends CI_Model {
 
 
 
-	public function getJobs($job_id)
+	public function getJobs($job_id = null)
 	{
+		if ($job_id !== null && $job_id !== '') {
+			$this->db->where('job_id', $job_id);
+		}
 
-		$query=$this->db->get('jobs');
+		$query = $this->db->get('jobs');
 
 		return $query->result();
- 
 	}
 
 

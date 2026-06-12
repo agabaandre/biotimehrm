@@ -327,6 +327,106 @@
   50% { opacity: 0.5; }
 }
 
+/* Live dashboard */
+.dashboard-live-panel {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: var(--shadow-light);
+  overflow: hidden;
+}
+
+.dashboard-live-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(90deg, #005662 0%, #00796b 100%);
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #20c198;
+  box-shadow: 0 0 0 0 rgba(32, 193, 152, 0.7);
+  animation: livePulseDot 1.8s ease-in-out infinite;
+}
+
+.live-dot.stale {
+  background: #ffc107;
+  animation: none;
+}
+
+.live-dot.offline {
+  background: #adb5bd;
+  animation: none;
+}
+
+@keyframes livePulseDot {
+  0% { box-shadow: 0 0 0 0 rgba(32, 193, 152, 0.7); }
+  70% { box-shadow: 0 0 0 8px rgba(32, 193, 152, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(32, 193, 152, 0); }
+}
+
+.live-label {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+}
+
+.live-updated {
+  opacity: 0.9;
+}
+
+.live-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.live-feed li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f1f3f5;
+  font-size: 0.85rem;
+}
+
+.live-feed li:last-child { border-bottom: none; }
+
+.live-feed-name {
+  font-weight: 500;
+  color: #343a40;
+}
+
+.live-feed-meta {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  margin-left: 1rem;
+}
+
+.live-feed-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  justify-content: flex-start !important;
+}
+
+.status-value.live-flash {
+  animation: liveValueFlash 1.2s ease;
+}
+
+@keyframes liveValueFlash {
+  0% { background: rgba(32, 193, 152, 0.35); }
+  100% { background: transparent; }
+}
+
 /* Smooth Transitions */
 .fade-in {
   animation: fadeIn 0.5s ease-in;
@@ -343,13 +443,30 @@
  	<div class="container-fluid">
     
     <!-- Dashboard Header -->
-    <div class="row mb-4">
+    <div class="row mb-3">
       <div class="col-12">
-        <div class="callout callout-success">
+        <div class="callout callout-success mb-0">
           <h1 class="dashboard-title">
             <i class="fas fa-tachometer-alt mr-3"></i>Welcome back!
           </h1>
           <p class="dashboard-subtitle text-muted">Here's what's happening with your <?php echo strtolower(entity_label('facility')); ?> today.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live attendance pulse -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="dashboard-live-panel">
+          <div class="dashboard-live-bar">
+            <span class="live-dot" id="live-dot"></span>
+            <span class="live-label">LIVE</span>
+            <span class="live-updated" id="live-updated">Connecting…</span>
+            <span class="live-cache-hint ml-auto small" id="live-cache-hint"></span>
+          </div>
+          <ul class="live-feed" id="live-feed">
+            <li class="live-feed-empty">Waiting for check-ins today…</li>
+          </ul>
         </div>
       </div>
     </div>
@@ -834,6 +951,7 @@ waitForHighcharts(function() {
 				applyDashboardFilters(month, year, empid).then(function() {
 					// Refresh stats
 					loadDashboardData(true).catch(function() {});
+					loadDashboardLivePulse();
 					// Refresh chart (session-based)
 					if (window.reloadAttendancePerMonth) {
 						window.reloadAttendancePerMonth();
@@ -962,6 +1080,119 @@ waitForHighcharts(function() {
         // quiet refresh (no loaders)
         loadDashboardData(false).catch(function() { /* retry handled in loadDashboardData */ });
       }, 300000); // every 5 minutes
+    }
+
+    var DASH_LIVE_POLL_MS = <?php
+      $this->config->load('dashboard_cache', true, true);
+      $dash_cfg = $this->config->item('dashboard_cache');
+      echo (int) (is_array($dash_cfg) && isset($dash_cfg['live_poll_seconds']) ? $dash_cfg['live_poll_seconds'] : 15) * 1000;
+    ?>;
+
+    function formatLiveAgo(iso) {
+      if (!iso) return 'just now';
+      var ts = Date.parse(iso);
+      if (isNaN(ts)) return 'just now';
+      var sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+      if (sec < 10) return 'just now';
+      if (sec < 60) return sec + 's ago';
+      return Math.floor(sec / 60) + 'm ago';
+    }
+
+    function updateLiveValue(selector, value) {
+      if (value === undefined || value === null) return;
+      var $el = $(selector);
+      var prev = $.trim($el.text());
+      var next = String(value);
+      if (prev === next || prev === '' || isNaN(parseInt(prev, 10))) {
+        $el.text(next);
+        return;
+      }
+      $el.text(next).addClass('live-flash');
+      setTimeout(function() { $el.removeClass('live-flash'); }, 1200);
+    }
+
+    function renderLiveFeed(recent) {
+      var $feed = $('#live-feed');
+      if (!recent || !recent.length) {
+        $feed.html('<li class="live-feed-empty">No check-ins yet today</li>');
+        return;
+      }
+      var html = '';
+      recent.forEach(function(item) {
+        var source = item.source === 'mobile' ? 'Mobile' : (item.source === 'biotime' ? 'BioTime' : 'Device');
+        html += '<li><span class="live-feed-name"><i class="fas fa-user-check text-success mr-1"></i>' +
+          $('<div>').text(item.name || 'Staff').html() +
+          '</span><span class="live-feed-meta">' + (item.time || '') + ' · ' + source + '</span></li>';
+      });
+      $feed.html(html);
+    }
+
+    function setLiveIndicator(state, message, cacheHint) {
+      var $dot = $('#live-dot');
+      $dot.removeClass('stale offline');
+      if (state === 'offline') {
+        $dot.addClass('offline');
+      } else if (state === 'stale') {
+        $dot.addClass('stale');
+      }
+      if (message) {
+        $('#live-updated').text(message);
+      }
+      if (cacheHint !== undefined) {
+        $('#live-cache-hint').text(cacheHint);
+      }
+    }
+
+    function loadDashboardLivePulse() {
+      return $.ajax({
+        type: 'GET',
+        url: '<?php echo base_url('dashboard/dashboardLivePulse'); ?>',
+        dataType: 'json',
+        timeout: 20000
+      }).done(function(data) {
+        if (!data || data.live === false) {
+          if (data && data.reason === 'historical') {
+            setLiveIndicator('stale', 'Live updates paused (historical month selected)', '');
+          }
+          return;
+        }
+
+        updateLiveValue('#present', data.present);
+        updateLiveValue('#offduty', data.offduty);
+        updateLiveValue('#leave', data.leave);
+        updateLiveValue('#absent', data.absent);
+        if (data.status_date) {
+          $('#daily_status_date').text('(' + data.status_date + ')');
+        }
+        renderLiveFeed(data.recent);
+
+        var ago = formatLiveAgo(data.generated_at);
+        var cacheHint = '';
+        if (data.cache_layer) {
+          if (data.cache_layer.redis) {
+            cacheHint = data.cached ? 'Redis · ' + ago : 'Redis live · ' + ago;
+          } else if (data.cache_layer.memcached) {
+            cacheHint = data.cached ? 'Memcached · ' + ago : 'Memcached live · ' + ago;
+          } else {
+            cacheHint = 'Direct · ' + ago;
+          }
+        } else {
+          cacheHint = 'Updated ' + ago;
+        }
+        setLiveIndicator('live', data.clock_ins_today + ' checked in today · updated ' + ago, cacheHint);
+      }).fail(function() {
+        setLiveIndicator('offline', 'Live feed unavailable', '');
+      });
+    }
+
+    function startDashboardLiveRefresh() {
+      window.__dashboardLiveRefresh = window.__dashboardLiveRefresh || { timer: null };
+      if (window.__dashboardLiveRefresh.timer) return;
+
+      loadDashboardLivePulse();
+      window.__dashboardLiveRefresh.timer = setInterval(function() {
+        loadDashboardLivePulse();
+      }, DASH_LIVE_POLL_MS);
     }
     
     function updateDashboardValue(selector, value) {
@@ -1139,6 +1370,7 @@ waitForHighcharts(function() {
 
      // Start background refresh after initial attempt (success or failure)
      startDashboardAutoRefresh();
+     startDashboardLiveRefresh();
      
      // Session testing function (remove in production)
      window.testSessionEndpoints = function() {

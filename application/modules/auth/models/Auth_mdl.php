@@ -670,4 +670,229 @@ class Auth_mdl extends CI_Model
 
 		return trim((string) $department_id);
 	}
+
+	/**
+	 * Add nullable photo column to user table when missing.
+	 */
+	public function ensureUserPhotoColumn()
+	{
+		if ($this->db->field_exists('photo', $this->table)) {
+			return true;
+		}
+		$this->load->dbforge();
+		$this->dbforge->add_column($this->table, [
+			'photo' => [
+				'type'       => 'VARCHAR',
+				'constraint' => 255,
+				'null'       => true,
+			],
+		]);
+		return $this->db->field_exists('photo', $this->table);
+	}
+
+	/**
+	 * @param int $user_id
+	 * @return object|null
+	 */
+	public function getProfileUser($user_id)
+	{
+		$user_id = (int) $user_id;
+		if ($user_id <= 0) {
+			return null;
+		}
+		$this->db->select('user.*, user_groups.group_name');
+		$this->db->from($this->table);
+		$this->db->join('user_groups', 'user_groups.group_id = user.role', 'left');
+		$this->db->where('user.user_id', $user_id);
+		return $this->db->get()->row();
+	}
+
+	/**
+	 * @param int $user_id
+	 * @return array<int, object>
+	 */
+	public function getUserAssignedFacilities($user_id)
+	{
+		$user_id = (int) $user_id;
+		$facilities = [];
+		$seen = [];
+
+		$user = $this->db->get_where($this->table, ['user_id' => $user_id], 1)->row();
+		if ($user) {
+			$primary_id = trim((string) ($user->facility_id ?? ''));
+			$primary_name = trim((string) ($user->facility ?? ''));
+			if ($primary_id !== '') {
+				$o = new stdClass();
+				$o->facility_id = $primary_id;
+				$o->facility = $primary_name !== '' ? $primary_name : $primary_id;
+				$o->is_primary = true;
+				$facilities[] = $o;
+				$seen[$primary_id] = true;
+			}
+		}
+
+		if ($this->db->table_exists('user_facilities')) {
+			$rows = $this->db->get_where('user_facilities', ['user_id' => $user_id])->result();
+			foreach ($rows as $row) {
+				$fid = trim((string) ($row->facility_id ?? ''));
+				if ($fid === '' || isset($seen[$fid])) {
+					continue;
+				}
+				$seen[$fid] = true;
+				$o = new stdClass();
+				$o->facility_id = $fid;
+				$o->facility = trim((string) ($row->facility ?? $fid));
+				$o->is_primary = false;
+				$facilities[] = $o;
+			}
+		}
+
+		return $facilities;
+	}
+
+	/**
+	 * Monthly attendance from actuals for linked employee (if any).
+	 *
+	 * @param string $ihris_pid
+	 * @param int    $year
+	 * @param int    $month
+	 * @return array|null  null when no ihris_pid or table missing
+	 */
+	public function getMonthlyAttendanceForPerson($ihris_pid, $year = null, $month = null)
+	{
+		$ihris_pid = trim((string) $ihris_pid);
+		if ($ihris_pid === '' || !$this->db->table_exists('actuals')) {
+			return null;
+		}
+
+		$year = $year ? (int) $year : (int) date('Y');
+		$month = $month ? (int) $month : (int) date('m');
+		$month_start = sprintf('%04d-%02d-01', $year, $month);
+		$month_end = date('Y-m-t', strtotime($month_start));
+
+		$rows = $this->db->query(
+			"SELECT schedule_id, COUNT(DISTINCT `date`) AS cnt
+			 FROM actuals
+			 WHERE ihris_pid = ?
+			   AND `date` >= ?
+			   AND `date` <= ?
+			 GROUP BY schedule_id",
+			[$ihris_pid, $month_start, $month_end]
+		)->result();
+
+		if (empty($rows)) {
+			return null;
+		}
+
+		$map = [
+			22 => 'present',
+			24 => 'offduty',
+			25 => 'leave',
+			23 => 'request',
+			26 => 'absent',
+			27 => 'holiday',
+		];
+		$stats = [
+			'present'  => 0,
+			'offduty'  => 0,
+			'leave'    => 0,
+			'request'  => 0,
+			'absent'   => 0,
+			'holiday'  => 0,
+			'year'     => $year,
+			'month'    => $month,
+			'label'    => date('F Y', strtotime($month_start)),
+		];
+		$total = 0;
+		foreach ($rows as $row) {
+			$sid = (int) $row->schedule_id;
+			$cnt = (int) $row->cnt;
+			if (isset($map[$sid])) {
+				$stats[$map[$sid]] = $cnt;
+				$total += $cnt;
+			}
+		}
+		$stats['total_days'] = $total;
+		if ($stats['present'] > 0 && $total > 0) {
+			$stats['attendance_rate'] = round(($stats['present'] / $total) * 100, 1);
+		} else {
+			$stats['attendance_rate'] = 0;
+		}
+
+		return $stats;
+	}
+
+	/**
+	 * Resolve employee ID for attendance lookup.
+	 *
+	 * @param object|null $user
+	 * @return string
+	 */
+	public function resolveEmployeePid($user)
+	{
+		if (!$user) {
+			return '';
+		}
+		$pid = trim((string) ($user->ihris_pid ?? ''));
+		if ($pid !== '') {
+			return $pid;
+		}
+		$username = trim((string) ($user->username ?? ''));
+		if ($username !== '' && $this->db->table_exists('ihrisdata')) {
+			$row = $this->db->get_where('ihrisdata', ['ihris_pid' => $username], 1)->row();
+			if ($row) {
+				return $username;
+			}
+			$person_key = 'person|' . $username;
+			$row = $this->db->get_where('ihrisdata', ['ihris_pid' => $person_key], 1)->row();
+			if ($row) {
+				return $person_key;
+			}
+		}
+		return $username;
+	}
+
+	/**
+	 * @param int    $user_id
+	 * @param string $filename
+	 * @return bool
+	 */
+	public function saveUserPhoto($user_id, $filename)
+	{
+		$user_id = (int) $user_id;
+		$filename = trim((string) $filename);
+		if ($user_id <= 0 || $filename === '') {
+			return false;
+		}
+		$this->db->where('user_id', $user_id);
+		return (bool) $this->db->update($this->table, ['photo' => $filename]);
+	}
+
+	/**
+	 * @param int   $user_id
+	 * @param array $data  name, email
+	 * @return string
+	 */
+	public function updateProfileDetails($user_id, array $data)
+	{
+		$user_id = (int) $user_id;
+		if ($user_id <= 0) {
+			return 'Invalid user';
+		}
+		$save = [];
+		if (isset($data['name']) && trim((string) $data['name']) !== '') {
+			$save['name'] = trim((string) $data['name']);
+		}
+		if (isset($data['email'])) {
+			$save['email'] = trim((string) $data['email']);
+		}
+		if (empty($save)) {
+			return 'No changes to save';
+		}
+		$this->db->where('user_id', $user_id);
+		if ($this->db->update($this->table, $save)) {
+			return 'Profile updated';
+		}
+		return 'Update failed';
+	}
 }

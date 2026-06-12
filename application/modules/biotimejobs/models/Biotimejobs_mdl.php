@@ -984,7 +984,23 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         }
         $sql = "INSERT IGNORE INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end, stream) VALUES " . implode(', ', $values);
         $this->db->query($sql, $params);
-        return $this->db->affected_rows();
+        $inserted = $this->db->affected_rows();
+        if ($inserted > 0) {
+            $facilities = [];
+            foreach ($agg as $r) {
+                if (!empty($r['facility_id'])) {
+                    $facilities[(string) $r['facility_id']] = true;
+                }
+            }
+            if (!empty($facilities)) {
+                $CI =& get_instance();
+                $CI->load->library('dashboard_cache_store', null, 'dash_cache');
+                foreach (array_keys($facilities) as $facility_id) {
+                    $CI->dash_cache->invalidateFacility($facility_id);
+                }
+            }
+        }
+        return $inserted;
     }
 
     /**

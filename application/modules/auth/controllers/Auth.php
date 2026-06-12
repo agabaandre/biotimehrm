@@ -150,15 +150,106 @@ class Auth extends MX_Controller
   }
   public function myprofile()
   {
-    $data['module'] = "auth";
-    $data['view'] = "profile";
-    $data['title'] = "My Profile";
-    $user_role = $this->session->userdata('role');
-    if ($user_role == 'sadmin') {
-      echo Modules::run("templates/main", $data);
-    } else {
-      echo Modules::run("templates/main", $data);
+    if (!$this->session->userdata('isLoggedIn')) {
+      redirect('auth');
+      return;
     }
+
+    $this->auth_mdl->ensureUserPhotoColumn();
+    $user_id = (int) $this->session->userdata('user_id');
+    $profile = $this->auth_mdl->getProfileUser($user_id);
+
+    if (!$profile) {
+      show_error('Profile not found', 404);
+      return;
+    }
+
+    $employee_pid = $this->auth_mdl->resolveEmployeePid($profile);
+    $attendance = $employee_pid !== ''
+      ? $this->auth_mdl->getMonthlyAttendanceForPerson($employee_pid)
+      : null;
+
+    $data = [
+      'module'     => 'auth',
+      'view'       => 'profile',
+      'title'      => 'My Profile',
+      'uptitle'    => 'My Profile',
+      'profile'    => $profile,
+      'facilities' => $this->auth_mdl->getUserAssignedFacilities($user_id),
+      'attendance' => $attendance,
+      'employee_pid' => $employee_pid,
+    ];
+
+    echo Modules::run('templates/main', $data);
+  }
+
+  public function saveProfilePhoto()
+  {
+    if (!$this->session->userdata('isLoggedIn')) {
+      $this->output->set_status_header(401);
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Unauthorized']));
+      return;
+    }
+
+    $this->auth_mdl->ensureUserPhotoColumn();
+    $user_id = (int) $this->session->userdata('user_id');
+
+    if (empty($_FILES['photo']['tmp_name'])) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'No image selected']));
+      return;
+    }
+
+    $username = $this->session->userdata('username') ?: 'user';
+    $config = [
+      'upload_path'   => './assets/images/sm/',
+      'allowed_types' => 'gif|jpg|jpeg|png|webp',
+      'max_size'      => 3072,
+      'file_name'     => 'profile_' . $user_id . '_' . time(),
+    ];
+    $this->load->library('upload', $config);
+
+    if (!$this->upload->do_upload('photo')) {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'success' => false,
+        'message' => strip_tags($this->upload->display_errors('', '')),
+      ]));
+      return;
+    }
+
+    $upload = $this->upload->data();
+    $filename = $upload['file_name'];
+
+    $old = $this->auth_mdl->getProfileUser($user_id);
+    if ($old && !empty($old->photo)) {
+      $old_path = './assets/images/sm/' . $old->photo;
+      if (is_file($old_path)) {
+        @unlink($old_path);
+      }
+    }
+
+    $this->auth_mdl->saveUserPhoto($user_id, $filename);
+    $this->session->set_userdata('photo', $filename);
+
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success'   => true,
+      'message'   => 'Profile photo updated',
+      'photo_url' => base_url('assets/images/sm/' . $filename),
+    ]));
+  }
+
+  public function saveProfileDetails()
+  {
+    if (!$this->session->userdata('isLoggedIn')) {
+      echo 'Unauthorized';
+      return;
+    }
+    $user_id = (int) $this->session->userdata('user_id');
+    $post = $this->input->post();
+    $res = $this->auth_mdl->updateProfileDetails($user_id, $post);
+    if (stripos($res, 'updated') !== false && isset($post['name'])) {
+      $this->session->set_userdata('names', trim((string) $post['name']));
+    }
+    echo $res;
   }
 public function login($user_id = FALSE)
 {
@@ -174,6 +265,7 @@ public function login($user_id = FALSE)
         $user_group = $person->role;
         // Update last login timestamp
         $this->auth_mdl->updateLastLogin($person->user_id);
+        $this->auth_mdl->ensureUserPhotoColumn();
         
         $userdata = array(
             "names" => $person->name,
@@ -195,6 +287,7 @@ public function login($user_id = FALSE)
             "unit" => isset($person->unit) ? $person->unit : null,
             "district_id" => isset($person->district_id) ? $person->district_id : null,
             "district" => isset($person->district) ? $person->district : null,
+            "photo" => (isset($person->photo) && trim((string) $person->photo) !== '') ? $person->photo : null,
             "year" => date('Y'),
             "month" => date('m'),
             "date_from" => date("Y-m-d", strtotime("-1 month")),

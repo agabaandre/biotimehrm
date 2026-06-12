@@ -1116,7 +1116,14 @@ class Apiemployee_model extends CI_Model
 
         $this->db->insert('actuals', $insert);
 
-        return $this->db->affected_rows() > 0;
+        if ($this->db->affected_rows() > 0) {
+            $CI =& get_instance();
+            $CI->load->library('dashboard_cache_store', null, 'dash_cache');
+            $CI->dash_cache->invalidateFacility($facility_id);
+            return true;
+        }
+
+        return false;
     }
 
     /**
