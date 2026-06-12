@@ -7,6 +7,16 @@ $attendance = isset($attendance) && is_array($attendance) ? $attendance : null;
 $is_education = function_exists('is_education_deployment') && is_education_deployment();
 $facility_label = entity_label('facility');
 $flash = $this->session->flashdata('msg');
+if ($flash && (
+  stripos($flash, 'Login Failed') !== false
+  || stripos($flash, 'Wrong credentials') !== false
+  || stripos($flash, 'Unauthorized access') !== false
+  || stripos($flash, 'First time access') !== false
+)) {
+  $flash = '';
+}
+
+$photo_web_base = isset($photo_web_base) ? (string) $photo_web_base : 'assets/images/sm/';
 
 if (!$profile) {
     echo '<div class="alert alert-danger">Unable to load your profile.</div>';
@@ -22,9 +32,24 @@ foreach (preg_split('/\s+/', trim((string) $profile->name), 3) as $part) {
 $initials = substr($initials, 0, 2) ?: '?';
 
 $photo_file = isset($profile->photo) ? trim((string) $profile->photo) : '';
-$photo_url = $photo_file !== ''
-    ? base_url('assets/images/sm/' . rawurlencode($photo_file))
-    : '';
+$photo_url = '';
+if ($photo_file !== '') {
+  $candidates = [
+    rtrim($photo_web_base, '/') . '/',
+    'assets/images/sm/',
+    'uploads/profile/',
+  ];
+  foreach ($candidates as $base) {
+    $disk = rtrim(FCPATH, '/\\') . '/' . trim($base, '/') . '/' . $photo_file;
+    if (is_file($disk)) {
+      $photo_url = base_url($base . rawurlencode($photo_file));
+      break;
+    }
+  }
+  if ($photo_url === '') {
+    $photo_url = base_url(rtrim($photo_web_base, '/') . '/' . rawurlencode($photo_file));
+  }
+}
 ?>
 
 <style>

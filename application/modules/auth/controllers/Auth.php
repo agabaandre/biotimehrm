@@ -3,6 +3,10 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Auth extends MX_Controller
 {
   private $module;
+
+  /** @var string Web-relative path for the active profile photo directory */
+  private $profilePhotoWebPrefix = 'assets/images/sm/';
+
   public function __construct()
   {
     parent::__construct();
@@ -156,6 +160,8 @@ class Auth extends MX_Controller
     }
 
     $this->auth_mdl->ensureUserPhotoColumn();
+    $this->clearLoginFlashMessage();
+    $this->profilePhotoUploadDir();
     $user_id = (int) $this->session->userdata('user_id');
     $profile = $this->auth_mdl->getProfileUser($user_id);
 
@@ -178,6 +184,7 @@ class Auth extends MX_Controller
       'facilities' => $this->auth_mdl->getUserAssignedFacilities($user_id),
       'attendance' => $attendance,
       'employee_pid' => $employee_pid,
+      'photo_web_base' => $this->profilePhotoWebPrefix,
     ];
 
     echo Modules::run('templates/main', $data);
@@ -315,6 +322,7 @@ public function login($user_id = FALSE)
             $this->session->set_flashdata('msg', "Unauthorized access detected.");
             redirect("auth");
         } else {
+            $this->clearLoginFlashMessage();
             $this->session->set_userdata($userdata);
             redirect("dashboard");
         }
@@ -1047,23 +1055,109 @@ public function login($user_id = FALSE)
   }
 
   /**
+   * Discard stale login error flash left over from AJAX login attempts.
+   */
+  private function clearLoginFlashMessage()
+  {
+    $msg = $this->session->userdata('msg');
+    if ($msg === null || $msg === '') {
+      return;
+    }
+    $text = is_string($msg) ? $msg : '';
+    if (
+      stripos($text, 'Login Failed') !== false
+      || stripos($text, 'Wrong credentials') !== false
+      || stripos($text, 'Unauthorized access') !== false
+      || stripos($text, 'First time access') !== false
+    ) {
+      $this->session->unset_userdata('msg');
+      $ci_vars = $this->session->userdata('__ci_vars');
+      if (is_array($ci_vars) && isset($ci_vars['msg'])) {
+        unset($ci_vars['msg']);
+        $this->session->set_userdata('__ci_vars', $ci_vars);
+      }
+    }
+  }
+
+  /**
+   * @return array<int, array{disk:string,web:string}>
+   */
+  private function profilePhotoDirCandidates()
+  {
+    $root = rtrim(FCPATH, '/\\') . DIRECTORY_SEPARATOR;
+    return [
+      [
+        'disk' => $root . 'assets' . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'sm' . DIRECTORY_SEPARATOR,
+        'web'  => 'assets/images/sm/',
+      ],
+      [
+        'disk' => $root . 'uploads' . DIRECTORY_SEPARATOR . 'profile' . DIRECTORY_SEPARATOR,
+        'web'  => 'uploads/profile/',
+      ],
+    ];
+  }
+
+  /**
+   * @param string $dir
+   * @return bool
+   */
+  private function ensureUploadDirectory($dir)
+  {
+    $dir = rtrim($dir, '/\\') . DIRECTORY_SEPARATOR;
+
+    if (!is_dir($dir)) {
+      if (!@mkdir($dir, 0775, true) && !is_dir($dir)) {
+        log_message('error', 'Auth: could not create directory: ' . $dir);
+        return false;
+      }
+    }
+
+    if (!is_writable($dir)) {
+      @chmod($dir, 0775);
+      if (!is_writable($dir)) {
+        $parent = dirname(rtrim($dir, '/\\'));
+        while ($parent && $parent !== dirname($parent)) {
+          if (is_dir($parent)) {
+            @chmod($parent, 0775);
+          }
+          if (is_writable($parent)) {
+            break;
+          }
+          $parent = dirname($parent);
+        }
+        @chmod($dir, 0775);
+      }
+    }
+
+    if (!is_dir($dir) || !is_writable($dir)) {
+      log_message('error', 'Auth: directory not writable: ' . $dir);
+      return false;
+    }
+
+    $index = $dir . 'index.html';
+    if (!is_file($index)) {
+      @file_put_contents($index, "<!DOCTYPE html><title>403 Forbidden</title>\n");
+    }
+
+    return true;
+  }
+
+  /**
    * Ensure profile photo directory exists and is writable.
    *
    * @return string|false Absolute path with trailing slash
    */
   private function profilePhotoUploadDir()
   {
-    $dir = rtrim(FCPATH, '/\\') . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'sm' . DIRECTORY_SEPARATOR;
-    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
-      log_message('error', 'Auth: could not create profile photo directory: ' . $dir);
-      return false;
-    }
-    if (!is_writable($dir) && !@chmod($dir, 0755)) {
-      log_message('error', 'Auth: profile photo directory not writable: ' . $dir);
-      return false;
+    foreach ($this->profilePhotoDirCandidates() as $candidate) {
+      if ($this->ensureUploadDirectory($candidate['disk'])) {
+        $this->profilePhotoWebPrefix = $candidate['web'];
+        return rtrim($candidate['disk'], '/\\') . DIRECTORY_SEPARATOR;
+      }
     }
 
-    return $dir;
+    log_message('error', 'Auth: no writable profile photo directory found under ' . FCPATH);
+    return false;
   }
 
   /**
@@ -1072,6 +1166,18 @@ public function login($user_id = FALSE)
    */
   private function profilePhotoWebPath($filename)
   {
-    return 'assets/images/sm/' . ltrim((string) $filename, '/');
+    $filename = ltrim((string) $filename, '/');
+    if ($filename === '') {
+      return '';
+    }
+
+    foreach ($this->profilePhotoDirCandidates() as $candidate) {
+      $disk = rtrim($candidate['disk'], '/\\') . DIRECTORY_SEPARATOR . $filename;
+      if (is_file($disk)) {
+        return $candidate['web'] . $filename;
+      }
+    }
+
+    return $this->profilePhotoWebPrefix . $filename;
   }
 }
