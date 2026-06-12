@@ -199,9 +199,17 @@ class Auth extends MX_Controller
       return;
     }
 
-    $username = $this->session->userdata('username') ?: 'user';
+    $upload_dir = $this->profilePhotoUploadDir();
+    if ($upload_dir === false) {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'success' => false,
+        'message' => 'Photo upload folder is not available. Contact your administrator.',
+      ]));
+      return;
+    }
+
     $config = [
-      'upload_path'   => './assets/images/sm/',
+      'upload_path'   => $upload_dir,
       'allowed_types' => 'gif|jpg|jpeg|png|webp',
       'max_size'      => 3072,
       'file_name'     => 'profile_' . $user_id . '_' . time(),
@@ -221,7 +229,7 @@ class Auth extends MX_Controller
 
     $old = $this->auth_mdl->getProfileUser($user_id);
     if ($old && !empty($old->photo)) {
-      $old_path = './assets/images/sm/' . $old->photo;
+      $old_path = $upload_dir . $old->photo;
       if (is_file($old_path)) {
         @unlink($old_path);
       }
@@ -233,7 +241,7 @@ class Auth extends MX_Controller
     $this->output->set_content_type('application/json')->set_output(json_encode([
       'success'   => true,
       'message'   => 'Profile photo updated',
-      'photo_url' => base_url('assets/images/sm/' . $filename),
+      'photo_url' => base_url($this->profilePhotoWebPath($filename)),
     ]));
   }
 
@@ -598,7 +606,12 @@ public function login($user_id = FALSE)
     $res = 'Update failed';
 
     if (!empty($_FILES['photo']['tmp_name'])) {
-      $config['upload_path']   = './assets/images/sm/';
+      $upload_dir = $this->profilePhotoUploadDir();
+      if ($upload_dir === false) {
+        echo 'Photo upload folder is not available. Contact your administrator.';
+        return;
+      }
+      $config['upload_path']   = $upload_dir;
       $config['allowed_types'] = 'gif|jpg|png';
       $config['max_size']      = 3070;
       $config['file_name']      = $userfile;
@@ -649,18 +662,27 @@ public function login($user_id = FALSE)
     $postdata = $this->input->post();
     $username = $postdata['username'];
     if (!empty($_POST['photo'])) {
+      $upload_dir = $this->profilePhotoUploadDir();
+      if ($upload_dir === false) {
+        $this->session->set_flashdata('msg', '<div class="alert alert-danger">Photo upload folder is not available.</div>');
+        redirect('auth/myprofile');
+        return;
+      }
       //if user changed image
       $data = $_POST['photo'];
       list($type, $data) = explode(';', $data);
       list(, $data)      = explode(',', $data);
       $data = base64_decode($data);
       $imageName = $username . time() . '.png';
-      unlink('./assets/images/sm/' . $this->session->userdata('photo'));
+      $old_photo = $this->session->userdata('photo');
+      if ($old_photo && is_file($upload_dir . $old_photo)) {
+        @unlink($upload_dir . $old_photo);
+      }
       $this->session->set_userdata('photo', $imageName);
-      file_put_contents('./assets/images/sm/' . $imageName, $data);
+      file_put_contents($upload_dir . $imageName, $data);
       $postdata['photo'] = $imageName;
       //water mark the photo
-      $path = './assets/images/sm/' . $imageName;
+      $path = $upload_dir . $imageName;
       //$this->photoMark($path);
     } else {
       $postdata['photo'] = $this->session->userdata('photo');
@@ -1022,5 +1044,34 @@ public function login($user_id = FALSE)
     // Load reset password view
     $data['token'] = $token;
     $this->load->view('reset_password', $data);
+  }
+
+  /**
+   * Ensure profile photo directory exists and is writable.
+   *
+   * @return string|false Absolute path with trailing slash
+   */
+  private function profilePhotoUploadDir()
+  {
+    $dir = rtrim(FCPATH, '/\\') . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . 'sm' . DIRECTORY_SEPARATOR;
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+      log_message('error', 'Auth: could not create profile photo directory: ' . $dir);
+      return false;
+    }
+    if (!is_writable($dir) && !@chmod($dir, 0755)) {
+      log_message('error', 'Auth: profile photo directory not writable: ' . $dir);
+      return false;
+    }
+
+    return $dir;
+  }
+
+  /**
+   * @param string $filename
+   * @return string
+   */
+  private function profilePhotoWebPath($filename)
+  {
+    return 'assets/images/sm/' . ltrim((string) $filename, '/');
   }
 }
