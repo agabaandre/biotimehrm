@@ -298,6 +298,9 @@
   border-color: var(--dash-mint);
   box-shadow: 0 0 0 0.2rem rgba(32, 193, 152, 0.2);
 }
+.dash-page .dash-filter-card .select2-container {
+  width: 100% !important;
+}
 .dash-page .dash-btn-primary {
   background: linear-gradient(135deg, var(--dash-teal), var(--dash-mint));
   border: none;
@@ -618,7 +621,7 @@
               </button>
             </div>
           </div>
-          <div class="card-body">
+          <div class="card-body" id="dash_filter_body">
             <p class="text-muted small mb-3">Scope national charts and rates. Select one or more months (all 12 = full year). Leave region/district empty for all Uganda.</p>
             <div class="form-row">
               <div class="form-group col-md-4 col-lg-2">
@@ -635,7 +638,7 @@
               </div>
               <div class="form-group col-md-4 col-lg-2">
                 <label for="dash_nat_facility"><?php echo entity_label('facility'); ?></label>
-                <select id="dash_nat_facility" class="form-control dash-filter-s2">
+                <select id="dash_nat_facility" class="form-control">
                   <option value="">All <?php echo entity_label('facility', true); ?></option>
                 </select>
               </div>
@@ -656,7 +659,7 @@
             <div class="form-row">
               <div class="form-group col-md-4 col-lg-3">
                 <label for="dash_month">Month(s)</label>
-                <select id="dash_month" class="form-control dash-filter-s2" multiple="multiple">
+                <select id="dash_month" class="form-control" multiple="multiple">
                   <?php foreach ($months as $m => $label): ?>
                     <option value="<?php echo $m; ?>" <?php echo in_array($m, $sel_months, true) ? 'selected' : ''; ?>>
                       <?php echo $label; ?>
@@ -1088,13 +1091,23 @@ waitForHighcharts(function() {
 			}
 
 			if ($.fn.select2) {
-				$('#dash_month').select2({
-					theme: 'bootstrap4',
-					width: '100%',
-					placeholder: 'Select month(s)',
-					closeOnSelect: false
-				});
-				$('.dash-filter-s2').not('#dash_month').select2({ theme: 'bootstrap4', width: '100%', allowClear: true });
+				var dashFilterParent = $('#dash_filter_body');
+
+				function destroyDashSelect2($el) {
+					if ($el && $el.length && $el.data('select2')) {
+						$el.select2('destroy');
+					}
+				}
+
+				function dashSimpleSelect2($el) {
+					destroyDashSelect2($el);
+					$el.select2({
+						theme: 'bootstrap4',
+						width: '100%',
+						allowClear: true,
+						dropdownParent: dashFilterParent
+					});
+				}
 
 				function populateDashSelect($el, items, placeholder, selected) {
 					var html = '<option value="">' + placeholder + '</option>';
@@ -1104,8 +1117,65 @@ waitForHighcharts(function() {
 						if (!v && v !== 0) return;
 						html += '<option value="' + $('<div>').text(v).html() + '">' + $('<div>').text(l).html() + '</option>';
 					});
+					destroyDashSelect2($el);
 					$el.html(html);
-					if (selected) { $el.val(selected).trigger('change.select2'); }
+					dashSimpleSelect2($el);
+					if (selected) {
+						$el.val(selected).trigger('change');
+					}
+				}
+
+				function initDashMonthSelect2() {
+					var $month = $('#dash_month');
+					var selectedMonths = window.__dashFilters.months || [];
+					destroyDashSelect2($month);
+					$month.select2({
+						theme: 'bootstrap4',
+						width: '100%',
+						closeOnSelect: false,
+						dropdownParent: dashFilterParent
+					});
+					if (!selectedMonths.length) {
+						selectedMonths = ['<?php echo date('m'); ?>'];
+					}
+					$month.val(selectedMonths).trigger('change');
+				}
+
+				function initDashNatFacilitySelect2() {
+					destroyDashSelect2($('#dash_nat_facility'));
+					$('#dash_nat_facility').select2({
+						theme: 'bootstrap4',
+						placeholder: 'All <?php echo entity_label('facility', true); ?>',
+						allowClear: true,
+						width: '100%',
+						dropdownParent: dashFilterParent,
+						minimumInputLength: 0,
+						ajax: {
+							url: '<?php echo base_url('dashboard/searchFacilities'); ?>',
+							dataType: 'json',
+							delay: 250,
+							data: function(params) {
+								return { term: params.term || '', district: $('#dash_district').val() || '' };
+							},
+							processResults: function(data) {
+								return (data && Array.isArray(data.results)) ? data : { results: [] };
+							},
+							cache: true
+						}
+					});
+					var natFacility = '<?php echo addslashes($sel_nat_facility); ?>';
+					if (natFacility) {
+						var $nat = $('#dash_nat_facility');
+						if ($nat.find('option[value="' + natFacility + '"]').length === 0) {
+							$nat.append(new Option(natFacility, natFacility, true, true));
+						}
+						$nat.val(natFacility).trigger('change');
+					}
+				}
+
+				function initDashboardFilterSelect2() {
+					initDashMonthSelect2();
+					initDashNatFacilitySelect2();
 				}
 
 				$.getJSON('<?php echo base_url('dashboard/filterOptions'); ?>')
@@ -1114,36 +1184,35 @@ waitForHighcharts(function() {
 						populateDashSelect($('#dash_district'), data.districts, 'All Districts', '<?php echo addslashes($sel_district); ?>');
 						populateDashSelect($('#dash_institution_type'), data.institution_types, 'All', '<?php echo addslashes($sel_institution); ?>');
 						populateDashSelect($('#dash_cadre'), data.cadres, 'All', '<?php echo addslashes($sel_cadre); ?>');
+						initDashboardFilterSelect2();
+					})
+					.fail(function() {
+						$('.dash-filter-s2').each(function() { dashSimpleSelect2($(this)); });
+						initDashboardFilterSelect2();
 					});
+
+				$('.dash-filter-card').on('expanded.lte.cardwidget', function() {
+					window.setTimeout(function() {
+						$('#dash_region, #dash_district, #dash_institution_type, #dash_cadre, #dash_month, #dash_nat_facility').each(function() {
+							var $el = $(this);
+							if ($el.data('select2')) {
+								$el.trigger('change.select2');
+							}
+						});
+					}, 50);
+				});
 
 				$('#dash_district').on('change', function() {
 					$('#dash_nat_facility').val(null).trigger('change');
 				});
 
-				$('#dash_nat_facility').select2({
-					placeholder: 'All <?php echo entity_label('facility', true); ?>',
-					allowClear: true,
-					width: '100%',
-					minimumInputLength: 0,
-					ajax: {
-						url: '<?php echo base_url('dashboard/searchFacilities'); ?>',
-						dataType: 'json',
-						delay: 250,
-						data: function(params) {
-							return { term: params.term || '', district: $('#dash_district').val() || '' };
-						},
-						processResults: function(data) {
-							return (data && Array.isArray(data.results)) ? data : { results: [] };
-						},
-						cache: true
-					}
-				});
-
 				if ($('#dash_facility').length) {
+					destroyDashSelect2($('#dash_facility'));
 					$('#dash_facility').select2({
 						placeholder: 'All Facilities',
 						allowClear: true,
 						width: '100%',
+						dropdownParent: dashFilterParent,
 						minimumInputLength: 0,
 						ajax: {
 							url: '<?php echo base_url('dashboard/searchFacilities'); ?>',
@@ -1173,12 +1242,13 @@ waitForHighcharts(function() {
 					});
 				}
 
+				destroyDashSelect2($('#dash_empid'));
 				$('#dash_empid').select2({
 					placeholder: 'All Staff',
 					allowClear: true,
 					width: '100%',
 					minimumInputLength: 0,
-					dropdownParent: $('#dash_empid').closest('.card-body'),
+					dropdownParent: dashFilterParent,
 					ajax: {
 						url: '<?php echo base_url('dashboard/searchEmployees'); ?>',
 						dataType: 'json',
@@ -1199,6 +1269,14 @@ waitForHighcharts(function() {
 						cache: true
 					}
 				});
+				var selEmpid = '<?php echo addslashes($sel_empid); ?>';
+				if (selEmpid) {
+					var $emp = $('#dash_empid');
+					if ($emp.find('option[value="' + selEmpid + '"]').length === 0) {
+						$emp.append(new Option(selEmpid, selEmpid, true, true));
+					}
+					$emp.val(selEmpid).trigger('change');
+				}
 
 				function preloadDashStaff() {
 					$.getJSON('<?php echo base_url('dashboard/searchEmployees'); ?>', {
