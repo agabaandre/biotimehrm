@@ -59,8 +59,15 @@
 		<!-- Main row -->
 		<div class="row">
 			<div class="col-md-12">
-				<div class="callout callout-success">
-					<form id="aggregateFiltersForm" class="form-horizontal" style="padding-bottom: 2em;">
+				<div class="card card-outline card-success collapsed-card mb-3">
+					<div class="card-header">
+						<h3 class="card-title"><i class="fas fa-filter mr-2"></i>Report Filters</h3>
+						<div class="card-tools">
+							<button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i></button>
+						</div>
+					</div>
+					<div class="card-body">
+					<form id="aggregateFiltersForm" class="form-horizontal" style="padding-bottom: 1em;">
 						<div class="row">
 							<div class="col-md-4">
 								<div class="control-group">
@@ -181,6 +188,7 @@
 					</div>
 						</div>
 					</form>
+					</div>
 				</div>
 			</div>
 	</div>

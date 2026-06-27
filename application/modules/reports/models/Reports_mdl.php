@@ -448,8 +448,14 @@ class Reports_mdl extends CI_Model
 				$this->db->where_in('duty_date', $dd);
 			}
 			if (isset($filters['institution_type'])) {
-
-				$this->db->where_in('institution_type', $filters['institution_type']);
+				$inst_col = $this->_aggregate_institution_type_column();
+				if ($inst_col !== null) {
+					$raw = is_array($filters['institution_type']) ? $filters['institution_type'] : array($filters['institution_type']);
+					$types = array_values(array_filter(array_map('strval', $raw), 'strlen'));
+					if (!empty($types)) {
+						$this->db->where_in($inst_col, $types);
+					}
+				}
 			}
 		}
 

@@ -1,196 +1,185 @@
-<!-- Attendance Graphs Grid -->
+<!-- Attendance Analytics Charts -->
 <style>
-    .attendance-graphs-container {
-        width: 100%;
-    }
-    .chart-card {
-        height: 100%;
-        margin-bottom: 1.5rem;
-        display: flex;
-        flex-direction: column;
-    }
-    .chart-card .card {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    .chart-card .card-body {
-        flex: 1;
-        min-height: 400px;
-        padding: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    #line_graph_att {
-        width: 100% !important;
-        height: 400px !important;
-        min-width: 0;
-    }
-    @media (max-width: 992px) {
-        .chart-card .card-body {
-            min-height: 350px;
-        }
-        #line_graph_att {
-            height: 350px !important;
-        }
-    }
-    @media (max-width: 768px) {
-        .chart-card .card-body {
-            min-height: 300px;
-        }
-        #line_graph_att {
-            height: 300px !important;
-        }
-    }
+.attendance-graphs-container .chart-card .card-body { min-height: 340px; }
+.attendance-graphs-container .chart-box { width: 100%; height: 320px; min-height: 280px; }
 </style>
 
 <div class="attendance-graphs-container">
-    <!-- Attendance per Month (full width) -->
-    <div class="row">
-        <!-- Attendance Chart -->
-        <div class="col-12 mb-4">
-            <div class="chart-card">
-                <div class="card card-outline card-success">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-chart-line mr-2"></i>Attendance per Month
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="line_graph_att" style="width:100%; height:400px;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+	<div class="row mb-2">
+		<div class="col-12">
+			<small class="text-muted" id="graph_fy_hint">Charts use the selected month/year (financial year Jun–May) and dashboard scope filters.</small>
+		</div>
+	</div>
 
-    <!-- Removed: Employees Scheduled per Month chart (per request) -->
+	<div class="row">
+		<div class="col-12 mb-4">
+			<div class="chart-card">
+				<div class="card card-outline card-success">
+					<div class="card-header"><h3 class="card-title"><i class="fas fa-chart-line mr-2"></i>Average Daily Working Staff (Monthly)</h3></div>
+					<div class="card-body"><div id="chart_avg_daily" class="chart-box"></div></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-lg-6 mb-4">
+			<div class="chart-card">
+				<div class="card card-outline card-primary">
+					<div class="card-header">
+						<h3 class="card-title"><i class="fas fa-chart-column mr-2"></i>Monthly Attendance Rate (%)</h3>
+					</div>
+					<div class="card-body"><div id="chart_att_rate" class="chart-box"></div></div>
+					<div class="card-footer py-2">
+						<small class="text-muted">Line = present on working days. Stacked columns = schedule mix (% of calendar staff-days).</small>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-6 mb-4">
+			<div class="chart-card">
+				<div class="card card-outline card-danger">
+					<div class="card-header">
+						<h3 class="card-title"><i class="fas fa-chart-column mr-2"></i>Monthly Absenteeism Rate (%)</h3>
+					</div>
+					<div class="card-body"><div id="chart_abs_rate" class="chart-box"></div></div>
+					<div class="card-footer py-2">
+						<small class="text-muted">Line = unaccounted absent on working days. Columns = scheduled away and unaccounted (% of calendar staff-days).</small>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
-<script src="<?php echo base_url() ?>assets/plugins/moment/moment.min.js"></script>
-<script src="<?php echo base_url() ?>assets/bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
+
 <script type="text/javascript">
-    // Wait for Highcharts to be fully loaded before using it
-    function waitForHighcharts(callback) {
-        if (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function' && typeof Highcharts.chart === 'function') {
-            callback();
-        } else {
-            setTimeout(function() {
-                waitForHighcharts(callback);
-            }, 100);
-        }
-    }
-    
-    // Wait for both jQuery and Highcharts
-    $(document).ready(function() {
-        waitForHighcharts(function() {
-            // Set Highcharts options only if Highcharts is available
-            try {
-                if (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function') {
-                    Highcharts.setOptions({
-                        colors: ['#28a745', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4']
-                    });
-                }
-            } catch(e) {
-                console.error('Error setting Highcharts options:', e);
-            }
+(function() {
+	var charts = {};
 
-            function refreshAttendanceGraph() {
-                return $.ajax({
-                type: 'GET',
-                url: '<?php echo base_url('dashboard/graphsData') ?>',
-                dataType: "json",
-                timeout: 15000,
-                cache: false,
-                success: function (data) {
-                    if (data.graph && data.graph.period && data.graph.data) {
-                        if (typeof Highcharts !== 'undefined' && Highcharts.charts) {
-                            var attChart = Highcharts.charts.find(function(chart) {
-                                return chart && chart.renderTo && chart.renderTo.id === 'line_graph_att';
-                            });
-                            if (attChart) {
-                                attChart.series[0].setData(data.graph.data);
-                                attChart.xAxis[0].setCategories(data.graph.period);
-                                if (data.graph.meta && data.graph.meta.mode === 'person') {
-                                    attChart.update({
-                                        title: { text: 'Days Present per Month (Selected Staff)' },
-                                        yAxis: { title: { text: 'Days Present' } },
-                                        series: [{ name: 'Days Present', data: data.graph.data }]
-                                    }, true, false);
-                                } else {
-                                    attChart.update({
-                                        title: { text: 'Average Daily Attendance (Unique Staff)' },
-                                        yAxis: { title: { text: 'Avg Daily Staff' } },
-                                        series: [{ name: 'Staff', data: data.graph.data }]
-                                    }, true, false);
-                                }
-                            }
-                        }
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Graphs data load error:', error);
-                }
-                });
-            }
+	function waitForHighcharts(cb) {
+		if (typeof Highcharts !== 'undefined' && typeof Highcharts.chart === 'function') {
+			cb();
+		} else {
+			setTimeout(function() { waitForHighcharts(cb); }, 80);
+		}
+	}
 
-            // Expose a global hook so the dashboard filters can refresh the chart without reloading the page
-            window.reloadAttendancePerMonth = function() {
-                return refreshAttendanceGraph();
-            };
+	function scheduleSeries(data, prefix) {
+		return [
+			{ name: 'Present (Schedule)', data: data[prefix + '_present'] || [], color: '#20c198' },
+			{ name: 'Off Duty (Schedule)', data: data[prefix + '_off'] || [], color: '#f0ad4e' },
+			{ name: 'On Leave (Schedule)', data: data[prefix + '_leave'] || [], color: '#17a2b8' },
+			{ name: 'Official (Schedule)', data: data[prefix + '_official'] || [], color: '#6f42c1' },
+			{ name: 'Holiday (Schedule)', data: data[prefix + '_holiday'] || [], color: '#adb5bd' }
+		];
+	}
 
-            // Initial load
-            refreshAttendanceGraph();
+	function renderCharts(data) {
+		if (!data || !data.graph) return;
+		var period = data.graph.period || [];
+		var fyLabel = data.fy_label || '';
 
-    <?php
-    // Attendance per month uses actuals table (FY Jun->May)
-    $graph = Modules::run("reports/attendanceActualsGraphData", ($this->session->userdata('year') ?: date('Y')), ($this->session->userdata('month') ?: date('m')), ($this->session->userdata('dashboard_empid') ?: ''));
-    ?>
-    
-    // All Highcharts chart creation must be inside waitForHighcharts callback
-    try {
-        if (typeof Highcharts !== 'undefined' && typeof Highcharts.chart === 'function') {
-        Highcharts.chart('line_graph_att', {
-            chart: {
-                type: 'line'
-            },
-            title: {
-                text: '<?php echo (!empty($graph["meta"]["empid"])) ? "Days Present per Month (Selected Staff)" : "Average Daily Attendance (Unique Staff)"; ?>'
-            },
-            subtitle: {
-                text: '<?php echo str_replace("'", " ", $_SESSION["facility_name"]); ?>'
-            },
-            xAxis: {
-                categories: <?php echo json_encode($graph['period']); ?>
-            },
-            yAxis: {
-                title: {
-                    text: '<?php echo (!empty($graph["meta"]["empid"])) ? "Days Present" : "Avg Daily Staff"; ?>'
-                }
-            },
-            plotOptions: {
-                line: {
-                    dataLabels: {
-                        enabled: true
-                    },
-                    enableMouseTracking: true
-                }
-            },
-            credits: {
-                enabled: false
-            },
-            series: [{
-                name: '<?php echo (!empty($graph["meta"]["empid"])) ? "Days Present" : "Staff"; ?>',
-                data: <?php echo json_encode($graph['data'], JSON_NUMERIC_CHECK); ?>
-            }]
-        });
-        }
-    } catch(e) {
-        console.error('Error creating Highcharts charts:', e);
-    }
-        
-        // Average Monthly Hours gauge removed (per request)
-        }); // End of waitForHighcharts
-    }); // End of $(document).ready
+		if (charts.avg) charts.avg.destroy();
+		charts.avg = Highcharts.chart('chart_avg_daily', {
+			chart: { type: 'line' },
+			title: { text: 'Average Daily Working Staff' },
+			subtitle: { text: fyLabel },
+			xAxis: { categories: period },
+			yAxis: { title: { text: 'Avg staff per working day' }, min: 0 },
+			series: [{ name: 'Staff', data: data.graph.data || [], color: '#20c198' }],
+			credits: { enabled: false }
+		});
 
+		var attSchedule = scheduleSeries(data, 'schedule');
+
+		if (charts.att) charts.att.destroy();
+		charts.att = Highcharts.chart('chart_att_rate', {
+			chart: { type: 'column' },
+			title: { text: null },
+			xAxis: { categories: period },
+			yAxis: {
+				title: { text: '% of staff-days' },
+				max: 100,
+				stackLabels: { enabled: false }
+			},
+			tooltip: {
+				shared: true,
+				valueSuffix: '%'
+			},
+			plotOptions: {
+				column: { stacking: 'normal', borderWidth: 0 },
+				series: { marker: { enabled: true, radius: 3 } }
+			},
+			series: attSchedule.concat([{
+				type: 'spline',
+				name: 'Attendance rate',
+				data: data.attendance_rate || [],
+				color: '#005662',
+				lineWidth: 3,
+				marker: { lineWidth: 2, lineColor: '#005662', fillColor: '#fff' },
+				zIndex: 5
+			}]),
+			credits: { enabled: false }
+		});
+
+		if (charts.abs) charts.abs.destroy();
+		charts.abs = Highcharts.chart('chart_abs_rate', {
+			chart: { type: 'column' },
+			title: { text: null },
+			xAxis: { categories: period },
+			yAxis: {
+				title: { text: '% of staff-days' },
+				max: 100
+			},
+			tooltip: {
+				shared: true,
+				valueSuffix: '%'
+			},
+			plotOptions: {
+				column: { stacking: 'normal', borderWidth: 0 },
+				series: { marker: { enabled: true, radius: 3 } }
+			},
+			series: [
+				{ name: 'Off Duty (Schedule)', data: data.schedule_off || [], color: '#f0ad4e' },
+				{ name: 'On Leave (Schedule)', data: data.schedule_leave || [], color: '#17a2b8' },
+				{ name: 'Official (Schedule)', data: data.schedule_official || [], color: '#6f42c1' },
+				{ name: 'Holiday (Schedule)', data: data.schedule_holiday || [], color: '#adb5bd' },
+				{ name: 'Unaccounted Absent', data: data.schedule_unaccounted || [], color: '#e74c3c' },
+				{
+					type: 'spline',
+					name: 'Absenteeism rate',
+					data: data.absenteeism_rate || [],
+					color: '#c0392b',
+					lineWidth: 3,
+					marker: { lineWidth: 2, lineColor: '#c0392b', fillColor: '#fff' },
+					zIndex: 5
+				}
+			],
+			credits: { enabled: false }
+		});
+
+		$('#graph_fy_hint').text('Showing ' + fyLabel + (data.cached ? ' (cached)' : ''));
+	}
+
+	function refreshAttendanceGraph() {
+		return $.ajax({
+			type: 'GET',
+			url: '<?php echo base_url('dashboard/graphsData'); ?>',
+			dataType: 'json',
+			timeout: 120000,
+			cache: false
+		}).done(function(data) {
+			renderCharts(data);
+		}).fail(function(xhr, status, err) {
+			console.error('Graphs data load error:', err || status);
+		});
+	}
+
+	$(document).ready(function() {
+		waitForHighcharts(function() {
+			window.reloadAttendancePerMonth = refreshAttendanceGraph;
+			refreshAttendanceGraph();
+		});
+	});
+})();
 </script>

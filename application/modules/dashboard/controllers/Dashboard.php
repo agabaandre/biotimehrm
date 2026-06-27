@@ -170,39 +170,49 @@ class Dashboard extends MX_Controller {
 		$year = (int) $this->input->post('year');
 		$empid = trim((string) $this->input->post('empid'));
 		$facility_id = trim((string) $this->input->post('facility_id'));
+		$region = trim((string) $this->input->post('region'));
+		$district = trim((string) $this->input->post('district'));
+		$institution_type = trim((string) $this->input->post('institution_type'));
+		$cadre = trim((string) $this->input->post('cadre'));
+		$national_facility = trim((string) $this->input->post('national_facility_id'));
 
 		$permissions = $this->session->userdata('permissions') ?: [];
 		$user_role = (string) $this->session->userdata('role');
 		$is_role10 = in_array('10', $permissions) || ($user_role === 'District Admin') || ($user_role === 'Regional Admin');
 
-		// Basic validation
-		if ($month < 1 || $month > 12) $month = (int) date('m');
-		if ($year < 2000 || $year > ((int) date('Y') + 2)) $year = (int) date('Y');
-		if ($empid === '' || $empid === 'all') $empid = '';
+		if ($month < 1 || $month > 12) {
+			$month = (int) date('m');
+		}
+		if ($year < 2000 || $year > ((int) date('Y') + 2)) {
+			$year = (int) date('Y');
+		}
+		if ($empid === '' || $empid === 'all') {
+			$empid = '';
+		}
 
 		$this->session->set_userdata('month', str_pad((string) $month, 2, '0', STR_PAD_LEFT));
 		$this->session->set_userdata('year', (string) $year);
 		$this->session->set_userdata('dashboard_empid', $empid);
+		$this->session->set_userdata('dashboard_region', $region);
+		$this->session->set_userdata('dashboard_district', $district);
+		$this->session->set_userdata('dashboard_institution_type', $institution_type);
+		$this->session->set_userdata('dashboard_cadre', $cadre);
+		$this->session->set_userdata('dashboard_facility_filter', $national_facility);
 
-		// Role 10: allow facility selection (chains staff + affects dashboard context)
 		if ($is_role10) {
 			if ($facility_id === '' || $facility_id === 'all') {
 				$facility_id = '';
 			}
 			$this->session->set_userdata('dashboard_facility', $facility_id);
 
-			// If facility is chosen, set it as current facility for consistent filtering (calendar/sessionfilters etc.)
 			if (!empty($facility_id)) {
 				$this->session->set_userdata('facility', $facility_id);
-				// Attempt to set facility_name for UI
-				$name = null;
 				$q = $this->db->query("SELECT DISTINCT facility FROM ihrisdata WHERE facility_id = ? LIMIT 1", [$facility_id]);
 				if ($q && $q->num_rows() > 0) {
 					$row = $q->row();
-					$name = isset($row->facility) ? $row->facility : null;
-				}
-				if ($name) {
-					$this->session->set_userdata('facility_name', $name);
+					if (!empty($row->facility)) {
+						$this->session->set_userdata('facility_name', $row->facility);
+					}
 				}
 			}
 		}
@@ -212,7 +222,50 @@ class Dashboard extends MX_Controller {
 			'month' => str_pad((string) $month, 2, '0', STR_PAD_LEFT),
 			'year' => (string) $year,
 			'empid' => $empid,
-			'facility_id' => $is_role10 ? $facility_id : ''
+			'facility_id' => $is_role10 ? $facility_id : '',
+			'region' => $region,
+			'district' => $district,
+			'institution_type' => $institution_type,
+			'cadre' => $cadre,
+			'national_facility_id' => $national_facility,
+		]));
+	}
+
+	/**
+	 * Cached filter dropdown options (regions, districts, institution types, cadres).
+	 */
+	public function filterOptions() {
+		$this->output->set_content_type('application/json');
+		if (!$this->session->userdata('isLoggedIn')) {
+			return $this->output->set_status_header(401)->set_output(json_encode(['error' => 'unauthorized']));
+		}
+		$this->load->library('ihris_filter_cache', null, 'ihris_filters');
+		$opts = $this->ihris_filters->get_options();
+		return $this->output->set_output(json_encode($opts));
+	}
+
+	/**
+	 * National attendance / absenteeism rates + chart series (Redis-backed).
+	 */
+	public function nationalAnalytics() {
+		$this->output->set_content_type('application/json');
+		if (!$this->session->userdata('isLoggedIn')) {
+			return $this->output->set_status_header(401)->set_output(json_encode(['error' => 'unauthorized']));
+		}
+
+		$scope = $this->dash_mdl->dashboardScopeFromSession();
+		$year = (int) ($this->session->userdata('year') ?: date('Y'));
+		$month = (int) ($this->session->userdata('month') ?: date('m'));
+		$empid = (string) ($this->session->userdata('dashboard_empid') ?: '');
+		$fy_start = financial_year_start_year($year, $month);
+
+		$national = $this->dash_mdl->nationalAttendanceRates($scope, $year, $month);
+		$charts = $this->dash_mdl->analyticsCharts($scope, $fy_start, $year, $month, $empid);
+
+		return $this->output->set_output(json_encode([
+			'national' => $national,
+			'charts' => $charts,
+			'scope' => $scope,
 		]));
 	}
 
@@ -228,17 +281,53 @@ class Dashboard extends MX_Controller {
 
 		$term = trim((string) $this->input->get('term'));
 		$facility_param = trim((string) $this->input->get('facility_id'));
-		$facility = $this->_dashboardFacility($facility_param);
-		$district_id = $this->_dashboardDistrictId();
+		$district_param = trim((string) $this->input->get('district'));
 
-		if ($facility === '' && $district_id === '') {
-			return $this->output->set_output(json_encode(['results' => []]));
+		$facility = $this->_dashboardFacility($facility_param);
+		if ($facility === '') {
+			$facility = trim((string) $this->session->userdata('dashboard_facility_filter'));
+		}
+		if ($facility === '') {
+			$facility = trim((string) ($this->session->userdata('facility') ?: ''));
+		}
+
+		$district_id = $this->_dashboardDistrictId();
+		$district_name = $district_param !== '' ? $district_param : $this->_dashboardDistrictName();
+
+		$scope = $this->dash_mdl->dashboardScopeFromSession();
+		if ($district_param !== '') {
+			$scope['district'] = $district_param;
+		}
+		if ($facility_param !== '') {
+			$scope['facility_id'] = $facility_param;
+			$facility = $facility_param;
+		} elseif ($facility !== '') {
+			$scope['facility_id'] = $facility;
 		}
 
 		$this->load->library('dashboard_staff_cache', null, 'dash_staff');
-		$results = $this->dash_staff->search($facility, $district_id, $term, 50);
+
+		if ($facility !== '') {
+			$results = $this->dash_staff->search($facility, '', $term, 50, '');
+		} elseif ($district_id !== '' || $district_name !== '') {
+			$results = $this->dash_staff->search('', $district_id, $term, 50, $district_name);
+		} elseif ($this->_scopeHasStaffFilters($scope)) {
+			$results = $this->dash_staff->searchByScope($scope, $term, 50);
+		} else {
+			$results = [];
+		}
 
 		return $this->output->set_output(json_encode(['results' => $results]));
+	}
+
+	private function _scopeHasStaffFilters(array $scope)
+	{
+		foreach (['region', 'district', 'facility_id', 'institution_type', 'cadre'] as $key) {
+			if (!empty($scope[$key])) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -252,13 +341,51 @@ class Dashboard extends MX_Controller {
 		}
 
 		$term = trim((string) $this->input->get('term'));
+		$district_name = trim((string) $this->input->get('district'));
+		if ($district_name === '') {
+			$district_name = $this->_dashboardDistrictName();
+		}
 		$district_id = $this->_dashboardDistrictId();
-		if ($district_id === '') {
+
+		$this->load->library('facility_switch_cache', null, 'fsc');
+		$facilities = [];
+
+		if ($district_name !== '') {
+			foreach ($this->fsc->get_data(false, false)['districts'] as $drow) {
+				if (strcasecmp(trim((string) $drow['district']), $district_name) === 0) {
+					$district_id = $drow['district_id'];
+					break;
+				}
+			}
+		}
+
+		if ($district_id !== '') {
+			$facilities = $this->fsc->get_facilities_for_district($district_id);
+		} elseif ($district_name !== '') {
+			$names = $this->fsc->get_district_names_in_group($district_name);
+			if (empty($names)) {
+				$names = [$district_name];
+			}
+			$placeholders = implode(',', array_fill(0, count($names), '?'));
+			$rows = $this->db->query(
+				"SELECT TRIM(facility_id) AS facility_id, TRIM(facility) AS facility
+				 FROM ihrisdata
+				 WHERE TRIM(facility) != '' AND TRIM(facility_id) != ''
+				   AND TRIM(district) IN ({$placeholders})
+				 GROUP BY TRIM(facility_id), TRIM(facility)
+				 ORDER BY TRIM(facility) ASC",
+				$names
+			)->result();
+			foreach ($rows as $r) {
+				$o = new stdClass();
+				$o->facility_id = $r->facility_id;
+				$o->facility = $r->facility;
+				$facilities[] = $o;
+			}
+		} else {
 			return $this->output->set_output(json_encode(['results' => []]));
 		}
 
-		$this->load->library('facility_switch_cache', null, 'fsc');
-		$facilities = $this->fsc->get_facilities_for_district($district_id);
 		$needle = strtolower($term);
 		$results = [];
 		foreach ($facilities as $f) {
@@ -311,6 +438,17 @@ class Dashboard extends MX_Controller {
 			return trim((string) $_SESSION['district_id']);
 		}
 
+		return '';
+	}
+
+	private function _dashboardDistrictName()
+	{
+		foreach (['dashboard_district', 'district'] as $key) {
+			$value = $this->session->userdata($key);
+			if ($value !== null && $value !== false && trim((string) $value) !== '') {
+				return trim((string) $value);
+			}
+		}
 		return '';
 	}
 
@@ -424,31 +562,53 @@ class Dashboard extends MX_Controller {
 	 */
 	public function graphsData() {
 		header('Content-Type: application/json');
-		
-		// Set execution limits for this endpoint
-		set_time_limit(30);
-		ini_set('memory_limit', '128M');
-		
+
+		if (!$this->session->userdata('isLoggedIn')) {
+			echo json_encode(['error' => 'unauthorized']);
+			return;
+		}
+
+		set_time_limit(60);
+		ini_set('memory_limit', '256M');
+
 		try {
-			// Attendance per Month graph:
-			// - facility mode: Avg Daily Attendance (unique staff)
-			// - person mode: Days Present per month for selected person
-			$year = $this->session->userdata('year') ?: date('Y');
-			$month = $this->session->userdata('month') ?: date('m');
-			$empid = $this->session->userdata('dashboard_empid') ?: '';
-			$graph = Modules::run("reports/attendanceActualsGraphData", $year, $month, $empid);
-			
-			$data = array(
-				'graph' => $graph
-			);
-			
-			echo json_encode($data);
+			$scope = $this->dash_mdl->dashboardScopeFromSession();
+			$year = (int) ($this->session->userdata('year') ?: date('Y'));
+			$month = (int) ($this->session->userdata('month') ?: date('m'));
+			$empid = (string) ($this->session->userdata('dashboard_empid') ?: '');
+			$fy_start = financial_year_start_year($year, $month);
+
+			$charts = $this->dash_mdl->analyticsCharts($scope, $fy_start, $year, $month, $empid);
+			$graph = [
+				'period' => $charts['period'],
+				'data'   => $charts['avg_daily_workers'],
+				'meta'   => [
+					'fy_start' => $fy_start,
+					'fy_label' => $charts['fy_label'],
+					'mode'     => ($empid !== '') ? 'person' : 'scoped',
+					'empid'    => $empid,
+				],
+			];
+
+			echo json_encode([
+				'graph'                  => $graph,
+				'attendance_rate'        => $charts['attendance_rate'],
+				'absenteeism_rate'       => $charts['absenteeism_rate'],
+				'schedule_present'       => $charts['schedule_present'] ?? [],
+				'schedule_off'           => $charts['schedule_off'] ?? [],
+				'schedule_leave'         => $charts['schedule_leave'] ?? [],
+				'schedule_official'      => $charts['schedule_official'] ?? [],
+				'schedule_holiday'       => $charts['schedule_holiday'] ?? [],
+				'schedule_unaccounted'   => $charts['schedule_unaccounted'] ?? [],
+				'fy_label'               => $charts['fy_label'],
+				'cached'                 => !empty($charts['cached']),
+			]);
 		} catch (Exception $e) {
 			log_message('error', 'graphsData error: ' . $e->getMessage());
-			echo json_encode(array(
+			echo json_encode([
 				'error' => $e->getMessage(),
-				'graph' => array('period' => array(), 'data' => array())
-			));
+				'graph' => ['period' => [], 'data' => []],
+			]);
 		}
 	}
 	

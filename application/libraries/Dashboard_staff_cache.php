@@ -19,6 +19,7 @@ class Dashboard_staff_cache {
 	{
 		$this->ci =& get_instance();
 		$this->ci->config->load('dashboard_staff_cache', true, true);
+		$this->ci->load->helper(['ihris_filter', 'mysql8_ihris']);
 		$cfg = $this->ci->config->item('dashboard_staff_cache');
 		$key_prefix = is_array($cfg) && !empty($cfg['cache_key_prefix'])
 			? (string) $cfg['cache_key_prefix']
@@ -35,14 +36,15 @@ class Dashboard_staff_cache {
 	 * @param int    $limit
 	 * @return array<int, array{id:string,text:string}>
 	 */
-	public function search($facility_id, $district_id, $term = '', $limit = 50)
+	public function search($facility_id, $district_id, $term = '', $limit = 50, $district_name = '')
 	{
 		$facility_id = trim((string) $facility_id);
 		$district_id = trim((string) $district_id);
+		$district_name = trim((string) $district_name);
 		$term = trim((string) $term);
 		$limit = max(1, min(200, (int) $limit));
 
-		if ($facility_id === '' && $district_id === '') {
+		if ($facility_id === '' && $district_id === '' && $district_name === '') {
 			return [];
 		}
 
@@ -51,14 +53,82 @@ class Dashboard_staff_cache {
 			$rows = $this->_get_list($key, function () use ($facility_id) {
 				return $this->_load_from_db_by_facility($facility_id);
 			});
-		} else {
+		} elseif ($district_id !== '') {
 			$key = 'staff_dist_' . md5($district_id);
 			$rows = $this->_get_list($key, function () use ($district_id) {
 				return $this->_load_from_db_by_district($district_id);
 			});
+		} else {
+			$key = 'staff_dname_' . md5($district_name);
+			$rows = $this->_get_list($key, function () use ($district_name) {
+				return $this->_load_from_db_by_district_name($district_name);
+			});
 		}
 
 		return $this->_filter_rows($rows, $term, $limit);
+	}
+
+	/**
+	 * Staff list scoped by national dashboard filters (region, district, facility, institution, cadre).
+	 *
+	 * @param array<string, string> $scope
+	 * @return array<int, array{id:string,text:string}>
+	 */
+	public function searchByScope(array $scope, $term = '', $limit = 50)
+	{
+		$scope = array_map(function ($v) {
+			return trim((string) $v);
+		}, $scope);
+		$key = 'staff_scope_' . md5(json_encode($scope));
+		$rows = $this->_get_list($key, function () use ($scope) {
+			return $this->_load_from_db_by_scope($scope);
+		});
+
+		return $this->_filter_rows($rows, $term, $limit);
+	}
+
+	/**
+	 * @param array<string, string> $scope
+	 * @return array<int, array{id:string,text:string}>
+	 */
+	protected function _load_from_db_by_scope(array $scope)
+	{
+		$this->ci->load->helper('ihris_filter');
+		$this->ci->db->select('ihris_pid, surname, firstname, othername', false);
+		$this->ci->db->from('ihrisdata');
+
+		if (!empty($scope['facility_id'])) {
+			$this->ci->db->where('TRIM(facility_id) = ' . $this->ci->db->escape($scope['facility_id']), null, false);
+		}
+		if (!empty($scope['district'])) {
+			$this->ci->load->library('facility_switch_cache', null, 'fsc');
+			$names = $this->ci->fsc->get_district_names_in_group($scope['district']);
+			if (empty($names)) {
+				$names = [$scope['district']];
+			}
+			if (count($names) > 1) {
+				$this->ci->db->where_in('district', $names);
+			} else {
+				$this->ci->db->where('district', $names[0]);
+			}
+		}
+		if (!empty($scope['region']) && $this->ci->db->field_exists('region', 'ihrisdata')) {
+			$this->ci->db->where('TRIM(region) = ' . $this->ci->db->escape($scope['region']), null, false);
+		}
+		$inst_col = ihris_institution_type_column($this->ci->db);
+		if (!empty($scope['institution_type']) && $inst_col !== null) {
+			$this->ci->db->where('TRIM(' . mysql8_quote_ident($inst_col) . ') = ' . $this->ci->db->escape($scope['institution_type']), null, false);
+		}
+		if (!empty($scope['cadre']) && $this->ci->db->field_exists('cadre', 'ihrisdata')) {
+			$this->ci->db->where('TRIM(cadre) = ' . $this->ci->db->escape($scope['cadre']), null, false);
+		}
+
+		$this->_apply_active_filter();
+		$this->ci->db->order_by('surname', 'ASC');
+		$this->ci->db->order_by('firstname', 'ASC');
+		$this->ci->db->limit(3000);
+
+		return $this->_rows_from_query($this->ci->db->get());
 	}
 
 	/**
@@ -133,6 +203,28 @@ class Dashboard_staff_cache {
 		$this->ci->db->select('ihris_pid, surname, firstname, othername', false);
 		$this->ci->db->from('ihrisdata');
 		$this->ci->db->where_in('district_id', $district_ids);
+		$this->_apply_active_filter();
+		$this->ci->db->order_by('surname', 'ASC');
+		$this->ci->db->order_by('firstname', 'ASC');
+
+		return $this->_rows_from_query($this->ci->db->get());
+	}
+
+	/**
+	 * @param string $district_name
+	 * @return array<int, array{id:string,text:string}>
+	 */
+	protected function _load_from_db_by_district_name($district_name)
+	{
+		$this->ci->load->library('facility_switch_cache', null, 'fsc');
+		$names = $this->ci->fsc->get_district_names_in_group($district_name);
+		if (empty($names)) {
+			$names = [$district_name];
+		}
+
+		$this->ci->db->select('ihris_pid, surname, firstname, othername', false);
+		$this->ci->db->from('ihrisdata');
+		$this->ci->db->where_in('district', $names);
 		$this->_apply_active_filter();
 		$this->ci->db->order_by('surname', 'ASC');
 		$this->ci->db->order_by('firstname', 'ASC');

@@ -225,13 +225,9 @@ class Reports extends MX_Controller
 		}
 
 		if ($this->input->get('institution_types') === '1') {
-			$types = [];
-			foreach ($this->_aggregate_institution_types() as $row) {
-				$name = isset($row->institutiontype_name) ? trim((string) $row->institutiontype_name) : '';
-				if ($name !== '') {
-					$types[] = ['value' => $name, 'label' => $name];
-				}
-			}
+			$this->load->library('ihris_filter_cache', null, 'ihris_filters');
+			$opts = $this->ihris_filters->get_options();
+			$types = isset($opts['institution_types']) ? $opts['institution_types'] : [];
 			$this->output->set_content_type('application/json')->set_output(json_encode(['institution_types' => $types]));
 			return;
 		}
@@ -460,20 +456,15 @@ class Reports extends MX_Controller
 	 */
 	private function _aggregate_institution_types()
 	{
-		if ($this->db->field_exists('institutiontype_name', 'ihrisdata')) {
-			$col = 'institutiontype_name';
-		} elseif ($this->db->field_exists('institution_type', 'ihrisdata')) {
-			$col = 'institution_type';
-		} else {
-			return array();
+		$this->load->library('ihris_filter_cache', null, 'ihris_filters');
+		$opts = $this->ihris_filters->get_options();
+		$rows = [];
+		foreach ($opts['institution_types'] as $row) {
+			$o = new stdClass();
+			$o->institutiontype_name = $row['value'];
+			$rows[] = $o;
 		}
-		return $this->db->query(
-			"SELECT " . mysql8_trim_expr($col) . " AS institutiontype_name
-			 FROM ihrisdata
-			 WHERE " . mysql8_nonempty_sql($col) . "
-			 GROUP BY " . mysql8_trim_expr($col) . "
-			 ORDER BY " . mysql8_trim_expr($col) . " ASC"
-		)->result();
+		return $rows;
 	}
 
 	/**

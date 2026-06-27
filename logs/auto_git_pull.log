@@ -221,3 +221,353 @@ fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could n
 [2026-06-12 11:00:26] OK: up to date (HEAD=46679dd81f6817c658849ab040726437e565ffb6)
 fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
 [2026-06-12 12:36:13] ERROR: git fetch failed
+[2026-06-13 10:00:19] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Recv failure: Can't assign requested address
+[2026-06-13 11:05:12] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Error in the HTTP2 framing layer
+[2026-06-13 11:52:48] ERROR: git fetch failed
+[2026-06-13 20:00:45] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': SSL connection timeout
+[2026-06-14 01:18:05] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-14 03:14:07] ERROR: git fetch failed
+[2026-06-14 22:00:04] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-14 23:00:31] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-15 00:00:58] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 87 ms: Couldn't connect to server
+[2026-06-15 13:04:45] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 48 ms: Couldn't connect to server
+[2026-06-15 13:14:47] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 44 ms: Couldn't connect to server
+[2026-06-15 13:34:53] ERROR: git fetch failed
+[2026-06-15 14:00:05] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 1049 ms: Couldn't connect to server
+[2026-06-15 14:10:09] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 131 ms: Couldn't connect to server
+[2026-06-15 14:20:12] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 67 ms: Couldn't connect to server
+[2026-06-15 14:35:15] ERROR: git fetch failed
+[2026-06-15 15:00:25] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 43 ms: Couldn't connect to server
+[2026-06-15 15:15:32] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 55 ms: Couldn't connect to server
+[2026-06-15 15:25:37] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 117 ms: Couldn't connect to server
+[2026-06-15 15:40:41] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 83 ms: Couldn't connect to server
+[2026-06-15 15:50:43] ERROR: git fetch failed
+[2026-06-15 16:00:48] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 54 ms: Couldn't connect to server
+[2026-06-15 16:15:51] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 42 ms: Couldn't connect to server
+[2026-06-15 17:16:09] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 47 ms: Couldn't connect to server
+[2026-06-15 17:26:13] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 44 ms: Couldn't connect to server
+[2026-06-15 17:51:24] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 44 ms: Couldn't connect to server
+[2026-06-15 17:56:25] ERROR: git fetch failed
+[2026-06-16 12:00:21] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-16 13:00:48] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-16 21:00:02] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 80331 ms: Couldn't connect to server
+[2026-06-16 21:41:59] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 00:48:35] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 10:50:19] ERROR: git fetch failed
+[2026-06-17 11:00:25] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 12:09:56] ERROR: git fetch failed
+[2026-06-17 13:00:24] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 14:24:46] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 14:29:47] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 14:34:47] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 14:39:47] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 14:44:48] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 14:49:48] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 14:54:48] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 14:59:49] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 15:04:49] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 15:09:49] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 15:14:50] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 15:19:50] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 15:24:51] ERROR: git fetch failed
+[2026-06-17 16:00:09] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 16:15:22] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-17 16:20:22] ERROR: git fetch failed
+[2026-06-17 20:00:45] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': SSL certificate problem: self signed certificate in certificate chain
+[2026-06-18 00:51:34] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 43 ms: Couldn't connect to server
+[2026-06-18 10:53:27] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 77 ms: Couldn't connect to server
+[2026-06-18 11:28:39] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 71 ms: Couldn't connect to server
+[2026-06-18 11:33:39] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 1041 ms: Couldn't connect to server
+[2026-06-18 11:53:47] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 63 ms: Couldn't connect to server
+[2026-06-18 12:18:54] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 55 ms: Couldn't connect to server
+[2026-06-18 12:39:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 49 ms: Couldn't connect to server
+[2026-06-18 12:44:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 48 ms: Couldn't connect to server
+[2026-06-18 13:04:06] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 122 ms: Couldn't connect to server
+[2026-06-18 14:23:46] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 1044 ms: Couldn't connect to server
+[2026-06-18 14:43:55] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 41 ms: Couldn't connect to server
+[2026-06-18 14:58:59] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 41 ms: Couldn't connect to server
+[2026-06-18 15:14:02] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 978 ms: Couldn't connect to server
+[2026-06-18 15:19:04] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 182 ms: Couldn't connect to server
+[2026-06-18 16:04:14] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-18 16:21:49] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 179 ms: Couldn't connect to server
+[2026-06-18 16:26:49] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 212 ms: Couldn't connect to server
+[2026-06-18 16:46:54] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 185 ms: Couldn't connect to server
+[2026-06-18 17:07:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-18 17:32:08] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 72 ms: Couldn't connect to server
+[2026-06-18 18:37:27] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 73 ms: Couldn't connect to server
+[2026-06-18 18:47:30] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-18 22:22:17] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 1443 ms: Couldn't connect to server
+[2026-06-19 11:30:15] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 64 ms: Couldn't connect to server
+[2026-06-19 11:35:16] ERROR: git fetch failed
+[2026-06-19 12:00:25] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 45 ms: Couldn't connect to server
+[2026-06-19 12:20:31] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 40 ms: Couldn't connect to server
+[2026-06-19 12:30:33] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 45 ms: Couldn't connect to server
+[2026-06-19 12:50:38] ERROR: git fetch failed
+[2026-06-19 13:00:41] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 72 ms: Couldn't connect to server
+[2026-06-19 13:35:55] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 47 ms: Couldn't connect to server
+[2026-06-19 13:45:56] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 47 ms: Couldn't connect to server
+[2026-06-19 14:06:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 41 ms: Couldn't connect to server
+[2026-06-19 14:26:04] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 45 ms: Couldn't connect to server
+[2026-06-19 15:01:11] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 38 ms: Couldn't connect to server
+[2026-06-19 15:53:46] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 2096 ms: Couldn't connect to server
+[2026-06-19 16:03:50] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 259 ms: Couldn't connect to server
+[2026-06-19 16:34:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 60 ms: Couldn't connect to server
+[2026-06-19 16:44:02] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 36 ms: Couldn't connect to server
+[2026-06-19 17:04:09] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 46 ms: Couldn't connect to server
+[2026-06-19 17:09:10] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 45 ms: Couldn't connect to server
+[2026-06-19 17:19:11] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 160 ms: Couldn't connect to server
+[2026-06-19 17:44:23] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 62 ms: Couldn't connect to server
+[2026-06-19 18:09:32] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 53 ms: Couldn't connect to server
+[2026-06-19 18:24:36] ERROR: git fetch failed
+[2026-06-19 22:00:32] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-20 08:00:28] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-20 10:53:36] ERROR: git fetch failed
+[2026-06-20 15:00:12] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-20 16:00:32] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-21 00:00:18] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-21 01:00:34] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-21 02:00:50] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-21 20:00:39] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Recv failure: Connection reset by peer
+[2026-06-22 00:40:20] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-22 01:00:54] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 70 ms: Couldn't connect to server
+[2026-06-22 10:48:53] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 39 ms: Couldn't connect to server
+[2026-06-22 10:53:53] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 530 ms: Couldn't connect to server
+[2026-06-22 10:58:54] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 44 ms: Couldn't connect to server
+[2026-06-22 11:03:54] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 39 ms: Couldn't connect to server
+[2026-06-22 11:08:54] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 42 ms: Couldn't connect to server
+[2026-06-22 11:18:55] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 37 ms: Couldn't connect to server
+[2026-06-22 11:44:01] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 309 ms: Couldn't connect to server
+[2026-06-22 11:49:02] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 40 ms: Couldn't connect to server
+[2026-06-22 11:54:02] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 207 ms: Couldn't connect to server
+[2026-06-22 12:04:03] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 42 ms: Couldn't connect to server
+[2026-06-22 12:09:03] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 42 ms: Couldn't connect to server
+[2026-06-22 12:14:04] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 51 ms: Couldn't connect to server
+[2026-06-22 12:34:08] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 52 ms: Couldn't connect to server
+[2026-06-22 12:49:11] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 44 ms: Couldn't connect to server
+[2026-06-22 13:49:27] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 37 ms: Couldn't connect to server
+[2026-06-22 14:19:34] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 43 ms: Couldn't connect to server
+[2026-06-22 14:24:34] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 53 ms: Couldn't connect to server
+[2026-06-22 16:43:57] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 32 ms: Couldn't connect to server
+[2026-06-22 16:59:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 37 ms: Couldn't connect to server
+[2026-06-22 17:04:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 1041 ms: Couldn't connect to server
+[2026-06-22 17:19:04] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 00:29:50] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 00:35:20] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Recv failure: Connection reset by peer
+[2026-06-23 00:40:21] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 4125 ms: Couldn't connect to server
+[2026-06-23 09:27:49] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 35 ms: Couldn't connect to server
+[2026-06-23 09:42:52] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 31 ms: Couldn't connect to server
+[2026-06-23 09:52:56] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 47 ms: Couldn't connect to server
+[2026-06-23 09:57:57] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 52 ms: Couldn't connect to server
+[2026-06-23 10:13:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 32 ms: Couldn't connect to server
+[2026-06-23 10:18:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 58 ms: Couldn't connect to server
+[2026-06-23 10:23:00] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 43 ms: Couldn't connect to server
+[2026-06-23 10:48:05] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 110 ms: Couldn't connect to server
+[2026-06-23 10:58:07] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 52 ms: Couldn't connect to server
+[2026-06-23 11:08:09] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 53 ms: Couldn't connect to server
+[2026-06-23 11:43:17] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 49 ms: Couldn't connect to server
+[2026-06-23 11:58:20] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 38 ms: Couldn't connect to server
+[2026-06-23 12:03:21] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 12:08:21] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 12:13:21] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 12:18:22] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 12:23:22] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 12:28:22] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 12:33:22] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 12:38:22] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 16:11:15] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 16:16:15] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 16:21:15] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 16:26:16] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 16:31:16] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 16:36:16] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 16:41:16] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-23 18:02:07] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-24 08:47:52] ERROR: git fetch failed
+[2026-06-24 12:00:18] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': SSL connection timeout
+[2026-06-24 16:26:07] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Resolving timed out after 925300 milliseconds
+[2026-06-25 02:45:49] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 131 ms: Couldn't connect to server
+[2026-06-25 16:49:23] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 44 ms: Couldn't connect to server
+[2026-06-25 16:59:25] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-25 17:24:32] ERROR: git fetch failed
+[2026-06-25 20:00:37] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-26 00:00:05] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-26 01:00:20] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-26 08:00:20] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-26 09:00:36] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-26 09:32:28] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 39 ms: Couldn't connect to server
+[2026-06-26 10:00:15] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Recv failure: Connection reset by peer
+[2026-06-26 10:20:55] ERROR: git fetch failed
+error: RPC failed; curl 6 Could not resolve host: github.com
+fatal: expected flush after ref listing
+[2026-06-26 10:29:03] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 65 ms: Couldn't connect to server
+[2026-06-26 14:29:28] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 53 ms: Couldn't connect to server
+[2026-06-26 14:34:28] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 51 ms: Couldn't connect to server
+[2026-06-26 15:09:38] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 44 ms: Couldn't connect to server
+[2026-06-26 15:24:40] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 39 ms: Couldn't connect to server
+[2026-06-26 15:53:24] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 210 ms: Couldn't connect to server
+[2026-06-26 16:23:33] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 34 ms: Couldn't connect to server
+[2026-06-26 16:43:37] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Failed to connect to github.com port 443 after 36 ms: Couldn't connect to server
+[2026-06-26 17:13:47] ERROR: git fetch failed
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-26 17:40:21] ERROR: git fetch failed
+[2026-06-26 18:00:40] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-26 19:00:57] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+fatal: unable to access 'https://github.com/agabaandre/biotimehrm.git/': Could not resolve host: github.com
+[2026-06-26 19:46:14] ERROR: git fetch failed
+[2026-06-27 07:00:11] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-27 14:00:05] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-27 15:00:27] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)
+[2026-06-27 16:00:46] OK: up to date (HEAD=9afab4c0897003243d98bf0aa56ada4e9a31a2b2)

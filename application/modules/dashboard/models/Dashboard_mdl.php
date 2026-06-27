@@ -411,6 +411,9 @@ class Dashboard_mdl extends CI_Model
         $data['dashboard_year'] = (string) $year;
         $data['dashboard_empid'] = $dashboard_empid;
         $data['status_date'] = $status_date;
+
+        $avg = $this->avghours();
+        $data['avg_hours'] = isset($avg['avg_hours']) ? (float) $avg['avg_hours'] : 0.0;
         
         return $data;
     }
@@ -720,6 +723,335 @@ class Dashboard_mdl extends CI_Model
         }
         $ts = strtotime($time);
         return $ts ? date('H:i', $ts) : $time;
+    }
+
+    /**
+     * National / scoped dashboard filters from session.
+     *
+     * @return array<string, string>
+     */
+    public function dashboardScopeFromSession()
+    {
+        return [
+            'region'            => trim((string) $this->session->userdata('dashboard_region')),
+            'district'          => trim((string) $this->session->userdata('dashboard_district')),
+            'facility_id'       => trim((string) ($this->session->userdata('dashboard_facility_filter') ?: $this->session->userdata('dashboard_facility') ?: '')),
+            'institution_type'  => trim((string) $this->session->userdata('dashboard_institution_type')),
+            'cadre'             => trim((string) $this->session->userdata('dashboard_cadre')),
+        ];
+    }
+
+    /**
+     * Build SQL WHERE fragments for scoped analytics (actuals + ihrisdata).
+     *
+     * @param array<string, string> $scope
+     * @param array<int, mixed>     $params
+     * @return string
+     */
+    protected function buildScopeSql(array $scope, array &$params, $actualsAlias = 'a', $ihrisAlias = 'i')
+    {
+        $parts = [];
+
+        if (!empty($scope['facility_id'])) {
+            $parts[] = $actualsAlias . '.facility_id = ?';
+            $params[] = $scope['facility_id'];
+        }
+
+        if (!empty($scope['region']) && $this->db->field_exists('region', 'ihrisdata')) {
+            $parts[] = 'TRIM(' . $ihrisAlias . '.region) = ?';
+            $params[] = $scope['region'];
+        }
+
+        if (!empty($scope['district'])) {
+            $this->load->library('facility_switch_cache', null, 'fsc');
+            $names = $this->fsc->get_district_names_in_group($scope['district']);
+            if (count($names) > 1) {
+                $placeholders = implode(',', array_fill(0, count($names), '?'));
+                $parts[] = 'TRIM(' . $ihrisAlias . ".district) IN ({$placeholders})";
+                foreach ($names as $n) {
+                    $params[] = $n;
+                }
+            } else {
+                $parts[] = 'TRIM(' . $ihrisAlias . '.district) = ?';
+                $params[] = $scope['district'];
+            }
+        }
+
+        $inst_col = ihris_institution_type_column($this->db);
+        if (!empty($scope['institution_type']) && $inst_col !== null) {
+            $parts[] = 'TRIM(' . $ihrisAlias . '.' . mysql8_quote_ident($inst_col) . ') = ?';
+            $params[] = $scope['institution_type'];
+        }
+
+        if (!empty($scope['cadre']) && $this->db->field_exists('cadre', 'ihrisdata')) {
+            $parts[] = 'TRIM(' . $ihrisAlias . '.cadre) = ?';
+            $params[] = $scope['cadre'];
+        }
+
+        return empty($parts) ? '1=1' : implode(' AND ', $parts);
+    }
+
+    /**
+     * National attendance & absenteeism rates for selected calendar month.
+     *
+     * @param array<string, string> $scope
+     * @return array<string, mixed>
+     */
+    public function nationalAttendanceRates(array $scope, $year, $month)
+    {
+        $year = (int) $year;
+        $month = (int) $month;
+        $ym = $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT);
+        $params = [$ym];
+        $scope_sql = $this->buildScopeSql($scope, $params);
+
+        $sql = "SELECT
+            SUM(t.present) AS present,
+            SUM(t.off) AS off_days,
+            SUM(t.own_leave) AS own_leave,
+            SUM(t.official) AS official,
+            SUM(t.holiday) AS holiday,
+            SUM(GREATEST(0, t.base_line - (t.off + t.own_leave + t.official + t.holiday))) AS days_supposed,
+            SUM(GREATEST(0, GREATEST(0, t.base_line - (t.off + t.own_leave + t.official + t.holiday)) - t.present)) AS days_absent
+        FROM (
+            SELECT
+                a.ihris_pid,
+                SUM(CASE WHEN s.letter = 'P' THEN 1 ELSE 0 END) AS present,
+                SUM(CASE WHEN s.letter = 'O' THEN 1 ELSE 0 END) AS off,
+                SUM(CASE WHEN s.letter = 'L' THEN 1 ELSE 0 END) AS own_leave,
+                SUM(CASE WHEN s.letter = 'R' THEN 1 ELSE 0 END) AS official,
+                SUM(CASE WHEN s.letter = 'H' THEN 1 ELSE 0 END) AS holiday,
+                MAX(CAST(DAY(LAST_DAY(CONCAT(DATE_FORMAT(a.date,'%Y-%m'),'-01'))) AS UNSIGNED)) AS base_line
+            FROM actuals a
+            LEFT JOIN schedules s ON s.schedule_id = a.schedule_id
+            LEFT JOIN ihrisdata i ON i.ihris_pid = a.ihris_pid
+            WHERE DATE_FORMAT(a.date,'%Y-%m') = ?
+              AND a.ihris_pid IS NOT NULL AND TRIM(a.ihris_pid) <> ''
+              AND {$scope_sql}
+            GROUP BY a.ihris_pid
+        ) t";
+
+        $row = $this->safeQuery($sql, $params);
+        $row = $row ? $row->row() : null;
+        $days_supposed = $row ? (int) $row->days_supposed : 0;
+        $present = $row ? (int) $row->present : 0;
+        $days_absent = $row ? (int) $row->days_absent : 0;
+
+        $attendance_rate = ($days_supposed > 0) ? round(($present / $days_supposed) * 100, 1) : 0.0;
+        $absenteeism_rate = ($days_supposed > 0) ? round(($days_absent / $days_supposed) * 100, 1) : 0.0;
+        $avg_hours = $this->averageHoursForScope($scope, $year, $month);
+
+        return [
+            'month'             => $ym,
+            'attendance_rate'   => $attendance_rate,
+            'absenteeism_rate'  => $absenteeism_rate,
+            'days_supposed'     => $days_supposed,
+            'present'           => $present,
+            'days_absent'       => $days_absent,
+            'avg_hours'         => $avg_hours,
+        ];
+    }
+
+    /**
+     * Average hours worked per staff member for scoped filters (calendar month).
+     *
+     * @param array<string, string> $scope
+     * @return float
+     */
+    public function averageHoursForScope(array $scope, $year, $month)
+    {
+        if (!$this->db->table_exists('clk_diff')) {
+            return 0.0;
+        }
+
+        $year = (int) $year;
+        $month = (int) $month;
+        $start_date = $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '-01';
+        $end_date = date('Y-m-t', strtotime($start_date));
+        $params = [$start_date, $end_date];
+        $scope_sql = $this->buildScopeSql($scope, $params, 'c', 'i');
+
+        $sql = "SELECT COALESCE(SUM(c.time_diff) / NULLIF(COUNT(DISTINCT c.pid), 0), 0) AS avg_hours
+            FROM clk_diff c
+            LEFT JOIN ihrisdata i ON i.ihris_pid = c.pid
+            WHERE c.date >= ? AND c.date <= ?
+              AND c.time_diff IS NOT NULL AND c.time_diff > 0
+              AND {$scope_sql}";
+
+        $row = $this->safeQuery($sql, $params);
+        $row = $row ? $row->row() : null;
+
+        return ($row && $row->avg_hours !== null) ? round((float) $row->avg_hours, 1) : 0.0;
+    }
+
+    /**
+     * Redis-backed analytics bundle for dashboard charts.
+     *
+     * @param array<string, string> $scope
+     * @return array<string, mixed>
+     */
+    public function analyticsCharts(array $scope, $fy_start, $year, $month, $empid = '')
+    {
+        $this->load->library('dashboard_cache_store', null, 'dash_cache');
+        $this->config->load('dashboard_cache', true, true);
+        $cfg = $this->config->item('dashboard_cache');
+        $ttl = is_array($cfg) && isset($cfg['stats_ttl']) ? max(60, (int) $cfg['stats_ttl']) : 120;
+
+        $key = 'analytics_' . md5(json_encode([
+            'scope' => $scope,
+            'fy'    => (int) $fy_start,
+            'y'     => (int) $year,
+            'm'     => (int) $month,
+            'emp'   => (string) $empid,
+        ]));
+
+        $cached = $this->dash_cache->read($key);
+        if (is_array($cached)) {
+            $cached['cached'] = true;
+            return $cached;
+        }
+
+        $bounds = financial_year_bounds((int) $fy_start);
+        $params = [$bounds['start'], $bounds['end']];
+        $scope_sql = $this->buildScopeSql($scope, $params);
+        $empid = trim((string) $empid);
+        $emp_sql = '';
+        if ($empid !== '') {
+            $emp_sql = ' AND a.ihris_pid = ? ';
+            $params[] = $empid;
+        }
+
+        // Average daily working staff per month (Present schedule)
+        $avg_sql = "SELECT DATE_FORMAT(a.date,'%Y-%m') AS ym,
+            COUNT(DISTINCT CONCAT(a.ihris_pid,'|',a.date)) AS uniq_emp_days,
+            COUNT(DISTINCT a.date) AS uniq_days
+            FROM actuals a
+            LEFT JOIN ihrisdata i ON i.ihris_pid = a.ihris_pid
+            WHERE a.schedule_id = 22
+              AND a.date >= ? AND a.date <= ?
+              AND {$scope_sql}{$emp_sql}
+            GROUP BY DATE_FORMAT(a.date,'%Y-%m')
+            ORDER BY ym ASC";
+        $avg_rows = $this->safeQuery($avg_sql, $params);
+        $avg_map = [];
+        if ($avg_rows) {
+            foreach ($avg_rows->result() as $r) {
+                $days = (int) $r->uniq_days;
+                $avg_map[$r->ym] = ($days > 0) ? (int) round((int) $r->uniq_emp_days / $days) : 0;
+            }
+        }
+
+        // Monthly attendance / absenteeism rates within FY
+        $rate_params = [$bounds['start'], $bounds['end']];
+        $rate_scope = $this->buildScopeSql($scope, $rate_params);
+        $rate_emp = '';
+        if ($empid !== '') {
+            $rate_emp = ' AND a.ihris_pid = ? ';
+            $rate_params[] = $empid;
+        }
+        $rate_sql = "SELECT t.ym,
+            SUM(t.present) AS present,
+            SUM(t.off) AS off_days,
+            SUM(t.own_leave) AS own_leave,
+            SUM(t.official) AS official,
+            SUM(t.holiday) AS holiday,
+            SUM(t.base_line) AS calendar_days,
+            SUM(GREATEST(0, t.base_line - (t.off + t.own_leave + t.official + t.holiday))) AS days_supposed,
+            SUM(GREATEST(0, GREATEST(0, t.base_line - (t.off + t.own_leave + t.official + t.holiday)) - t.present)) AS days_absent
+            FROM (
+                SELECT DATE_FORMAT(a.date,'%Y-%m') AS ym, a.ihris_pid,
+                    SUM(CASE WHEN s.letter = 'P' THEN 1 ELSE 0 END) AS present,
+                    SUM(CASE WHEN s.letter = 'O' THEN 1 ELSE 0 END) AS off,
+                    SUM(CASE WHEN s.letter = 'L' THEN 1 ELSE 0 END) AS own_leave,
+                    SUM(CASE WHEN s.letter = 'R' THEN 1 ELSE 0 END) AS official,
+                    SUM(CASE WHEN s.letter = 'H' THEN 1 ELSE 0 END) AS holiday,
+                    MAX(CAST(DAY(LAST_DAY(CONCAT(DATE_FORMAT(a.date,'%Y-%m'),'-01'))) AS UNSIGNED)) AS base_line
+                FROM actuals a
+                LEFT JOIN schedules s ON s.schedule_id = a.schedule_id
+                LEFT JOIN ihrisdata i ON i.ihris_pid = a.ihris_pid
+                WHERE a.date >= ? AND a.date <= ?
+                  AND {$rate_scope}{$rate_emp}
+                GROUP BY DATE_FORMAT(a.date,'%Y-%m'), a.ihris_pid
+            ) t
+            GROUP BY t.ym ORDER BY t.ym ASC";
+
+        $rate_rows = $this->safeQuery($rate_sql, $rate_params);
+        $att_rate_map = [];
+        $abs_rate_map = [];
+        $sched_present_map = [];
+        $sched_off_map = [];
+        $sched_leave_map = [];
+        $sched_official_map = [];
+        $sched_holiday_map = [];
+        $sched_unaccounted_map = [];
+        if ($rate_rows) {
+            foreach ($rate_rows->result() as $r) {
+                $sup = (int) $r->days_supposed;
+                $cal = (int) $r->calendar_days;
+                $att_rate_map[$r->ym] = ($sup > 0) ? round(((int) $r->present / $sup) * 100, 1) : 0;
+                $abs_rate_map[$r->ym] = ($sup > 0) ? round(((int) $r->days_absent / $sup) * 100, 1) : 0;
+                if ($cal > 0) {
+                    $sched_present_map[$r->ym] = round(((int) $r->present / $cal) * 100, 1);
+                    $sched_off_map[$r->ym] = round(((int) $r->off_days / $cal) * 100, 1);
+                    $sched_leave_map[$r->ym] = round(((int) $r->own_leave / $cal) * 100, 1);
+                    $sched_official_map[$r->ym] = round(((int) $r->official / $cal) * 100, 1);
+                    $sched_holiday_map[$r->ym] = round(((int) $r->holiday / $cal) * 100, 1);
+                    $sched_unaccounted_map[$r->ym] = round(((int) $r->days_absent / $cal) * 100, 1);
+                } else {
+                    $sched_present_map[$r->ym] = 0;
+                    $sched_off_map[$r->ym] = 0;
+                    $sched_leave_map[$r->ym] = 0;
+                    $sched_official_map[$r->ym] = 0;
+                    $sched_holiday_map[$r->ym] = 0;
+                    $sched_unaccounted_map[$r->ym] = 0;
+                }
+            }
+        }
+
+        $period = [];
+        $avg_daily = [];
+        $att_trend = [];
+        $abs_trend = [];
+        $sched_present = [];
+        $sched_off = [];
+        $sched_leave = [];
+        $sched_official = [];
+        $sched_holiday = [];
+        $sched_unaccounted = [];
+        $start = new DateTime($bounds['start']);
+        for ($i = 0; $i < 12; $i++) {
+            $ym = $start->format('Y-m');
+            $period[] = $start->format('M Y');
+            $avg_daily[] = isset($avg_map[$ym]) ? $avg_map[$ym] : 0;
+            $att_trend[] = isset($att_rate_map[$ym]) ? $att_rate_map[$ym] : 0;
+            $abs_trend[] = isset($abs_rate_map[$ym]) ? $abs_rate_map[$ym] : 0;
+            $sched_present[] = isset($sched_present_map[$ym]) ? $sched_present_map[$ym] : 0;
+            $sched_off[] = isset($sched_off_map[$ym]) ? $sched_off_map[$ym] : 0;
+            $sched_leave[] = isset($sched_leave_map[$ym]) ? $sched_leave_map[$ym] : 0;
+            $sched_official[] = isset($sched_official_map[$ym]) ? $sched_official_map[$ym] : 0;
+            $sched_holiday[] = isset($sched_holiday_map[$ym]) ? $sched_holiday_map[$ym] : 0;
+            $sched_unaccounted[] = isset($sched_unaccounted_map[$ym]) ? $sched_unaccounted_map[$ym] : 0;
+            $start->modify('+1 month');
+        }
+
+        $payload = [
+            'fy_start'              => (int) $fy_start,
+            'fy_label'              => financial_year_label((int) $fy_start),
+            'period'                => $period,
+            'avg_daily_workers'     => $avg_daily,
+            'attendance_rate'       => $att_trend,
+            'absenteeism_rate'      => $abs_trend,
+            'schedule_present'      => $sched_present,
+            'schedule_off'          => $sched_off,
+            'schedule_leave'        => $sched_leave,
+            'schedule_official'     => $sched_official,
+            'schedule_holiday'      => $sched_holiday,
+            'schedule_unaccounted'  => $sched_unaccounted,
+            'cached'                => false,
+        ];
+
+        $this->dash_cache->write($key, $payload, $ttl);
+        return $payload;
     }
 
    }

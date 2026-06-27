@@ -569,11 +569,16 @@
       </div>
     </div>
 
-    <!-- Dashboard Filters (collapsible) -->
+    <!-- Dashboard Filters (collapsed by default) -->
     <?php
       $sel_month = $this->session->userdata('month') ?: date('m');
       $sel_year = $this->session->userdata('year') ?: date('Y');
       $sel_empid = $this->session->userdata('dashboard_empid') ?: '';
+      $sel_region = $this->session->userdata('dashboard_region') ?: '';
+      $sel_district = $this->session->userdata('dashboard_district') ?: '';
+      $sel_institution = $this->session->userdata('dashboard_institution_type') ?: '';
+      $sel_cadre = $this->session->userdata('dashboard_cadre') ?: '';
+      $sel_nat_facility = $this->session->userdata('dashboard_facility_filter') ?: '';
       $permissions_for_filters = $this->session->userdata('permissions') ?: [];
       $role_for_filters = (string) $this->session->userdata('role');
       $is_role10 = in_array('10', $permissions_for_filters) || ($role_for_filters === 'District Admin') || ($role_for_filters === 'Regional Admin');
@@ -598,6 +603,40 @@
             </div>
           </div>
           <div class="card-body">
+            <p class="text-muted small mb-3">Scope national charts and rates. Leave filters empty for all Uganda.</p>
+            <div class="form-row">
+              <div class="form-group col-md-4 col-lg-2">
+                <label for="dash_region">Region</label>
+                <select id="dash_region" class="form-control dash-filter-s2">
+                  <option value="">All Regions</option>
+                </select>
+              </div>
+              <div class="form-group col-md-4 col-lg-2">
+                <label for="dash_district">District</label>
+                <select id="dash_district" class="form-control dash-filter-s2">
+                  <option value="">All Districts</option>
+                </select>
+              </div>
+              <div class="form-group col-md-4 col-lg-2">
+                <label for="dash_nat_facility"><?php echo entity_label('facility'); ?></label>
+                <select id="dash_nat_facility" class="form-control dash-filter-s2">
+                  <option value="">All <?php echo entity_label('facility', true); ?></option>
+                </select>
+              </div>
+              <div class="form-group col-md-4 col-lg-2">
+                <label for="dash_institution_type">Institution Type</label>
+                <select id="dash_institution_type" class="form-control dash-filter-s2">
+                  <option value="">All</option>
+                </select>
+              </div>
+              <div class="form-group col-md-4 col-lg-2">
+                <label for="dash_cadre">Cadre</label>
+                <select id="dash_cadre" class="form-control dash-filter-s2">
+                  <option value="">All</option>
+                </select>
+              </div>
+            </div>
+            <hr class="my-2">
             <div class="form-row">
               <div class="form-group col-md-3">
                 <label for="dash_month">Month</label>
@@ -653,6 +692,41 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- National attendance overview -->
+    <div class="row mb-4">
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="stat-card success">
+          <div class="stat-icon success"><i class="fas fa-user-check"></i></div>
+          <div class="stat-number" id="national_attendance_rate"><i class="fas fa-spinner fa-spin loading-pulse"></i></div>
+          <div class="stat-label">National Attendance Rate</div>
+          <small class="text-muted" id="national_rate_month"></small>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="stat-card danger">
+          <div class="stat-icon danger"><i class="fas fa-user-times"></i></div>
+          <div class="stat-number" id="national_absenteeism_rate"><i class="fas fa-spinner fa-spin loading-pulse"></i></div>
+          <div class="stat-label">National Absenteeism Rate</div>
+          <small class="text-muted" id="national_absent_month"></small>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="stat-card info">
+          <div class="stat-icon info"><i class="fas fa-clock"></i></div>
+          <div class="stat-number" id="national_avg_hours"><i class="fas fa-spinner fa-spin loading-pulse"></i></div>
+          <div class="stat-label">Avg Hours Worked</div>
+          <small class="text-muted" id="national_avg_hours_month"></small>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="stat-card warning">
+          <div class="stat-icon warning"><i class="fas fa-calendar-day"></i></div>
+          <div class="stat-number" id="national_present_days"><i class="fas fa-spinner fa-spin loading-pulse"></i></div>
+          <div class="stat-label">Staff-Days Present</div>
         </div>
       </div>
     </div>
@@ -830,6 +904,16 @@
               <i class="fas fa-spinner fa-spin loading-pulse"></i>
  						</div>
  					</div>
+
+          <div class="status-item">
+            <div class="status-info">
+              <div class="status-indicator primary"></div>
+              <p class="status-text">Avg Hours Worked</p>
+            </div>
+            <div class="status-value" id="facility_avg_hours">
+              <i class="fas fa-spinner fa-spin loading-pulse"></i>
+            </div>
+          </div>
  				</div>
  			</div>
 
@@ -961,9 +1045,53 @@ waitForHighcharts(function() {
 				empid: '<?php echo $sel_empid ?? ''; ?>'
 			};
 			
-			// Name filter (Select2)
+			// Name filter (Select2) + national scope filters
 			if ($.fn.select2) {
-				// Facility filter for role-10 users (chains staff)
+				$('.dash-filter-s2').select2({ theme: 'bootstrap4', width: '100%', allowClear: true });
+
+				function populateDashSelect($el, items, placeholder, selected) {
+					var html = '<option value="">' + placeholder + '</option>';
+					(items || []).forEach(function(o) {
+						var v = (o && o.value !== undefined) ? o.value : o;
+						var l = (o && o.label !== undefined) ? o.label : v;
+						if (!v && v !== 0) return;
+						html += '<option value="' + $('<div>').text(v).html() + '">' + $('<div>').text(l).html() + '</option>';
+					});
+					$el.html(html);
+					if (selected) { $el.val(selected).trigger('change.select2'); }
+				}
+
+				$.getJSON('<?php echo base_url('dashboard/filterOptions'); ?>')
+					.done(function(data) {
+						populateDashSelect($('#dash_region'), data.regions, 'All Regions', '<?php echo addslashes($sel_region); ?>');
+						populateDashSelect($('#dash_district'), data.districts, 'All Districts', '<?php echo addslashes($sel_district); ?>');
+						populateDashSelect($('#dash_institution_type'), data.institution_types, 'All', '<?php echo addslashes($sel_institution); ?>');
+						populateDashSelect($('#dash_cadre'), data.cadres, 'All', '<?php echo addslashes($sel_cadre); ?>');
+					});
+
+				$('#dash_district').on('change', function() {
+					$('#dash_nat_facility').val(null).trigger('change');
+				});
+
+				$('#dash_nat_facility').select2({
+					placeholder: 'All <?php echo entity_label('facility', true); ?>',
+					allowClear: true,
+					width: '100%',
+					minimumInputLength: 0,
+					ajax: {
+						url: '<?php echo base_url('dashboard/searchFacilities'); ?>',
+						dataType: 'json',
+						delay: 250,
+						data: function(params) {
+							return { term: params.term || '', district: $('#dash_district').val() || '' };
+						},
+						processResults: function(data) {
+							return (data && Array.isArray(data.results)) ? data : { results: [] };
+						},
+						cache: true
+					}
+				});
+
 				if ($('#dash_facility').length) {
 					$('#dash_facility').select2({
 						placeholder: 'All Facilities',
@@ -991,9 +1119,10 @@ waitForHighcharts(function() {
 						if (search) { search.value = ''; search.dispatchEvent(new Event('input')); }
 					});
 					
-					// When facility changes, clear name selection so it refreshes to the chosen facility
+					// When facility changes, clear name selection and reload staff list
 					$('#dash_facility').on('change', function() {
 						$('#dash_empid').val(null).trigger('change');
+						preloadDashStaff();
 					});
 				}
 
@@ -1002,6 +1131,7 @@ waitForHighcharts(function() {
 					allowClear: true,
 					width: '100%',
 					minimumInputLength: 0,
+					dropdownParent: $('#dash_empid').closest('.card-body'),
 					ajax: {
 						url: '<?php echo base_url('dashboard/searchEmployees'); ?>',
 						dataType: 'json',
@@ -1009,7 +1139,8 @@ waitForHighcharts(function() {
 						data: function(params) {
 							return {
 								term: params.term || '',
-								facility_id: $('#dash_facility').length ? ($('#dash_facility').val() || '') : ''
+								facility_id: $('#dash_nat_facility').val() || ($('#dash_facility').length ? ($('#dash_facility').val() || '') : ''),
+								district: $('#dash_district').val() || ''
 							};
 						},
 						processResults: function(data) {
@@ -1020,6 +1151,29 @@ waitForHighcharts(function() {
 						},
 						cache: true
 					}
+				});
+
+				function preloadDashStaff() {
+					$.getJSON('<?php echo base_url('dashboard/searchEmployees'); ?>', {
+						term: '',
+						facility_id: $('#dash_nat_facility').val() || ($('#dash_facility').length ? ($('#dash_facility').val() || '') : ''),
+						district: $('#dash_district').val() || ''
+					}).done(function(data) {
+						if (!data || !Array.isArray(data.results) || !data.results.length) {
+							return;
+						}
+						var $sel = $('#dash_empid');
+						data.results.forEach(function(r) {
+							if ($sel.find('option[value="' + r.id + '"]').length === 0) {
+								$sel.append(new Option(r.text, r.id, false, false));
+							}
+						});
+					});
+				}
+				preloadDashStaff();
+				$('#dash_district, #dash_nat_facility').on('change', function() {
+					$('#dash_empid').val(null).trigger('change');
+					preloadDashStaff();
 				});
 
 				// Ensure Name dropdown shows results even before typing
@@ -1035,6 +1189,11 @@ waitForHighcharts(function() {
 					year: year,
 					empid: empid || '',
 					facility_id: $('#dash_facility').length ? ($('#dash_facility').val() || '') : '',
+					region: $('#dash_region').val() || '',
+					district: $('#dash_district').val() || '',
+					national_facility_id: $('#dash_nat_facility').val() || '',
+					institution_type: $('#dash_institution_type').val() || '',
+					cadre: $('#dash_cadre').val() || '',
 					'<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
 				};
 				
@@ -1058,8 +1217,8 @@ waitForHighcharts(function() {
 				var empid = $('#dash_empid').val() || '';
 				
 				applyDashboardFilters(month, year, empid).then(function() {
-					// Refresh stats
 					loadDashboardData(true).catch(function() {});
+					loadNationalAnalytics();
 					loadDashboardLivePulse();
 					// Refresh chart (session-based)
 					if (window.reloadAttendancePerMonth) {
@@ -1082,8 +1241,26 @@ waitForHighcharts(function() {
 					$('#dash_facility').val(null).trigger('change');
 				}
 				$('#dash_empid').val(null).trigger('change');
+				$('#dash_region, #dash_district, #dash_institution_type, #dash_cadre').val('').trigger('change');
+				$('#dash_nat_facility').val(null).trigger('change');
 				$('#dash_apply').trigger('click');
 			});
+
+			function loadNationalAnalytics() {
+				return $.getJSON('<?php echo base_url('dashboard/nationalAnalytics'); ?>')
+					.done(function(data) {
+						if (!data || !data.national) return;
+						var n = data.national;
+						$('#national_attendance_rate').text((n.attendance_rate != null ? n.attendance_rate : 0) + '%');
+						$('#national_absenteeism_rate').text((n.absenteeism_rate != null ? n.absenteeism_rate : 0) + '%');
+						$('#national_avg_hours').text((n.avg_hours != null ? n.avg_hours : 0) + ' hrs');
+						$('#national_present_days').text(n.present != null ? n.present : 0);
+						$('#national_rate_month').text(n.month ? ('Month: ' + n.month) : '');
+						$('#national_absent_month').text(n.month ? ('Month: ' + n.month) : '');
+						$('#national_avg_hours_month').text(n.month ? ('Month: ' + n.month) : '');
+					});
+			}
+			loadNationalAnalytics();
 			// Set Highcharts options only if Highcharts is available
 			if (typeof Highcharts !== 'undefined' && typeof Highcharts.setOptions === 'function') {
 				Highcharts.setOptions({
@@ -1132,6 +1309,7 @@ waitForHighcharts(function() {
                     updateDashboardValue('#monthly_offduty', data.monthly_offduty);
                     updateDashboardValue('#monthly_leave', data.monthly_leave);
                     updateDashboardValue('#monthly_request', data.monthly_request);
+                    updateDashboardValue('#facility_avg_hours', (data.avg_hours != null ? data.avg_hours : 0) + ' hrs');
 
                     if (data.dashboard_month && data.dashboard_year) {
                       var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1142,7 +1320,7 @@ waitForHighcharts(function() {
                       $('#daily_status_date').text('(' + data.status_date + ')');
                     }
                     
-                    // avg_hours removed from dashboard
+                    // avg_hours shown in Monthly Attendance Stats
                     
                     // Add fade-in animation
                     $('.stat-card, .status-card').addClass('fade-in');
