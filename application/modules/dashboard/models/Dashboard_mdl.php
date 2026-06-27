@@ -229,13 +229,12 @@ class Dashboard_mdl extends CI_Model
 
         $month_start = $range['start'];
         $month_end = $range['end'];
+        $today = date('Y-m-d');
+        $dashboard_empid = (string) $this->session->userdata('dashboard_empid');
+        $fy_entries = $this->dashboardSelectedFyEntries($year, $months);
         $current_ym = substr($today, 0, 7);
-        $selected_yms = [];
-        foreach ($months as $m) {
-            $selected_yms[] = $year . '-' . str_pad((string) $m, 2, '0', STR_PAD_LEFT);
-        }
-        $max_month = max($months);
-        $last_selected_end = date('Y-m-t', strtotime($year . '-' . str_pad((string) $max_month, 2, '0', STR_PAD_LEFT) . '-01'));
+        $selected_yms = array_column($fy_entries, 'ym');
+        $last_selected_end = date('Y-m-t', strtotime($fy_entries[count($fy_entries) - 1]['ym'] . '-01'));
 
         // Daily status: today when current month is in the selection, else last day of latest selected month.
         $status_date = in_array($current_ym, $selected_yms, true) ? $today : $last_selected_end;
@@ -781,7 +780,76 @@ class Dashboard_mdl extends CI_Model
     }
 
     /**
-     * Selected dashboard months (1–12) from session; defaults to current month.
+     * Month numbers (Jun–May) for a full financial year.
+     *
+     * @return array<int, int>
+     */
+    public function dashboardDefaultFyMonthNumbers()
+    {
+        return [6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5];
+    }
+
+    /**
+     * Financial year timeline (Jun → May) for dashboard filters/charts.
+     *
+     * @param int      $ref_year  Calendar year from dashboard filter
+     * @param int|null $ref_month Optional month for FY start calculation
+     * @return array{fy_start:int,bounds:array{start:string,end:string},timeline:array<int,array{month:int,year:int,ym:string,label:string}>}
+     */
+    public function dashboardFyTimeline($ref_year, $ref_month = null)
+    {
+        $ref_year = (int) $ref_year;
+        if ($ref_month === null) {
+            $ref_month = (int) ($this->session->userdata('month') ?: date('m'));
+        }
+        $ref_month = (int) $ref_month;
+        $fy_start = financial_year_start_year($ref_year, $ref_month);
+        $bounds = financial_year_bounds($fy_start);
+        $timeline = [];
+        for ($i = 0; $i < 12; $i++) {
+            $ts = strtotime($bounds['start'] . " +{$i} months");
+            $timeline[] = [
+                'month' => (int) date('n', $ts),
+                'year'  => (int) date('Y', $ts),
+                'ym'    => date('Y-m', $ts),
+                'label' => date('M Y', $ts),
+            ];
+        }
+
+        return [
+            'fy_start' => $fy_start,
+            'bounds'   => $bounds,
+            'timeline' => $timeline,
+        ];
+    }
+
+    /**
+     * Selected FY month entries from dashboard month numbers (6,7,…,5).
+     *
+     * @param int               $ref_year
+     * @param array<int, int>   $month_nums
+     * @param int|null          $ref_month
+     * @return array<int, array{month:int,year:int,ym:string,label:string}>
+     */
+    public function dashboardSelectedFyEntries($ref_year, array $month_nums, $ref_month = null)
+    {
+        $ctx = $this->dashboardFyTimeline($ref_year, $ref_month);
+        $month_nums = array_values(array_unique(array_map('intval', $month_nums)));
+        if (empty($month_nums)) {
+            $month_nums = $this->dashboardDefaultFyMonthNumbers();
+        }
+        $selected = [];
+        foreach ($ctx['timeline'] as $entry) {
+            if (in_array($entry['month'], $month_nums, true)) {
+                $selected[] = $entry;
+            }
+        }
+
+        return !empty($selected) ? $selected : $ctx['timeline'];
+    }
+
+    /**
+     * Selected dashboard months (1–12) from session; defaults to full FY (Jun–May).
      *
      * @return array<int, int>
      */
@@ -805,7 +873,7 @@ class Dashboard_mdl extends CI_Model
             }
         }
         if (empty($months)) {
-            $months = [(int) ($this->session->userdata('month') ?: date('m'))];
+            return $this->dashboardDefaultFyMonthNumbers();
         }
         $months = array_values(array_unique($months));
         sort($months);
@@ -814,66 +882,67 @@ class Dashboard_mdl extends CI_Model
     }
 
     /**
-     * @param int        $year
-     * @param array<int, int> $months
-     * @return array{start: string, end: string}
+     * @param int               $ref_year
+     * @param array<int, int>   $months
+     * @param int|null          $ref_month
+     * @return array{start: string, end: string, fy_start: int, fy_label: string}
      */
-    public function dashboardDateRange($year, array $months)
+    public function dashboardDateRange($ref_year, array $months, $ref_month = null)
     {
-        $year = (int) $year;
-        $months = array_values(array_unique(array_map('intval', $months)));
-        sort($months);
-        if (empty($months)) {
-            $months = [(int) date('m')];
-        }
-        $first = $year . '-' . str_pad((string) $months[0], 2, '0', STR_PAD_LEFT) . '-01';
-        $last_ym = $year . '-' . str_pad((string) $months[count($months) - 1], 2, '0', STR_PAD_LEFT) . '-01';
+        $ctx = $this->dashboardFyTimeline($ref_year, $ref_month);
+        $entries = $this->dashboardSelectedFyEntries($ref_year, $months, $ref_month);
+        $first = $entries[0];
+        $last = $entries[count($entries) - 1];
 
         return [
-            'start' => $first,
-            'end'   => date('Y-m-t', strtotime($last_ym)),
+            'start'    => $first['ym'] . '-01',
+            'end'      => date('Y-m-t', strtotime($last['ym'] . '-01')),
+            'fy_start' => $ctx['fy_start'],
+            'fy_label' => financial_year_label($ctx['fy_start']),
         ];
     }
 
     /**
-     * Human-readable label for selected month(s) in a calendar year.
+     * Human-readable label for selected month(s) within a financial year.
      *
-     * @param int               $year
+     * @param int               $ref_year
      * @param array<int, int>   $months
+     * @param int|null          $ref_month
      * @return string
      */
-    public function dashboardPeriodLabel($year, array $months)
+    public function dashboardPeriodLabel($ref_year, array $months, $ref_month = null)
     {
-        $year = (int) $year;
+        $ctx = $this->dashboardFyTimeline($ref_year, $ref_month);
         $months = array_values(array_unique(array_map('intval', $months)));
-        sort($months);
         if (count($months) === 12) {
-            return (string) $year . ' (all months)';
+            return financial_year_label($ctx['fy_start']);
         }
-        if (count($months) === 1) {
-            return date('M Y', strtotime($year . '-' . str_pad((string) $months[0], 2, '0', STR_PAD_LEFT) . '-01'));
+        $entries = $this->dashboardSelectedFyEntries($ref_year, $months, $ref_month);
+        if (count($entries) === 1) {
+            return $entries[0]['label'];
         }
-        $names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        $first = $names[$months[0] - 1];
-        $last = $names[$months[count($months) - 1] - 1];
+        if (count($entries) === 12) {
+            return financial_year_label($ctx['fy_start']);
+        }
 
-        return $first . '–' . $last . ' ' . $year;
+        return $entries[0]['label'] . ' – ' . $entries[count($entries) - 1]['label'];
     }
 
     /**
-     * @param array<int, int> $months
-     * @param int             $year
+     * @param array<int, int>   $months
+     * @param int               $ref_year
      * @param array<int, mixed> $params
-     * @param string          $dateColumn
+     * @param string            $dateColumn
+     * @param int|null          $ref_month
      * @return string
      */
-    protected function dashboardMonthSqlIn(array $months, $year, array &$params, $dateColumn = 'a.date')
+    protected function dashboardMonthSqlIn(array $months, $ref_year, array &$params, $dateColumn = 'a.date', $ref_month = null)
     {
-        $year = (int) $year;
+        $entries = $this->dashboardSelectedFyEntries($ref_year, $months, $ref_month);
         $placeholders = [];
-        foreach ($months as $m) {
+        foreach ($entries as $entry) {
             $placeholders[] = '?';
-            $params[] = $year . '-' . str_pad((string) (int) $m, 2, '0', STR_PAD_LEFT);
+            $params[] = $entry['ym'];
         }
 
         return "DATE_FORMAT({$dateColumn},'%Y-%m') IN (" . implode(',', $placeholders) . ")";
@@ -962,10 +1031,11 @@ class Dashboard_mdl extends CI_Model
             $months = [(int) date('m')];
         }
         $params = [];
-        $month_sql = $this->dashboardMonthSqlIn($months, $year, $params);
+        $ref_month = (int) ($this->session->userdata('month') ?: date('m'));
+        $month_sql = $this->dashboardMonthSqlIn($months, $year, $params, 'a.date', $ref_month);
         $scope_sql = $this->buildScopeSql($scope, $params);
-        $period_label = $this->dashboardPeriodLabel($year, $months);
-        $range = $this->dashboardDateRange($year, $months);
+        $period_label = $this->dashboardPeriodLabel($year, $months, $ref_month);
+        $range = $this->dashboardDateRange($year, $months, $ref_month);
 
         $sql = "SELECT
             SUM(t.present) AS present,
@@ -1074,18 +1144,20 @@ class Dashboard_mdl extends CI_Model
 
         $year = (int) $year;
         $months = array_values(array_unique(array_map('intval', $months)));
-        sort($months);
         if (empty($months)) {
-            $months = [(int) date('m')];
+            $months = $this->dashboardDefaultFyMonthNumbers();
         }
-        $range = $this->dashboardDateRange($year, $months);
-        $period_label = $this->dashboardPeriodLabel($year, $months);
+        $ref_month = (int) ($this->session->userdata('month') ?: date('m'));
+        $ctx = $this->dashboardFyTimeline($year, $ref_month);
+        $bounds = $ctx['bounds'];
+        $chart_timeline = $ctx['timeline'];
+        $period_label = financial_year_label($ctx['fy_start']);
 
         $key = 'analytics_' . md5(json_encode([
-            'scope'  => $scope,
-            'y'      => $year,
-            'months' => $months,
-            'emp'    => (string) $empid,
+            'scope'    => $scope,
+            'fy_start' => $ctx['fy_start'],
+            'months'   => $months,
+            'emp'      => (string) $empid,
         ]));
 
         $cached = $this->dash_cache->read($key);
@@ -1094,7 +1166,7 @@ class Dashboard_mdl extends CI_Model
             return $cached;
         }
 
-        $params = [$range['start'], $range['end']];
+        $params = [$bounds['start'], $bounds['end']];
         $scope_sql = $this->buildScopeSql($scope, $params);
         $empid = trim((string) $empid);
         $emp_sql = '';
@@ -1123,8 +1195,8 @@ class Dashboard_mdl extends CI_Model
             }
         }
 
-        // Monthly attendance / absenteeism rates for selected months
-        $rate_params = [$range['start'], $range['end']];
+        // Monthly attendance / absenteeism rates for full financial year
+        $rate_params = [$bounds['start'], $bounds['end']];
         $rate_scope = $this->buildScopeSql($scope, $rate_params);
         $rate_emp = '';
         if ($empid !== '') {
@@ -1200,9 +1272,9 @@ class Dashboard_mdl extends CI_Model
         $sched_official = [];
         $sched_holiday = [];
         $sched_unaccounted = [];
-        foreach ($months as $m) {
-            $ym = $year . '-' . str_pad((string) $m, 2, '0', STR_PAD_LEFT);
-            $period[] = date('M Y', strtotime($ym . '-01'));
+        foreach ($chart_timeline as $entry) {
+            $ym = $entry['ym'];
+            $period[] = $entry['label'];
             $avg_daily[] = isset($avg_map[$ym]) ? $avg_map[$ym] : 0;
             $att_trend[] = isset($att_rate_map[$ym]) ? $att_rate_map[$ym] : 0;
             $abs_trend[] = isset($abs_rate_map[$ym]) ? $abs_rate_map[$ym] : 0;
@@ -1216,6 +1288,7 @@ class Dashboard_mdl extends CI_Model
 
         $payload = [
             'year'                  => $year,
+            'fy_start'              => $ctx['fy_start'],
             'months'                => array_map(function ($m) {
                 return str_pad((string) $m, 2, '0', STR_PAD_LEFT);
             }, $months),

@@ -194,11 +194,7 @@ class Dashboard extends MX_Controller {
 			}
 		}
 		if (empty($months)) {
-			if ($month >= 1 && $month <= 12) {
-				$months = [$month];
-			} else {
-				$months = [(int) date('m')];
-			}
+			$months = $this->dash_mdl->dashboardDefaultFyMonthNumbers();
 		}
 		$months = array_values(array_unique($months));
 		sort($months);

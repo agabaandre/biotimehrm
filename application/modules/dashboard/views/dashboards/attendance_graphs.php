@@ -7,7 +7,7 @@
 <div class="attendance-graphs-container">
 	<div class="row mb-2">
 		<div class="col-12">
-			<small class="text-muted" id="graph_fy_hint">Charts use the selected month(s) and year from dashboard filters.</small>
+			<small class="text-muted" id="graph_fy_hint">Charts show the full financial year (Jun–May) for the selected year filter.</small>
 		</div>
 	</div>
 

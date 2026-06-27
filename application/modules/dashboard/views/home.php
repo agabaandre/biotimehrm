@@ -301,6 +301,11 @@
 .dash-page .dash-filter-card .select2-container {
   width: 100% !important;
 }
+.dash-page .dash-filter-card .select2-container--bootstrap4 .select2-selection--multiple {
+  min-height: 38px;
+  max-height: 120px;
+  overflow-y: auto;
+}
 .dash-page .dash-btn-primary {
   background: linear-gradient(135deg, var(--dash-teal), var(--dash-mint));
   border: none;
@@ -587,7 +592,7 @@
           }
       }
       if (empty($sel_months)) {
-          $sel_months = [str_pad((string) $sel_month, 2, '0', STR_PAD_LEFT)];
+          $sel_months = ['06', '07', '08', '09', '10', '11', '12', '01', '02', '03', '04', '05'];
       }
       $sel_months = array_values(array_unique($sel_months));
       sort($sel_months);
@@ -622,7 +627,7 @@
             </div>
           </div>
           <div class="card-body" id="dash_filter_body">
-            <p class="text-muted small mb-3">Scope national charts and rates. Select one or more months (all 12 = full year). Leave region/district empty for all Uganda.</p>
+            <p class="text-muted small mb-3">Scope national charts and rates. Financial year runs Jun–May; all FY months are selected by default. Leave region/district empty for all Uganda.</p>
             <div class="form-row">
               <div class="form-group col-md-4 col-lg-2">
                 <label for="dash_region">Region</label>
@@ -666,7 +671,7 @@
                     </option>
                   <?php endforeach; ?>
                 </select>
-                <small class="text-muted">Select one or more months; all 12 = full year.</small>
+                <small class="text-muted">All FY months (Jun–May) selected by default.</small>
               </div>
               <div class="form-group col-md-2 col-lg-2">
                 <label for="dash_year">Year</label>
@@ -1070,6 +1075,7 @@
 waitForHighcharts(function() {
 		$(document).ready(function() {
 			// Dashboard filter state (persisted via session; used by calendar + chart refresh)
+			window.__dashDefaultFyMonths = ['06', '07', '08', '09', '10', '11', '12', '01', '02', '03', '04', '05'];
 			window.__dashFilters = window.__dashFilters || {
 				month: '<?php echo $sel_month ?? date('m'); ?>',
 				months: <?php echo json_encode($sel_months); ?>,
@@ -1080,7 +1086,7 @@ waitForHighcharts(function() {
 			function dashSelectedMonths() {
 				var months = $('#dash_month').val() || [];
 				if (!months.length) {
-					months = ['<?php echo date('m'); ?>'];
+					months = window.__dashDefaultFyMonths.slice();
 				}
 				return months;
 			}
@@ -1127,7 +1133,7 @@ waitForHighcharts(function() {
 
 				function initDashMonthSelect2() {
 					var $month = $('#dash_month');
-					var selectedMonths = window.__dashFilters.months || [];
+					var selectedMonths = window.__dashFilters.months || window.__dashDefaultFyMonths.slice();
 					destroyDashSelect2($month);
 					$month.select2({
 						theme: 'bootstrap4',
@@ -1136,7 +1142,7 @@ waitForHighcharts(function() {
 						dropdownParent: dashFilterParent
 					});
 					if (!selectedMonths.length) {
-						selectedMonths = ['<?php echo date('m'); ?>'];
+						selectedMonths = window.__dashDefaultFyMonths.slice();
 					}
 					$month.val(selectedMonths).trigger('change');
 				}
@@ -1362,9 +1368,8 @@ waitForHighcharts(function() {
 			});
 			
 			$(document).on('click', '#dash_reset', function() {
-				var m = '<?php echo date('m'); ?>';
 				var y = '<?php echo date('Y'); ?>';
-				$('#dash_month').val([m]).trigger('change');
+				$('#dash_month').val(window.__dashDefaultFyMonths.slice()).trigger('change');
 				$('#dash_year').val(y);
 				if ($('#dash_facility').length) {
 					$('#dash_facility').val(null).trigger('change');
