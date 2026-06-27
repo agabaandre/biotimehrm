@@ -1131,4 +1131,297 @@ class Reports extends MX_Controller
 			number_format($absentism_rate, 1) . '%',
 		];
 	}
+
+	/**
+	 * Chart data for attendance aggregate visualizations (same filters/cache as DataTables).
+	 */
+	public function attendanceAggregateChartData()
+	{
+		$this->output->set_content_type('application/json');
+
+		$filters = [];
+		$filters['district'] = $this->input->post('district');
+		$filters['facility_name'] = $this->input->post('facility_name');
+		$filters['region'] = $this->input->post('region');
+		$filters['institution_type'] = $this->input->post('institution_type');
+		$filters['duty_date'] = $this->input->post('duty_date');
+		$group_by = $this->input->post('group_by') ?: 'district';
+		$chart_type = trim((string) $this->input->post('chart_type'));
+		if ($chart_type === '') {
+			$chart_type = 'attendance_rates';
+		}
+
+		$filters = array_filter($filters, function ($value) {
+			return !empty($value);
+		});
+		if (empty($filters['duty_date'])) {
+			$filters['duty_date'] = date('Y-m');
+		}
+		if (is_string($filters['duty_date'])) {
+			$filters['duty_date'] = [$filters['duty_date']];
+		}
+
+		try {
+			$cache_result = $this->_get_aggregate_rows_cached($filters, $group_by);
+			$payload = $this->_build_aggregate_chart_payload($cache_result['rows'], $group_by, $chart_type);
+			$payload['cache_meta'] = $this->_aggregate_cache_meta($cache_result);
+			$payload['chart_type'] = $chart_type;
+			$payload['group_by'] = $group_by;
+			echo json_encode($payload);
+		} catch (Throwable $e) {
+			log_message('error', 'attendanceAggregateChartData error: ' . $e->getMessage());
+			echo json_encode(['error' => 'Failed to load chart data', 'series' => [], 'categories' => []]);
+		}
+		exit;
+	}
+
+	/**
+	 * @param array<int, object> $rows
+	 * @param string             $group_by
+	 * @param string             $chart_type
+	 * @return array<string, mixed>
+	 */
+	private function _build_aggregate_chart_payload(array $rows, $group_by, $chart_type)
+	{
+		switch ($chart_type) {
+			case 'schedule_breakdown':
+				return $this->_aggregate_chart_schedule_breakdown($rows, $group_by);
+			case 'staff_days':
+				return $this->_aggregate_chart_staff_days($rows, $group_by);
+			case 'period_trend':
+				return $this->_aggregate_chart_period_trend($rows);
+			case 'attendance_rates':
+			default:
+				return $this->_aggregate_chart_attendance_rates($rows, $group_by);
+		}
+	}
+
+	/**
+	 * @param object|array<string, mixed> $row
+	 * @return array<string, float|int>
+	 */
+	private function _aggregate_row_metrics($row)
+	{
+		$row = is_object($row) ? $row : (object) $row;
+		$supposed = (float) ($row->days_supposed ?? 0);
+		$absent_days = (float) ($row->days_absent ?? 0);
+		$worked = max(0, $supposed - $absent_days);
+
+		return [
+			'supposed'       => $supposed,
+			'worked'         => $worked,
+			'absent_days'    => $absent_days,
+			'present'        => (float) ($row->present ?? 0),
+			'off'            => (float) ($row->off ?? 0),
+			'own_leave'      => (float) ($row->own_leave ?? 0),
+			'official'       => (float) ($row->official ?? 0),
+			'holiday'        => (float) ($row->holiday ?? 0),
+			'absent'         => (float) ($row->absent ?? 0),
+			'attendance_pct' => ($supposed > 0) ? round(($worked / $supposed) * 100, 1) : 0.0,
+			'absent_pct'     => ($supposed > 0) ? round(($absent_days / $supposed) * 100, 1) : 0.0,
+		];
+	}
+
+	/**
+	 * @param array<int, object> $rows
+	 * @param string             $group_by
+	 * @return array<string, mixed>
+	 */
+	private function _aggregate_chart_attendance_rates(array $rows, $group_by)
+	{
+		$bucket = $this->_aggregate_bucket_by_group($rows, $group_by);
+		$categories = [];
+		$accounted = [];
+		$absent = [];
+
+		foreach ($this->_aggregate_top_groups($bucket, 20) as $label => $totals) {
+			$sup = (float) $totals['supposed'];
+			$categories[] = $label;
+			$accounted[] = ($sup > 0) ? round((($sup - $totals['absent_days']) / $sup) * 100, 1) : 0;
+			$absent[] = ($sup > 0) ? round(($totals['absent_days'] / $sup) * 100, 1) : 0;
+		}
+
+		return [
+			'title'      => '% Accounted vs % Absenteeism by ' . group_by_label($group_by),
+			'chart_kind' => 'column',
+			'categories' => $categories,
+			'series'     => [
+				['name' => '% Accounted', 'data' => $accounted, 'color' => '#20c198'],
+				['name' => '% Absenteeism', 'data' => $absent, 'color' => '#e74c3c'],
+			],
+		];
+	}
+
+	/**
+	 * @param array<int, object> $rows
+	 * @param string             $group_by
+	 * @return array<string, mixed>
+	 */
+	private function _aggregate_chart_schedule_breakdown(array $rows, $group_by)
+	{
+		$bucket = $this->_aggregate_bucket_by_group($rows, $group_by);
+		$categories = [];
+		$present = [];
+		$off = [];
+		$leave = [];
+		$official = [];
+		$holiday = [];
+		$absent = [];
+
+		foreach ($this->_aggregate_top_groups($bucket, 15) as $label => $totals) {
+			$sup = (float) $totals['supposed'];
+			$categories[] = $label;
+			$present[] = ($sup > 0) ? round(($totals['present'] / $sup) * 100, 1) : 0;
+			$off[] = ($sup > 0) ? round(($totals['off'] / $sup) * 100, 1) : 0;
+			$leave[] = ($sup > 0) ? round(($totals['own_leave'] / $sup) * 100, 1) : 0;
+			$official[] = ($sup > 0) ? round(($totals['official'] / $sup) * 100, 1) : 0;
+			$holiday[] = ($sup > 0) ? round(($totals['holiday'] / $sup) * 100, 1) : 0;
+			$absent[] = ($sup > 0) ? round(($totals['absent'] / $sup) * 100, 1) : 0;
+		}
+
+		return [
+			'title'      => 'Schedule mix (% of staff-days) by ' . group_by_label($group_by),
+			'chart_kind' => 'stacked_column',
+			'categories' => $categories,
+			'series'     => [
+				['name' => 'Present', 'data' => $present, 'color' => '#20c198'],
+				['name' => 'Off Duty', 'data' => $off, 'color' => '#f0ad4e'],
+				['name' => 'Leave', 'data' => $leave, 'color' => '#17a2b8'],
+				['name' => 'Official', 'data' => $official, 'color' => '#6f42c1'],
+				['name' => 'Holiday', 'data' => $holiday, 'color' => '#adb5bd'],
+				['name' => 'Absent', 'data' => $absent, 'color' => '#e74c3c'],
+			],
+		];
+	}
+
+	/**
+	 * @param array<int, object> $rows
+	 * @param string             $group_by
+	 * @return array<string, mixed>
+	 */
+	private function _aggregate_chart_staff_days(array $rows, $group_by)
+	{
+		$bucket = $this->_aggregate_bucket_by_group($rows, $group_by);
+		$categories = [];
+		$worked = [];
+		$scheduled = [];
+
+		foreach ($this->_aggregate_top_groups($bucket, 20) as $label => $totals) {
+			$categories[] = $label;
+			$worked[] = round(max(0, $totals['supposed'] - $totals['absent_days']), 0);
+			$scheduled[] = round($totals['supposed'], 0);
+		}
+
+		return [
+			'title'      => 'Staff-days worked vs scheduled by ' . group_by_label($group_by),
+			'chart_kind' => 'column',
+			'categories' => $categories,
+			'series'     => [
+				['name' => 'Days Worked', 'data' => $worked, 'color' => '#005662'],
+				['name' => 'Days Scheduled', 'data' => $scheduled, 'color' => '#17a2b8'],
+			],
+		];
+	}
+
+	/**
+	 * @param array<int, object> $rows
+	 * @return array<string, mixed>
+	 */
+	private function _aggregate_chart_period_trend(array $rows)
+	{
+		$bucket = [];
+		foreach ($rows as $row) {
+			$row = is_object($row) ? $row : (object) $row;
+			$period = (string) ($row->duty_date ?? '');
+			if ($period === '') {
+				continue;
+			}
+			if (!isset($bucket[$period])) {
+				$bucket[$period] = [
+					'supposed'    => 0,
+					'absent_days' => 0,
+				];
+			}
+			$m = $this->_aggregate_row_metrics($row);
+			$bucket[$period]['supposed'] += $m['supposed'];
+			$bucket[$period]['absent_days'] += $m['absent_days'];
+		}
+		ksort($bucket);
+
+		$categories = [];
+		$accounted = [];
+		$absent = [];
+		foreach ($bucket as $period => $totals) {
+			$categories[] = $period;
+			$sup = (float) $totals['supposed'];
+			$accounted[] = ($sup > 0) ? round((($sup - $totals['absent_days']) / $sup) * 100, 1) : 0;
+			$absent[] = ($sup > 0) ? round(($totals['absent_days'] / $sup) * 100, 1) : 0;
+		}
+
+		return [
+			'title'      => 'Attendance trend by period',
+			'chart_kind' => 'line',
+			'categories' => $categories,
+			'series'     => [
+				['name' => '% Accounted', 'data' => $accounted, 'color' => '#20c198'],
+				['name' => '% Absenteeism', 'data' => $absent, 'color' => '#e74c3c'],
+			],
+		];
+	}
+
+	/**
+	 * @param array<int, object> $rows
+	 * @param string             $group_by
+	 * @return array<string, array<string, float>>
+	 */
+	private function _aggregate_bucket_by_group(array $rows, $group_by)
+	{
+		$allowed = ['district', 'facility_name', 'job', 'region', 'institution_type', 'department_id', 'cadre', 'gender', 'facility_type_name'];
+		$group_by = in_array($group_by, $allowed, true) ? $group_by : 'district';
+		$bucket = [];
+		foreach ($rows as $row) {
+			$row = is_object($row) ? $row : (object) $row;
+			$label = trim((string) ($row->{$group_by} ?? ''));
+			if ($label === '') {
+				$label = 'N/A';
+			}
+			if (!isset($bucket[$label])) {
+				$bucket[$label] = [
+					'supposed'    => 0,
+					'absent_days' => 0,
+					'present'     => 0,
+					'off'         => 0,
+					'own_leave'   => 0,
+					'official'    => 0,
+					'holiday'     => 0,
+					'absent'      => 0,
+				];
+			}
+			$m = $this->_aggregate_row_metrics($row);
+			$bucket[$label]['supposed'] += $m['supposed'];
+			$bucket[$label]['absent_days'] += $m['absent_days'];
+			$bucket[$label]['present'] += $m['present'];
+			$bucket[$label]['off'] += $m['off'];
+			$bucket[$label]['own_leave'] += $m['own_leave'];
+			$bucket[$label]['official'] += $m['official'];
+			$bucket[$label]['holiday'] += $m['holiday'];
+			$bucket[$label]['absent'] += $m['absent'];
+		}
+
+		return $bucket;
+	}
+
+	/**
+	 * @param array<string, array<string, float>> $bucket
+	 * @param int                                     $limit
+	 * @return array<string, array<string, float>>
+	 */
+	private function _aggregate_top_groups(array $bucket, $limit = 20)
+	{
+		uasort($bucket, function ($a, $b) {
+			return ($b['supposed'] <=> $a['supposed']);
+		});
+
+		return array_slice($bucket, 0, max(1, (int) $limit), true);
+	}
 }

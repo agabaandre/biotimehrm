@@ -44,7 +44,7 @@
 					</div>
 					<div class="card-body"><div id="chart_abs_rate" class="chart-box"></div></div>
 					<div class="card-footer py-2">
-						<small class="text-muted">Line = unaccounted absent on working days. Columns = scheduled away and unaccounted (% of calendar staff-days).</small>
+						<small class="text-muted">Absent staff-days ÷ scheduled working staff-days × 100 (same as Attendance Aggregate).</small>
 					</div>
 				</div>
 			</div>
@@ -124,11 +124,12 @@
 
 		if (charts.abs) charts.abs.destroy();
 		charts.abs = Highcharts.chart('chart_abs_rate', {
-			chart: { type: 'column' },
+			chart: { type: 'line' },
 			title: { text: null },
 			xAxis: { categories: period },
 			yAxis: {
-				title: { text: '% of staff-days' },
+				title: { text: '% Absenteeism' },
+				min: 0,
 				max: 100
 			},
 			tooltip: {
@@ -136,25 +137,15 @@
 				valueSuffix: '%'
 			},
 			plotOptions: {
-				column: { stacking: 'normal', borderWidth: 0 },
-				series: { marker: { enabled: true, radius: 3 } }
+				series: { marker: { enabled: true, radius: 4 } }
 			},
-			series: [
-				{ name: 'Off Duty (Schedule)', data: data.schedule_off || [], color: '#f0ad4e' },
-				{ name: 'On Leave (Schedule)', data: data.schedule_leave || [], color: '#17a2b8' },
-				{ name: 'Official (Schedule)', data: data.schedule_official || [], color: '#6f42c1' },
-				{ name: 'Holiday (Schedule)', data: data.schedule_holiday || [], color: '#adb5bd' },
-				{ name: 'Unaccounted Absent', data: data.schedule_unaccounted || [], color: '#e74c3c' },
-				{
-					type: 'spline',
-					name: 'Absenteeism rate',
-					data: data.absenteeism_rate || [],
-					color: '#c0392b',
-					lineWidth: 3,
-					marker: { lineWidth: 2, lineColor: '#c0392b', fillColor: '#fff' },
-					zIndex: 5
-				}
-			],
+			series: [{
+				name: 'Absenteeism rate',
+				data: data.absenteeism_rate || [],
+				color: '#c0392b',
+				lineWidth: 3,
+				marker: { lineWidth: 2, lineColor: '#c0392b', fillColor: '#fff' }
+			}],
 			credits: { enabled: false }
 		});
 

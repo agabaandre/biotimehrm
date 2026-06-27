@@ -426,8 +426,17 @@ class Dashboard_mdl extends CI_Model
         return $data;
     }
 
+    public function averageDailyHours($facility, $date, $empid = '')
+    {
+        if ($facility === '' || $date === '') {
+            return 0.0;
+        }
+
+        return $this->averageHoursForFacilityRange($facility, $date, $date, $empid);
+    }
+
     /**
-     * Average hours worked per staff member for a facility date range.
+     * Average hours worked per staff member for a facility date range (clk_diff, then clk_log).
      *
      * @param string $facility
      * @param string $start_date
@@ -437,54 +446,134 @@ class Dashboard_mdl extends CI_Model
      */
     public function averageHoursForFacilityRange($facility, $start_date, $end_date, $empid = '')
     {
-        if (!$this->db->table_exists('clk_diff') || $facility === '') {
+        if ($facility === '') {
             return 0.0;
         }
 
-        $sql = "SELECT COALESCE(SUM(time_diff) / NULLIF(COUNT(DISTINCT pid), 0), 0) AS avg_hours
-            FROM clk_diff
-            WHERE facility_id = ? AND date >= ? AND date <= ?
-              AND time_diff IS NOT NULL AND time_diff > 0";
+        foreach ($this->_averageHoursSourceMethods() as $method) {
+            $avg = (float) $this->{$method}($facility, $start_date, $end_date, $empid);
+            if ($avg > 0) {
+                return round($avg, 1);
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * Clock sources tried in order for average hours (clk_diff, device log, mobile log).
+     *
+     * @return array<int, string>
+     */
+    protected function _averageHoursSourceMethods()
+    {
+        $methods = ['_averageHoursFromClkDiff', '_averageHoursFromClkLog'];
+        if ($this->db->table_exists('mobileclk_log')) {
+            $methods[] = '_averageHoursFromMobileClkLog';
+        }
+
+        return $methods;
+    }
+
+    /**
+     * @param string $facility
+     * @param string $start_date
+     * @param string $end_date
+     * @param string $empid
+     * @return float
+     */
+    protected function _averageHoursFromClkDiff($facility, $start_date, $end_date, $empid = '')
+    {
+        if (!$this->db->table_exists('clk_diff')) {
+            return 0.0;
+        }
+
+        $sql = "SELECT COALESCE(AVG(staff_hours), 0) AS avg_hours
+            FROM (
+                SELECT pid, SUM(time_diff) AS staff_hours
+                FROM clk_diff
+                WHERE facility_id = ? AND date >= ? AND date <= ?
+                  AND time_diff IS NOT NULL AND time_diff > 0";
         $params = [$facility, $start_date, $end_date];
         if ($empid !== '') {
             $sql .= ' AND pid = ?';
             $params[] = $empid;
         }
+        $sql .= ' GROUP BY pid HAVING staff_hours > 0
+            ) staff_totals';
 
         $row = $this->safeQuery($sql, $params);
         $row = $row ? $row->row() : null;
 
-        return ($row && $row->avg_hours !== null) ? round((float) $row->avg_hours, 1) : 0.0;
+        return ($row && $row->avg_hours !== null) ? (float) $row->avg_hours : 0.0;
     }
 
     /**
-     * Average hours worked per staff member for a single day (facility-scoped).
-     *
      * @param string $facility
-     * @param string $date
+     * @param string $start_date
+     * @param string $end_date
      * @param string $empid
      * @return float
      */
-    public function averageDailyHours($facility, $date, $empid = '')
+    protected function _averageHoursFromClkLog($facility, $start_date, $end_date, $empid = '')
     {
-        if (!$this->db->table_exists('clk_diff') || $facility === '' || $date === '') {
+        if (!$this->db->table_exists('clk_log')) {
             return 0.0;
         }
 
-        $sql = "SELECT COALESCE(SUM(time_diff) / NULLIF(COUNT(DISTINCT pid), 0), 0) AS avg_hours
-            FROM clk_diff
-            WHERE facility_id = ? AND date = ?
-              AND time_diff IS NOT NULL AND time_diff > 0";
-        $params = [$facility, $date];
+        $sql = "SELECT COALESCE(AVG(staff_hours), 0) AS avg_hours
+            FROM (
+                SELECT cl.ihris_pid,
+                    SUM(GREATEST(0, IFNULL(TIMESTAMPDIFF(SECOND, cl.time_in, cl.time_out), 0) / 3600)) AS staff_hours
+                FROM clk_log cl
+                WHERE cl.facility_id = ? AND cl.date >= ? AND cl.date <= ?
+                  AND cl.time_in IS NOT NULL";
+        $params = [$facility, $start_date, $end_date];
         if ($empid !== '') {
-            $sql .= ' AND pid = ?';
+            $sql .= ' AND cl.ihris_pid = ?';
             $params[] = $empid;
         }
+        $sql .= ' GROUP BY cl.ihris_pid HAVING staff_hours > 0
+            ) staff_totals';
 
         $row = $this->safeQuery($sql, $params);
         $row = $row ? $row->row() : null;
 
-        return ($row && $row->avg_hours !== null) ? round((float) $row->avg_hours, 1) : 0.0;
+        return ($row && $row->avg_hours !== null) ? (float) $row->avg_hours : 0.0;
+    }
+
+    /**
+     * @param string $facility
+     * @param string $start_date
+     * @param string $end_date
+     * @param string $empid
+     * @return float
+     */
+    protected function _averageHoursFromMobileClkLog($facility, $start_date, $end_date, $empid = '')
+    {
+        if (!$this->db->table_exists('mobileclk_log')) {
+            return 0.0;
+        }
+
+        $sql = "SELECT COALESCE(AVG(staff_hours), 0) AS avg_hours
+            FROM (
+                SELECT m.ihris_pid,
+                    SUM(GREATEST(0, IFNULL(TIMESTAMPDIFF(SECOND, m.time_in, m.time_out), 0) / 3600)) AS staff_hours
+                FROM mobileclk_log m
+                WHERE m.facility_id = ? AND m.date >= ? AND m.date <= ?
+                  AND m.time_in IS NOT NULL";
+        $params = [$facility, $start_date, $end_date];
+        if ($empid !== '') {
+            $sql .= ' AND m.ihris_pid = ?';
+            $params[] = $empid;
+        }
+        $sql .= ' GROUP BY m.ihris_pid HAVING staff_hours > 0
+            ) staff_totals';
+
+        $row = $this->safeQuery($sql, $params);
+        $row = $row ? $row->row() : null;
+
+        return ($row && $row->avg_hours !== null) ? (float) $row->avg_hours : 0.0;
     }
 
     public function avghours()
@@ -1097,24 +1186,80 @@ class Dashboard_mdl extends CI_Model
      */
     public function averageHoursForScopeRange(array $scope, $start_date, $end_date)
     {
-        if (!$this->db->table_exists('clk_diff')) {
-            return 0.0;
+        $base_params = [$start_date, $end_date];
+
+        foreach ($this->_averageHoursScopeQueries() as $query) {
+            $params = $base_params;
+            $scope_sql = $this->buildScopeSql($scope, $params, $query['alias'], 'i');
+            $sql = str_replace('{scope_sql}', $scope_sql, $query['sql']);
+            $row = $this->safeQuery($sql, $params);
+            $row = $row ? $row->row() : null;
+            $avg = ($row && $row->avg_hours !== null) ? (float) $row->avg_hours : 0.0;
+            if ($avg > 0) {
+                return round($avg, 1);
+            }
         }
 
-        $params = [$start_date, $end_date];
-        $scope_sql = $this->buildScopeSql($scope, $params, 'c', 'i');
+        return 0.0;
+    }
 
-        $sql = "SELECT COALESCE(SUM(c.time_diff) / NULLIF(COUNT(DISTINCT c.pid), 0), 0) AS avg_hours
-            FROM clk_diff c
-            LEFT JOIN ihrisdata i ON i.ihris_pid = c.pid
-            WHERE c.date >= ? AND c.date <= ?
-              AND c.time_diff IS NOT NULL AND c.time_diff > 0
-              AND {$scope_sql}";
+    /**
+     * Scoped average-hours queries (clk_diff, clk_log, mobileclk_log).
+     *
+     * @return array<int, array{sql:string,alias:string}>
+     */
+    protected function _averageHoursScopeQueries()
+    {
+        $queries = [];
+        if ($this->db->table_exists('clk_diff')) {
+            $queries[] = [
+                'alias' => 'c',
+                'sql' => "SELECT COALESCE(AVG(staff_hours), 0) AS avg_hours
+                    FROM (
+                        SELECT c.pid, SUM(c.time_diff) AS staff_hours
+                        FROM clk_diff c
+                        LEFT JOIN ihrisdata i ON i.ihris_pid = c.pid
+                        WHERE c.date >= ? AND c.date <= ?
+                          AND c.time_diff IS NOT NULL AND c.time_diff > 0
+                          AND {scope_sql}
+                        GROUP BY c.pid HAVING staff_hours > 0
+                    ) staff_totals",
+            ];
+        }
+        if ($this->db->table_exists('clk_log')) {
+            $queries[] = [
+                'alias' => 'cl',
+                'sql' => "SELECT COALESCE(AVG(staff_hours), 0) AS avg_hours
+                    FROM (
+                        SELECT cl.ihris_pid,
+                            SUM(GREATEST(0, IFNULL(TIMESTAMPDIFF(SECOND, cl.time_in, cl.time_out), 0) / 3600)) AS staff_hours
+                        FROM clk_log cl
+                        LEFT JOIN ihrisdata i ON i.ihris_pid = cl.ihris_pid
+                        WHERE cl.date >= ? AND cl.date <= ?
+                          AND cl.time_in IS NOT NULL
+                          AND {scope_sql}
+                        GROUP BY cl.ihris_pid HAVING staff_hours > 0
+                    ) staff_totals",
+            ];
+        }
+        if ($this->db->table_exists('mobileclk_log')) {
+            $queries[] = [
+                'alias' => 'm',
+                'sql' => "SELECT COALESCE(AVG(staff_hours), 0) AS avg_hours
+                    FROM (
+                        SELECT m.ihris_pid,
+                            SUM(GREATEST(0, IFNULL(TIMESTAMPDIFF(SECOND, m.time_in, m.time_out), 0) / 3600)) AS staff_hours
+                        FROM mobileclk_log m
+                        LEFT JOIN ihrisdata i ON i.ihris_pid = m.ihris_pid
+                        WHERE m.date >= ? AND m.date <= ?
+                          AND m.time_in IS NOT NULL
+                          AND {scope_sql}
+                        GROUP BY m.ihris_pid HAVING staff_hours > 0
+                    ) staff_totals",
+            ];
+        }
 
-        $row = $this->safeQuery($sql, $params);
-        $row = $row ? $row->row() : null;
-
-        return ($row && $row->avg_hours !== null) ? round((float) $row->avg_hours, 1) : 0.0;
+        return $queries;
     }
 
     /**

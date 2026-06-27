@@ -45,6 +45,25 @@
 		border: 1px solid #b8e6d8;
 		color: #005662;
 	}
+	#aaViewTabs .nav-link {
+		font-weight: 600;
+		color: #005662;
+	}
+	#aaViewTabs .nav-link.active {
+		color: #fff;
+		background: #005662;
+	}
+	#aa_chart_container {
+		width: 100%;
+		min-height: 420px;
+	}
+	#aaTabCharts .aa-chart-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
 </style>
 <script>
 	function limitSelection(select) {
@@ -216,7 +235,18 @@
 				</span>
 			</div>
 
-			<div class="table-responsive mt-3">
+			<ul class="nav nav-tabs mb-3" id="aaViewTabs" role="tablist">
+				<li class="nav-item">
+					<a class="nav-link active" id="aa-tab-table" data-toggle="tab" href="#aaTabTable" role="tab">Table</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" id="aa-tab-charts" data-toggle="tab" href="#aaTabCharts" role="tab">Charts</a>
+				</li>
+			</ul>
+
+			<div class="tab-content" id="aaViewTabContent">
+				<div class="tab-pane fade show active" id="aaTabTable" role="tabpanel">
+			<div class="table-responsive mt-1">
 				<table id="attendanceAggregateTable" class="table table-striped table-bordered" style="width:100%">
 					<thead>
 						<tr>
@@ -239,7 +269,26 @@
 						<!-- DataTables will populate this -->
 					</tbody>
 				</table>
-	</div>
+			</div>
+				</div>
+
+				<div class="tab-pane fade" id="aaTabCharts" role="tabpanel">
+					<div class="aa-chart-toolbar">
+						<label class="mb-0 mr-2" for="aa_chart_type">Chart type</label>
+						<select id="aa_chart_type" class="form-control form-control-sm" style="max-width:320px;">
+							<option value="attendance_rates">% Accounted vs Absenteeism (by group)</option>
+							<option value="schedule_breakdown">Schedule mix (stacked %)</option>
+							<option value="staff_days">Staff-days worked vs scheduled</option>
+							<option value="period_trend">Trend by period</option>
+						</select>
+						<button type="button" id="aa_chart_refresh" class="btn btn-sm btn-outline-secondary">
+							<i class="fas fa-sync-alt"></i> Refresh chart
+						</button>
+						<span id="aa_chart_status" class="text-muted small"></span>
+					</div>
+					<div id="aa_chart_container"></div>
+				</div>
+			</div>
 	</div>
 	</div>
 </section>
@@ -253,6 +302,8 @@ foreach ($aggregations as $agg) {
 ?>
 $(document).ready(function() {
 	var table;
+	var aaChart = null;
+	var aaChartLoaded = false;
 	var csrfTokenName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 	var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 	var baseUrl = '<?php echo base_url(); ?>';
@@ -472,6 +523,104 @@ $(document).ready(function() {
 		});
 	}
 
+	function waitForHighcharts(cb) {
+		if (typeof Highcharts !== 'undefined' && typeof Highcharts.chart === 'function') {
+			cb();
+			return;
+		}
+		setTimeout(function() { waitForHighcharts(cb); }, 80);
+	}
+
+	function renderAggregateChart(payload) {
+		if (!payload || !payload.categories) {
+			$('#aa_chart_status').text('No chart data for the current filters.');
+			return;
+		}
+
+		waitForHighcharts(function() {
+			if (aaChart) {
+				aaChart.destroy();
+				aaChart = null;
+			}
+
+			var kind = payload.chart_kind || 'column';
+			var chartType = (kind === 'line') ? 'line' : 'column';
+			var options = {
+				chart: { type: chartType },
+				title: { text: payload.title || 'Attendance aggregate' },
+				xAxis: {
+					categories: payload.categories,
+					labels: { rotation: -45, style: { fontSize: '11px' } }
+				},
+				yAxis: {
+					title: { text: (kind === 'stacked_column' || payload.categories.length > 0 && payload.series && payload.series[0] && String(payload.series[0].name).indexOf('%') >= 0) ? '% of staff-days' : 'Staff-days' },
+					min: 0,
+					max: (kind === 'stacked_column' || chartType === 'line') ? null : undefined
+				},
+				tooltip: {
+					shared: true,
+					valueSuffix: (kind === 'stacked_column' || chartType === 'line') ? '%' : ''
+				},
+				plotOptions: {
+					column: {
+						stacking: (kind === 'stacked_column') ? 'percent' : null,
+						borderWidth: 0
+					},
+					series: { marker: { enabled: chartType === 'line' } }
+				},
+				series: payload.series || [],
+				credits: { enabled: false },
+				exporting: { enabled: true }
+			};
+
+			if (kind === 'stacked_column') {
+				options.yAxis.max = 100;
+			}
+
+			aaChart = Highcharts.chart('aa_chart_container', options);
+			$('#aa_chart_status').text('');
+		});
+	}
+
+	function loadAggregateChart(force) {
+		if (!$('#aaTabCharts').hasClass('active') && !force) {
+			return;
+		}
+
+		var filters = getFilters();
+		$('#aa_chart_status').html('<i class="fas fa-spinner fa-spin"></i> Loading chart…');
+
+		$.ajax({
+			url: baseUrl + 'reports/attendanceAggregateChartData',
+			type: 'POST',
+			dataType: 'json',
+			timeout: 120000,
+			data: {
+				district: filters.district,
+				facility_name: filters.facility_name,
+				region: filters.region,
+				institution_type: filters.institution_type,
+				duty_date: filters.duty_date,
+				group_by: filters.group_by,
+				chart_type: $('#aa_chart_type').val() || 'attendance_rates',
+				[csrfTokenName]: csrfTokenHash
+			}
+		}).done(function(json) {
+			if (json && json.cache_meta) {
+				showCacheNotice(json.cache_meta);
+			}
+			if (json && json.error) {
+				$('#aa_chart_status').text(json.error);
+				return;
+			}
+			aaChartLoaded = true;
+			renderAggregateChart(json);
+		}).fail(function(xhr) {
+			console.error('Aggregate chart error', xhr.responseText);
+			$('#aa_chart_status').text('Failed to load chart data.');
+		});
+	}
+
 	// Prevent form submission
 	$('#aggregateFiltersForm').on('submit', function(e) {
 		e.preventDefault();
@@ -483,12 +632,36 @@ $(document).ready(function() {
 		updateGroupByLabel();
 		updateExportLinks();
 		table.ajax.reload();
+		if ($('#aaTabCharts').hasClass('active')) {
+			loadAggregateChart(true);
+		} else {
+			aaChartLoaded = false;
+		}
 	});
 
 	// Group by change
 	$('#aa_group_by').on('change', function() {
 		updateGroupByLabel();
 		table.ajax.reload();
+		if ($('#aaTabCharts').hasClass('active')) {
+			loadAggregateChart(true);
+		} else {
+			aaChartLoaded = false;
+		}
+	});
+
+	$('#aa_chart_type').on('change', function() {
+		loadAggregateChart(true);
+	});
+
+	$('#aa_chart_refresh').on('click', function() {
+		loadAggregateChart(true);
+	});
+
+	$('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+		if ($(e.target).attr('href') === '#aaTabCharts' && !aaChartLoaded) {
+			loadAggregateChart(true);
+		}
 	});
 
 	// Initialize (defer Select2 so it does not fight DataTable; multi-selects must not use value="" "All" options)
