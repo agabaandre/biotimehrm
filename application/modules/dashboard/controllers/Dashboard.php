@@ -37,10 +37,10 @@ class Dashboard extends MX_Controller {
 
 		$facility = (string) $this->session->userdata('facility');
 		$year = (string) ($this->session->userdata('year') ?: date('Y'));
-		$month = (string) ($this->session->userdata('month') ?: date('m'));
+		$months = $this->dash_mdl->dashboardMonthsFromSession();
 		$empid = (string) ($this->session->userdata('dashboard_empid') ?: '');
 		$ver = $this->dash_cache->facilityVersion($facility);
-		$cache_key = 'stats_' . md5(implode('|', [$facility, $year, $month, $empid, $ver]));
+		$cache_key = 'stats_' . md5(implode('|', [$facility, $year, implode(',', $months), $empid, $ver]));
 
 		$cached = $this->dash_cache->read($cache_key);
 		if (is_array($cached)) {
@@ -167,6 +167,7 @@ class Dashboard extends MX_Controller {
 		$this->output->set_content_type('application/json');
 
 		$month = (int) $this->input->post('month');
+		$months_raw = $this->input->post('months');
 		$year = (int) $this->input->post('year');
 		$empid = trim((string) $this->input->post('empid'));
 		$facility_id = trim((string) $this->input->post('facility_id'));
@@ -175,6 +176,33 @@ class Dashboard extends MX_Controller {
 		$institution_type = trim((string) $this->input->post('institution_type'));
 		$cadre = trim((string) $this->input->post('cadre'));
 		$national_facility = trim((string) $this->input->post('national_facility_id'));
+
+		$months = [];
+		if (is_array($months_raw)) {
+			foreach ($months_raw as $m) {
+				$m = (int) $m;
+				if ($m >= 1 && $m <= 12) {
+					$months[] = $m;
+				}
+			}
+		} elseif (is_string($months_raw) && trim($months_raw) !== '') {
+			foreach (explode(',', $months_raw) as $m) {
+				$m = (int) trim($m);
+				if ($m >= 1 && $m <= 12) {
+					$months[] = $m;
+				}
+			}
+		}
+		if (empty($months)) {
+			if ($month >= 1 && $month <= 12) {
+				$months = [$month];
+			} else {
+				$months = [(int) date('m')];
+			}
+		}
+		$months = array_values(array_unique($months));
+		sort($months);
+		$month = $months[count($months) - 1];
 
 		$permissions = $this->session->userdata('permissions') ?: [];
 		$user_role = (string) $this->session->userdata('role');
@@ -190,6 +218,11 @@ class Dashboard extends MX_Controller {
 			$empid = '';
 		}
 
+		$month_strings = array_map(function ($m) {
+			return str_pad((string) $m, 2, '0', STR_PAD_LEFT);
+		}, $months);
+
+		$this->session->set_userdata('dashboard_months', $month_strings);
 		$this->session->set_userdata('month', str_pad((string) $month, 2, '0', STR_PAD_LEFT));
 		$this->session->set_userdata('year', (string) $year);
 		$this->session->set_userdata('dashboard_empid', $empid);
@@ -220,6 +253,8 @@ class Dashboard extends MX_Controller {
 		return $this->output->set_output(json_encode([
 			'status' => 'success',
 			'month' => str_pad((string) $month, 2, '0', STR_PAD_LEFT),
+			'months' => $month_strings,
+			'period_label' => $this->dash_mdl->dashboardPeriodLabel($year, $months),
 			'year' => (string) $year,
 			'empid' => $empid,
 			'facility_id' => $is_role10 ? $facility_id : '',
@@ -255,12 +290,11 @@ class Dashboard extends MX_Controller {
 
 		$scope = $this->dash_mdl->dashboardScopeFromSession();
 		$year = (int) ($this->session->userdata('year') ?: date('Y'));
-		$month = (int) ($this->session->userdata('month') ?: date('m'));
+		$months = $this->dash_mdl->dashboardMonthsFromSession();
 		$empid = (string) ($this->session->userdata('dashboard_empid') ?: '');
-		$fy_start = financial_year_start_year($year, $month);
 
-		$national = $this->dash_mdl->nationalAttendanceRates($scope, $year, $month);
-		$charts = $this->dash_mdl->analyticsCharts($scope, $fy_start, $year, $month, $empid);
+		$national = $this->dash_mdl->nationalAttendanceRates($scope, $year, $months);
+		$charts = $this->dash_mdl->analyticsCharts($scope, $year, $months, $empid);
 
 		return $this->output->set_output(json_encode([
 			'national' => $national,
@@ -574,19 +608,19 @@ class Dashboard extends MX_Controller {
 		try {
 			$scope = $this->dash_mdl->dashboardScopeFromSession();
 			$year = (int) ($this->session->userdata('year') ?: date('Y'));
-			$month = (int) ($this->session->userdata('month') ?: date('m'));
+			$months = $this->dash_mdl->dashboardMonthsFromSession();
 			$empid = (string) ($this->session->userdata('dashboard_empid') ?: '');
-			$fy_start = financial_year_start_year($year, $month);
 
-			$charts = $this->dash_mdl->analyticsCharts($scope, $fy_start, $year, $month, $empid);
+			$charts = $this->dash_mdl->analyticsCharts($scope, $year, $months, $empid);
 			$graph = [
 				'period' => $charts['period'],
 				'data'   => $charts['avg_daily_workers'],
 				'meta'   => [
-					'fy_start' => $fy_start,
-					'fy_label' => $charts['fy_label'],
-					'mode'     => ($empid !== '') ? 'person' : 'scoped',
-					'empid'    => $empid,
+					'year'         => $year,
+					'months'       => $charts['months'] ?? [],
+					'period_label' => $charts['period_label'] ?? '',
+					'mode'         => ($empid !== '') ? 'person' : 'scoped',
+					'empid'        => $empid,
 				],
 			];
 
@@ -600,7 +634,8 @@ class Dashboard extends MX_Controller {
 				'schedule_official'      => $charts['schedule_official'] ?? [],
 				'schedule_holiday'       => $charts['schedule_holiday'] ?? [],
 				'schedule_unaccounted'   => $charts['schedule_unaccounted'] ?? [],
-				'fy_label'               => $charts['fy_label'],
+				'fy_label'               => $charts['period_label'] ?? ($charts['fy_label'] ?? ''),
+				'period_label'           => $charts['period_label'] ?? '',
 				'cached'                 => !empty($charts['cached']),
 			]);
 		} catch (Exception $e) {

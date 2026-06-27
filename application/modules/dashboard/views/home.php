@@ -572,6 +572,22 @@
     <!-- Dashboard Filters (collapsed by default) -->
     <?php
       $sel_month = $this->session->userdata('month') ?: date('m');
+      $sel_months_raw = $this->session->userdata('dashboard_months');
+      $sel_months = [];
+      if (is_array($sel_months_raw) && !empty($sel_months_raw)) {
+          foreach ($sel_months_raw as $m) {
+              $sel_months[] = str_pad((string) $m, 2, '0', STR_PAD_LEFT);
+          }
+      } elseif (is_string($sel_months_raw) && trim($sel_months_raw) !== '') {
+          foreach (explode(',', $sel_months_raw) as $m) {
+              $sel_months[] = str_pad((string) (int) trim($m), 2, '0', STR_PAD_LEFT);
+          }
+      }
+      if (empty($sel_months)) {
+          $sel_months = [str_pad((string) $sel_month, 2, '0', STR_PAD_LEFT)];
+      }
+      $sel_months = array_values(array_unique($sel_months));
+      sort($sel_months);
       $sel_year = $this->session->userdata('year') ?: date('Y');
       $sel_empid = $this->session->userdata('dashboard_empid') ?: '';
       $sel_region = $this->session->userdata('dashboard_region') ?: '';
@@ -603,7 +619,7 @@
             </div>
           </div>
           <div class="card-body">
-            <p class="text-muted small mb-3">Scope national charts and rates. Leave filters empty for all Uganda.</p>
+            <p class="text-muted small mb-3">Scope national charts and rates. Select one or more months (all 12 = full year). Leave region/district empty for all Uganda.</p>
             <div class="form-row">
               <div class="form-group col-md-4 col-lg-2">
                 <label for="dash_region">Region</label>
@@ -638,17 +654,18 @@
             </div>
             <hr class="my-2">
             <div class="form-row">
-              <div class="form-group col-md-3">
-                <label for="dash_month">Month</label>
-                <select id="dash_month" class="form-control">
+              <div class="form-group col-md-4 col-lg-3">
+                <label for="dash_month">Month(s)</label>
+                <select id="dash_month" class="form-control dash-filter-s2" multiple="multiple">
                   <?php foreach ($months as $m => $label): ?>
-                    <option value="<?php echo $m; ?>" <?php echo ($sel_month == $m) ? 'selected' : ''; ?>>
+                    <option value="<?php echo $m; ?>" <?php echo in_array($m, $sel_months, true) ? 'selected' : ''; ?>>
                       <?php echo $label; ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
+                <small class="text-muted">Select one or more months; all 12 = full year.</small>
               </div>
-              <div class="form-group col-md-3">
+              <div class="form-group col-md-2 col-lg-2">
                 <label for="dash_year">Year</label>
                 <select id="dash_year" class="form-control">
                   <?php foreach ($years as $y): ?>
@@ -727,6 +744,7 @@
           <div class="stat-icon warning"><i class="fas fa-calendar-day"></i></div>
           <div class="stat-number" id="national_present_days"><i class="fas fa-spinner fa-spin loading-pulse"></i></div>
           <div class="stat-label">Staff-Days Present</div>
+          <small class="text-muted" id="national_present_period"></small>
         </div>
       </div>
     </div>
@@ -851,6 +869,16 @@
               <i class="fas fa-spinner fa-spin loading-pulse"></i>
  						</div>
  					</div>
+
+          <div class="status-item">
+            <div class="status-info">
+              <div class="status-indicator info"></div>
+              <p class="status-text">Avg Hours Worked</p>
+            </div>
+            <div class="status-value" id="daily_avg_hours">
+              <i class="fas fa-spinner fa-spin loading-pulse"></i>
+            </div>
+          </div>
  				</div>
  			</div>
 
@@ -861,8 +889,8 @@
             <div class="status-icon info">
               <i class="fas fa-chart-pie"></i>
             </div>
-            <h3 class="status-title">Monthly Attendance Stats</h3>
-            <small class="text-muted ml-2" id="monthly_label"></small>
+            <h3 class="status-title">Attendance Stats</h3>
+            <small class="text-muted ml-2" id="monthly_label">Period totals</small>
           </div>
           
           <div class="status-item">
@@ -1041,13 +1069,32 @@ waitForHighcharts(function() {
 			// Dashboard filter state (persisted via session; used by calendar + chart refresh)
 			window.__dashFilters = window.__dashFilters || {
 				month: '<?php echo $sel_month ?? date('m'); ?>',
+				months: <?php echo json_encode($sel_months); ?>,
 				year: '<?php echo $sel_year ?? date('Y'); ?>',
 				empid: '<?php echo $sel_empid ?? ''; ?>'
 			};
-			
-			// Name filter (Select2) + national scope filters
+
+			function dashSelectedMonths() {
+				var months = $('#dash_month').val() || [];
+				if (!months.length) {
+					months = ['<?php echo date('m'); ?>'];
+				}
+				return months;
+			}
+
+			function dashPrimaryMonth(months) {
+				months = months || dashSelectedMonths();
+				return months[months.length - 1];
+			}
+
 			if ($.fn.select2) {
-				$('.dash-filter-s2').select2({ theme: 'bootstrap4', width: '100%', allowClear: true });
+				$('#dash_month').select2({
+					theme: 'bootstrap4',
+					width: '100%',
+					placeholder: 'Select month(s)',
+					closeOnSelect: false
+				});
+				$('.dash-filter-s2').not('#dash_month').select2({ theme: 'bootstrap4', width: '100%', allowClear: true });
 
 				function populateDashSelect($el, items, placeholder, selected) {
 					var html = '<option value="">' + placeholder + '</option>';
@@ -1184,8 +1231,10 @@ waitForHighcharts(function() {
 			}
 			
 			function applyDashboardFilters(month, year, empid) {
+				var months = dashSelectedMonths();
 				var postData = {
-					month: month,
+					month: dashPrimaryMonth(months),
+					months: months.join(','),
 					year: year,
 					empid: empid || '',
 					facility_id: $('#dash_facility').length ? ($('#dash_facility').val() || '') : '',
@@ -1204,7 +1253,8 @@ waitForHighcharts(function() {
 					data: postData,
 					timeout: 15000
 				}).then(function(resp) {
-					window.__dashFilters.month = resp.month || month;
+					window.__dashFilters.month = resp.month || dashPrimaryMonth(months);
+					window.__dashFilters.months = resp.months || months;
 					window.__dashFilters.year = resp.year || year;
 					window.__dashFilters.empid = resp.empid || empid || '';
 					return resp;
@@ -1212,7 +1262,8 @@ waitForHighcharts(function() {
 			}
 			
 			$(document).on('click', '#dash_apply', function() {
-				var month = $('#dash_month').val();
+				var months = dashSelectedMonths();
+				var month = dashPrimaryMonth(months);
 				var year = $('#dash_year').val();
 				var empid = $('#dash_empid').val() || '';
 				
@@ -1235,7 +1286,7 @@ waitForHighcharts(function() {
 			$(document).on('click', '#dash_reset', function() {
 				var m = '<?php echo date('m'); ?>';
 				var y = '<?php echo date('Y'); ?>';
-				$('#dash_month').val(m);
+				$('#dash_month').val([m]).trigger('change');
 				$('#dash_year').val(y);
 				if ($('#dash_facility').length) {
 					$('#dash_facility').val(null).trigger('change');
@@ -1251,13 +1302,16 @@ waitForHighcharts(function() {
 					.done(function(data) {
 						if (!data || !data.national) return;
 						var n = data.national;
+						var periodLabel = n.period_label || n.month || '';
+						var periodText = periodLabel ? ('Period: ' + periodLabel) : '';
 						$('#national_attendance_rate').text((n.attendance_rate != null ? n.attendance_rate : 0) + '%');
 						$('#national_absenteeism_rate').text((n.absenteeism_rate != null ? n.absenteeism_rate : 0) + '%');
 						$('#national_avg_hours').text((n.avg_hours != null ? n.avg_hours : 0) + ' hrs');
 						$('#national_present_days').text(n.present != null ? n.present : 0);
-						$('#national_rate_month').text(n.month ? ('Month: ' + n.month) : '');
-						$('#national_absent_month').text(n.month ? ('Month: ' + n.month) : '');
-						$('#national_avg_hours_month').text(n.month ? ('Month: ' + n.month) : '');
+						$('#national_rate_month').text(periodText);
+						$('#national_absent_month').text(periodText);
+						$('#national_avg_hours_month').text(periodText);
+						$('#national_present_period').text(periodText);
 					});
 			}
 			loadNationalAnalytics();
@@ -1305,13 +1359,16 @@ waitForHighcharts(function() {
                     updateDashboardValue('#offduty', data.offduty);
                     updateDashboardValue('#leave', data.leave);
                     updateDashboardValue('#absent', data.absent);
+                    updateDashboardValue('#daily_avg_hours', (data.daily_avg_hours != null ? data.daily_avg_hours : 0) + ' hrs');
                     updateDashboardValue('#monthly_present', data.monthly_present);
                     updateDashboardValue('#monthly_offduty', data.monthly_offduty);
                     updateDashboardValue('#monthly_leave', data.monthly_leave);
                     updateDashboardValue('#monthly_request', data.monthly_request);
                     updateDashboardValue('#facility_avg_hours', (data.avg_hours != null ? data.avg_hours : 0) + ' hrs');
 
-                    if (data.dashboard_month && data.dashboard_year) {
+                    if (data.dashboard_period_label) {
+                      $('#monthly_label').text(data.dashboard_period_label);
+                    } else if (data.dashboard_month && data.dashboard_year) {
                       var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
                       var mi = parseInt(data.dashboard_month, 10) - 1;
                       $('#monthly_label').text((monthNames[mi] || data.dashboard_month) + ' ' + data.dashboard_year);

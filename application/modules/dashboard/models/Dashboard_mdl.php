@@ -222,17 +222,23 @@ class Dashboard_mdl extends CI_Model
         }
         $userdata = $this->session->userdata();
         $year = isset($userdata['year']) && $userdata['year'] ? (int) $userdata['year'] : (int) date('Y');
-        $month = isset($userdata['month']) && $userdata['month'] ? (int) $userdata['month'] : (int) date('m');
-        $date = $year . '-' . str_pad((string)$month, 2, '0', STR_PAD_LEFT);
+        $months = $this->dashboardMonthsFromSession();
+        $range = $this->dashboardDateRange($year, $months);
         $today = date('Y-m-d');
         $dashboard_empid = (string) $this->session->userdata('dashboard_empid');
 
-        $month_start = $date . '-01';
-        $month_end = date('Y-m-t', strtotime($month_start));
+        $month_start = $range['start'];
+        $month_end = $range['end'];
+        $current_ym = substr($today, 0, 7);
+        $selected_yms = [];
+        foreach ($months as $m) {
+            $selected_yms[] = $year . '-' . str_pad((string) $m, 2, '0', STR_PAD_LEFT);
+        }
+        $max_month = max($months);
+        $last_selected_end = date('Y-m-t', strtotime($year . '-' . str_pad((string) $max_month, 2, '0', STR_PAD_LEFT) . '-01'));
 
-        // For "Daily Attendance Status" we show today's counts if the selected month is current,
-        // otherwise we show the last day of the selected month.
-        $status_date = (substr($today, 0, 7) === substr($month_start, 0, 7)) ? $today : $month_end;
+        // Daily status: today when current month is in the selection, else last day of latest selected month.
+        $status_date = in_array($current_ym, $selected_yms, true) ? $today : $last_selected_end;
         
         // Use a single optimized query for all counts instead of multiple queries
         $counts_query = "
@@ -375,6 +381,7 @@ class Dashboard_mdl extends CI_Model
         $sum_accounted = (int) $data['present'] + (int) $data['offduty'] + (int) $data['request'] + (int) $data['leave'];
         $total_active = (int) $data['mystaff'];
         $data['absent'] = max(0, $total_active - $sum_accounted);
+        $data['daily_avg_hours'] = $this->averageDailyHours($facility, $status_date, $dashboard_empid);
         
         // Monthly attendance stats (staff-days, de-duplicated by staff+date)
         $monthly_query = "
@@ -407,46 +414,94 @@ class Dashboard_mdl extends CI_Model
             }
         }
 
-        $data['dashboard_month'] = str_pad((string)$month, 2, '0', STR_PAD_LEFT);
+        $data['dashboard_months'] = array_map(function ($m) {
+            return str_pad((string) $m, 2, '0', STR_PAD_LEFT);
+        }, $months);
+        $data['dashboard_month'] = $data['dashboard_months'][count($data['dashboard_months']) - 1];
         $data['dashboard_year'] = (string) $year;
+        $data['dashboard_period_label'] = $this->dashboardPeriodLabel($year, $months);
         $data['dashboard_empid'] = $dashboard_empid;
         $data['status_date'] = $status_date;
-
-        $avg = $this->avghours();
-        $data['avg_hours'] = isset($avg['avg_hours']) ? (float) $avg['avg_hours'] : 0.0;
+        $data['avg_hours'] = $this->averageHoursForFacilityRange($facility, $month_start, $month_end, $dashboard_empid);
         
         return $data;
     }
+
+    /**
+     * Average hours worked per staff member for a facility date range.
+     *
+     * @param string $facility
+     * @param string $start_date
+     * @param string $end_date
+     * @param string $empid
+     * @return float
+     */
+    public function averageHoursForFacilityRange($facility, $start_date, $end_date, $empid = '')
+    {
+        if (!$this->db->table_exists('clk_diff') || $facility === '') {
+            return 0.0;
+        }
+
+        $sql = "SELECT COALESCE(SUM(time_diff) / NULLIF(COUNT(DISTINCT pid), 0), 0) AS avg_hours
+            FROM clk_diff
+            WHERE facility_id = ? AND date >= ? AND date <= ?
+              AND time_diff IS NOT NULL AND time_diff > 0";
+        $params = [$facility, $start_date, $end_date];
+        if ($empid !== '') {
+            $sql .= ' AND pid = ?';
+            $params[] = $empid;
+        }
+
+        $row = $this->safeQuery($sql, $params);
+        $row = $row ? $row->row() : null;
+
+        return ($row && $row->avg_hours !== null) ? round((float) $row->avg_hours, 1) : 0.0;
+    }
+
+    /**
+     * Average hours worked per staff member for a single day (facility-scoped).
+     *
+     * @param string $facility
+     * @param string $date
+     * @param string $empid
+     * @return float
+     */
+    public function averageDailyHours($facility, $date, $empid = '')
+    {
+        if (!$this->db->table_exists('clk_diff') || $facility === '' || $date === '') {
+            return 0.0;
+        }
+
+        $sql = "SELECT COALESCE(SUM(time_diff) / NULLIF(COUNT(DISTINCT pid), 0), 0) AS avg_hours
+            FROM clk_diff
+            WHERE facility_id = ? AND date = ?
+              AND time_diff IS NOT NULL AND time_diff > 0";
+        $params = [$facility, $date];
+        if ($empid !== '') {
+            $sql .= ' AND pid = ?';
+            $params[] = $empid;
+        }
+
+        $row = $this->safeQuery($sql, $params);
+        $row = $row ? $row->row() : null;
+
+        return ($row && $row->avg_hours !== null) ? round((float) $row->avg_hours, 1) : 0.0;
+    }
+
     public function avghours()
     {
         $userdata = $this->session->userdata();
-        $year = isset($userdata['year']) ? $userdata['year'] : date('Y');
-        $month = isset($userdata['month']) ? $userdata['month'] : date('m');
+        $year = isset($userdata['year']) ? (int) $userdata['year'] : (int) date('Y');
+        $months = $this->dashboardMonthsFromSession();
+        $range = $this->dashboardDateRange($year, $months);
         $facility = $_SESSION['facility'];
 
-        // Optimize query: Use date range instead of DATE_FORMAT to allow index usage
-        // Calculate start and end dates for the month
-        $start_date = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
-        $end_date = date('Y-m-t', strtotime($start_date)); // Last day of the month
-        
-        // Optimized query with date range and proper aggregation
-        // Use COALESCE to handle NULL values and ensure we return 0 if no data
-        $query = "
-            SELECT 
-                COALESCE(SUM(time_diff) / NULLIF(COUNT(DISTINCT pid), 0), 0) as avg
-            FROM clk_diff 
-            WHERE facility_id = ? 
-            AND date >= ? 
-            AND date <= ?
-            AND time_diff IS NOT NULL
-            AND time_diff > 0
-        ";
-        
-        $fac = $this->db->query($query, [$facility, $start_date, $end_date]);
-        $result = $fac->row();
-        
-        // Handle null result gracefully
-        $data['avg_hours'] = ($result && isset($result->avg) && $result->avg !== null) ? (float)$result->avg : 0;
+        $data['avg_hours'] = $this->averageHoursForFacilityRange(
+            $facility,
+            $range['start'],
+            $range['end'],
+            (string) $this->session->userdata('dashboard_empid')
+        );
 
         return $data;
     }
@@ -726,6 +781,105 @@ class Dashboard_mdl extends CI_Model
     }
 
     /**
+     * Selected dashboard months (1–12) from session; defaults to current month.
+     *
+     * @return array<int, int>
+     */
+    public function dashboardMonthsFromSession()
+    {
+        $raw = $this->session->userdata('dashboard_months');
+        $months = [];
+        if (is_array($raw)) {
+            foreach ($raw as $m) {
+                $m = (int) $m;
+                if ($m >= 1 && $m <= 12) {
+                    $months[] = $m;
+                }
+            }
+        } elseif (is_string($raw) && trim($raw) !== '') {
+            foreach (explode(',', $raw) as $m) {
+                $m = (int) trim($m);
+                if ($m >= 1 && $m <= 12) {
+                    $months[] = $m;
+                }
+            }
+        }
+        if (empty($months)) {
+            $months = [(int) ($this->session->userdata('month') ?: date('m'))];
+        }
+        $months = array_values(array_unique($months));
+        sort($months);
+
+        return $months;
+    }
+
+    /**
+     * @param int        $year
+     * @param array<int, int> $months
+     * @return array{start: string, end: string}
+     */
+    public function dashboardDateRange($year, array $months)
+    {
+        $year = (int) $year;
+        $months = array_values(array_unique(array_map('intval', $months)));
+        sort($months);
+        if (empty($months)) {
+            $months = [(int) date('m')];
+        }
+        $first = $year . '-' . str_pad((string) $months[0], 2, '0', STR_PAD_LEFT) . '-01';
+        $last_ym = $year . '-' . str_pad((string) $months[count($months) - 1], 2, '0', STR_PAD_LEFT) . '-01';
+
+        return [
+            'start' => $first,
+            'end'   => date('Y-m-t', strtotime($last_ym)),
+        ];
+    }
+
+    /**
+     * Human-readable label for selected month(s) in a calendar year.
+     *
+     * @param int               $year
+     * @param array<int, int>   $months
+     * @return string
+     */
+    public function dashboardPeriodLabel($year, array $months)
+    {
+        $year = (int) $year;
+        $months = array_values(array_unique(array_map('intval', $months)));
+        sort($months);
+        if (count($months) === 12) {
+            return (string) $year . ' (all months)';
+        }
+        if (count($months) === 1) {
+            return date('M Y', strtotime($year . '-' . str_pad((string) $months[0], 2, '0', STR_PAD_LEFT) . '-01'));
+        }
+        $names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $first = $names[$months[0] - 1];
+        $last = $names[$months[count($months) - 1] - 1];
+
+        return $first . '–' . $last . ' ' . $year;
+    }
+
+    /**
+     * @param array<int, int> $months
+     * @param int             $year
+     * @param array<int, mixed> $params
+     * @param string          $dateColumn
+     * @return string
+     */
+    protected function dashboardMonthSqlIn(array $months, $year, array &$params, $dateColumn = 'a.date')
+    {
+        $year = (int) $year;
+        $placeholders = [];
+        foreach ($months as $m) {
+            $placeholders[] = '?';
+            $params[] = $year . '-' . str_pad((string) (int) $m, 2, '0', STR_PAD_LEFT);
+        }
+
+        return "DATE_FORMAT({$dateColumn},'%Y-%m') IN (" . implode(',', $placeholders) . ")";
+    }
+
+    /**
      * National / scoped dashboard filters from session.
      *
      * @return array<string, string>
@@ -792,18 +946,26 @@ class Dashboard_mdl extends CI_Model
     }
 
     /**
-     * National attendance & absenteeism rates for selected calendar month.
+     * National attendance & absenteeism rates for selected calendar month(s).
      *
      * @param array<string, string> $scope
+     * @param int                   $year
+     * @param array<int, int>       $months
      * @return array<string, mixed>
      */
-    public function nationalAttendanceRates(array $scope, $year, $month)
+    public function nationalAttendanceRates(array $scope, $year, array $months)
     {
         $year = (int) $year;
-        $month = (int) $month;
-        $ym = $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT);
-        $params = [$ym];
+        $months = array_values(array_unique(array_map('intval', $months)));
+        sort($months);
+        if (empty($months)) {
+            $months = [(int) date('m')];
+        }
+        $params = [];
+        $month_sql = $this->dashboardMonthSqlIn($months, $year, $params);
         $scope_sql = $this->buildScopeSql($scope, $params);
+        $period_label = $this->dashboardPeriodLabel($year, $months);
+        $range = $this->dashboardDateRange($year, $months);
 
         $sql = "SELECT
             SUM(t.present) AS present,
@@ -816,6 +978,7 @@ class Dashboard_mdl extends CI_Model
         FROM (
             SELECT
                 a.ihris_pid,
+                DATE_FORMAT(a.date,'%Y-%m') AS ym,
                 SUM(CASE WHEN s.letter = 'P' THEN 1 ELSE 0 END) AS present,
                 SUM(CASE WHEN s.letter = 'O' THEN 1 ELSE 0 END) AS off,
                 SUM(CASE WHEN s.letter = 'L' THEN 1 ELSE 0 END) AS own_leave,
@@ -825,10 +988,10 @@ class Dashboard_mdl extends CI_Model
             FROM actuals a
             LEFT JOIN schedules s ON s.schedule_id = a.schedule_id
             LEFT JOIN ihrisdata i ON i.ihris_pid = a.ihris_pid
-            WHERE DATE_FORMAT(a.date,'%Y-%m') = ?
+            WHERE {$month_sql}
               AND a.ihris_pid IS NOT NULL AND TRIM(a.ihris_pid) <> ''
               AND {$scope_sql}
-            GROUP BY a.ihris_pid
+            GROUP BY a.ihris_pid, DATE_FORMAT(a.date,'%Y-%m')
         ) t";
 
         $row = $this->safeQuery($sql, $params);
@@ -839,10 +1002,14 @@ class Dashboard_mdl extends CI_Model
 
         $attendance_rate = ($days_supposed > 0) ? round(($present / $days_supposed) * 100, 1) : 0.0;
         $absenteeism_rate = ($days_supposed > 0) ? round(($days_absent / $days_supposed) * 100, 1) : 0.0;
-        $avg_hours = $this->averageHoursForScope($scope, $year, $month);
+        $avg_hours = $this->averageHoursForScopeRange($scope, $range['start'], $range['end']);
 
         return [
-            'month'             => $ym,
+            'month'             => $period_label,
+            'period_label'      => $period_label,
+            'months'            => array_map(function ($m) {
+                return str_pad((string) $m, 2, '0', STR_PAD_LEFT);
+            }, $months),
             'attendance_rate'   => $attendance_rate,
             'absenteeism_rate'  => $absenteeism_rate,
             'days_supposed'     => $days_supposed,
@@ -853,21 +1020,17 @@ class Dashboard_mdl extends CI_Model
     }
 
     /**
-     * Average hours worked per staff member for scoped filters (calendar month).
+     * Average hours worked per staff member for scoped filters (date range).
      *
      * @param array<string, string> $scope
      * @return float
      */
-    public function averageHoursForScope(array $scope, $year, $month)
+    public function averageHoursForScopeRange(array $scope, $start_date, $end_date)
     {
         if (!$this->db->table_exists('clk_diff')) {
             return 0.0;
         }
 
-        $year = (int) $year;
-        $month = (int) $month;
-        $start_date = $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '-01';
-        $end_date = date('Y-m-t', strtotime($start_date));
         $params = [$start_date, $end_date];
         $scope_sql = $this->buildScopeSql($scope, $params, 'c', 'i');
 
@@ -885,24 +1048,44 @@ class Dashboard_mdl extends CI_Model
     }
 
     /**
+     * @deprecated Use averageHoursForScopeRange()
+     */
+    public function averageHoursForScope(array $scope, $year, $month)
+    {
+        $range = $this->dashboardDateRange((int) $year, [(int) $month]);
+
+        return $this->averageHoursForScopeRange($scope, $range['start'], $range['end']);
+    }
+
+    /**
      * Redis-backed analytics bundle for dashboard charts.
      *
      * @param array<string, string> $scope
+     * @param int                   $year
+     * @param array<int, int>       $months
      * @return array<string, mixed>
      */
-    public function analyticsCharts(array $scope, $fy_start, $year, $month, $empid = '')
+    public function analyticsCharts(array $scope, $year, array $months, $empid = '')
     {
         $this->load->library('dashboard_cache_store', null, 'dash_cache');
         $this->config->load('dashboard_cache', true, true);
         $cfg = $this->config->item('dashboard_cache');
         $ttl = is_array($cfg) && isset($cfg['stats_ttl']) ? max(60, (int) $cfg['stats_ttl']) : 120;
 
+        $year = (int) $year;
+        $months = array_values(array_unique(array_map('intval', $months)));
+        sort($months);
+        if (empty($months)) {
+            $months = [(int) date('m')];
+        }
+        $range = $this->dashboardDateRange($year, $months);
+        $period_label = $this->dashboardPeriodLabel($year, $months);
+
         $key = 'analytics_' . md5(json_encode([
-            'scope' => $scope,
-            'fy'    => (int) $fy_start,
-            'y'     => (int) $year,
-            'm'     => (int) $month,
-            'emp'   => (string) $empid,
+            'scope'  => $scope,
+            'y'      => $year,
+            'months' => $months,
+            'emp'    => (string) $empid,
         ]));
 
         $cached = $this->dash_cache->read($key);
@@ -911,8 +1094,7 @@ class Dashboard_mdl extends CI_Model
             return $cached;
         }
 
-        $bounds = financial_year_bounds((int) $fy_start);
-        $params = [$bounds['start'], $bounds['end']];
+        $params = [$range['start'], $range['end']];
         $scope_sql = $this->buildScopeSql($scope, $params);
         $empid = trim((string) $empid);
         $emp_sql = '';
@@ -941,8 +1123,8 @@ class Dashboard_mdl extends CI_Model
             }
         }
 
-        // Monthly attendance / absenteeism rates within FY
-        $rate_params = [$bounds['start'], $bounds['end']];
+        // Monthly attendance / absenteeism rates for selected months
+        $rate_params = [$range['start'], $range['end']];
         $rate_scope = $this->buildScopeSql($scope, $rate_params);
         $rate_emp = '';
         if ($empid !== '') {
@@ -1018,10 +1200,9 @@ class Dashboard_mdl extends CI_Model
         $sched_official = [];
         $sched_holiday = [];
         $sched_unaccounted = [];
-        $start = new DateTime($bounds['start']);
-        for ($i = 0; $i < 12; $i++) {
-            $ym = $start->format('Y-m');
-            $period[] = $start->format('M Y');
+        foreach ($months as $m) {
+            $ym = $year . '-' . str_pad((string) $m, 2, '0', STR_PAD_LEFT);
+            $period[] = date('M Y', strtotime($ym . '-01'));
             $avg_daily[] = isset($avg_map[$ym]) ? $avg_map[$ym] : 0;
             $att_trend[] = isset($att_rate_map[$ym]) ? $att_rate_map[$ym] : 0;
             $abs_trend[] = isset($abs_rate_map[$ym]) ? $abs_rate_map[$ym] : 0;
@@ -1031,12 +1212,15 @@ class Dashboard_mdl extends CI_Model
             $sched_official[] = isset($sched_official_map[$ym]) ? $sched_official_map[$ym] : 0;
             $sched_holiday[] = isset($sched_holiday_map[$ym]) ? $sched_holiday_map[$ym] : 0;
             $sched_unaccounted[] = isset($sched_unaccounted_map[$ym]) ? $sched_unaccounted_map[$ym] : 0;
-            $start->modify('+1 month');
         }
 
         $payload = [
-            'fy_start'              => (int) $fy_start,
-            'fy_label'              => financial_year_label((int) $fy_start),
+            'year'                  => $year,
+            'months'                => array_map(function ($m) {
+                return str_pad((string) $m, 2, '0', STR_PAD_LEFT);
+            }, $months),
+            'period_label'          => $period_label,
+            'fy_label'              => $period_label,
             'period'                => $period,
             'avg_daily_workers'     => $avg_daily,
             'attendance_rate'       => $att_trend,

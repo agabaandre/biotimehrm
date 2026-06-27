@@ -545,8 +545,15 @@ class Employee_model extends CI_Model
             }
             $this->db->order_by('f.facility', 'ASC');
             foreach ($this->db->get()->result() as $row) {
+                $name = trim((string) $row->facility);
+                if ($name === '') {
+                    $name = trim((string) $row->facility_id);
+                }
+                if ($name === '') {
+                    continue;
+                }
                 $label = trim((string) $row->facility) !== '' ? $row->facility : $row->facility_id;
-                $this->_push_ihris_filter_option($list, $row->facility_id, $label, [
+                $this->_push_ihris_filter_option($list, $name, $label, [
                     'district' => $row->district,
                 ]);
             }
@@ -557,9 +564,9 @@ class Employee_model extends CI_Model
             return $list;
         }
 
-        $sql = "SELECT TRIM(facility_id) AS facility_id, TRIM(facility) AS facility, TRIM(district) AS district
+        $sql = "SELECT TRIM(facility) AS facility, TRIM(district) AS district
                 FROM ihrisdata
-                WHERE " . mysql8_nonempty_sql('facility_id');
+                WHERE " . mysql8_nonempty_sql('facility');
         $params = [];
         $district_names = $this->_ihris_district_names_for_filter($district);
         if (!empty($district_names)) {
@@ -567,19 +574,44 @@ class Employee_model extends CI_Model
             $sql .= ' AND TRIM(district) IN (' . $placeholders . ')';
             $params = $district_names;
         }
-        $sql .= ' GROUP BY TRIM(facility_id), TRIM(facility) ORDER BY TRIM(facility) ASC';
+        $sql .= ' GROUP BY TRIM(facility) ORDER BY TRIM(facility) ASC';
 
         $facility_rows = $params ? $this->db->query($sql, $params) : $this->db->query($sql);
         if ($facility_rows) {
             foreach ($facility_rows->result() as $row) {
-                $label = trim((string) $row->facility) !== '' ? $row->facility : $row->facility_id;
-                $this->_push_ihris_filter_option($list, $row->facility_id, $label, [
+                $name = trim((string) $row->facility);
+                if ($name === '') {
+                    continue;
+                }
+                $this->_push_ihris_filter_option($list, $name, $name, [
                     'district' => $row->district,
                 ]);
             }
         }
 
         return $list;
+    }
+
+    /**
+     * @param string|array<int, string>|null $facility Facility name(s) from filter dropdown.
+     */
+    private function _apply_ihris_facility_filter($facility)
+    {
+        if (empty($facility)) {
+            return;
+        }
+        $names = is_array($facility) ? $facility : array_filter(array_map('trim', explode(',', (string) $facility)));
+        $names = array_values(array_filter($names, function ($name) {
+            return $name !== '';
+        }));
+        if (empty($names)) {
+            return;
+        }
+        $escaped = [];
+        foreach ($names as $name) {
+            $escaped[] = $this->db->escape($name);
+        }
+        $this->db->where('TRIM(facility) IN (' . implode(',', $escaped) . ')', null, false);
     }
 
     /**
@@ -671,12 +703,7 @@ class Employee_model extends CI_Model
             $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
         }
         $this->_apply_ihris_district_filter($district);
-        if (!empty($facility)) {
-            $facility = is_array($facility) ? $facility : array_filter(explode(',', $facility));
-            if (!empty($facility)) {
-                $this->db->where_in('facility_id', $facility);
-            }
-        }
+        $this->_apply_ihris_facility_filter($facility);
         if (!empty($job)) {
             $job = is_array($job) ? $job : array_filter(explode(',', $job));
             if (!empty($job)) {
@@ -726,12 +753,7 @@ class Employee_model extends CI_Model
             $this->db->where('(COALESCE(is_active_employee, 1) = 1)');
         }
         $this->_apply_ihris_district_filter($district);
-        if (!empty($facility)) {
-            $facility = is_array($facility) ? $facility : array_filter(explode(',', $facility));
-            if (!empty($facility)) {
-                $this->db->where_in('facility_id', $facility);
-            }
-        }
+        $this->_apply_ihris_facility_filter($facility);
         if (!empty($job)) {
             $job = is_array($job) ? $job : array_filter(explode(',', $job));
             if (!empty($job)) {

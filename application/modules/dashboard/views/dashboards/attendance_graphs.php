@@ -7,7 +7,7 @@
 <div class="attendance-graphs-container">
 	<div class="row mb-2">
 		<div class="col-12">
-			<small class="text-muted" id="graph_fy_hint">Charts use the selected month/year (financial year Jun–May) and dashboard scope filters.</small>
+			<small class="text-muted" id="graph_fy_hint">Charts use the selected month(s) and year from dashboard filters.</small>
 		</div>
 	</div>
 
@@ -77,7 +77,7 @@
 	function renderCharts(data) {
 		if (!data || !data.graph) return;
 		var period = data.graph.period || [];
-		var fyLabel = data.fy_label || '';
+		var fyLabel = data.period_label || data.fy_label || '';
 
 		if (charts.avg) charts.avg.destroy();
 		charts.avg = Highcharts.chart('chart_avg_daily', {
