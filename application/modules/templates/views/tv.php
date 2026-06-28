@@ -16,6 +16,18 @@ $tv_title = !empty($setting->title) ? $setting->title : 'iHRIS Attendance';
 	<link rel="shortcut icon" href="<?php echo base_url(!empty($setting->favicon) ? $setting->favicon : 'assets/images/MOH.png'); ?>">
 	<link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/fontawesome-free/css/all.min.css">
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<script>
+	(function() {
+		if (typeof window.Highcharts !== 'undefined') return;
+		var base = 'https://code.highcharts.com/10.3/';
+		['highcharts.js', 'highcharts-more.js', 'modules/solid-gauge.js'].forEach(function(file, i, arr) {
+			var s = document.createElement('script');
+			s.src = base + file;
+			s.async = false;
+			document.head.appendChild(s);
+		});
+	})();
+	</script>
 </head>
 <body class="tv-root">
 <?php

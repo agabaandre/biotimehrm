@@ -9,7 +9,6 @@ $tv_facility_label = entity_label('facility');
 [data-theme="dark"] {
 	--tv-bg: #0b1218;
 	--tv-surface: #141e28;
-	--tv-surface-2: #1a2733;
 	--tv-border: rgba(255,255,255,0.08);
 	--tv-text: #eef4f7;
 	--tv-muted: #8fa3ad;
@@ -18,89 +17,43 @@ $tv_facility_label = entity_label('facility');
 	--tv-warn: #f0ad4e;
 	--tv-danger: #e74c3c;
 	--tv-info: #17a2b8;
-	--tv-present: #20c198;
+	--tv-purple: #6f42c1;
 	--tv-shadow: 0 12px 40px rgba(0,0,0,0.35);
+	--tv-chart-text: #eef4f7;
 }
 [data-theme="light"] {
 	--tv-bg: #eef3f6;
 	--tv-surface: #ffffff;
-	--tv-surface-2: #f7fafb;
 	--tv-border: #d8e3e8;
 	--tv-text: #1a2e35;
 	--tv-muted: #6c7a80;
 	--tv-shadow: 0 8px 28px rgba(0, 86, 98, 0.08);
+	--tv-chart-text: #1a2e35;
 }
 html, body.tv-root {
-	margin: 0;
-	padding: 0;
-	min-height: 100vh;
-	background: var(--tv-bg);
-	color: var(--tv-text);
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	margin: 0; padding: 0; min-height: 100vh;
+	background: var(--tv-bg); color: var(--tv-text);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 	overflow-x: hidden;
 }
-.tv-screen {
-	min-height: 100vh;
-	display: flex;
-	flex-direction: column;
-	padding: 1.25rem 1.5rem 1rem;
-	box-sizing: border-box;
-}
+.tv-screen { min-height: 100vh; display: flex; flex-direction: column; padding: 1rem 1.25rem 0.75rem; box-sizing: border-box; }
 .tv-topbar {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	flex-wrap: wrap;
-	margin-bottom: 1.25rem;
-	padding-bottom: 1rem;
-	border-bottom: 1px solid var(--tv-border);
+	display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+	margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--tv-border);
 }
-.tv-brand {
-	display: flex;
-	align-items: center;
-	gap: 0.85rem;
-	min-width: 0;
-	flex: 1 1 280px;
-}
-.tv-brand img {
-	width: 52px;
-	height: 52px;
-	object-fit: contain;
-}
-.tv-brand h1 {
-	margin: 0;
-	font-size: clamp(1.2rem, 2.2vw, 1.75rem);
-	font-weight: 700;
-	line-height: 1.2;
-}
-.tv-brand p {
-	margin: 0.2rem 0 0;
-	color: var(--tv-muted);
-	font-size: 0.92rem;
-}
-.tv-clock {
-	font-size: clamp(1.4rem, 2.5vw, 2rem);
-	font-weight: 700;
-	font-variant-numeric: tabular-nums;
-	letter-spacing: 0.02em;
-}
+.tv-brand { display: flex; align-items: center; gap: 0.75rem; flex: 1 1 240px; min-width: 0; }
+.tv-brand img { width: 48px; height: 48px; object-fit: contain; }
+.tv-brand h1 { margin: 0; font-size: clamp(1.1rem, 2vw, 1.6rem); font-weight: 700; }
+.tv-brand p { margin: 0.15rem 0 0; color: var(--tv-muted); font-size: 0.88rem; }
+.tv-clock { font-size: clamp(1.3rem, 2.2vw, 1.85rem); font-weight: 700; font-variant-numeric: tabular-nums; }
 .tv-live-pill {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.45rem;
-	padding: 0.35rem 0.75rem;
-	border-radius: 999px;
-	background: rgba(32, 193, 152, 0.15);
-	color: var(--tv-accent);
-	font-size: 0.78rem;
-	font-weight: 700;
-	letter-spacing: 0.08em;
+	display: inline-flex; align-items: center; gap: 0.4rem;
+	padding: 0.3rem 0.7rem; border-radius: 999px;
+	background: rgba(32, 193, 152, 0.15); color: var(--tv-accent);
+	font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
 }
 .tv-live-pill .dot {
-	width: 9px;
-	height: 9px;
-	border-radius: 50%;
-	background: var(--tv-accent);
+	width: 8px; height: 8px; border-radius: 50%; background: var(--tv-accent);
 	animation: tvPulse 1.8s ease-in-out infinite;
 }
 @keyframes tvPulse {
@@ -108,151 +61,63 @@ html, body.tv-root {
 	70% { box-shadow: 0 0 0 8px rgba(32, 193, 152, 0); }
 	100% { box-shadow: 0 0 0 0 rgba(32, 193, 152, 0); }
 }
-.tv-toolbar {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	margin-left: auto;
-}
+.tv-toolbar { display: flex; gap: 0.45rem; margin-left: auto; }
 .tv-btn {
-	border: 1px solid var(--tv-border);
-	background: var(--tv-surface);
-	color: var(--tv-text);
-	border-radius: 8px;
-	padding: 0.45rem 0.75rem;
-	font-size: 0.82rem;
-	cursor: pointer;
+	border: 1px solid var(--tv-border); background: var(--tv-surface); color: var(--tv-text);
+	border-radius: 8px; padding: 0.4rem 0.7rem; font-size: 0.8rem; cursor: pointer;
 }
-.tv-btn:hover {
-	border-color: var(--tv-accent);
-	color: var(--tv-accent);
-}
+.tv-btn:hover { border-color: var(--tv-accent); color: var(--tv-accent); }
+
 .tv-grid {
-	display: grid;
-	grid-template-columns: repeat(12, 1fr);
-	gap: 1rem;
-	flex: 1;
+	display: grid; grid-template-columns: repeat(12, 1fr); gap: 0.85rem; flex: 1;
 }
 .tv-card {
-	background: var(--tv-surface);
-	border: 1px solid var(--tv-border);
-	border-radius: 14px;
-	padding: 1rem 1.1rem;
-	box-shadow: var(--tv-shadow);
+	background: var(--tv-surface); border: 1px solid var(--tv-border);
+	border-radius: 12px; padding: 0.85rem 1rem; box-shadow: var(--tv-shadow);
 }
-.tv-card.hero {
-	grid-column: span 2;
-	min-height: 110px;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
+.tv-card.chart { grid-column: span 4; padding: 0.5rem 0.65rem 0.25rem; min-height: 220px; }
+.tv-card.chart-wide { grid-column: span 5; }
+.tv-card.chart-narrow { grid-column: span 3; min-height: 220px; }
+.tv-card.compact { grid-column: span 2; display: flex; flex-direction: column; justify-content: center; min-height: 72px; }
+.tv-card.compact .val { font-size: 1.45rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+.tv-card.compact .lbl { color: var(--tv-muted); font-size: 0.72rem; margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.tv-card.sync-row { grid-column: span 4; min-height: 88px; display: flex; flex-direction: column; justify-content: center; }
+.tv-card.sync-row .val { font-size: 1.05rem; font-weight: 700; line-height: 1.35; word-break: break-word; }
+.tv-card.sync-row .val.big { font-size: 1.75rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--tv-accent); }
+.tv-card.sync-row .lbl { color: var(--tv-muted); font-size: 0.72rem; margin-top: 0.35rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.tv-card.full { grid-column: span 12; }
+.tv-chart-box { width: 100%; height: 200px; }
+.tv-chart-box.tall { height: 210px; }
+.tv-section-title {
+	margin: 0 0 0.5rem; font-size: 0.82rem; font-weight: 700;
+	letter-spacing: 0.05em; text-transform: uppercase; color: var(--tv-muted);
 }
-.tv-card.hero .value {
-	font-size: clamp(2rem, 4vw, 3rem);
-	font-weight: 800;
-	line-height: 1;
-	font-variant-numeric: tabular-nums;
-}
-.tv-card.hero .label {
-	margin-top: 0.35rem;
-	color: var(--tv-muted);
-	font-size: 0.88rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-}
-.tv-card.hero.present .value { color: var(--tv-present); }
-.tv-card.hero.absent .value { color: var(--tv-danger); }
-.tv-card.hero.off .value { color: var(--tv-warn); }
-.tv-card.hero.leave .value { color: var(--tv-info); }
-.tv-card.hero.staff .value { color: var(--tv-accent-2); }
-[data-theme="dark"] .tv-card.hero.staff .value { color: #7dd3fc; }
-.tv-card.metric {
-	grid-column: span 2;
-}
-.tv-card.metric .value {
-	font-size: 1.65rem;
-	font-weight: 700;
-	font-variant-numeric: tabular-nums;
-}
-.tv-card.metric .label {
-	color: var(--tv-muted);
-	font-size: 0.8rem;
-	margin-top: 0.25rem;
-}
-.tv-card.wide {
-	grid-column: span 4;
-}
-.tv-card.full {
-	grid-column: span 12;
-}
-.tv-feed {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	max-height: 220px;
-	overflow: hidden;
-}
+.tv-feed { list-style: none; margin: 0; padding: 0; max-height: 200px; overflow: hidden; }
 .tv-feed li {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 0.55rem 0;
-	border-bottom: 1px solid var(--tv-border);
-	font-size: 0.95rem;
+	display: flex; align-items: center; justify-content: space-between;
+	padding: 0.5rem 0; border-bottom: 1px solid var(--tv-border); font-size: 0.9rem;
 }
 .tv-feed li:last-child { border-bottom: none; }
-.tv-feed-name {
-	font-weight: 600;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	padding-right: 1rem;
-}
-.tv-feed-meta {
-	color: var(--tv-muted);
-	font-size: 0.82rem;
-	white-space: nowrap;
-}
-.tv-feed li.tv-new {
-	animation: tvSlideIn 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-}
+.tv-feed-name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 0.75rem; }
+.tv-feed-meta { color: var(--tv-muted); font-size: 0.8rem; white-space: nowrap; }
+.tv-feed li.tv-new { animation: tvSlideIn 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes tvSlideIn {
 	from { opacity: 0; transform: translateY(-100%); }
 	to { opacity: 1; transform: translateY(0); }
 }
-.tv-section-title {
-	margin: 0 0 0.75rem;
-	font-size: 0.95rem;
-	font-weight: 700;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	color: var(--tv-muted);
-}
 .tv-footer {
-	margin-top: 1rem;
-	padding-top: 0.75rem;
-	border-top: 1px solid var(--tv-border);
-	display: flex;
-	justify-content: space-between;
-	gap: 1rem;
-	flex-wrap: wrap;
-	color: var(--tv-muted);
-	font-size: 0.8rem;
+	margin-top: 0.75rem; padding-top: 0.65rem; border-top: 1px solid var(--tv-border);
+	display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+	color: var(--tv-muted); font-size: 0.78rem;
 }
-.tv-error {
-	grid-column: span 12;
-	text-align: center;
-	padding: 3rem 1rem;
-	color: var(--tv-muted);
+.tv-error { grid-column: span 12; text-align: center; padding: 2.5rem 1rem; color: var(--tv-muted); }
+@media (max-width: 1100px) {
+	.tv-card.chart, .tv-card.chart-wide, .tv-card.chart-narrow, .tv-card.sync-row { grid-column: span 6; }
+	.tv-card.compact { grid-column: span 3; }
 }
-@media (max-width: 1200px) {
-	.tv-card.hero, .tv-card.metric { grid-column: span 4; }
-	.tv-card.wide { grid-column: span 6; }
-}
-@media (max-width: 768px) {
-	.tv-card.hero, .tv-card.metric, .tv-card.wide { grid-column: span 12; }
+@media (max-width: 640px) {
+	.tv-card.chart, .tv-card.chart-wide, .tv-card.chart-narrow,
+	.tv-card.sync-row, .tv-card.compact { grid-column: span 12; }
 }
 </style>
 
@@ -268,48 +133,70 @@ html, body.tv-root {
 		<div class="tv-live-pill"><span class="dot"></span> LIVE</div>
 		<div class="tv-clock" id="tv-clock">--:--</div>
 		<div class="tv-toolbar">
-			<button type="button" class="tv-btn" id="tv-theme-toggle" title="Toggle light/dark mode">
-				<i class="fas fa-adjust"></i> Theme
-			</button>
-			<button type="button" class="tv-btn" id="tv-fullscreen" title="Fullscreen">
-				<i class="fas fa-expand"></i>
-			</button>
+			<button type="button" class="tv-btn" id="tv-theme-toggle" title="Toggle theme"><i class="fas fa-adjust"></i></button>
+			<button type="button" class="tv-btn" id="tv-fullscreen" title="Fullscreen"><i class="fas fa-expand"></i></button>
 		</div>
 	</header>
 
 	<div class="tv-grid" id="tv-grid">
-		<div class="tv-card hero present"><div class="value" id="tv-present">—</div><div class="label">Present Today</div></div>
-		<div class="tv-card hero absent"><div class="value" id="tv-absent">—</div><div class="label">Absent</div></div>
-		<div class="tv-card hero off"><div class="value" id="tv-offduty">—</div><div class="label">Off Duty</div></div>
-		<div class="tv-card hero leave"><div class="value" id="tv-leave">—</div><div class="label">On Leave</div></div>
-		<div class="tv-card hero staff"><div class="value" id="tv-mystaff">—</div><div class="label">My Staff</div></div>
-		<div class="tv-card hero staff"><div class="value" id="tv-rate">—</div><div class="label">Attendance %</div></div>
+		<!-- Charts row -->
+		<div class="tv-card chart chart-wide">
+			<h2 class="tv-section-title">Today's Duty Status</h2>
+			<div id="tv-chart-daily" class="tv-chart-box tall"></div>
+		</div>
+		<div class="tv-card chart chart-narrow">
+			<h2 class="tv-section-title">Attendance Rate</h2>
+			<div id="tv-chart-gauge" class="tv-chart-box tall"></div>
+		</div>
+		<div class="tv-card chart chart-narrow">
+			<h2 class="tv-section-title">Clock Activity Today</h2>
+			<div id="tv-chart-clock" class="tv-chart-box tall"></div>
+		</div>
 
-		<div class="tv-card metric"><div class="value" id="tv-checkins">—</div><div class="label">Check-ins Today</div></div>
-		<div class="tv-card metric"><div class="value" id="tv-checkouts">—</div><div class="label">Check-outs Today</div></div>
-		<div class="tv-card metric"><div class="value" id="tv-daily-hours">—</div><div class="label">Avg Hours Today</div></div>
-		<div class="tv-card metric"><div class="value" id="tv-period-hours">—</div><div class="label">Avg Hours (<span id="tv-period-label">Month</span>)</div></div>
-		<div class="tv-card metric wide"><div class="value" id="tv-monthly-present">—</div><div class="label">Present Staff-days (<span id="tv-period-label-2">Month</span>)</div></div>
-		<div class="tv-card metric wide"><div class="value" id="tv-request">—</div><div class="label">Official / Workshop Today</div></div>
+		<!-- Compact KPIs -->
+		<div class="tv-card compact"><div class="val" id="tv-checkins">—</div><div class="lbl">Check-ins</div></div>
+		<div class="tv-card compact"><div class="val" id="tv-checkouts">—</div><div class="lbl">Check-outs</div></div>
+		<div class="tv-card compact"><div class="val" id="tv-daily-hours">—</div><div class="lbl">Avg Hrs Today</div></div>
+		<div class="tv-card compact"><div class="val" id="tv-period-hours">—</div><div class="lbl">Avg Hrs (<span id="tv-period-label">Mo</span>)</div></div>
+		<div class="tv-card compact"><div class="val" id="tv-mystaff">—</div><div class="lbl">My Staff</div></div>
+		<div class="tv-card compact"><div class="val" id="tv-request">—</div><div class="lbl">Workshop</div></div>
 
+		<!-- Sync row: present staff-days + BioTime + attendance summary on one line -->
+		<div class="tv-card sync-row">
+			<div class="val big" id="tv-monthly-present">—</div>
+			<div class="lbl">Present Staff-days (<span id="tv-period-label-2">Month</span>)</div>
+		</div>
+		<div class="tv-card sync-row">
+			<div class="val" id="tv-biotime-sync">—</div>
+			<div class="lbl"><i class="fas fa-fingerprint mr-1"></i>BioTime Last Sync</div>
+		</div>
+		<div class="tv-card sync-row">
+			<div class="val" id="tv-att-sum">—</div>
+			<div class="lbl"><i class="fas fa-database mr-1"></i>Last Attendance Summary</div>
+		</div>
+
+		<!-- Monthly + facility charts -->
+		<div class="tv-card chart chart-wide">
+			<h2 class="tv-section-title">Month Staff-days (<span id="tv-period-label-3">Month</span>)</h2>
+			<div id="tv-chart-monthly" class="tv-chart-box tall"></div>
+		</div>
+		<div class="tv-card chart chart-narrow">
+			<h2 class="tv-section-title"><?php echo htmlspecialchars($tv_facility_label, ENT_QUOTES, 'UTF-8'); ?> Structure</h2>
+			<div id="tv-chart-structure" class="tv-chart-box tall"></div>
+		</div>
+
+		<!-- Live feed -->
 		<div class="tv-card full">
 			<h2 class="tv-section-title"><i class="fas fa-broadcast-tower mr-1"></i> Live Check-ins &amp; Check-outs</h2>
 			<ul class="tv-feed" id="tv-feed">
 				<li class="tv-feed-empty">Waiting for activity…</li>
 			</ul>
 		</div>
-
-		<div class="tv-card metric"><div class="value" id="tv-departments">—</div><div class="label">Departments</div></div>
-		<div class="tv-card metric"><div class="value" id="tv-jobs">—</div><div class="label">Jobs</div></div>
-		<div class="tv-card metric"><div class="value" id="tv-cadres">—</div><div class="label">Cadres</div></div>
-		<div class="tv-card metric"><div class="value" id="tv-bio">—</div><div class="label">BioTime Devices</div></div>
-		<div class="tv-card metric wide"><div class="value" id="tv-biotime-sync" style="font-size:1rem;">—</div><div class="label">BioTime Last Sync</div></div>
-		<div class="tv-card metric wide"><div class="value" id="tv-att-sum" style="font-size:1rem;">—</div><div class="label">Last Attendance Summary</div></div>
 	</div>
 
 	<footer class="tv-footer">
 		<span id="tv-updated">Connecting…</span>
-		<span>iHRIS Attendance · Facility display uses your logged-in session</span>
+		<span id="tv-sync-extra">BioTime devices: <strong id="tv-bio">—</strong></span>
 	</footer>
 </div>
 
@@ -319,27 +206,212 @@ html, body.tv-root {
 	var TV_FEED_MAX = 12;
 	var tvSeen = {};
 	var tvDataUrl = '<?php echo base_url('dashboard/facilityTvData'); ?>';
+	var tvCharts = {};
+	var TV_COLORS = {
+		present: '#20c198', absent: '#e74c3c', off: '#f0ad4e',
+		leave: '#17a2b8', request: '#6f42c1', staff: '#005662'
+	};
+
+	function isDarkTheme() {
+		return document.documentElement.getAttribute('data-theme') !== 'light';
+	}
+
+	function chartTextColor() {
+		return isDarkTheme() ? '#eef4f7' : '#1a2e35';
+	}
+
+	function chartMutedColor() {
+		return isDarkTheme() ? '#8fa3ad' : '#6c7a80';
+	}
 
 	function applyTheme(theme) {
 		document.documentElement.setAttribute('data-theme', theme);
 		try { localStorage.setItem('facility_tv_theme', theme); } catch (e) {}
+		if (window.__tvLastData) {
+			updateTvCharts(window.__tvLastData);
+		}
 	}
 
 	function initTheme() {
 		var saved = 'dark';
-		try {
-			saved = localStorage.getItem('facility_tv_theme') || 'dark';
-		} catch (e) {}
+		try { saved = localStorage.getItem('facility_tv_theme') || 'dark'; } catch (e) {}
 		if (saved !== 'light') saved = 'dark';
 		applyTheme(saved);
 	}
 
+	function waitForHighcharts(cb) {
+		if (typeof Highcharts !== 'undefined' && typeof Highcharts.chart === 'function') {
+			cb();
+			return;
+		}
+		setTimeout(function() { waitForHighcharts(cb); }, 80);
+	}
+
+	function baseChartOpts() {
+		return {
+			chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit' } },
+			credits: { enabled: false },
+			exporting: { enabled: false },
+			title: { text: null },
+			legend: {
+				itemStyle: { color: chartTextColor(), fontWeight: '500', fontSize: '11px' },
+				itemHoverStyle: { color: chartTextColor() }
+			},
+			tooltip: {
+				backgroundColor: isDarkTheme() ? '#1a2733' : '#fff',
+				borderColor: isDarkTheme() ? '#334455' : '#d8e3e8',
+				style: { color: chartTextColor() }
+			}
+		};
+	}
+
+	function updateTvCharts(data) {
+		if (!data || !data.ok || typeof Highcharts === 'undefined') return;
+
+		var present = parseInt(data.present, 10) || 0;
+		var absent = parseInt(data.absent, 10) || 0;
+		var off = parseInt(data.offduty, 10) || 0;
+		var leave = parseInt(data.leave, 10) || 0;
+		var request = parseInt(data.request, 10) || 0;
+		var rate = parseFloat(data.attendance_rate) || 0;
+		var checkins = parseInt(data.clock_ins_today, 10) || 0;
+		var checkouts = parseInt(data.clock_outs_today, 10) || 0;
+
+		var dailySeries = [
+			{ name: 'Present', y: present, color: TV_COLORS.present },
+			{ name: 'Absent', y: absent, color: TV_COLORS.absent },
+			{ name: 'Off Duty', y: off, color: TV_COLORS.off },
+			{ name: 'On Leave', y: leave, color: TV_COLORS.leave },
+			{ name: 'Workshop', y: request, color: TV_COLORS.request }
+		].filter(function(p) { return p.y > 0; });
+		if (!dailySeries.length) {
+			dailySeries = [{ name: 'No data', y: 1, color: '#334455' }];
+		}
+
+		if (tvCharts.daily) tvCharts.daily.destroy();
+		tvCharts.daily = Highcharts.chart('tv-chart-daily', $.extend(true, {}, baseChartOpts(), {
+			chart: { type: 'pie', height: 210 },
+			plotOptions: {
+				pie: {
+					innerSize: '58%',
+					borderWidth: 0,
+					dataLabels: {
+						enabled: true,
+						format: '{point.name}: {point.y}',
+						style: { color: chartTextColor(), fontSize: '10px', fontWeight: '500', textOutline: 'none' },
+						distance: 12
+					}
+				}
+			},
+			series: [{ name: 'Staff', data: dailySeries }]
+		}));
+
+		if (tvCharts.gauge) tvCharts.gauge.destroy();
+		tvCharts.gauge = Highcharts.chart('tv-chart-gauge', $.extend(true, {}, baseChartOpts(), {
+			chart: { type: 'solidgauge', height: 210 },
+			pane: {
+				center: ['50%', '72%'], size: '110%', startAngle: -90, endAngle: 90,
+				background: { backgroundColor: isDarkTheme() ? '#1a2733' : '#eef3f6', innerRadius: '60%', outerRadius: '100%', shape: 'arc', borderWidth: 0 }
+			},
+			yAxis: {
+				min: 0, max: 100, lineWidth: 0, tickWidth: 0, minorTickInterval: null,
+				labels: { enabled: false }
+			},
+			plotOptions: {
+				solidgauge: {
+					dataLabels: {
+						y: -22, borderWidth: 0, useHTML: false,
+						format: '<span style="font-size:1.6rem;font-weight:800;color:' + chartTextColor() + '">{y}%</span>',
+						style: { fontSize: '1.6rem' }
+					}
+				}
+			},
+			series: [{
+				name: 'Attendance',
+				data: [rate],
+				dataLabels: { format: '<div style="text-align:center"><span style="font-size:1.75rem;font-weight:800;color:' + chartTextColor() + '">{y:.1f}%</span></div>' },
+				tooltip: { valueSuffix: '%' },
+				color: rate >= 80 ? TV_COLORS.present : (rate >= 50 ? TV_COLORS.off : TV_COLORS.absent)
+			}]
+		}));
+
+		if (tvCharts.clock) tvCharts.clock.destroy();
+		tvCharts.clock = Highcharts.chart('tv-chart-clock', $.extend(true, {}, baseChartOpts(), {
+			chart: { type: 'column', height: 210 },
+			xAxis: {
+				categories: ['Check-ins', 'Check-outs'],
+				labels: { style: { color: chartMutedColor(), fontSize: '11px' } },
+				lineColor: isDarkTheme() ? '#334455' : '#d8e3e8'
+			},
+			yAxis: {
+				min: 0, title: { text: null },
+				gridLineColor: isDarkTheme() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+				labels: { style: { color: chartMutedColor() } }
+			},
+			plotOptions: { column: { borderRadius: 6, borderWidth: 0, colorByPoint: true } },
+			colors: [TV_COLORS.present, TV_COLORS.off],
+			series: [{ name: 'Count', data: [checkins, checkouts], showInLegend: false }]
+		}));
+
+		var mp = parseInt(data.monthly_present, 10) || 0;
+		var mo = parseInt(data.monthly_offduty, 10) || 0;
+		var ml = parseInt(data.monthly_leave, 10) || 0;
+		var mr = parseInt(data.monthly_request, 10) || 0;
+		var monthlySeries = [
+			{ name: 'Present', y: mp, color: TV_COLORS.present },
+			{ name: 'Off Duty', y: mo, color: TV_COLORS.off },
+			{ name: 'Leave', y: ml, color: TV_COLORS.leave },
+			{ name: 'Workshop', y: mr, color: TV_COLORS.request }
+		].filter(function(p) { return p.y > 0; });
+		if (!monthlySeries.length) {
+			monthlySeries = [{ name: 'No data', y: 1, color: '#334455' }];
+		}
+
+		if (tvCharts.monthly) tvCharts.monthly.destroy();
+		tvCharts.monthly = Highcharts.chart('tv-chart-monthly', $.extend(true, {}, baseChartOpts(), {
+			chart: { type: 'pie', height: 210 },
+			plotOptions: {
+				pie: {
+					innerSize: '55%',
+					borderWidth: 0,
+					dataLabels: {
+						enabled: true,
+						format: '{point.name}<br>{point.y}',
+						style: { color: chartTextColor(), fontSize: '10px', textOutline: 'none' }
+					}
+				}
+			},
+			series: [{ name: 'Staff-days', data: monthlySeries }]
+		}));
+
+		var depts = parseInt(data.departments, 10) || 0;
+		var jobs = parseInt(data.jobs, 10) || 0;
+		var cadres = parseInt(data.cadres, 10) || 0;
+		var bio = parseInt(data.biometrics, 10) || 0;
+
+		if (tvCharts.structure) tvCharts.structure.destroy();
+		tvCharts.structure = Highcharts.chart('tv-chart-structure', $.extend(true, {}, baseChartOpts(), {
+			chart: { type: 'bar', height: 210 },
+			xAxis: {
+				categories: ['Departments', 'Jobs', 'Cadres', 'BioTime'],
+				labels: { style: { color: chartMutedColor(), fontSize: '11px' } },
+				lineColor: isDarkTheme() ? '#334455' : '#d8e3e8'
+			},
+			yAxis: {
+				min: 0, title: { text: null },
+				gridLineColor: isDarkTheme() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+				labels: { style: { color: chartMutedColor() } }
+			},
+			plotOptions: { bar: { borderRadius: 4, borderWidth: 0, colorByPoint: true } },
+			colors: [TV_COLORS.staff, TV_COLORS.leave, TV_COLORS.request, TV_COLORS.present],
+			series: [{ name: 'Count', data: [depts, jobs, cadres, bio], showInLegend: false }]
+		}));
+	}
+
 	function tickClock() {
 		var now = new Date();
-		var opts = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-		$('#tv-clock').text(now.toLocaleTimeString('en-GB', opts));
-		var dateOpts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-		$('#tv-date').text(now.toLocaleDateString('en-GB', dateOpts));
+		$('#tv-clock').text(now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+		$('#tv-date').text(now.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
 	}
 
 	function liveSourceLabel(source) {
@@ -349,22 +421,16 @@ html, body.tv-root {
 	}
 
 	function staffMeta(item) {
-		var inT = item.time_in || '—';
-		var outT = item.time_out || '—';
-		return 'In ' + inT + ' · Out ' + outT + ' · ' + liveSourceLabel(item.source);
+		return 'In ' + (item.time_in || '—') + ' · Out ' + (item.time_out || '—') + ' · ' + liveSourceLabel(item.source);
 	}
 
 	function buildFeedRow(item, animate) {
 		var name = $('<div>').text(item.name || 'Staff').html();
 		var badge = item.last_event === 'out'
-			? '<span style="color:#f0ad4e;font-weight:700;font-size:0.72rem;margin-right:0.35rem;">OUT</span>'
-			: '<span style="color:#20c198;font-weight:700;font-size:0.72rem;margin-right:0.35rem;">IN</span>';
-		var $li = $('<li></li>').attr('data-activity-id', item.activity_id || '')
-			.attr('data-staff-id', item.ihris_pid || '')
-			.append(
-				$('<span class="tv-feed-name"></span>').html(badge + name),
-				$('<span class="tv-feed-meta"></span>').text(staffMeta(item))
-			);
+			? '<span style="color:#f0ad4e;font-weight:700;font-size:0.7rem;margin-right:0.3rem;">OUT</span>'
+			: '<span style="color:#20c198;font-weight:700;font-size:0.7rem;margin-right:0.3rem;">IN</span>';
+		var $li = $('<li></li>').attr('data-activity-id', item.activity_id || '').attr('data-staff-id', item.ihris_pid || '')
+			.append($('<span class="tv-feed-name"></span>').html(badge + name), $('<span class="tv-feed-meta"></span>').text(staffMeta(item)));
 		if (animate) $li.addClass('tv-new');
 		return $li;
 	}
@@ -377,8 +443,7 @@ html, body.tv-root {
 			return;
 		}
 		if ($feed.find('.tv-feed-empty').length) {
-			$feed.empty();
-			tvSeen = {};
+			$feed.empty(); tvSeen = {};
 			recent.slice(0, TV_FEED_MAX).forEach(function(item) {
 				if (item.activity_id) tvSeen[item.activity_id] = true;
 				$feed.append(buildFeedRow(item, false));
@@ -391,15 +456,13 @@ html, body.tv-root {
 			var $existing = $feed.find('li[data-staff-id="' + item.ihris_pid + '"]');
 			if ($existing.length) {
 				if ($existing.attr('data-activity-id') === item.activity_id) return;
-				changed = true;
-				$existing.remove();
+				changed = true; $existing.remove();
 				tvSeen[item.activity_id] = true;
 				$feed.prepend(buildFeedRow(item, true));
 				return;
 			}
 			if (tvSeen[item.activity_id]) return;
-			changed = true;
-			tvSeen[item.activity_id] = true;
+			changed = true; tvSeen[item.activity_id] = true;
 			$feed.prepend(buildFeedRow(item, true));
 		});
 		if (!changed) return;
@@ -421,31 +484,26 @@ html, body.tv-root {
 			return;
 		}
 
+		window.__tvLastData = data;
+
 		if (data.facility_name) $('#tv-facility-name').text(data.facility_name);
 		if (data.district) $('#tv-district').text(data.district);
 		if (data.period_label) {
-			$('#tv-period-label, #tv-period-label-2').text(data.period_label);
+			$('#tv-period-label, #tv-period-label-2, #tv-period-label-3').text(data.period_label);
 		}
 
-		setText('#tv-present', data.present);
-		setText('#tv-absent', data.absent);
-		setText('#tv-offduty', data.offduty);
-		setText('#tv-leave', data.leave);
-		setText('#tv-request', data.request);
-		setText('#tv-mystaff', data.mystaff);
-		setText('#tv-rate', (data.attendance_rate != null ? data.attendance_rate : 0) + '%');
 		setText('#tv-checkins', data.clock_ins_today);
 		setText('#tv-checkouts', data.clock_outs_today);
 		setText('#tv-daily-hours', (data.daily_avg_hours != null ? data.daily_avg_hours : 0) + ' hrs');
 		setText('#tv-period-hours', (data.avg_hours != null ? data.avg_hours : 0) + ' hrs');
+		setText('#tv-mystaff', data.mystaff);
+		setText('#tv-request', data.request);
 		setText('#tv-monthly-present', data.monthly_present);
-		setText('#tv-departments', data.departments);
-		setText('#tv-jobs', data.jobs);
-		setText('#tv-cadres', data.cadres);
-		setText('#tv-bio', data.biometrics);
 		setText('#tv-biotime-sync', data.biotime_last);
 		setText('#tv-att-sum', data.attendance);
+		setText('#tv-bio', data.biometrics);
 
+		updateTvCharts(data);
 		renderTvFeed(data.recent);
 
 		var ago = 'just now';
@@ -462,15 +520,11 @@ html, body.tv-root {
 
 	function loadTvData() {
 		return $.ajax({
-			url: tvDataUrl,
-			type: 'GET',
-			dataType: 'json',
-			timeout: 30000,
-			cache: false,
+			url: tvDataUrl, type: 'GET', dataType: 'json', timeout: 30000, cache: false,
 			headers: { 'X-Requested-With': 'XMLHttpRequest' }
 		}).done(applyTvData).fail(function(xhr) {
 			if (xhr && xhr.status === 401) {
-				$('#tv-grid').html('<div class="tv-error"><p>Session expired. Re-open this page from the main dashboard while logged in.</p></div>');
+				$('#tv-grid').html('<div class="tv-error"><p>Session expired. Re-open from the main dashboard.</p></div>');
 			}
 		});
 	}
@@ -487,15 +541,14 @@ html, body.tv-root {
 
 		$('#tv-fullscreen').on('click', function() {
 			var el = document.documentElement;
-			if (!document.fullscreenElement && el.requestFullscreen) {
-				el.requestFullscreen();
-			} else if (document.exitFullscreen) {
-				document.exitFullscreen();
-			}
+			if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen();
+			else if (document.exitFullscreen) document.exitFullscreen();
 		});
 
-		loadTvData();
-		setInterval(loadTvData, TV_POLL_MS);
+		waitForHighcharts(function() {
+			loadTvData();
+			setInterval(loadTvData, TV_POLL_MS);
+		});
 	});
 })();
 </script>
