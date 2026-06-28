@@ -30,7 +30,7 @@
   margin-bottom: 1.25rem;
   box-shadow: var(--shadow-medium);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 .dash-page .dash-hero::before {
   content: '';
@@ -56,12 +56,44 @@
 }
 .dash-page .dash-hero-inner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
+}
+.dash-page .dash-hero-actions {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.dash-page .dash-tv-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--dash-teal) !important;
+  background: #fff !important;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  padding: 0.4rem 0.9rem;
+  text-decoration: none !important;
+  cursor: pointer;
+  position: relative;
+  z-index: 5;
+  pointer-events: auto;
+}
+.dash-page .dash-tv-link-btn:hover,
+.dash-page .dash-tv-link-btn:focus {
+  background: #f0faf8 !important;
+  color: var(--dash-teal-dark) !important;
+  text-decoration: none !important;
 }
 .dash-page .dashboard-title {
   font-size: 1.5rem;
@@ -94,19 +126,6 @@
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-}
-.dash-page .dash-tv-dropdown-btn {
-  font-size: 0.78rem;
-  font-weight: 600;
-  border-radius: 999px;
-  color: var(--dash-teal);
-  border: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-}
-.dash-page .dash-tv-dropdown-btn:hover,
-.dash-page .dash-tv-dropdown-btn:focus {
-  background: #fff;
-  color: var(--dash-teal-dark);
 }
 
 /* Sync stat cards */
@@ -637,33 +656,25 @@
                 <p class="dashboard-subtitle">Here's what's happening with your <?php echo strtolower(entity_label('facility')); ?> today.</p>
               </div>
             </div>
-            <div class="d-flex align-items-center flex-wrap" style="gap:0.65rem;">
+            <div class="dash-hero-actions">
             <span class="dash-hero-badge"><i class="fas fa-circle text-success mr-1" style="font-size:0.5rem;vertical-align:middle;"></i> Attendance Dashboard</span>
             <?php
               $tv_facility_name = trim((string) $this->session->userdata('facility_name'));
-              $tv_facility_id = trim((string) ($this->session->userdata('dashboard_facility') ?: $this->session->userdata('facility') ?: ''));
+              $tv_url = base_url('dashboard/facilityTv');
+              $tv_title = 'Open facility TV screen in a new tab';
+              if ($tv_facility_name !== '') {
+                  $tv_title .= ' — ' . $tv_facility_name;
+              }
             ?>
-            <div class="dropdown dash-tv-dropdown">
-              <button class="btn btn-sm btn-light dropdown-toggle dash-tv-dropdown-btn" type="button" id="dashTvDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-tv mr-1"></i> Facility TV Screens
-              </button>
-              <div class="dropdown-menu dropdown-menu-right shadow" aria-labelledby="dashTvDropdown">
-                <h6 class="dropdown-header">Wall display (current session)</h6>
-                <?php if ($tv_facility_id !== '') { ?>
-                  <a class="dropdown-item" href="<?php echo base_url('dashboard/facilityTv'); ?>" target="_blank" rel="noopener noreferrer">
-                    <i class="fas fa-external-link-alt mr-2 text-muted"></i>
-                    Open TV Dashboard
-                    <?php if ($tv_facility_name !== '') { ?>
-                      <small class="d-block text-muted pl-4"><?php echo htmlspecialchars($tv_facility_name, ENT_QUOTES, 'UTF-8'); ?></small>
-                    <?php } ?>
-                  </a>
-                <?php } else { ?>
-                  <span class="dropdown-item-text text-muted small">Select a <?php echo strtolower(entity_label('facility')); ?> first (Change Facility).</span>
-                <?php } ?>
-                <div class="dropdown-divider"></div>
-                <span class="dropdown-item-text small text-muted">Opens full screen in a new tab. Uses your login session and refreshes live every ~15s. Dark mode by default.</span>
-              </div>
-            </div>
+            <a class="dash-tv-link-btn"
+               href="<?php echo htmlspecialchars($tv_url, ENT_QUOTES, 'UTF-8'); ?>"
+               target="_blank"
+               rel="noopener noreferrer"
+               title="<?php echo htmlspecialchars($tv_title, ENT_QUOTES, 'UTF-8'); ?>">
+              <i class="fas fa-tv"></i>
+              <span>Facility TV Screen</span>
+              <i class="fas fa-external-link-alt" style="font-size:0.7rem;opacity:0.75;"></i>
+            </a>
             </div>
           </div>
         </div>
