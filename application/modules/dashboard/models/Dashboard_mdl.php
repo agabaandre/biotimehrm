@@ -684,7 +684,10 @@ class Dashboard_mdl extends CI_Model
         $data['absent'] = max(0, $mystaff - $sum_accounted);
 
         if ($dashboard_empid === '' && $status_date === $today) {
-            $data['recent'] = $this->_recentClockIns($facility, $today, 10);
+            $data['recent'] = $this->_recentClockActivity($facility, $today, 12);
+            $data['clock_outs_today'] = $this->_countClockOuts($facility, $today, $dashboard_empid);
+        } else {
+            $data['clock_outs_today'] = 0;
         }
 
         return $data;
@@ -776,82 +779,171 @@ class Dashboard_mdl extends CI_Model
     /**
      * @param string $facility
      * @param string $date
+     * @param string $dashboard_empid
+     * @return int
+     */
+    protected function _countClockOuts($facility, $date, $dashboard_empid = '')
+    {
+        $total = 0;
+
+        if ($this->db->table_exists('mobileclk_log')) {
+            $sql = "
+                SELECT COUNT(DISTINCT ihris_pid) AS c
+                FROM mobileclk_log
+                WHERE facility_id = ? AND date = ?
+                  AND time_out IS NOT NULL AND TRIM(time_out) <> ''
+                  AND (time_in IS NULL OR time_out > time_in)
+            ";
+            $params = [$facility, $date];
+            if ($dashboard_empid !== '') {
+                $sql .= ' AND ihris_pid = ?';
+                $params[] = $dashboard_empid;
+            }
+            $q = $this->safeQuery($sql, $params);
+            if ($q && $q->num_rows() > 0) {
+                $total += (int) $q->row()->c;
+            }
+        }
+
+        if ($this->db->table_exists('clk_log')) {
+            $sql = "
+                SELECT COUNT(DISTINCT ihris_pid) AS c
+                FROM clk_log
+                WHERE facility_id = ? AND date = ?
+                  AND time_out IS NOT NULL AND TRIM(time_out) <> ''
+                  AND time_in IS NOT NULL AND time_out > time_in
+            ";
+            $params = [$facility, $date];
+            if ($dashboard_empid !== '') {
+                $sql .= ' AND ihris_pid = ?';
+                $params[] = $dashboard_empid;
+            }
+            $q = $this->safeQuery($sql, $params);
+            if ($q && $q->num_rows() > 0) {
+                $total += (int) $q->row()->c;
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Recent check-in / check-out activity for the live dashboard feed.
+     *
+     * @param string $facility
+     * @param string $date
+     * @param int    $limit
+     * @return array<int, array<string, string>>
+     */
+    private function _recentClockActivity($facility, $date, $limit = 12)
+    {
+        $rows = [];
+        $seen_pids = [];
+
+        if ($this->db->table_exists('mobileclk_log')) {
+            $q = $this->safeQuery("
+                SELECT m.ihris_pid, m.time_in, m.time_out, 'mobile' AS source,
+                    TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS staff_name
+                FROM mobileclk_log m
+                LEFT JOIN ihrisdata i ON i.ihris_pid = m.ihris_pid
+                WHERE m.facility_id = ? AND m.date = ?
+                  AND (m.time_in IS NOT NULL OR (m.time_out IS NOT NULL AND TRIM(m.time_out) <> ''))
+                ORDER BY GREATEST(COALESCE(m.time_out, m.time_in), COALESCE(m.time_in, m.time_out)) DESC
+            ", [$facility, $date]);
+            if ($q) {
+                foreach ($q->result() as $r) {
+                    $pid = (string) $r->ihris_pid;
+                    if ($pid === '' || isset($seen_pids[$pid])) {
+                        continue;
+                    }
+                    $seen_pids[$pid] = true;
+                    $rows[] = $r;
+                }
+            }
+        }
+
+        if ($this->db->table_exists('clk_log')) {
+            $q = $this->safeQuery("
+                SELECT cl.ihris_pid, cl.time_in, cl.time_out, COALESCE(cl.source, 'device') AS source,
+                    TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS staff_name
+                FROM clk_log cl
+                LEFT JOIN ihrisdata i ON i.ihris_pid = cl.ihris_pid
+                WHERE cl.facility_id = ? AND cl.date = ?
+                  AND (cl.time_in IS NOT NULL OR (cl.time_out IS NOT NULL AND TRIM(cl.time_out) <> ''))
+                ORDER BY GREATEST(COALESCE(cl.time_out, cl.time_in), COALESCE(cl.time_in, cl.time_out)) DESC
+            ", [$facility, $date]);
+            if ($q) {
+                foreach ($q->result() as $r) {
+                    $pid = (string) $r->ihris_pid;
+                    if ($pid === '' || isset($seen_pids[$pid])) {
+                        continue;
+                    }
+                    $seen_pids[$pid] = true;
+                    $rows[] = $r;
+                }
+            }
+        }
+
+        $staff_rows = [];
+        foreach ($rows as $r) {
+            $pid = (string) $r->ihris_pid;
+            $name = trim((string) $r->staff_name);
+            $name = $name !== '' ? $name : $pid;
+            $source = strtolower((string) $r->source);
+            $source = ($source === 'bio-time') ? 'biotime' : (($source === 'mobile') ? 'mobile' : 'device');
+
+            $time_in_raw = trim((string) ($r->time_in ?? ''));
+            $time_out_raw = trim((string) ($r->time_out ?? ''));
+            if ($time_in_raw === '' && $time_out_raw === '') {
+                continue;
+            }
+
+            $time_in = $this->_formatClockTime($time_in_raw);
+            $time_out = $this->_formatClockTime($time_out_raw);
+            $has_valid_out = ($time_out_raw !== '' && ($time_in_raw === '' || strtotime($time_out_raw) > strtotime($time_in_raw)));
+
+            $sort_at = $time_in_raw !== '' ? $time_in_raw : $time_out_raw;
+            $last_event = 'in';
+            if ($has_valid_out && ($time_in_raw === '' || strtotime($time_out_raw) >= strtotime($time_in_raw))) {
+                $sort_at = $time_out_raw;
+                $last_event = 'out';
+            }
+
+            $staff_rows[] = [
+                'activity_id' => 'staff:' . $pid . ':' . md5($time_in_raw . '|' . $time_out_raw),
+                'ihris_pid'   => $pid,
+                'name'        => $name,
+                'time_in'     => $time_in,
+                'time_out'    => $has_valid_out ? $time_out : '',
+                'source'      => $source,
+                'last_event'  => $last_event,
+                'sort_at'     => $sort_at,
+            ];
+        }
+
+        usort($staff_rows, function ($a, $b) {
+            return strcmp((string) $b['sort_at'], (string) $a['sort_at']);
+        });
+
+        $staff_rows = array_slice($staff_rows, 0, max(1, (int) $limit));
+        foreach ($staff_rows as &$row) {
+            unset($row['sort_at']);
+        }
+        unset($row);
+
+        return $staff_rows;
+    }
+
+    /**
+     * @deprecated Use _recentClockActivity()
+     * @param string $facility
+     * @param string $date
      * @param int    $limit
      * @return array<int, array<string, string>>
      */
     private function _recentClockIns($facility, $date, $limit = 10)
     {
-        $items = [];
-        $limit = max(1, (int) $limit);
-
-        if ($this->db->table_exists('mobileclk_log')) {
-            $q = $this->safeQuery("
-                SELECT m.ihris_pid, m.time_in, 'mobile' AS source,
-                    TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS staff_name
-                FROM mobileclk_log m
-                LEFT JOIN ihrisdata i ON i.ihris_pid = m.ihris_pid
-                WHERE m.facility_id = ? AND m.date = ? AND m.time_in IS NOT NULL
-                ORDER BY m.time_in DESC
-                LIMIT ?
-            ", [$facility, $date, $limit]);
-            if ($q) {
-                foreach ($q->result() as $r) {
-                    $name = trim((string) $r->staff_name);
-                    $items[] = [
-                        'ihris_pid' => (string) $r->ihris_pid,
-                        'name' => $name !== '' ? $name : (string) $r->ihris_pid,
-                        'time' => $this->_formatClockTime($r->time_in),
-                        'time_raw' => (string) $r->time_in,
-                        'source' => 'mobile',
-                    ];
-                }
-            }
-        }
-
-        if (count($items) < $limit && $this->db->table_exists('clk_log')) {
-            $seen = array_column($items, 'ihris_pid');
-            $need = $limit - count($items);
-            $q = $this->safeQuery("
-                SELECT cl.ihris_pid, cl.time_in, COALESCE(cl.source, 'device') AS source,
-                    TRIM(CONCAT(COALESCE(i.surname,''), ' ', COALESCE(i.firstname,''))) AS staff_name
-                FROM clk_log cl
-                LEFT JOIN ihrisdata i ON i.ihris_pid = cl.ihris_pid
-                WHERE cl.facility_id = ? AND cl.date = ? AND cl.time_in IS NOT NULL
-                ORDER BY cl.time_in DESC
-                LIMIT ?
-            ", [$facility, $date, $need + count($seen)]);
-            if ($q) {
-                foreach ($q->result() as $r) {
-                    if (in_array((string) $r->ihris_pid, $seen, true)) {
-                        continue;
-                    }
-                    $name = trim((string) $r->staff_name);
-                    $source = strtolower((string) $r->source);
-                    $items[] = [
-                        'ihris_pid' => (string) $r->ihris_pid,
-                        'name' => $name !== '' ? $name : (string) $r->ihris_pid,
-                        'time' => $this->_formatClockTime($r->time_in),
-                        'time_raw' => (string) $r->time_in,
-                        'source' => ($source === 'bio-time') ? 'biotime' : 'device',
-                    ];
-                    if (count($items) >= $limit) {
-                        break;
-                    }
-                }
-            }
-        }
-
-        usort($items, function ($a, $b) {
-            return strcmp((string) $b['time_raw'], (string) $a['time_raw']);
-        });
-
-        $items = array_slice($items, 0, $limit);
-        foreach ($items as &$item) {
-            unset($item['time_raw']);
-        }
-        unset($item);
-
-        return $items;
+        return $this->_recentClockActivity($facility, $date, $limit);
     }
 
     /**
@@ -1454,6 +1546,174 @@ class Dashboard_mdl extends CI_Model
 
         $this->dash_cache->write($key, $payload, $ttl);
         return $payload;
+    }
+
+    /**
+     * Facility-scoped snapshot for TV / wall displays (no national figures).
+     *
+     * @return array<string, mixed>
+     */
+    public function facilityTvSnapshot()
+    {
+        $facility = $this->sessionFacility();
+        if ($facility === '') {
+            return ['ok' => false, 'error' => 'no_facility'];
+        }
+
+        $today = date('Y-m-d');
+        $meta = $this->_facilityDisplayMeta($facility);
+        $year = (int) date('Y');
+        $month = (int) date('m');
+        $range = $this->dashboardDateRange($year, [$month]);
+        $period_label = date('F Y');
+
+        $counts_sql = "
+            SELECT
+                (SELECT COUNT(*) FROM ihrisdata WHERE facility_id = ?) AS mystaff,
+                (SELECT COUNT(DISTINCT department) FROM ihrisdata WHERE facility_id = ? AND department IS NOT NULL AND TRIM(department) <> '') AS departments,
+                (SELECT COUNT(DISTINCT job) FROM ihrisdata WHERE facility_id = ? AND job IS NOT NULL AND TRIM(job) <> '') AS jobs,
+                (SELECT COUNT(DISTINCT cadre) FROM ihrisdata WHERE facility_id = ? AND cadre IS NOT NULL AND TRIM(cadre) <> '') AS cadres
+        ";
+        $counts = $this->safeQuery($counts_sql, [$facility, $facility, $facility, $facility]);
+        $counts = $counts ? $counts->row() : null;
+
+        $mystaff = $counts ? (int) $counts->mystaff : 0;
+        $data = [
+            'ok'               => true,
+            'live'             => true,
+            'facility_id'      => $facility,
+            'facility_name'    => $meta['facility_name'],
+            'district'         => $meta['district'],
+            'status_date'      => $today,
+            'period_label'     => $period_label,
+            'generated_at'     => date('c'),
+            'mystaff'          => $mystaff,
+            'departments'      => $counts ? (int) $counts->departments : 0,
+            'jobs'             => $counts ? (int) $counts->jobs : 0,
+            'cadres'           => $counts ? (int) $counts->cadres : 0,
+            'present'          => 0,
+            'offduty'          => 0,
+            'leave'            => 0,
+            'request'          => 0,
+            'absent'           => 0,
+            'clock_ins_today'  => 0,
+            'clock_outs_today' => 0,
+            'monthly_present'  => 0,
+            'monthly_offduty'  => 0,
+            'monthly_leave'    => 0,
+            'monthly_request'  => 0,
+            'daily_avg_hours'  => 0.0,
+            'avg_hours'        => 0.0,
+            'attendance_rate'  => 0.0,
+            'recent'           => [],
+            'ihris_sync'       => 'N/A',
+            'attendance'       => 'N/A',
+            'roster'           => 'N/A',
+            'biotime_last'     => 'N/A',
+            'biometrics'       => 0,
+        ];
+
+        if ($this->isEducationDeployment()) {
+            $this->_applyEducationLiveCounts($data, $facility, $today, '');
+        } else {
+            $this->_applyActualsLiveCounts($data, $facility, $today, '');
+        }
+
+        $sum_accounted = (int) $data['present'] + (int) $data['offduty'] + (int) $data['request'] + (int) $data['leave'];
+        $data['absent'] = max(0, $mystaff - $sum_accounted);
+        $data['attendance_rate'] = ($mystaff > 0)
+            ? round(((int) $data['present'] / $mystaff) * 100, 1)
+            : 0.0;
+
+        $data['clock_outs_today'] = $this->_countClockOuts($facility, $today, '');
+        $data['recent'] = $this->_recentClockActivity($facility, $today, 15);
+        $data['daily_avg_hours'] = $this->averageDailyHours($facility, $today, '');
+        $data['avg_hours'] = $this->averageHoursForFacilityRange($facility, $range['start'], $range['end'], '');
+
+        $schedule_mapping = [
+            22 => 'monthly_present',
+            24 => 'monthly_offduty',
+            25 => 'monthly_leave',
+            23 => 'monthly_request',
+        ];
+        if ($this->db->table_exists('actuals')) {
+            $monthly_q = $this->safeQuery("
+                SELECT schedule_id, COUNT(DISTINCT CONCAT(ihris_pid,'|',date)) AS cnt
+                FROM actuals
+                WHERE facility_id = ? AND date >= ? AND date <= ?
+                GROUP BY schedule_id
+            ", [$facility, $range['start'], $range['end']]);
+            if ($monthly_q) {
+                foreach ($monthly_q->result() as $row) {
+                    if (isset($schedule_mapping[$row->schedule_id])) {
+                        $data[$schedule_mapping[$row->schedule_id]] = (int) $row->cnt;
+                    }
+                }
+            }
+        }
+
+        $dates_q = $this->safeQuery("
+            SELECT
+                (SELECT MAX(last_update) FROM ihrisdata WHERE facility_id = ?) AS ihris_sync,
+                (SELECT MAX(last_gen) FROM person_att_final) AS attendance,
+                (SELECT MAX(last_gen) FROM person_dut_final) AS roster,
+                (SELECT MAX(last_activity) FROM biotime_devices WHERE last_activity IS NOT NULL AND last_activity != '' AND last_activity != '0000-00-00 00:00:00') AS biotime_last
+        ", [$facility]);
+        if ($dates_q && $dates_q->num_rows() > 0) {
+            $dates = $dates_q->row();
+            $data['ihris_sync'] = !empty($dates->ihris_sync)
+                ? date('j M Y H:i', strtotime($dates->ihris_sync))
+                : 'N/A';
+            $data['attendance'] = !empty($dates->attendance)
+                ? date('j M Y H:i', strtotime($dates->attendance))
+                : 'N/A';
+            $data['roster'] = !empty($dates->roster)
+                ? date('j M Y H:i', strtotime($dates->roster))
+                : 'N/A';
+            if (!empty($dates->biotime_last) && $dates->biotime_last !== '0000-00-00 00:00:00') {
+                $ts = strtotime($dates->biotime_last);
+                $data['biotime_last'] = ($ts !== false && $ts > 0) ? date('j M Y H:i', $ts) : 'N/A';
+            }
+        }
+
+        if ($this->db->table_exists('biotime_devices') && $this->db->field_exists('facility_id', 'biotime_devices')) {
+            $bio_q = $this->safeQuery(
+                'SELECT COUNT(*) AS c FROM biotime_devices WHERE facility_id = ?',
+                [$facility]
+            );
+            $data['biometrics'] = ($bio_q && $bio_q->num_rows() > 0) ? (int) $bio_q->row()->c : 0;
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param string $facility_id
+     * @return array{facility_name:string,district:string}
+     */
+    protected function _facilityDisplayMeta($facility_id)
+    {
+        $name = trim((string) $this->session->userdata('facility_name'));
+        $district = trim((string) $this->session->userdata('district'));
+
+        if ($name === '' || $district === '') {
+            $row = $this->safeQuery(
+                'SELECT MAX(facility) AS facility, MAX(district) AS district FROM ihrisdata WHERE facility_id = ? LIMIT 1',
+                [$facility_id]
+            );
+            $row = $row ? $row->row() : null;
+            if ($name === '' && $row && !empty($row->facility)) {
+                $name = trim((string) $row->facility);
+            }
+            if ($district === '' && $row && !empty($row->district)) {
+                $district = trim((string) $row->district);
+            }
+        }
+
+        return [
+            'facility_name' => $name !== '' ? $name : (string) $facility_id,
+            'district'      => $district,
+        ];
     }
 
    }

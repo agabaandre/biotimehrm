@@ -95,6 +95,19 @@
   font-weight: 600;
   letter-spacing: 0.04em;
 }
+.dash-page .dash-tv-dropdown-btn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--dash-teal);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.dash-page .dash-tv-dropdown-btn:hover,
+.dash-page .dash-tv-dropdown-btn:focus {
+  background: #fff;
+  color: var(--dash-teal-dark);
+}
 
 /* Sync stat cards */
 .dash-page .stat-card {
@@ -476,10 +489,15 @@
 .dash-page .live-feed {
   list-style: none;
   margin: 0;
-  padding: 0.5rem 1.15rem;
-  max-height: 140px;
-  overflow-y: auto;
+  padding: 0;
+  max-height: 168px;
+  overflow: hidden;
   background: var(--light-color);
+  position: relative;
+}
+.dash-page .live-feed-wrap {
+  padding: 0.35rem 1.15rem 0.5rem;
+  overflow: hidden;
 }
 .dash-page .live-feed li {
   display: flex;
@@ -489,6 +507,26 @@
   margin: 0 -0.5rem;
   border-radius: 6px;
   font-size: 0.85rem;
+  transition: transform 0.35s ease, opacity 0.35s ease, max-height 0.35s ease;
+}
+.dash-page .live-feed li.live-feed-item-new {
+  animation: liveFeedSlideIn 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dash-page .live-feed li.live-feed-item-shift {
+  animation: liveFeedShiftDown 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dash-page .live-feed li.live-feed-item-updated {
+  animation: liveFeedCheckoutPulse 0.9s ease;
+}
+.dash-page .live-feed-times {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-variant-numeric: tabular-nums;
+}
+.dash-page .live-feed-times .live-time-out.pending {
+  color: #adb5bd;
+  font-style: italic;
 }
 .dash-page .live-feed li + li {
   border-top: 1px solid var(--border-color);
@@ -496,17 +534,62 @@
 .dash-page .live-feed-name {
   font-weight: 600;
   color: var(--dark-color);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 0.75rem;
 }
 .dash-page .live-feed-meta {
   color: var(--text-muted);
   font-size: 0.78rem;
   white-space: nowrap;
-  margin-left: 1rem;
+  margin-left: auto;
+  flex-shrink: 0;
+  text-align: right;
+}
+.dash-page .live-feed-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+.dash-page .live-feed-badge.in {
+  background: rgba(32, 193, 152, 0.15);
+  color: #159a72;
+}
+.dash-page .live-feed-badge.out {
+  background: rgba(240, 173, 78, 0.2);
+  color: #c87f0a;
 }
 .dash-page .live-feed-empty {
   color: var(--text-muted);
   font-style: italic;
   justify-content: flex-start !important;
+  border-top: none !important;
+}
+@keyframes liveFeedSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-100%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes liveFeedShiftDown {
+  from { transform: translateY(-2.4rem); opacity: 0.72; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes liveFeedCheckoutPulse {
+  0% { background: rgba(240, 173, 78, 0.35); }
+  100% { background: transparent; }
 }
 .dash-page .status-value.live-flash {
   animation: liveValueFlash 1.2s ease;
@@ -554,7 +637,34 @@
                 <p class="dashboard-subtitle">Here's what's happening with your <?php echo strtolower(entity_label('facility')); ?> today.</p>
               </div>
             </div>
+            <div class="d-flex align-items-center flex-wrap" style="gap:0.65rem;">
             <span class="dash-hero-badge"><i class="fas fa-circle text-success mr-1" style="font-size:0.5rem;vertical-align:middle;"></i> Attendance Dashboard</span>
+            <?php
+              $tv_facility_name = trim((string) $this->session->userdata('facility_name'));
+              $tv_facility_id = trim((string) ($this->session->userdata('dashboard_facility') ?: $this->session->userdata('facility') ?: ''));
+            ?>
+            <div class="dropdown dash-tv-dropdown">
+              <button class="btn btn-sm btn-light dropdown-toggle dash-tv-dropdown-btn" type="button" id="dashTvDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-tv mr-1"></i> Facility TV Screens
+              </button>
+              <div class="dropdown-menu dropdown-menu-right shadow" aria-labelledby="dashTvDropdown">
+                <h6 class="dropdown-header">Wall display (current session)</h6>
+                <?php if ($tv_facility_id !== '') { ?>
+                  <a class="dropdown-item" href="<?php echo base_url('dashboard/facilityTv'); ?>" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-external-link-alt mr-2 text-muted"></i>
+                    Open TV Dashboard
+                    <?php if ($tv_facility_name !== '') { ?>
+                      <small class="d-block text-muted pl-4"><?php echo htmlspecialchars($tv_facility_name, ENT_QUOTES, 'UTF-8'); ?></small>
+                    <?php } ?>
+                  </a>
+                <?php } else { ?>
+                  <span class="dropdown-item-text text-muted small">Select a <?php echo strtolower(entity_label('facility')); ?> first (Change Facility).</span>
+                <?php } ?>
+                <div class="dropdown-divider"></div>
+                <span class="dropdown-item-text small text-muted">Opens full screen in a new tab. Uses your login session and refreshes live every ~15s. Dark mode by default.</span>
+              </div>
+            </div>
+            </div>
           </div>
         </div>
       </div>
@@ -570,9 +680,11 @@
             <span class="live-updated" id="live-updated">Connecting…</span>
             <span class="live-cache-hint ml-auto small" id="live-cache-hint"></span>
           </div>
-          <ul class="live-feed" id="live-feed">
-            <li class="live-feed-empty">Waiting for check-ins today…</li>
-          </ul>
+          <div class="live-feed-wrap">
+            <ul class="live-feed" id="live-feed">
+              <li class="live-feed-empty">Waiting for live check-ins &amp; check-outs…</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -1538,20 +1650,116 @@ waitForHighcharts(function() {
       setTimeout(function() { $el.removeClass('live-flash'); }, 1200);
     }
 
-    function renderLiveFeed(recent) {
+    var DASH_LIVE_FEED_MAX = 10;
+    window.__liveFeedSeen = window.__liveFeedSeen || {};
+
+    function liveSourceLabel(source) {
+      if (source === 'mobile') return 'Mobile';
+      if (source === 'biotime') return 'BioTime';
+      return 'Device';
+    }
+
+    function liveStaffMeta(item) {
+      var inTime = item.time_in || '—';
+      var outTime = item.time_out || '—';
+      return 'In ' + inTime + ' · Out ' + outTime + ' · ' + liveSourceLabel(item.source);
+    }
+
+    function buildLiveFeedItem(item, animate, updated) {
+      var isOut = item.last_event === 'out';
+      var icon = isOut
+        ? '<i class="fas fa-sign-out-alt text-warning mr-1"></i>'
+        : '<i class="fas fa-user-check text-success mr-1"></i>';
+      var badge = isOut
+        ? '<span class="live-feed-badge out">Out</span>'
+        : '<span class="live-feed-badge in">In</span>';
+      var name = $('<div>').text(item.name || 'Staff').html();
+      var $li = $('<li class="live-feed-item"></li>')
+        .attr('data-activity-id', item.activity_id || '')
+        .attr('data-staff-id', item.ihris_pid || '')
+        .append(
+          $('<span class="live-feed-name"></span>').html(badge + icon + name),
+          $('<span class="live-feed-meta"></span>').text(liveStaffMeta(item))
+        );
+      if (animate) {
+        $li.addClass('live-feed-item-new');
+      }
+      if (updated) {
+        $li.addClass('live-feed-item-updated');
+      }
+      return $li;
+    }
+
+    function trimLiveFeed($feed) {
+      var $rows = $feed.find('li[data-staff-id]');
+      if ($rows.length > DASH_LIVE_FEED_MAX) {
+        $rows.slice(DASH_LIVE_FEED_MAX).remove();
+      }
+    }
+
+    function clearLiveFeedAnimationClasses($feed) {
+      window.setTimeout(function() {
+        $feed.find('.live-feed-item-new, .live-feed-item-shift, .live-feed-item-updated')
+          .removeClass('live-feed-item-new live-feed-item-shift live-feed-item-updated');
+      }, 600);
+    }
+
+    function renderLiveFeed(recent, forceReset) {
       var $feed = $('#live-feed');
       if (!recent || !recent.length) {
         $feed.html('<li class="live-feed-empty">No check-ins yet today</li>');
+        window.__liveFeedSeen = {};
         return;
       }
-      var html = '';
+
+      if (forceReset || $feed.find('.live-feed-empty').length) {
+        window.__liveFeedSeen = {};
+        $feed.empty();
+        recent.slice(0, DASH_LIVE_FEED_MAX).forEach(function(item) {
+          if (item.activity_id) {
+            window.__liveFeedSeen[item.activity_id] = true;
+          }
+          $feed.append(buildLiveFeedItem(item, false));
+        });
+        return;
+      }
+
+      var changed = false;
+
       recent.forEach(function(item) {
-        var source = item.source === 'mobile' ? 'Mobile' : (item.source === 'biotime' ? 'BioTime' : 'Device');
-        html += '<li><span class="live-feed-name"><i class="fas fa-user-check text-success mr-1"></i>' +
-          $('<div>').text(item.name || 'Staff').html() +
-          '</span><span class="live-feed-meta">' + (item.time || '') + ' · ' + source + '</span></li>';
+        if (!item.ihris_pid || !item.activity_id) {
+          return;
+        }
+
+        var $existing = $feed.find('li[data-staff-id="' + item.ihris_pid + '"]');
+        if ($existing.length) {
+          if ($existing.attr('data-activity-id') === item.activity_id) {
+            return;
+          }
+          changed = true;
+          $feed.find('li').not($existing).addClass('live-feed-item-shift');
+          $existing.remove();
+          window.__liveFeedSeen[item.activity_id] = true;
+          $feed.prepend(buildLiveFeedItem(item, true, item.last_event === 'out'));
+          return;
+        }
+
+        if (window.__liveFeedSeen[item.activity_id]) {
+          return;
+        }
+
+        changed = true;
+        window.__liveFeedSeen[item.activity_id] = true;
+        $feed.find('li').addClass('live-feed-item-shift');
+        $feed.prepend(buildLiveFeedItem(item, true, false));
       });
-      $feed.html(html);
+
+      if (!changed) {
+        return;
+      }
+
+      trimLiveFeed($feed);
+      clearLiveFeedAnimationClasses($feed);
     }
 
     function setLiveIndicator(state, message, cacheHint) {
@@ -1607,6 +1815,11 @@ waitForHighcharts(function() {
         renderLiveFeed(data.recent);
 
         var ago = formatLiveAgo(data.generated_at);
+        var liveSummary = (data.clock_ins_today || 0) + ' checked in today';
+        if (data.clock_outs_today > 0) {
+          liveSummary += ' · ' + data.clock_outs_today + ' checked out';
+        }
+        liveSummary += ' · updated ' + ago;
         var cacheHint = '';
         if (data.cache_layer) {
           if (data.cache_layer.redis) {
@@ -1619,7 +1832,7 @@ waitForHighcharts(function() {
         } else {
           cacheHint = 'Updated ' + ago;
         }
-        setLiveIndicator('live', data.clock_ins_today + ' checked in today · updated ' + ago, cacheHint);
+        setLiveIndicator('live', liveSummary, cacheHint);
       }).fail(function(xhr, status) {
         var parsed = null;
         try {
@@ -1665,6 +1878,8 @@ waitForHighcharts(function() {
     }
     
     function handleFacilitySwitch(newFacility) {
+        window.__liveFeedSeen = {};
+        $('#live-feed').html('<li class="live-feed-empty">Waiting for check-ins today…</li>');
         $('.stat-number, .status-value').html('<i class="fas fa-spinner fa-spin loading-pulse"></i> Switching facility...');
         
         $.ajax({

@@ -645,7 +645,95 @@ class Dashboard extends MX_Controller {
 	
 	// Removed avgHoursOnly endpoint (Average Monthly Hours gauge removed from dashboard)
 
-	
+	/**
+	 * Full-screen facility TV dashboard (opens in new tab; uses session facility).
+	 */
+	public function facilityTv()
+	{
+		if (!$this->session->userdata('isLoggedIn')) {
+			redirect('auth');
+		}
+
+		$facility = trim((string) (
+			$this->session->userdata('dashboard_facility')
+			?: $this->session->userdata('facility')
+			?: $this->session->userdata('facility_id')
+			?: ''
+		));
+
+		$data['module'] = 'dashboard';
+		$data['view'] = 'facility_tv';
+		$data['title'] = 'Facility TV Dashboard';
+		$data['uptitle'] = 'Facility TV';
+		$data['facility_id'] = $facility;
+		$data['facility_name'] = trim((string) $this->session->userdata('facility_name'));
+
+		$this->config->load('dashboard_cache', true, true);
+		$cfg = $this->config->item('dashboard_cache');
+		$data['tv_poll_seconds'] = is_array($cfg) && isset($cfg['live_poll_seconds'])
+			? (int) $cfg['live_poll_seconds']
+			: 15;
+
+		echo Modules::run('templates/tv', $data);
+	}
+
+	/**
+	 * JSON feed for facility TV display (facility-scoped, always today).
+	 */
+	public function facilityTvData()
+	{
+		$this->output->set_content_type('application/json');
+
+		if (!$this->session->userdata('isLoggedIn')) {
+			return $this->output->set_status_header(401)->set_output(json_encode([
+				'ok' => false,
+				'error' => 'unauthorized',
+			]));
+		}
+
+		$facility = trim((string) (
+			$this->session->userdata('dashboard_facility')
+			?: $this->session->userdata('facility')
+			?: $this->session->userdata('facility_id')
+			?: ''
+		));
+		if ($facility === '') {
+			return $this->output->set_output(json_encode([
+				'ok' => false,
+				'error' => 'no_facility',
+				'message' => 'No facility in session. Switch facility on the main dashboard first.',
+			]));
+		}
+
+		try {
+			$this->load->library('dashboard_cache_store', null, 'dash_cache');
+			$this->config->load('dashboard_cache', true, true);
+			$cfg = $this->config->item('dashboard_cache');
+			$live_ttl = is_array($cfg) && isset($cfg['live_ttl']) ? (int) $cfg['live_ttl'] : 10;
+
+			$ver = $this->dash_cache->facilityVersion($facility);
+			$cache_key = 'tv_' . md5(implode('|', [$facility, $ver, date('Y-m-d')]));
+			$cached = $this->dash_cache->read($cache_key);
+			if (is_array($cached)) {
+				$cached['cached'] = true;
+				return $this->output->set_output(json_encode($cached, JSON_UNESCAPED_UNICODE));
+			}
+
+			$data = $this->dash_mdl->facilityTvSnapshot();
+			$data['cached'] = false;
+			$data['cache_layer'] = $this->dash_cache->availability();
+			$this->dash_cache->write($cache_key, $data, $live_ttl);
+
+			return $this->output->set_output(json_encode($data, JSON_UNESCAPED_UNICODE));
+		} catch (Throwable $e) {
+			log_message('error', 'facilityTvData: ' . $e->getMessage());
+			return $this->output->set_status_header(500)->set_output(json_encode([
+				'ok' => false,
+				'error' => 'server_error',
+				'message' => 'Could not load facility TV data.',
+			]));
+		}
+	}
 
 
 
