@@ -76,8 +76,8 @@ html, body.tv-root {
 	border-radius: 12px; padding: 0.85rem 1rem; box-shadow: var(--tv-shadow);
 }
 .tv-card.chart { grid-column: span 4; padding: 0.5rem 0.65rem 0.25rem; min-height: 220px; }
-.tv-card.chart-wide { grid-column: span 5; }
-.tv-card.chart-narrow { grid-column: span 3; min-height: 220px; }
+.tv-card.chart-half { grid-column: span 6; padding: 0.5rem 0.65rem 0.25rem; min-height: 220px; }
+.tv-card.feed-panel { grid-column: span 12; padding: 0.85rem 1rem 0.65rem; }
 .tv-card.compact { grid-column: span 2; display: flex; flex-direction: column; justify-content: center; min-height: 72px; }
 .tv-card.compact .val { font-size: 1.45rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
 .tv-card.compact .lbl { color: var(--tv-muted); font-size: 0.72rem; margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
@@ -92,7 +92,16 @@ html, body.tv-root {
 	margin: 0 0 0.5rem; font-size: 0.82rem; font-weight: 700;
 	letter-spacing: 0.05em; text-transform: uppercase; color: var(--tv-muted);
 }
-.tv-feed { list-style: none; margin: 0; padding: 0; max-height: 200px; overflow: hidden; }
+.tv-feed { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow: hidden; }
+@media (min-width: 900px) {
+	.tv-feed.feed-cols-2 {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		column-gap: 1.5rem;
+		align-content: start;
+	}
+	.tv-feed.feed-cols-2 li:nth-child(odd) { border-right: none; }
+}
 .tv-feed li {
 	display: flex; align-items: center; justify-content: space-between;
 	padding: 0.5rem 0; border-bottom: 1px solid var(--tv-border); font-size: 0.9rem;
@@ -112,11 +121,11 @@ html, body.tv-root {
 }
 .tv-error { grid-column: span 12; text-align: center; padding: 2.5rem 1rem; color: var(--tv-muted); }
 @media (max-width: 1100px) {
-	.tv-card.chart, .tv-card.chart-wide, .tv-card.chart-narrow, .tv-card.sync-row { grid-column: span 6; }
+	.tv-card.chart, .tv-card.chart-half, .tv-card.sync-row { grid-column: span 6; }
 	.tv-card.compact { grid-column: span 3; }
 }
 @media (max-width: 640px) {
-	.tv-card.chart, .tv-card.chart-wide, .tv-card.chart-narrow,
+	.tv-card.chart, .tv-card.chart-half,
 	.tv-card.sync-row, .tv-card.compact { grid-column: span 12; }
 }
 </style>
@@ -139,21 +148,21 @@ html, body.tv-root {
 	</header>
 
 	<div class="tv-grid" id="tv-grid">
-		<!-- Charts row -->
-		<div class="tv-card chart chart-wide">
+		<!-- Top charts (4+4+4 = full row) -->
+		<div class="tv-card chart">
 			<h2 class="tv-section-title">Today's Duty Status</h2>
 			<div id="tv-chart-daily" class="tv-chart-box tall"></div>
 		</div>
-		<div class="tv-card chart chart-narrow">
+		<div class="tv-card chart">
 			<h2 class="tv-section-title">Attendance Rate</h2>
 			<div id="tv-chart-gauge" class="tv-chart-box tall"></div>
 		</div>
-		<div class="tv-card chart chart-narrow">
+		<div class="tv-card chart">
 			<h2 class="tv-section-title">Clock Activity Today</h2>
 			<div id="tv-chart-clock" class="tv-chart-box tall"></div>
 		</div>
 
-		<!-- Compact KPIs -->
+		<!-- Compact KPIs (6×2 = 12) -->
 		<div class="tv-card compact"><div class="val" id="tv-checkins">—</div><div class="lbl">Check-ins</div></div>
 		<div class="tv-card compact"><div class="val" id="tv-checkouts">—</div><div class="lbl">Check-outs</div></div>
 		<div class="tv-card compact"><div class="val" id="tv-daily-hours">—</div><div class="lbl">Avg Hrs Today</div></div>
@@ -161,7 +170,7 @@ html, body.tv-root {
 		<div class="tv-card compact"><div class="val" id="tv-mystaff">—</div><div class="lbl">My Staff</div></div>
 		<div class="tv-card compact"><div class="val" id="tv-request">—</div><div class="lbl">Workshop</div></div>
 
-		<!-- Sync row: present staff-days + BioTime + attendance summary on one line -->
+		<!-- Sync row (3×4 = 12) -->
 		<div class="tv-card sync-row">
 			<div class="val big" id="tv-monthly-present">—</div>
 			<div class="lbl">Present Staff-days (<span id="tv-period-label-2">Month</span>)</div>
@@ -175,22 +184,36 @@ html, body.tv-root {
 			<div class="lbl"><i class="fas fa-database mr-1"></i>Last Attendance Summary</div>
 		</div>
 
-		<!-- Monthly + facility charts -->
-		<div class="tv-card chart chart-wide">
+		<!-- Live feed (before monthly charts) -->
+		<div class="tv-card feed-panel">
+			<h2 class="tv-section-title"><i class="fas fa-broadcast-tower mr-1"></i> Live Check-ins &amp; Check-outs</h2>
+			<ul class="tv-feed feed-cols-2" id="tv-feed">
+				<li class="tv-feed-empty">Waiting for activity…</li>
+			</ul>
+		</div>
+
+		<!-- Month + structure + accounted (4+4+4 = full row, no gaps) -->
+		<div class="tv-card chart">
 			<h2 class="tv-section-title">Month Staff-days (<span id="tv-period-label-3">Month</span>)</h2>
 			<div id="tv-chart-monthly" class="tv-chart-box tall"></div>
 		</div>
-		<div class="tv-card chart chart-narrow">
+		<div class="tv-card chart">
 			<h2 class="tv-section-title"><?php echo htmlspecialchars($tv_facility_label, ENT_QUOTES, 'UTF-8'); ?> Structure</h2>
 			<div id="tv-chart-structure" class="tv-chart-box tall"></div>
 		</div>
+		<div class="tv-card chart">
+			<h2 class="tv-section-title">Staff Accounted vs Absent</h2>
+			<div id="tv-chart-accounted" class="tv-chart-box tall"></div>
+		</div>
 
-		<!-- Live feed -->
-		<div class="tv-card full">
-			<h2 class="tv-section-title"><i class="fas fa-broadcast-tower mr-1"></i> Live Check-ins &amp; Check-outs</h2>
-			<ul class="tv-feed" id="tv-feed">
-				<li class="tv-feed-empty">Waiting for activity…</li>
-			</ul>
+		<!-- Secondary charts (6+6) -->
+		<div class="tv-card chart-half">
+			<h2 class="tv-section-title">Avg Hours Comparison</h2>
+			<div id="tv-chart-hours" class="tv-chart-box tall"></div>
+		</div>
+		<div class="tv-card chart-half">
+			<h2 class="tv-section-title">Today's Headcount</h2>
+			<div id="tv-chart-headcount" class="tv-chart-box tall"></div>
 		</div>
 	</div>
 
@@ -267,6 +290,7 @@ html, body.tv-root {
 
 	function updateTvCharts(data) {
 		if (!data || !data.ok || typeof Highcharts === 'undefined') return;
+		if (!document.getElementById('tv-chart-daily')) return;
 
 		var present = parseInt(data.present, 10) || 0;
 		var absent = parseInt(data.absent, 10) || 0;
@@ -405,6 +429,75 @@ html, body.tv-root {
 			plotOptions: { bar: { borderRadius: 4, borderWidth: 0, colorByPoint: true } },
 			colors: [TV_COLORS.staff, TV_COLORS.leave, TV_COLORS.request, TV_COLORS.present],
 			series: [{ name: 'Count', data: [depts, jobs, cadres, bio], showInLegend: false }]
+		}));
+
+		var dailyHrs = parseFloat(data.daily_avg_hours) || 0;
+		var periodHrs = parseFloat(data.avg_hours) || 0;
+
+		if (tvCharts.hours) tvCharts.hours.destroy();
+		tvCharts.hours = Highcharts.chart('tv-chart-hours', $.extend(true, {}, baseChartOpts(), {
+			chart: { type: 'column', height: 210 },
+			xAxis: {
+				categories: ['Today', 'Month avg'],
+				labels: { style: { color: chartMutedColor(), fontSize: '11px' } },
+				lineColor: isDarkTheme() ? '#334455' : '#d8e3e8'
+			},
+			yAxis: {
+				min: 0, title: { text: 'Hours', style: { color: chartMutedColor() } },
+				gridLineColor: isDarkTheme() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+				labels: { style: { color: chartMutedColor() } }
+			},
+			tooltip: { valueSuffix: ' hrs' },
+			plotOptions: { column: { borderRadius: 6, borderWidth: 0, colorByPoint: true } },
+			colors: [TV_COLORS.present, TV_COLORS.staff],
+			series: [{ name: 'Avg hours', data: [dailyHrs, periodHrs], showInLegend: false }]
+		}));
+
+		if (tvCharts.headcount) tvCharts.headcount.destroy();
+		tvCharts.headcount = Highcharts.chart('tv-chart-headcount', $.extend(true, {}, baseChartOpts(), {
+			chart: { type: 'bar', height: 210 },
+			xAxis: {
+				categories: ['Present', 'Absent', 'Off', 'Leave', 'Workshop'],
+				labels: { style: { color: chartMutedColor(), fontSize: '10px' } },
+				lineColor: isDarkTheme() ? '#334455' : '#d8e3e8'
+			},
+			yAxis: {
+				min: 0, title: { text: null },
+				gridLineColor: isDarkTheme() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+				labels: { style: { color: chartMutedColor() } }
+			},
+			plotOptions: { bar: { borderRadius: 4, borderWidth: 0, colorByPoint: true } },
+			colors: [TV_COLORS.present, TV_COLORS.absent, TV_COLORS.off, TV_COLORS.leave, TV_COLORS.request],
+			series: [{ name: 'Staff', data: [present, absent, off, leave, request], showInLegend: false }]
+		}));
+
+		var mystaff = parseInt(data.mystaff, 10) || 0;
+		var accounted = present + off + leave + request;
+		var unaccounted = Math.max(0, mystaff - accounted);
+		var accountedSeries = [
+			{ name: 'Present', y: present, color: TV_COLORS.present },
+			{ name: 'Off / Leave / Workshop', y: off + leave + request, color: TV_COLORS.off },
+			{ name: 'Absent', y: unaccounted, color: TV_COLORS.absent }
+		].filter(function(p) { return p.y > 0; });
+		if (!accountedSeries.length) {
+			accountedSeries = [{ name: 'No staff', y: 1, color: '#334455' }];
+		}
+
+		if (tvCharts.accounted) tvCharts.accounted.destroy();
+		tvCharts.accounted = Highcharts.chart('tv-chart-accounted', $.extend(true, {}, baseChartOpts(), {
+			chart: { type: 'pie', height: 210 },
+			plotOptions: {
+				pie: {
+					innerSize: '52%',
+					borderWidth: 0,
+					dataLabels: {
+						enabled: true,
+						format: '{point.name}: {point.y}',
+						style: { color: chartTextColor(), fontSize: '10px', textOutline: 'none' }
+					}
+				}
+			},
+			series: [{ name: 'Staff', data: accountedSeries }]
 		}));
 	}
 
