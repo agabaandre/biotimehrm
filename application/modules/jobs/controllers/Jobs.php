@@ -72,9 +72,9 @@ class Jobs extends MX_Controller {
         if (!$education) {
             if ($minute % 20 == 0) $jobsToRun[] = 'biotimejobs terminals';
             if ($minute % 30 == 0) $jobsToRun[] = 'biotimejobs saveEnrolled';
-            if ($minute % 35 == 0) $jobsToRun[] = 'biotimejobs transfer_employees';
             if ($minute % 45 == 0) $jobsToRun[] = 'biotimejobs biotimeFacilities';
-            if ($minute % 55 == 0) $jobsToRun[] = 'biotimejobs multiple_new_users';
+            // enrollment (multiple_new_users) + facility updates (transfer_employees)
+            // run every 5 minutes outside the heavy lock (see below)
 
             if ($hour == 7 && $minute == 5)  $jobsToRun[] = 'biotimejobs biotime_jobs';
             if ($hour == 7 && $minute == 15) $jobsToRun[] = 'biotimejobs biotimedepartments';
@@ -136,6 +136,16 @@ class Jobs extends MX_Controller {
             unlink($this->lockFile);
         } else {
             echo "No scheduled heavy jobs this minute.\n";
+        }
+
+        /* ============================================================
+         * ENROLLMENT + UPDATES (every 5 min, WITHOUT heavy lock)
+         * ============================================================ */
+
+        if (!$education && ((int) $minute % 5 === 0)) {
+            echo "\nRunning BioTime enrollment + transfers (no lock)...\n";
+            $this->run('biotimejobs multiple_new_users');
+            $this->run('biotimejobs transfer_employees');
         }
 
         /* ============================================================

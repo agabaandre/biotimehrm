@@ -2128,23 +2128,54 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         }
     }
 
-    //create multiple new users cronjob
+    /**
+     * Sync facility/job changes for enrolled users (iHRIS vs biotime_enrollment).
+     * Uses inline SQL equivalent of biotime_transfers (avoids broken view definer).
+     */
     public function transfer_employees()
     {
-        //effective transfers
-        $query = $this->db->query('SELECT * FROM  biotime_transfers');
-        $trasnfers = $query->result();
-        $message = null;
-        foreach ($trasnfers as $newuser) {
+        $query = $this->db->query(
+            "SELECT i.*,
+                    i.facility_id AS new_facility,
+                    i.facility AS new_fname,
+                    be.id AS enrollment_row_id,
+                    be.emp_code,
+                    be.biotime_emp_id,
+                    be.biotime_facility_id AS biotime_area_id,
+                    be.biotime_fac_id,
+                    be.last_update AS enrollment_last_update
+             FROM ihrisdata i
+             INNER JOIN biotime_enrollment be ON be.emp_code = i.card_number
+             WHERE i.facility_id <> be.biotime_fac_id
+               AND i.card_number IS NOT NULL
+               AND i.card_number <> ''"
+        );
+        $transfers = $query ? $query->result() : [];
+        $ok = 0;
+        $fail = 0;
+
+        foreach ($transfers as $newuser) {
             $message = $this->update_biotimeuser($newuser);
+            if ($message) {
+                $ok++;
+            } else {
+                $fail++;
+            }
         }
+
         $process = 5;
         $method = 'bioitimejobs/tranfer_employees';
-        $status = @$message ? 'successful' : 'failed';
+        $status = ($ok > 0 && $fail === 0) ? 'successful' : (($ok > 0) ? 'partial' : (count($transfers) === 0 ? 'successful' : 'failed'));
         $this->cronjob_register($process, $method, $status);
-        $this->log($status);
+        $this->log([
+            'transfer_employees' => $status,
+            'updated' => $ok,
+            'failed' => $fail,
+            'candidates' => count($transfers),
+        ]);
 
         echo $status;
+        return $status;
     }
 
     /**

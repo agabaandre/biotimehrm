@@ -172,11 +172,86 @@ public function get_enrolled(){
   $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device!=''");
 return $query->result(); 
 }
+
+/**
+ * Staff at this facility with a card number who are not yet in BioTime (fingerprints_staging).
+ */
 public function get_new_users(){
-    $facility=$_SESSION['facility'];
-    $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device=''");
- return $query->result();
- }
+    $facility = $this->db->escape_str($this->facility);
+    $query = $this->db->query(
+        "SELECT * FROM ihrisdata
+         WHERE facility_id = '$facility'
+           AND card_number IS NOT NULL
+           AND card_number <> ''
+           AND card_number NOT IN (
+                SELECT card_number FROM fingerprints_staging
+                WHERE card_number IS NOT NULL AND card_number <> ''
+           )
+         ORDER BY surname, firstname"
+    );
+    return $query ? $query->result() : [];
+}
+
+/**
+ * Enrolled BioTime users whose iHRIS facility no longer matches biotime_enrollment
+ * (same logic as biotime_transfers view, without relying on the view definer).
+ */
+public function get_users_needing_update(){
+    $facility = $this->db->escape_str($this->facility);
+    $query = $this->db->query(
+        "SELECT i.*,
+                i.facility_id AS new_facility,
+                i.facility AS new_fname,
+                be.id AS enrollment_row_id,
+                be.emp_code,
+                be.biotime_emp_id,
+                be.biotime_facility_id AS biotime_area_id,
+                be.biotime_fac_id,
+                be.last_update AS enrollment_last_update
+         FROM ihrisdata i
+         INNER JOIN biotime_enrollment be ON be.emp_code = i.card_number
+         WHERE i.facility_id <> be.biotime_fac_id
+           AND (i.facility_id = '$facility' OR be.biotime_fac_id = '$facility')
+         ORDER BY i.surname, i.firstname"
+    );
+    return $query ? $query->result() : [];
+}
+
+/**
+ * Single transfer candidate by emp/card number (for force update).
+ */
+public function get_transfer_by_card($card_number){
+    $card = $this->db->escape_str(trim((string) $card_number));
+    if ($card === '') {
+        return null;
+    }
+    $query = $this->db->query(
+        "SELECT i.*,
+                i.facility_id AS new_facility,
+                i.facility AS new_fname,
+                be.id AS enrollment_row_id,
+                be.emp_code,
+                be.biotime_emp_id,
+                be.biotime_facility_id AS biotime_area_id,
+                be.biotime_fac_id,
+                be.last_update AS enrollment_last_update
+         FROM ihrisdata i
+         INNER JOIN biotime_enrollment be ON be.emp_code = i.card_number
+         WHERE i.card_number = '$card'
+           AND i.facility_id <> be.biotime_fac_id
+         LIMIT 1"
+    );
+    return ($query && $query->num_rows()) ? $query->row() : null;
+}
+
+public function get_ihris_by_card($card_number){
+    $card = trim((string) $card_number);
+    if ($card === '') {
+        return null;
+    }
+    $query = $this->db->get_where('ihrisdata', ['card_number' => $card], 1);
+    return ($query && $query->num_rows()) ? $query->row() : null;
+}
  public function get_new_deps(){
     $facility=$_SESSION['facility'];
     $query=$this->db->query("SELECT distinct(department),department_id FROM  ihrisdata WHERE department_id NOT IN (SELECT dept_code from biotime_departments)");

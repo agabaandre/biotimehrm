@@ -198,6 +198,9 @@
                <li class="nav-item"><a href="<?php echo base_url() ?>biometrics/unenrolled" class="nav-link <?php echo ($this->uri->segment(1) == 'biometrics' && $this->uri->segment(2) == 'unenrolled') ? 'active' : ''; ?>">
                    <i class="far fa-circle nav-icon"></i>
                    New Users</a></li>
+               <li class="nav-item"><a href="<?php echo base_url() ?>biometrics/needsUpdate" class="nav-link <?php echo ($this->uri->segment(1) == 'biometrics' && $this->uri->segment(2) == 'needsUpdate') ? 'active' : ''; ?>">
+                   <i class="far fa-circle nav-icon"></i>
+                   Needs Update</a></li>
             
              </ul>
            </li>

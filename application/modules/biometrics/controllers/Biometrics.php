@@ -71,8 +71,129 @@ class Biometrics extends MX_Controller{
         echo Modules::run("templates/main",$data);
   
     }
+
+    /**
+     * Users enrolled in BioTime whose facility/job needs syncing from iHRIS.
+     */
+    public function needsUpdate(){
+        $data['view'] = 'needs_update';
+        $data['uptitle'] = "Users Needing Update";
+        $data['title'] = "Users Needing Update";
+        $data['module'] = "biometrics";
+        echo Modules::run("templates/main", $data);
+    }
+
     public function get_enrolled(){
         return $this->biometrics_mdl->get_enrolled();
+    }
+
+    public function get_users_needing_update(){
+        return $this->biometrics_mdl->get_users_needing_update();
+    }
+
+    /**
+     * Force a single BioTime employee update (facility/job sync).
+     * POST card_number
+     */
+    public function forceUpdate(){
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/json');
+
+        $card = $this->input->post('card_number');
+        if (empty($card)) {
+            echo json_encode(['status' => 'error', 'message' => 'card_number is required']);
+            exit;
+        }
+
+        $row = $this->biometrics_mdl->get_transfer_by_card($card);
+        if (!$row) {
+            // Allow force refresh even if facilities already match: rebuild from enrollment + ihris
+            $staff = $this->biometrics_mdl->get_ihris_by_card($card);
+            if (!$staff) {
+                echo json_encode(['status' => 'error', 'message' => 'Staff not found for card ' . $card]);
+                exit;
+            }
+            $enr = $this->db->get_where('biotime_enrollment', ['emp_code' => $card], 1)->row();
+            if (!$enr || empty($enr->biotime_emp_id)) {
+                echo json_encode(['status' => 'error', 'message' => 'No BioTime enrollment for card ' . $card]);
+                exit;
+            }
+            $staff->new_facility = $staff->facility_id;
+            $staff->new_fname = $staff->facility;
+            $staff->emp_code = $enr->emp_code;
+            $staff->biotime_emp_id = $enr->biotime_emp_id;
+            $staff->biotime_fac_id = $enr->biotime_fac_id;
+            $row = $staff;
+        }
+
+        try {
+            $response = Modules::run('biotimejobs/update_biotimeuser', $row);
+            if ($response === false || $response === null) {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Update failed for card ' . $card . '. Check BioTime logs.',
+                    'timestamp' => date('Y-m-d H:i:s'),
+                ]);
+            } else {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'BioTime update applied for card ' . $card,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                ]);
+            }
+        } catch (Exception $e) {
+            log_message('error', 'forceUpdate: ' . $e->getMessage());
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Force create / enroll a single iHRIS staff member in BioTime.
+     * POST card_number
+     */
+    public function forceEnroll(){
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/json');
+
+        $card = $this->input->post('card_number');
+        if (empty($card)) {
+            echo json_encode(['status' => 'error', 'message' => 'card_number is required']);
+            exit;
+        }
+
+        $staff = $this->biometrics_mdl->get_ihris_by_card($card);
+        if (!$staff) {
+            echo json_encode(['status' => 'error', 'message' => 'Staff not found for card ' . $card]);
+            exit;
+        }
+
+        try {
+            $response = Modules::run('biotimejobs/create_new_biotimeuser_from_ihris', $staff);
+            $ok = ($response !== false && $response !== null && $response !== '');
+
+            if (!$ok) {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Enrollment failed for card ' . $card . '. Check BioTime API / server logs.',
+                    'timestamp' => date('Y-m-d H:i:s'),
+                ]);
+            } else {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Enrollment submitted for card ' . $card,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                ]);
+            }
+        } catch (Exception $e) {
+            log_message('error', 'forceEnroll: ' . $e->getMessage());
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit;
     }
     //Department Department code, Department Name
 
