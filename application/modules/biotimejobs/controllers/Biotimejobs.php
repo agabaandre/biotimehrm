@@ -1432,19 +1432,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $fail = 0;
 
         foreach ($newusers as $newuser) {
-            $id = isset($newuser->card_number) ? trim((string) $newuser->card_number) : '';
-            if ($id === '') {
-                $fail++;
-                continue;
-            }
-            $response = $this->create_new_biotimeuser(
-                isset($newuser->firstname) ? $newuser->firstname : '',
-                isset($newuser->surname) ? $newuser->surname : '',
-                $id,
-                isset($newuser->facility_id) ? $newuser->facility_id : '',
-                isset($newuser->department_id) ? $newuser->department_id : '',
-                isset($newuser->job_id) ? $newuser->job_id : ''
-            );
+            $response = $this->create_new_biotimeuser_from_ihris($newuser);
             if ($this->_biotime_response_ok($response)) {
                 $ok++;
             } else {
@@ -1462,10 +1450,203 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
+     * Map iHRIS gender values to BioTime API (S, F, M).
+     *
+     * @param mixed $gender
+     * @return string|null
+     */
+    protected function _biotime_map_gender($gender)
+    {
+        $g = strtoupper(trim((string) $gender));
+        if ($g === '') {
+            return null;
+        }
+        if ($g === 'M' || $g === 'MALE' || $g === '1') {
+            return 'M';
+        }
+        if ($g === 'F' || $g === 'FEMALE' || $g === '2') {
+            return 'F';
+        }
+        if ($g === 'S' || $g === 'OTHER') {
+            return 'S';
+        }
+        return null;
+    }
+
+    /**
+     * Build BioTime 9.5 employee create/update body from iHRIS / transfer data.
+     * Required: emp_code, area. Department defaults to 1 when unmapped.
+     * Optional: position (job), names, mobile, email, gender, birthday, etc.
+     *
+     * @param object|array $staff
+     * @param array $overrides facility/area/department/job keys when transferring
+     * @return array{ok:bool,error?:string,body?:array,facility_code?:string,area_id?:int}
+     */
+    protected function _build_biotime_employee_payload($staff, array $overrides = [])
+    {
+        $s = is_array($staff) ? (object) $staff : $staff;
+        if (!is_object($s)) {
+            return ['ok' => false, 'error' => 'invalid staff payload'];
+        }
+
+        $emp_code = '';
+        foreach (['emp_code', 'card_number'] as $k) {
+            if (!empty($overrides[$k])) {
+                $emp_code = trim((string) $overrides[$k]);
+                break;
+            }
+            if (isset($s->$k) && trim((string) $s->$k) !== '') {
+                $emp_code = trim((string) $s->$k);
+                break;
+            }
+        }
+        if ($emp_code === '') {
+            return ['ok' => false, 'error' => 'emp_code/card_number is required'];
+        }
+        if (strlen($emp_code) > 20) {
+            return ['ok' => false, 'error' => 'emp_code exceeds 20 characters'];
+        }
+
+        $facility_code = '';
+        foreach (['new_facility', 'facility_id', 'area'] as $k) {
+            if (!empty($overrides[$k])) {
+                $facility_code = trim((string) $overrides[$k]);
+                break;
+            }
+            if (isset($s->$k) && trim((string) $s->$k) !== '') {
+                $facility_code = trim((string) $s->$k);
+                break;
+            }
+        }
+        $facility_code = urldecode($facility_code);
+        if ($facility_code === '') {
+            return ['ok' => false, 'error' => 'facility/area is required'];
+        }
+
+        $barea = $this->getbioloc($facility_code);
+        if (empty($barea)) {
+            return ['ok' => false, 'error' => 'BioTime area not found for ' . $facility_code];
+        }
+
+        // Department: map when possible, else default 1 (per BioTime docs / product default)
+        $dep_key = '';
+        foreach (['department_id', 'department'] as $k) {
+            if (!empty($overrides[$k])) {
+                $dep_key = trim((string) $overrides[$k]);
+                break;
+            }
+            if (isset($s->$k) && trim((string) $s->$k) !== '') {
+                $dep_key = trim((string) $s->$k);
+                break;
+            }
+        }
+        $bdep = ($dep_key !== '') ? $this->getbiodeps(urldecode($dep_key)) : null;
+        if (empty($bdep)) {
+            $bdep = 1;
+        }
+
+        // Job / position — include only when mapped
+        $job_key = '';
+        foreach (['job_id', 'job', 'position'] as $k) {
+            if (!empty($overrides[$k])) {
+                $job_key = trim((string) $overrides[$k]);
+                break;
+            }
+            if (isset($s->$k) && trim((string) $s->$k) !== '') {
+                $job_key = trim((string) $s->$k);
+                break;
+            }
+        }
+        $bpos = ($job_key !== '') ? $this->getbiojobs(urldecode($job_key)) : null;
+
+        $firstname = '';
+        if (!empty($overrides['firstname'])) {
+            $firstname = (string) $overrides['firstname'];
+        } elseif (!empty($overrides['first_name'])) {
+            $firstname = (string) $overrides['first_name'];
+        } elseif (!empty($s->firstname)) {
+            $firstname = (string) $s->firstname;
+        } elseif (!empty($s->first_name)) {
+            $firstname = (string) $s->first_name;
+        }
+
+        $surname = '';
+        if (!empty($overrides['surname'])) {
+            $surname = (string) $overrides['surname'];
+        } elseif (!empty($overrides['last_name'])) {
+            $surname = (string) $overrides['last_name'];
+        } elseif (!empty($s->surname)) {
+            $surname = (string) $s->surname;
+        } elseif (!empty($s->last_name)) {
+            $surname = (string) $s->last_name;
+        }
+
+        // Required by BioTime create/update docs
+        $body = [
+            'emp_code' => $emp_code,
+            'department' => (int) $bdep,
+            'area' => [(int) $barea],
+        ];
+
+        if ($firstname !== '') {
+            $body['first_name'] = $firstname;
+        }
+        if ($surname !== '') {
+            $body['last_name'] = $surname;
+        }
+        if (!empty($bpos)) {
+            $body['position'] = (int) $bpos;
+        }
+
+        // Optional fields present in ihrisdata and accepted by BioTime API
+        $mobile = '';
+        if (!empty($s->mobile)) {
+            $mobile = trim((string) $s->mobile);
+        } elseif (!empty($s->telephone)) {
+            $mobile = trim((string) $s->telephone);
+        }
+        if ($mobile !== '') {
+            $body['mobile'] = $mobile;
+            $body['contact_tel'] = $mobile;
+        }
+
+        if (!empty($s->email)) {
+            $body['email'] = trim((string) $s->email);
+        }
+
+        $gender = $this->_biotime_map_gender(isset($s->gender) ? $s->gender : '');
+        if ($gender !== null) {
+            $body['gender'] = $gender;
+        }
+
+        if (!empty($s->birth_date) && $s->birth_date !== '0000-00-00') {
+            $bts = strtotime((string) $s->birth_date);
+            if ($bts !== false) {
+                $body['birthday'] = date('Y-m-d', $bts);
+            }
+        }
+
+        if (!empty($s->nin)) {
+            $body['ssn'] = trim((string) $s->nin);
+        }
+
+        // Default hire_date to today when creating (API allows omit; useful for audit)
+        if (empty($body['hire_date'])) {
+            $body['hire_date'] = date('Y-m-d');
+        }
+
+        return [
+            'ok' => true,
+            'body' => $body,
+            'facility_code' => $facility_code,
+            'area_id' => (int) $barea,
+            'emp_code' => $emp_code,
+        ];
+    }
+
+    /**
      * Update enrolled BioTime employee (facility transfer / job change).
-     * BioTime 9.5:
-     * - PUT /personnel/api/employees/{id}/ with emp_code, department, area
-     * - POST /personnel/api/employees/adjust_area/ for facility moves
+     * BioTime 9.5 PUT requires emp_code + department + area; department defaults to 1.
      * @see https://attendance.health.go.ug/docs/api-docs/employee_api.html#create
      */
     public function update_biotimeuser($userdata)
@@ -1475,29 +1656,29 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             return false;
         }
 
-        $barea = $this->getbioloc(isset($userdata->new_facility) ? $userdata->new_facility : '');
-        if (empty($barea)) {
-            log_message('error', 'update_biotimeuser: BioTime area not found for ' . (isset($userdata->new_facility) ? $userdata->new_facility : ''));
+        $overrides = [];
+        if (!empty($userdata->new_facility)) {
+            $overrides['new_facility'] = $userdata->new_facility;
+        }
+        if (!empty($userdata->facility_id) && empty($overrides['new_facility'])) {
+            $overrides['facility_id'] = $userdata->facility_id;
+        }
+
+        // Resolve emp_code from local enrollment map when transfer row lacks it
+        if (empty($userdata->emp_code) && empty($userdata->card_number)) {
+            $enr = $this->db->query(
+                'SELECT emp_code FROM biotime_enrollment WHERE biotime_emp_id = ? LIMIT 1',
+                [(string) $userdata->biotime_emp_id]
+            )->row();
+            if ($enr && !empty($enr->emp_code)) {
+                $overrides['emp_code'] = $enr->emp_code;
+            }
+        }
+
+        $built = $this->_build_biotime_employee_payload($userdata, $overrides);
+        if (empty($built['ok'])) {
+            log_message('error', 'update_biotimeuser: ' . (isset($built['error']) ? $built['error'] : 'payload failed'));
             return false;
-        }
-
-        $emp_code = '';
-        if (!empty($userdata->emp_code)) {
-            $emp_code = (string) $userdata->emp_code;
-        } elseif (!empty($userdata->card_number)) {
-            $emp_code = (string) $userdata->card_number;
-        }
-
-        $bdep = null;
-        if (!empty($userdata->department_id)) {
-            $bdep = $this->getbiodeps($userdata->department_id);
-        } elseif (!empty($userdata->department)) {
-            $bdep = $this->getbiodeps($userdata->department);
-        }
-
-        $bpos = null;
-        if (!empty($userdata->job_id)) {
-            $bpos = $this->getbiojobs($userdata->job_id);
         }
 
         $token = $this->get_token();
@@ -1509,8 +1690,11 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $empId = (int) $userdata->biotime_emp_id;
         $ok = false;
         $response = null;
+        $body = $built['body'];
+        $barea = $built['area_id'];
+        $emp_code = $built['emp_code'];
 
-        // 1) Always adjust area first (verified working on BioTime 9.5)
+        // 1) Adjust area (facility move) — proven working on BioTime 9.5
         $adjustBody = [
             'employees' => [$empId],
             'areas' => [(int) $barea],
@@ -1526,51 +1710,25 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $this->log(['adjust_area' => $response]);
         }
 
-        // 2) Full PUT when we have required emp_code + department
-        if ($emp_code !== '' && !empty($bdep)) {
-            $body = [
-                'emp_code' => $emp_code,
-                'department' => (int) $bdep,
-                'area' => [(int) $barea],
-            ];
-            if (!empty($bpos)) {
-                $body['position'] = (int) $bpos;
-            }
-            if (!empty($userdata->firstname) || !empty($userdata->first_name)) {
-                $body['first_name'] = !empty($userdata->firstname) ? $userdata->firstname : $userdata->first_name;
-            }
-            if (!empty($userdata->surname) || !empty($userdata->last_name)) {
-                $body['last_name'] = !empty($userdata->surname) ? $userdata->surname : $userdata->last_name;
-            }
-            $json = json_encode($body);
-            $endpoint = 'personnel/api/employees/' . $empId . '/';
-            $putResponse = $http->curlupdateHttpPost($endpoint, $this->_biotime_json_headers($token, $json), $body);
-            if ($putResponse) {
-                $this->log(['update_put' => $putResponse]);
-            }
-            if ($this->_biotime_response_ok($putResponse)) {
-                $ok = true;
-                $response = $putResponse;
-            }
+        // 2) Full PUT with required emp_code, department (default 1), area + optional job/ihris fields
+        $json = json_encode($body);
+        $endpoint = 'personnel/api/employees/' . $empId . '/';
+        $putResponse = $http->curlupdateHttpPost($endpoint, $this->_biotime_json_headers($token, $json), $body);
+        if ($putResponse) {
+            $this->log(['update_put' => $putResponse]);
+        }
+        if ($this->_biotime_response_ok($putResponse)) {
+            $ok = true;
+            $response = $putResponse;
         }
 
-        // Keep local enrollment map in sync on success
         if ($ok) {
-            $enroll = [
+            $this->db->replace('biotime_enrollment', [
+                'emp_code' => $emp_code,
                 'biotime_emp_id' => (string) $empId,
                 'biotime_facility_id' => (string) (int) $barea,
-                'biotime_fac_id' => (string) (isset($userdata->new_facility) ? $userdata->new_facility : ''),
-            ];
-            if ($emp_code !== '') {
-                $enroll['emp_code'] = $emp_code;
-                $this->db->replace('biotime_enrollment', $enroll);
-            } else {
-                $this->db->where('biotime_emp_id', (string) $empId);
-                $this->db->update('biotime_enrollment', [
-                    'biotime_facility_id' => $enroll['biotime_facility_id'],
-                    'biotime_fac_id' => $enroll['biotime_fac_id'],
-                ]);
-            }
+                'biotime_fac_id' => (string) $built['facility_code'],
+            ]);
         }
 
         $process = 6;
@@ -1589,63 +1747,26 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         return $query->result();
     }
 
-
     /**
-     * Create BioTime employee — POST /personnel/api/employees/
-     * Required: emp_code (<=20 chars), department (int), area (list of ints).
-     * @see https://attendance.health.go.ug/docs/api-docs/employee_api.html#create
+     * Create from full ihrisdata row (preferred).
+     *
+     * @param object $staff
+     * @return object|false
      */
-    public function create_new_biotimeuser($firstname, $surname, $emp_code, $area, $department, $position)
+    public function create_new_biotimeuser_from_ihris($staff)
     {
-        $emp_code = trim((string) $emp_code);
-        if ($emp_code === '') {
-            log_message('error', 'create_new_biotimeuser: emp_code is required');
+        $built = $this->_build_biotime_employee_payload($staff);
+        if (empty($built['ok'])) {
+            log_message('error', 'create_new_biotimeuser_from_ihris: ' . (isset($built['error']) ? $built['error'] : 'payload failed'));
             return false;
         }
-        if (strlen($emp_code) > 20) {
-            log_message('error', 'create_new_biotimeuser: emp_code exceeds 20 characters: ' . $emp_code);
-            return false;
-        }
-
-        $farea = urldecode((string) $area);
-        $fjob = urldecode((string) $position);
-        $fdep = urldecode((string) $department);
-
-        $barea = $this->getbioloc($farea);
-        if (empty($barea)) {
-            log_message('error', 'create_new_biotimeuser: BioTime area not found for ' . $farea);
-            return false;
-        }
-
-        $bdep = $this->getbiodeps($fdep);
-        if (empty($bdep)) {
-            log_message('debug', 'create_new_biotimeuser: department not mapped for ' . $fdep . ', using 1');
-            $bdep = 1;
-        }
-
-        $bjob = $this->getbiojobs($fjob);
 
         $token = $this->get_token();
         if (empty($token)) {
             return false;
         }
 
-        // Docs required body: emp_code, department, area — keep payload minimal for BioTime 9.5
-        $body = [
-            'emp_code' => $emp_code,
-            'department' => (int) $bdep,
-            'area' => [(int) $barea],
-        ];
-        if ($firstname !== null && $firstname !== '') {
-            $body['first_name'] = (string) $firstname;
-        }
-        if ($surname !== null && $surname !== '') {
-            $body['last_name'] = (string) $surname;
-        }
-        if (!empty($bjob)) {
-            $body['position'] = (int) $bjob;
-        }
-
+        $body = $built['body'];
         $json = json_encode($body);
         $http = new HttpUtils();
         $response = $http->curlsendHttpPost(
@@ -1654,30 +1775,50 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $body
         );
 
-        // curlsendHttpPost json_decodes; HTML 500 becomes null — re-check via raw log
         if ($response) {
-            $this->log($response);
+            $this->log(['create_employee' => $response, 'request' => $body]);
         } else {
-            log_message('error', 'create_new_biotimeuser: empty/invalid response for emp_code=' . $emp_code . ' body=' . $json);
+            log_message('error', 'create_new_biotimeuser_from_ihris: empty response emp_code=' . $built['emp_code'] . ' body=' . $json);
         }
 
         $ok = $this->_biotime_response_ok($response);
-
-        // Persist local enrollment map when create succeeds
         if ($ok && isset($response->id)) {
             $this->db->replace('biotime_enrollment', [
-                'emp_code' => $emp_code,
+                'emp_code' => $built['emp_code'],
                 'biotime_emp_id' => (string) (int) $response->id,
-                'biotime_facility_id' => (string) (int) $barea,
-                'biotime_fac_id' => (string) $farea,
+                'biotime_facility_id' => (string) (int) $built['area_id'],
+                'biotime_fac_id' => (string) $built['facility_code'],
             ]);
         }
 
         $process = 6;
         $method = 'bioitimejobs/create_new_biotimeuser';
-        $status = $ok ? 'successful' : 'failed';
-        $this->cronjob_register($process, $method, $status);
+        $this->cronjob_register($process, $method, $ok ? 'successful' : 'failed');
         return $ok ? $response : false;
+    }
+
+
+    /**
+     * Create BioTime employee — POST /personnel/api/employees/
+     * Required: emp_code, area. Department defaults to 1. Position/job when available.
+     * @see https://attendance.health.go.ug/docs/api-docs/employee_api.html#create
+     */
+    public function create_new_biotimeuser($firstname, $surname, $emp_code, $area, $department, $position, $extra = null)
+    {
+        // Allow passing a full ihrisdata object as the only argument
+        if (is_object($firstname) && func_num_args() === 1) {
+            return $this->create_new_biotimeuser_from_ihris($firstname);
+        }
+
+        $staff = is_object($extra) ? clone $extra : (object) [];
+        $staff->firstname = $firstname;
+        $staff->surname = $surname;
+        $staff->card_number = $emp_code;
+        $staff->facility_id = $area;
+        $staff->department_id = $department;
+        $staff->job_id = $position;
+
+        return $this->create_new_biotimeuser_from_ihris($staff);
     }
     public function log($message)
     {
