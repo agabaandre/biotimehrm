@@ -23,7 +23,9 @@ class HttpUtils
         $timeoutConfig = [
             'base_uri' => BIO_URL,
             'timeout' => 300.0,
-            'connect_timeout' => 30.0
+            'connect_timeout' => 30.0,
+            'verify' => false,
+            'http_errors' => false,
         ];
         $this->client = new Client($timeoutConfig);
         $this->ihrisclient = new Client(['base_uri' => iHRIS_URL, 'timeout' => 300.0, 'connect_timeout' => 30.0]);
@@ -136,15 +138,26 @@ class HttpUtils
 
         $url = BIO_URL . $endpoint;
 
-        //do{
+        // BioTime 9.x: page + page_size (limit also accepted). Default page size was often 10 in 8.5.
+        $query = [];
+        if (is_object($options)) {
+            if (isset($options->page) && $options->page !== FALSE && $options->page !== null && $options->page !== '') {
+                $query['page'] = (int) $options->page;
+            }
+            if (isset($options->page_size) && (int) $options->page_size > 0) {
+                $query['page_size'] = (int) $options->page_size;
+            }
+            if (isset($options->limit) && (int) $options->limit > 0) {
+                $query['limit'] = (int) $options->limit;
+            }
+        }
+
         $response = $this->client->request(
             $method,
             $url,
             [
                 'headers' => $headers,
-                'query' => [
-                    "page" => $options->page
-                ],
+                'query' => $query,
                 'timeout' => 3600.0, // 1 hour timeout for background processes (employee sync can be very long)
                 'connect_timeout' => 60.0 // Increased connection timeout
             ]
@@ -235,6 +248,13 @@ class HttpUtils
         }
         $info = curl_getinfo($ch);
         curl_close($ch);
+        if (is_string($result) && (stripos($result, '<html') !== false || stripos($result, '500 Error') !== false)) {
+            log_message('error', 'BioTime HTTP ' . (isset($info['http_code']) ? $info['http_code'] : '?') . ' HTML error on ' . $url);
+            return (object) [
+                'detail' => 'BioTime returned an HTML error page (often HTTP 500 on create).',
+                'http_code' => isset($info['http_code']) ? $info['http_code'] : null,
+            ];
+        }
         $decodedResponse = json_decode($result);
         return $decodedResponse;
     }
@@ -243,34 +263,25 @@ class HttpUtils
         $url = BIO_URL . $endpoint;
         $ch = curl_init($url);
 
-        //post values
+        // BioTime 9.5 employee update uses PUT (docs); keep PATCH as fallback via CURLOPT if needed
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
-        // Option to Return the Result, rather than just true/false
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-        // Set Request Headers
         curl_setopt(
             $ch,
             CURLOPT_HTTPHEADER,
             $headers
         );
-        //time to wait while waiting for connection...indefinite
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
-
-        curl_setopt($ch, CURLOPT_POST, 1);
-        //set curl time..processing time out
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
         curl_setopt($ch, CURLOPT_TIMEOUT, 200);
-        // Perform the request, and save content to $result
         $result = curl_exec($ch);
-        //curl error handling
         $curl_errno = curl_errno($ch);
         $curl_error = curl_error($ch);
         if ($curl_errno > 0) {
             curl_close($ch);
             return "CURL Error ($curl_errno): $curl_error\n";
         }
-        $info = curl_getinfo($ch);
         curl_close($ch);
         $decodedResponse = json_decode($result);
         return $decodedResponse;

@@ -59,13 +59,18 @@ class Schedules extends MX_Controller
 	public function get_publicHoliday()
 	{
 		// Check if this is an AJAX request for DataTables
-		if ($this->input->is_ajax_request()) {
-			$draw = $this->input->post('draw');
-			$start = $this->input->post('start');
-			$length = $this->input->post('length');
-			$search = $this->input->post('search')['value'];
-			$order_column = $this->input->post('order')[0]['column'];
-			$order_dir = $this->input->post('order')[0]['dir'];
+		if ($this->input->is_ajax_request() || $this->input->post('draw') !== null) {
+			$draw = (int) $this->input->post('draw');
+			$start = (int) $this->input->post('start');
+			$length = (int) $this->input->post('length');
+			if ($length < 1) {
+				$length = 25;
+			}
+			$searchPost = $this->input->post('search');
+			$search = is_array($searchPost) && isset($searchPost['value']) ? $searchPost['value'] : '';
+			$orderPost = $this->input->post('order');
+			$order_column = (is_array($orderPost) && isset($orderPost[0]['column'])) ? (int) $orderPost[0]['column'] : 0;
+			$order_dir = (is_array($orderPost) && isset($orderPost[0]['dir'])) ? $orderPost[0]['dir'] : 'asc';
 			
 			// Get total count
 			$total_records = $this->scheduleMdl->get_publicHoliday_count();
@@ -94,9 +99,19 @@ class Schedules extends MX_Controller
 	{
 		$postdata = $this->input->post();
 		$result = $this->scheduleMdl->save_publicHoliday($postdata);
+		$this->session->set_flashdata('msg', $result);
+		redirect('schedules/all_schedules');
+	}
 
-		//echo $result;
-		redirect('schedules/Public_Holidays');
+	/**
+	 * Form action used by publicHolidays view (Add New Holiday).
+	 */
+	public function addholiday()
+	{
+		$postdata = $this->input->post();
+		$result = $this->scheduleMdl->save_publicHoliday($postdata);
+		$this->session->set_flashdata('msg', $result);
+		redirect('schedules/all_schedules');
 	}
 
 	public function edit_holiday()
@@ -104,11 +119,11 @@ class Schedules extends MX_Controller
 
 		$post_data = $this->input->post();
 		$result = $this->scheduleMdl->update_publicHoliday($post_data);
-		$this->session->set_flashdata('msg', 'Updated Succesfully');
+		$this->session->set_flashdata('msg', $result);
 
 
 		//echo $result;
-		redirect('schedules/Public_Holidays');
+		redirect('schedules/all_schedules');
 	}
 
 	public function delete_publicHoliday($id)
@@ -117,7 +132,7 @@ class Schedules extends MX_Controller
 
 		//echo $result;
 
-		redirect('schedules/Public_Holidays');
+		redirect('schedules/all_schedules');
 	}
 	public function att_rosta_schedules()
 	{

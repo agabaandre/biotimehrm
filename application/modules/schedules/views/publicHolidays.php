@@ -136,10 +136,13 @@
           </div>
           <div class="card-body">
             <?php if ($this->session->flashdata('msg')): ?>
-              <div class="alert alert-<?php echo strpos($this->session->flashdata('msg'), 'Success') !== false ? 'success' : 'danger'; ?> alert-dismissible fade show" role="alert">
-                <i class="fas fa-<?php echo strpos($this->session->flashdata('msg'), 'Success') !== false ? 'check-circle' : 'exclamation-triangle'; ?> mr-2"></i>
-                <?php echo $this->session->flashdata('msg'); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              <?php $flash = $this->session->flashdata('msg'); $isOk = (stripos($flash, 'success') !== false); ?>
+              <div class="alert alert-<?php echo $isOk ? 'success' : 'danger'; ?> alert-dismissible fade show" role="alert">
+                <i class="fas fa-<?php echo $isOk ? 'check-circle' : 'exclamation-triangle'; ?> mr-2"></i>
+                <?php echo htmlspecialchars($flash, ENT_QUOTES, 'UTF-8'); ?>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
               </div>
             <?php endif; ?>
 
@@ -164,7 +167,7 @@
                 <label for="year" class="form-label">
                   <i class="fas fa-calendar-year text-warning mr-1"></i>Year
                 </label>
-                <input type="number" class="form-control" id="year" name="year" value="<?php echo date('Y'); ?>" min="2020" max="2030" required>
+                <input type="number" class="form-control" id="year" name="year" value="<?php echo date('Y'); ?>" min="2020" max="2035" required>
               </div>
 
               <div class="mb-3">
@@ -311,23 +314,14 @@ $(document).ready(function() {
             { 
                 data: null,
                 className: 'text-center',
+                orderable: false,
+                searchable: false,
                 render: function(data, type, row) {
+                    var rid = row.rid || row.id;
                     var actions = '';
-                    
-                    // Edit form
-                    actions += '<form method="post" action="<?php echo base_url(); ?>schedules/edit_holiday" class="d-inline mr-1">';
-                    actions += '<input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">';
-                    actions += '<input type="hidden" name="id" value="' + row.id + '">';
-                    actions += '<button type="submit" class="btn btn-sm btn-outline-info" title="Save Changes">';
-                    actions += '<i class="fas fa-save"></i>';
-                    actions += '</button>';
-                    actions += '</form>';
-                    
-                    // Delete button
-                    actions += '<button type="button" class="btn btn-sm btn-outline-danger ml-1" data-toggle="modal" data-target="#del' + row.rid + '" title="Delete Holiday">';
+                    actions += '<a class="btn btn-sm btn-outline-danger" href="<?php echo base_url(); ?>schedules/delete_publicHoliday/' + encodeURIComponent(rid) + '" title="Delete Holiday" onclick="return confirm(\'Delete this holiday?\');">';
                     actions += '<i class="fas fa-trash"></i>';
-                    actions += '</button>';
-                    
+                    actions += '</a>';
                     return actions;
                 }
             }
@@ -400,5 +394,13 @@ $(document).ready(function() {
     // Set current date as default for date field
     var today = new Date().toISOString().split('T')[0];
     $('#dateFrom').val(today);
+
+    // Keep year in sync with selected date
+    $('#dateFrom').on('change', function() {
+        var d = $(this).val();
+        if (d && d.length >= 4) {
+            $('#year').val(d.substring(0, 4));
+        }
+    });
 });
 </script>

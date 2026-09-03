@@ -48,7 +48,8 @@ defined('FOPEN_READ_WRITE_CREATE')              or define('FOPEN_READ_WRITE_CREA
 defined('FOPEN_WRITE_CREATE_STRICT')            or define('FOPEN_WRITE_CREATE_STRICT', 'xb');
 defined('FOPEN_READ_WRITE_CREATE_STRICT')       or define('FOPEN_READ_WRITE_CREATE_STRICT', 'x+b');
 //defined('BIO_URL')  OR define('BIO_URL', 'http://172.27.1.101:8095/');
-defined('BIO_URL')  or define('BIO_URL', 'http://attendance.health.go.ug:8095/');
+// BioTime 9.5 API is served on standard HTTPS (port 80/443), not :8095
+defined('BIO_URL')  or define('BIO_URL', 'https://attendance.health.go.ug/');
 defined('iHRIS_URL')  or define('iHRIS_URL', 'https://hris.health.go.ug/');
 defined('iHRIS5_URL') or define('iHRIS5_URL', 'https://dev-hris.health.go.ug/');
 defined('UCMBiHRIS_URL')  or define('UCMBiHRIS_URL', 'http://41.173.3.36/');

@@ -9,6 +9,18 @@ use Dotenv\Dotenv;
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
+// PHP may omit E from variables_order — mirror putenv/$_SERVER into $_ENV for CI config.
+foreach (['DB_HOST', 'DB_USER', 'DB_PASS', 'DB_NAME', 'PG_DB_HOST', 'PG_PORT', 'PG_USER', 'PG_PASS', 'PG_DB_NAME', 'APP_ENV'] as $envKey) {
+	if (!isset($_ENV[$envKey])) {
+		$val = getenv($envKey);
+		if ($val === false && isset($_SERVER[$envKey])) {
+			$val = $_SERVER[$envKey];
+		}
+		if ($val !== false && $val !== null) {
+			$_ENV[$envKey] = $val;
+		}
+	}
+}
 
 define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : $_ENV['APP_ENV'] ?? 'development');
 

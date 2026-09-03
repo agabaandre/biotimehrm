@@ -256,66 +256,127 @@ class Schedules_mdl extends CI_Model
 		return $query->result();
 	}
 
-	public function addRequest()
+	/**
+	 * Save a public holiday from the Add New Holiday form.
+	 * Accepts: holiday_name, dateFrom (or date), year, type
+	 *
+	 * @param array $postdata
+	 * @return string Flash message
+	 */
+	public function save_publicHoliday($postdata = [])
 	{
-		$name = $this->input->post('holidayname');
-		$year = $this->input->post('year');
-		$type = $this->input->post('type');
-		$date = $this->input->post('date');
-		$entryId = $name . $year;
+		if (!is_array($postdata) || empty($postdata)) {
+			$postdata = $this->input->post();
+		}
 
-		$data = array(
+		$name = trim((string) ($postdata['holiday_name'] ?? $postdata['holidayname'] ?? ''));
+		$date = trim((string) ($postdata['dateFrom'] ?? $postdata['date'] ?? $postdata['holidaydate'] ?? ''));
+		$type = trim((string) ($postdata['type'] ?? ''));
+		$year = trim((string) ($postdata['year'] ?? ''));
+
+		if ($name === '' || $date === '' || $type === '') {
+			$message = 'Holiday name, date and type are required';
+			$this->session->set_flashdata('msg', $message);
+			return $message;
+		}
+
+		$ts = strtotime($date);
+		if ($ts === false) {
+			$message = 'Invalid holiday date';
+			$this->session->set_flashdata('msg', $message);
+			return $message;
+		}
+
+		$date = date('Y-m-d', $ts);
+		if ($year === '') {
+			$year = date('Y', $ts);
+		}
+
+		// Match existing unique id pattern: {date}{holiday_name}
+		$entryId = $date . $name;
+
+		// Avoid duplicate unique key errors
+		$exists = $this->db->where('id', $entryId)->count_all_results('public_holiday');
+		if ($exists > 0) {
+			$message = 'Holiday already exists for that date';
+			$this->session->set_flashdata('msg', $message);
+			return $message;
+		}
+
+		$data = [
 			'id' => $entryId,
 			'holiday_name' => $name,
 			'type' => $type,
 			'holidaydate' => $date,
-			'year' => $year
-
-
-
-		);
-
+			'year' => $year,
+		];
 
 		$done = $this->db->insert('public_holiday', $data);
 
 		if ($done) {
-
-			$message = "Holiday added Successfuly";
-			$this->session->set_flashdata('msg', $message);
+			$message = 'Holiday added Successfully';
 		} else {
-
-			$message = "Operation Failed";
-			$this->session->set_flashdata('msg', $message);
-			//$message="Operation Failed";
+			$error = $this->db->error();
+			$message = 'Operation Failed' . (!empty($error['message']) ? (': ' . $error['message']) : '');
+			log_message('error', 'save_publicHoliday failed: ' . json_encode($error));
 		}
+
+		$this->session->set_flashdata('msg', $message);
+		return $message;
+	}
+
+	public function addRequest()
+	{
+		return $this->save_publicHoliday($this->input->post());
 	}
 
 	public function	update_publicHoliday($post_data)
 	{
-
-		$this->db->where('id', $post_data['id']);
-		$query = $this->db->update('public_holiday', $post_data);
-
-		if ($query) {
-
-			$msg = "Holiday Updated";
-		} else {
-
-			$msg = "Operation failed, Try again";
+		if (!is_array($post_data) || empty($post_data['id'])) {
+			return 'Missing holiday id';
 		}
 
+		$id = $post_data['id'];
+		unset($post_data['id']);
+
+		// Only update known columns
+		$allowed = ['holiday_name', 'type', 'holidaydate', 'year'];
+		$data = [];
+		foreach ($allowed as $col) {
+			if (isset($post_data[$col]) && $post_data[$col] !== '') {
+				$data[$col] = $post_data[$col];
+			}
+		}
+		if (empty($data)) {
+			return 'No changes submitted';
+		}
+
+		$this->db->where('id', $id);
+		$query = $this->db->update('public_holiday', $data);
+
+		if ($query) {
+			$msg = 'Holiday Updated Successfully';
+		} else {
+			$msg = 'Operation failed, Try again';
+		}
 
 		return $msg;
 	}
 
 	public function delete_publicHoliday($id)
 	{
-
-		$this->db->where('rid', $id);
+		// Support both rid (numeric PK) and unique id string
+		if (ctype_digit((string) $id)) {
+			$this->db->where('rid', $id);
+		} else {
+			$this->db->where('id', $id);
+		}
 		$query = $this->db->delete('public_holiday');
 		if ($query) {
-
-			$this->session->set_flashdata('msg', 'Deletion Successful');
+			$this->session->set_flashdata('msg', 'Holiday deleted Successfully');
+			return 'Holiday deleted Successfully';
 		}
+		$this->session->set_flashdata('msg', 'Delete failed');
+		return 'Delete failed';
 	}
 }

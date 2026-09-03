@@ -32,18 +32,80 @@ class Biotimejobs extends MX_Controller
 
     public function get_token($uri = FALSE)
     {
+        if (empty($this->username) || $this->password === null || $this->password === '') {
+            log_message('error', 'get_token: biotime_username/password missing from settings');
+            return null;
+        }
 
         $http = new HttpUtils();
         $headers = ['Content-Type' => 'application/json'];
-        $body = array(
-            "username" => $this->username,
-            "password" => $this->password
-        );
-        $response = $http->sendRequest('jwt-api-token-auth', "POST", $headers, $body, $search = FALSE);
-        //dd($response->token);
+        $body = [
+            'username' => $this->username,
+            'password' => $this->password,
+        ];
+        $response = $http->sendRequest('jwt-api-token-auth', 'POST', $headers, $body, $search = FALSE);
+        if (!is_object($response) || empty($response->token)) {
+            $detail = is_object($response) && isset($response->detail) ? $response->detail : json_encode($response);
+            log_message('error', 'get_token: failed to obtain JWT — ' . $detail);
+            return null;
+        }
         return $response->token;
     }
 
+    /**
+     * @return array<int, string>
+     */
+    protected function _biotime_json_headers($token, $bodyJson = null)
+    {
+        $headers = [
+            'Content-type: application/json',
+            'Accept: application/json',
+            'Authorization: JWT ' . $token,
+        ];
+        if ($bodyJson !== null) {
+            array_unshift($headers, 'Content-length:' . strlen($bodyJson));
+        }
+        return $headers;
+    }
+
+    /**
+     * True when BioTime create/update returned an employee object (has id or emp_code).
+     *
+     * @param mixed $response
+     * @return bool
+     */
+    protected function _biotime_response_ok($response)
+    {
+        if (is_string($response)) {
+            if (strpos($response, 'CURL Error') === 0) {
+                return false;
+            }
+            // BioTime sometimes returns HTML error pages with HTTP 200
+            if (stripos($response, '<html') !== false || stripos($response, '500 Error') !== false) {
+                return false;
+            }
+            return false;
+        }
+        if (!is_object($response)) {
+            return false;
+        }
+        if (isset($response->detail) && is_string($response->detail)
+            && stripos($response->detail, 'success') !== false) {
+            return true;
+        }
+        if (isset($response->detail) && !isset($response->id) && !isset($response->emp_code)) {
+            // Auth/permission/validation error object
+            return false;
+        }
+        if (isset($response->id) || isset($response->emp_code)) {
+            return true;
+        }
+        // Some endpoints return {code:0, msg:"", data:...}
+        if (isset($response->code) && (int) $response->code === 0) {
+            return true;
+        }
+        return false;
+    }
 
     //get terminals
     public function terminals()
@@ -556,88 +618,188 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         return $merged;
     }
 
-    public function get_Enrolled($page = FALSE)
-    {
+    /**
+     * BioTime 9.x employee list page size (API accepts page_size / limit).
+     * @see https://attendance.health.go.ug/docs/api-docs/
+     */
+    private $biotime_employee_page_size = 100;
 
+    /**
+     * GET /personnel/api/employees/ — enrolled personnel (BioTime 8.5 → 9.5 compatible).
+     *
+     * @param int|false $page
+     * @param int|null  $page_size
+     * @return object|null
+     */
+    public function get_Enrolled($page = FALSE, $page_size = null)
+    {
         $http = new HttpUtils();
         $headers = [
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
-            'Authorization' => "JWT " . $this->get_token(),
+            'Authorization' => 'JWT ' . $this->get_token(),
         ];
 
-        // $endpoint='iclock/api/transactions/';
         $endpoint = 'personnel/api/employees/';
-        $options = (object) array(
+        $page_size = ($page_size === null) ? $this->biotime_employee_page_size : (int) $page_size;
+        $options = (object) [
+            'page' => ($page === FALSE || $page === null || $page === '') ? 1 : (int) $page,
+            'page_size' => max(1, $page_size),
+        ];
 
-            "page" => $page
-        );
-
-
-        $response = $http->get_List($endpoint, "GET", $headers, $options);
-        return $response;
+        return $http->get_List($endpoint, 'GET', $headers, $options);
     }
+
+    /**
+     * Normalize BioTime employee area (array in 8.5/9.x; sometimes empty).
+     *
+     * @param object $employee
+     * @return object|null {id, area_code, area_name}
+     */
+    protected function _biotime_employee_area($employee)
+    {
+        if (!is_object($employee) || !isset($employee->area)) {
+            return null;
+        }
+        $area = $employee->area;
+        if (is_array($area) && isset($area[0])) {
+            $first = $area[0];
+            return is_object($first) ? $first : null;
+        }
+        if (is_object($area) && (isset($area->area_code) || isset($area->id))) {
+            return $area;
+        }
+        return null;
+    }
+
+    /**
+     * Attendance enabled flag: BioTime 9.5 may use top-level enable_att or attemployee.enable_attendance.
+     *
+     * @param object $employee
+     * @return int 0|1
+     */
+    protected function _biotime_employee_att_status($employee)
+    {
+        if (!is_object($employee)) {
+            return 0;
+        }
+        if (isset($employee->enable_att)) {
+            return !empty($employee->enable_att) ? 1 : 0;
+        }
+        if (isset($employee->attemployee) && is_object($employee->attemployee)
+            && isset($employee->attemployee->enable_attendance)) {
+            return !empty($employee->attemployee->enable_attendance) ? 1 : 0;
+        }
+        return 0;
+    }
+
+    /**
+     * Page count from BioTime list response (uses page_size, not hard-coded 10).
+     *
+     * @param object $resp
+     * @param int    $page_size
+     * @return int
+     */
+    protected function _biotime_list_pages($resp, $page_size)
+    {
+        $count = (isset($resp->count) && is_numeric($resp->count)) ? (int) $resp->count : 0;
+        $page_size = max(1, (int) $page_size);
+        if ($count <= 0) {
+            return 0;
+        }
+        return (int) ceil($count / $page_size);
+    }
+
+    /**
+     * Extract employee rows from a BioTime list payload (data or results).
+     *
+     * @param object|null $response
+     * @return array
+     */
+    protected function _biotime_list_rows($response)
+    {
+        if (!is_object($response)) {
+            return [];
+        }
+        if (isset($response->data) && is_array($response->data)) {
+            return $response->data;
+        }
+        if (isset($response->results) && is_array($response->results)) {
+            return $response->results;
+        }
+        return [];
+    }
+
     //cronjob
     //get enrolled data from biotime
-    //after nun  call fingerprint cache procedure
+    //after run call fingerprint cache procedure
     public function saveEnrolled()
     {
         try {
-        $resp = $this->get_Enrolled();
-            
+            $page_size = $this->biotime_employee_page_size;
+            $resp = $this->get_Enrolled(1, $page_size);
+
             if (empty($resp) || !isset($resp->count)) {
                 log_message('error', 'saveEnrolled: Invalid response from get_Enrolled()');
                 return false;
             }
-            
-        $count = $resp->count;
-        $pages = (int) ceil($count / 10);
-        $rows = array();
 
-        for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
-            $response = $this->get_Enrolled($currentPage);
-                
-                if (empty($response) || !isset($response->data)) {
-                    log_message('error', "saveEnrolled: Invalid response for page $currentPage");
+            $pages = $this->_biotime_list_pages($resp, $page_size);
+            $rows = [];
+            $seen = [];
+
+            for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
+                $response = ($currentPage === 1) ? $resp : $this->get_Enrolled($currentPage, $page_size);
+                $employees = $this->_biotime_list_rows($response);
+
+                if (empty($employees)) {
+                    log_message('error', "saveEnrolled: Empty/invalid response for page $currentPage");
                     continue;
                 }
-                
-            foreach ($response->data as $mydata) {
-                    // Check if required properties exist
-                    if (empty($mydata->area) || !isset($mydata->area[0]) || !isset($mydata->emp_code)) {
-                        log_message('error', 'saveEnrolled: Missing required data in employee record');
+
+                foreach ($employees as $mydata) {
+                    if (!is_object($mydata) || !isset($mydata->emp_code) || $mydata->emp_code === '' || $mydata->emp_code === null) {
+                        log_message('error', 'saveEnrolled: Missing emp_code in employee record');
                         continue;
                     }
 
-                $data = array(
-                    'entry_id' => $mydata->area[0]->area_code . '-' . $mydata->emp_code,
-                    "card_number" => $mydata->emp_code,
-                    'facilityId' => $mydata->area[0]->area_code,
-                    'source' => 'Biotime',
-                        'device' => isset($mydata->enroll_sn) ? $mydata->enroll_sn : '',
-                        'att_status' => isset($mydata->enable_att) ? $mydata->enable_att : 0
-                );
+                    $area = $this->_biotime_employee_area($mydata);
+                    if ($area === null || !isset($area->area_code) || $area->area_code === '' || $area->area_code === null) {
+                        log_message('debug', 'saveEnrolled: Skipping emp_code ' . $mydata->emp_code . ' (no area)');
+                        continue;
+                    }
 
-                array_push($rows, $data);
+                    $emp_code = (string) $mydata->emp_code;
+                    $area_code = (string) $area->area_code;
+                    $entry_id = $area_code . '-' . $emp_code;
+                    if (isset($seen[$entry_id])) {
+                        continue;
+                    }
+                    $seen[$entry_id] = true;
+
+                    $rows[] = [
+                        'entry_id' => $entry_id,
+                        'card_number' => $emp_code,
+                        'facilityId' => $area_code,
+                        'source' => 'Biotime',
+                        'device' => isset($mydata->enroll_sn) ? (string) $mydata->enroll_sn : '',
+                        'att_status' => $this->_biotime_employee_att_status($mydata),
+                    ];
+                }
             }
-        }
 
             if (empty($rows)) {
                 log_message('error', 'saveEnrolled: No rows to insert');
                 return false;
-        }
+            }
 
-        $message = $this->biotimejobs_mdl->add_enrolled($rows);
-        $this->log($message);
-        $process = 3;
-        $method = "bioitimejobs/save_Enrolled";
-            if (count($rows) > 0) {
-            $status = "successful";
-        } else {
-            $status = "failed";
-        }
-        $this->cronjob_register($process, $method, $status);
-            
+            $message = $this->biotimejobs_mdl->add_enrolled($rows);
+            $this->log($message);
+            $process = 3;
+            $method = 'bioitimejobs/save_Enrolled';
+            $status = (count($rows) > 0) ? 'successful' : 'failed';
+            $this->cronjob_register($process, $method, $status);
+
             return true;
         } catch (Exception $e) {
             log_message('error', 'saveEnrolled Exception: ' . $e->getMessage());
@@ -1254,135 +1416,268 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     //create multiple new users cronjob
     public function multiple_new_users()
     {
-        $howmany = array();
-        $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id IN(SELECT area_code from biotime_devices) AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
-        $newusers = $query->result();
-        foreach ($newusers as $newuser):
-            $id =$newuser->card_number;
+        $query = $this->db->query(
+            "SELECT * FROM ihrisdata
+             WHERE ihrisdata.facility_id IN (SELECT area_code FROM biotime_devices)
+               AND ihrisdata.card_number IS NOT NULL
+               AND ihrisdata.card_number <> ''
+               AND ihrisdata.card_number NOT IN (
+                    SELECT fingerprints_staging.card_number
+                    FROM fingerprints_staging
+                    WHERE fingerprints_staging.card_number IS NOT NULL
+               )"
+        );
+        $newusers = $query ? $query->result() : [];
+        $ok = 0;
+        $fail = 0;
 
-            $message = $this->create_new_biotimeuser($newuser->firstname, $newuser->surname, $id, $newuser->facility_id, $newuser->department_id, $newuser->job_id);
-
-
-        endforeach;
-        $process = 5;
-        $method = "bioitimejobs/multiple_new_users";
-        if ($method) {
-            $status = "successful";
-        } else {
-            $status = "failed";
+        foreach ($newusers as $newuser) {
+            $id = isset($newuser->card_number) ? trim((string) $newuser->card_number) : '';
+            if ($id === '') {
+                $fail++;
+                continue;
+            }
+            $response = $this->create_new_biotimeuser(
+                isset($newuser->firstname) ? $newuser->firstname : '',
+                isset($newuser->surname) ? $newuser->surname : '',
+                $id,
+                isset($newuser->facility_id) ? $newuser->facility_id : '',
+                isset($newuser->department_id) ? $newuser->department_id : '',
+                isset($newuser->job_id) ? $newuser->job_id : ''
+            );
+            if ($this->_biotime_response_ok($response)) {
+                $ok++;
+            } else {
+                $fail++;
+            }
         }
-        $this->cronjob_register($process, $method, $status);
-        $this->log($status);
 
+        $process = 5;
+        $method = 'bioitimejobs/multiple_new_users';
+        $status = ($ok > 0 && $fail === 0) ? 'successful' : (($ok > 0) ? 'partial' : 'failed');
+        $this->cronjob_register($process, $method, $status);
+        $this->log(['multiple_new_users' => $status, 'created' => $ok, 'failed' => $fail, 'candidates' => count($newusers)]);
 
         return $status;
     }
+
+    /**
+     * Update enrolled BioTime employee (facility transfer / job change).
+     * BioTime 9.5:
+     * - PUT /personnel/api/employees/{id}/ with emp_code, department, area
+     * - POST /personnel/api/employees/adjust_area/ for facility moves
+     * @see https://attendance.health.go.ug/docs/api-docs/employee_api.html#create
+     */
     public function update_biotimeuser($userdata)
     {
+        if (empty($userdata) || empty($userdata->biotime_emp_id)) {
+            log_message('error', 'update_biotimeuser: missing biotime_emp_id');
+            return false;
+        }
 
+        $barea = $this->getbioloc(isset($userdata->new_facility) ? $userdata->new_facility : '');
+        if (empty($barea)) {
+            log_message('error', 'update_biotimeuser: BioTime area not found for ' . (isset($userdata->new_facility) ? $userdata->new_facility : ''));
+            return false;
+        }
 
-        $barea = $this->getbioloc($userdata->new_facility);
-        $bpos = $this->getbiojobs($userdata->job_id);
+        $emp_code = '';
+        if (!empty($userdata->emp_code)) {
+            $emp_code = (string) $userdata->emp_code;
+        } elseif (!empty($userdata->card_number)) {
+            $emp_code = (string) $userdata->card_number;
+        }
+
+        $bdep = null;
+        if (!empty($userdata->department_id)) {
+            $bdep = $this->getbiodeps($userdata->department_id);
+        } elseif (!empty($userdata->department)) {
+            $bdep = $this->getbiodeps($userdata->department);
+        }
+
+        $bpos = null;
+        if (!empty($userdata->job_id)) {
+            $bpos = $this->getbiojobs($userdata->job_id);
+        }
+
+        $token = $this->get_token();
+        if (empty($token)) {
+            return false;
+        }
 
         $http = new HttpUtils();
+        $empId = (int) $userdata->biotime_emp_id;
+        $ok = false;
+        $response = null;
 
-        $body = array(
-            'area' => [(string) $barea],
-            'position' => $bpos
+        // 1) Always adjust area first (verified working on BioTime 9.5)
+        $adjustBody = [
+            'employees' => [$empId],
+            'areas' => [(int) $barea],
+        ];
+        $adjustJson = json_encode($adjustBody);
+        $response = $http->curlsendHttpPost(
+            'personnel/api/employees/adjust_area/',
+            $this->_biotime_json_headers($token, $adjustJson),
+            $adjustBody
         );
-
-        $endpoint = 'personnel/api/employees/' . $userdata->biotime_emp_id . '/';
-        $headr = array();
-        $headr[] = 'Content-length:' . strlen(json_encode($body));
-        $headr[] = 'Content-type: application/json';
-        $headr[] = 'Authorization: JWT ' . $this->get_token();
-
-        $response = $http->curlupdateHttpPost($endpoint, $headr, $body);
-
-        //dd($response);
-
+        $ok = $this->_biotime_response_ok($response);
         if ($response) {
-            $this->log($response);
+            $this->log(['adjust_area' => $response]);
+        }
+
+        // 2) Full PUT when we have required emp_code + department
+        if ($emp_code !== '' && !empty($bdep)) {
+            $body = [
+                'emp_code' => $emp_code,
+                'department' => (int) $bdep,
+                'area' => [(int) $barea],
+            ];
+            if (!empty($bpos)) {
+                $body['position'] = (int) $bpos;
+            }
+            if (!empty($userdata->firstname) || !empty($userdata->first_name)) {
+                $body['first_name'] = !empty($userdata->firstname) ? $userdata->firstname : $userdata->first_name;
+            }
+            if (!empty($userdata->surname) || !empty($userdata->last_name)) {
+                $body['last_name'] = !empty($userdata->surname) ? $userdata->surname : $userdata->last_name;
+            }
+            $json = json_encode($body);
+            $endpoint = 'personnel/api/employees/' . $empId . '/';
+            $putResponse = $http->curlupdateHttpPost($endpoint, $this->_biotime_json_headers($token, $json), $body);
+            if ($putResponse) {
+                $this->log(['update_put' => $putResponse]);
+            }
+            if ($this->_biotime_response_ok($putResponse)) {
+                $ok = true;
+                $response = $putResponse;
+            }
+        }
+
+        // Keep local enrollment map in sync on success
+        if ($ok) {
+            $enroll = [
+                'biotime_emp_id' => (string) $empId,
+                'biotime_facility_id' => (string) (int) $barea,
+                'biotime_fac_id' => (string) (isset($userdata->new_facility) ? $userdata->new_facility : ''),
+            ];
+            if ($emp_code !== '') {
+                $enroll['emp_code'] = $emp_code;
+                $this->db->replace('biotime_enrollment', $enroll);
+            } else {
+                $this->db->where('biotime_emp_id', (string) $empId);
+                $this->db->update('biotime_enrollment', [
+                    'biotime_facility_id' => $enroll['biotime_facility_id'],
+                    'biotime_fac_id' => $enroll['biotime_fac_id'],
+                ]);
+            }
         }
 
         $process = 6;
-        $method = "bioitimejobs/update_biotimeuser";
-        if ($response) {
-            $status = "successful";
-        } else {
-            $status = "failed";
-        }
+        $method = 'bioitimejobs/update_biotimeuser';
+        $status = $ok ? 'successful' : 'failed';
         $this->cronjob_register($process, $method, $status);
-        return $response;
+        return $ok ? $response : false;
     }
 
 
     //enroll new users (Front End Action that requires login);
     public function get_new_users($facility)
     {
+        $facility = $this->db->escape_str($facility);
         $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
-        $query->result();
+        return $query->result();
     }
 
 
-    // create new user
-
+    /**
+     * Create BioTime employee — POST /personnel/api/employees/
+     * Required: emp_code (<=20 chars), department (int), area (list of ints).
+     * @see https://attendance.health.go.ug/docs/api-docs/employee_api.html#create
+     */
     public function create_new_biotimeuser($firstname, $surname, $emp_code, $area, $department, $position)
     {
-        $farea = urldecode($area);
-        $fjob = urldecode($position);
-        $fdep = urldecode($department);
+        $emp_code = trim((string) $emp_code);
+        if ($emp_code === '') {
+            log_message('error', 'create_new_biotimeuser: emp_code is required');
+            return false;
+        }
+        if (strlen($emp_code) > 20) {
+            log_message('error', 'create_new_biotimeuser: emp_code exceeds 20 characters: ' . $emp_code);
+            return false;
+        }
+
+        $farea = urldecode((string) $area);
+        $fjob = urldecode((string) $position);
+        $fdep = urldecode((string) $department);
 
         $barea = $this->getbioloc($farea);
         if (empty($barea)) {
-            $parea = 1;
-        } else {
-            $parea = $barea;
+            log_message('error', 'create_new_biotimeuser: BioTime area not found for ' . $farea);
+            return false;
         }
-        $bjob = $this->getbiojobs($fjob);
-        if (empty($bjob)) {
-            $pjobs = 1;
-        } else {
-            $pjobs = $bjob;
-        }
+
         $bdep = $this->getbiodeps($fdep);
         if (empty($bdep)) {
-            $pdep = 1;
-        } else {
-            $pdep = $bdep;
+            log_message('debug', 'create_new_biotimeuser: department not mapped for ' . $fdep . ', using 1');
+            $bdep = 1;
         }
 
-        $http = new HttpUtils();
+        $bjob = $this->getbiojobs($fjob);
 
-        $body = array(
-            'first_name' => $firstname,
-            'last_name' => $surname,
+        $token = $this->get_token();
+        if (empty($token)) {
+            return false;
+        }
+
+        // Docs required body: emp_code, department, area — keep payload minimal for BioTime 9.5
+        $body = [
             'emp_code' => $emp_code,
-            'area' => [(string) $parea],
-            'department' => (string) $pdep,
-            'position' => (string) $pjobs,
+            'department' => (int) $bdep,
+            'area' => [(int) $barea],
+        ];
+        if ($firstname !== null && $firstname !== '') {
+            $body['first_name'] = (string) $firstname;
+        }
+        if ($surname !== null && $surname !== '') {
+            $body['last_name'] = (string) $surname;
+        }
+        if (!empty($bjob)) {
+            $body['position'] = (int) $bjob;
+        }
+
+        $json = json_encode($body);
+        $http = new HttpUtils();
+        $response = $http->curlsendHttpPost(
+            'personnel/api/employees/',
+            $this->_biotime_json_headers($token, $json),
+            $body
         );
 
-        $endpoint = 'personnel/api/employees/';
-        $headr = array();
-        $headr[] = 'Content-length:' . strlen(json_encode($body));
-        $headr[] = 'Content-type: application/json';
-        $headr[] = 'Authorization: JWT ' . $this->get_token();
-
-        $response = $http->curlsendHttpPost($endpoint, $headr, $body);
-
+        // curlsendHttpPost json_decodes; HTML 500 becomes null — re-check via raw log
         if ($response) {
             $this->log($response);
+        } else {
+            log_message('error', 'create_new_biotimeuser: empty/invalid response for emp_code=' . $emp_code . ' body=' . $json);
+        }
+
+        $ok = $this->_biotime_response_ok($response);
+
+        // Persist local enrollment map when create succeeds
+        if ($ok && isset($response->id)) {
+            $this->db->replace('biotime_enrollment', [
+                'emp_code' => $emp_code,
+                'biotime_emp_id' => (string) (int) $response->id,
+                'biotime_facility_id' => (string) (int) $barea,
+                'biotime_fac_id' => (string) $farea,
+            ]);
         }
 
         $process = 6;
-        $method = "bioitimejobs/create_new_biotimeuser";
-        if ($response) {
-            $status = "successful";
-        } else {
-            $status = "failed";
-        }
+        $method = 'bioitimejobs/create_new_biotimeuser';
+        $status = $ok ? 'successful' : 'failed';
         $this->cronjob_register($process, $method, $status);
+        return $ok ? $response : false;
     }
     public function log($message)
     {
@@ -1396,22 +1691,35 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
     public function getbiojobs($job)
     {
+        $job = $this->db->escape_str((string) $job);
         $query = $this->db->query("SELECT id from biotime_jobs where position_code='$job' LIMIT 1");
-
-        return $query->result()[0]->id;
+        if (!$query || $query->num_rows() < 1) {
+            return null;
+        }
+        return $query->row()->id;
     }
     public function getbiodeps($dep_id)
     {
-        $query = $this->db->query("SELECT dept_code from biotime_departments where dept_code='$dep_id' LIMIT 1");
-        if ($query->num_rows() > 0) {
-            return $query->result()[0]->dept_code;
+        $dep_id = $this->db->escape_str((string) $dep_id);
+        // Prefer BioTime department id when column exists; API create/update expects numeric id
+        if ($this->db->field_exists('biotime_dept_id', 'biotime_departments')) {
+            $query = $this->db->query("SELECT biotime_dept_id AS id from biotime_departments where dept_code='$dep_id' LIMIT 1");
+        } else {
+            $query = $this->db->query("SELECT id from biotime_departments where dept_code='$dep_id' LIMIT 1");
         }
-        return null;
+        if (!$query || $query->num_rows() < 1) {
+            return null;
+        }
+        return $query->row()->id;
     }
     public function getbioloc($facility)
     {
+        $facility = $this->db->escape_str((string) $facility);
         $query = $this->db->query("SELECT id from biotime_facilities where area_code='$facility' LIMIT 1");
-        return $query->result()[0]->id;
+        if (!$query || $query->num_rows() < 1) {
+            return null;
+        }
+        return $query->row()->id;
     }
     //not working
     public function biotimeFacilities()
@@ -1476,18 +1784,28 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         );
 
         $params = '?' . http_build_query($query);
-        $endpoint = 'personnel/api/position/' . $params;
+        // BioTime 9.x: /personnel/api/positions/ (plural; 8.5 used /position/)
+        $endpoint = 'personnel/api/positions/' . $params;
 
         //leave options and undefined. guzzle will use the http:query;
 
         $response = $http->curlgetHttp($endpoint, $headr, []);
+        if (!is_object($response) || empty($response->data) || !is_array($response->data)) {
+            // Fallback for older BioTime 8.5 endpoints
+            $endpoint = 'personnel/api/position/' . $params;
+            $response = $http->curlgetHttp($endpoint, $headr, []);
+        }
         //return $response;
         $j = array();
-        foreach ($response->data as $jobs) {
+        $rows = $this->_biotime_list_rows($response);
+        foreach ($rows as $jobs) {
+            if (!is_object($jobs) || !isset($jobs->id)) {
+                continue;
+            }
             $data = array(
                 'id' => $jobs->id,
-                'position_code' => $jobs->position_code,
-                'position_name' => $jobs->position_name
+                'position_code' => isset($jobs->position_code) ? $jobs->position_code : '',
+                'position_name' => isset($jobs->position_name) ? $jobs->position_name : ''
             );
 
             array_push($j, $data);
@@ -1522,18 +1840,31 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         );
 
         $params = '?' . http_build_query($query);
-        $endpoint = 'personnel/api/department/' . $params;
+        // BioTime 9.x: /personnel/api/departments/ (plural; 8.5 used /department/)
+        $endpoint = 'personnel/api/departments/' . $params;
 
         //leave options and undefined. guzzle will use the http:query;
 
         $response = $http->curlgetHttp($endpoint, $headr, []);
+        if (!is_object($response) || empty($response->data) || !is_array($response->data)) {
+            $endpoint = 'personnel/api/department/' . $params;
+            $response = $http->curlgetHttp($endpoint, $headr, []);
+        }
         //return $response;
         $j = array();
-        foreach ($response->data as $deps) {
+        $has_biotime_id = $this->db->field_exists('biotime_dept_id', 'biotime_departments');
+        $rows = $this->_biotime_list_rows($response);
+        foreach ($rows as $deps) {
+            if (!is_object($deps) || !isset($deps->dept_code)) {
+                continue;
+            }
             $data = array(
                 'dept_code' => $deps->dept_code,
-                'dept_name' => $deps->dept_name
+                'dept_name' => isset($deps->dept_name) ? $deps->dept_name : ''
             );
+            if ($has_biotime_id && isset($deps->id)) {
+                $data['biotime_dept_id'] = (int) $deps->id;
+            }
             // Note: id column is auto-increment, so we don't include it in the insert
             array_push($j, $data);
         }
@@ -1569,105 +1900,347 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     public function deleteEnrolled()
     {
     }
-    // get all biotime deployements
-    //get cron jobs from the server
-    public function fetch_biotime_employees($page)
+    // get all biotime deployments (BioTime 9.x employees list)
+    public function fetch_biotime_employees($page = 1, $page_size = null)
     {
         date_default_timezone_set('Africa/Kampala');
         $http = new HttpUtils();
         $headers = [
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
-            'Authorization' => "JWT " . $this->get_token(),
+            'Authorization' => 'JWT ' . $this->get_token(),
         ];
 
-
-        $sdate = date("Y-m-d H:i:s", strtotime("-12 hours"));
-        $query = array(
-            'page' => $page
-        );
+        $page_size = ($page_size === null) ? $this->biotime_employee_page_size : (int) $page_size;
+        $query = [
+            'page' => max(1, (int) $page),
+            'page_size' => max(1, $page_size),
+        ];
 
         $params = '?' . http_build_query($query);
         $endpoint = 'personnel/api/employees/' . $params;
 
-        //dd($endpoint);
-
-        //leave options and undefined. guzzle will use the http:query;
-
-        $response = $http->getempData($endpoint, "GET", $headers);
-        //return $response;
-        //dd($response->data);
-
-        return $response;
+        return $http->getempData($endpoint, 'GET', $headers);
     }
+
     public function biotime_employees()
     {
-
         ignore_user_abort(true);
         ini_set('max_execution_time', 0);
-        $resp = $this->fetch_biotime_employees($page = 1);
-        $count = $resp->count;
-        //dd($count);
-        $pages = (int) ceil($count / 10);
-        $rows = array();
-        if ($count > 1) {
-            $this->db->truncate('biotime_enrollment');
-        }
-        //dd($resp);
 
-        for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
-            $response = $this->fetch_biotime_employees($currentPage);
-            foreach ($response->data as $mydata) {
+        try {
+            $page_size = $this->biotime_employee_page_size;
+            $resp = $this->fetch_biotime_employees(1, $page_size);
 
-                $data = array(
-
-                    "emp_code" => $mydata->emp_code,
-                    "biotime_emp_id" => $mydata->id,
-                    "biotime_facility_id" => $mydata->area[0]->id,
-                    "biotime_fac_id" => $mydata->area[0]->area_code
-                );
-                $message = $this->db->replace('biotime_enrollment', $data);
-                // array_push($rows, $data);
+            if (empty($resp) || !isset($resp->count)) {
+                log_message('error', 'biotime_employees: Invalid response from fetch_biotime_employees()');
+                $this->cronjob_register(7, 'bioitimejobs/biotime_employees', 'failed');
+                return false;
             }
-        }
-        // dd($data);
 
-        $process = 7;
-        $method = "bioitimejobs/biotime_employees";
-        if ($response) {
-            $status = "successful";
-        } else {
-            $status = "failed";
+            $count = (int) $resp->count;
+            $pages = $this->_biotime_list_pages($resp, $page_size);
+            $saved = 0;
+            $message = null;
+
+            if ($count > 0) {
+                $this->db->truncate('biotime_enrollment');
+            }
+
+            for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
+                $response = ($currentPage === 1) ? $resp : $this->fetch_biotime_employees($currentPage, $page_size);
+                $employees = $this->_biotime_list_rows($response);
+
+                foreach ($employees as $mydata) {
+                    if (!is_object($mydata) || !isset($mydata->emp_code) || !isset($mydata->id)) {
+                        continue;
+                    }
+
+                    $area = $this->_biotime_employee_area($mydata);
+                    // biotime_enrollment columns are NOT NULL — use empty string when area missing
+                    $data = [
+                        'emp_code' => (string) $mydata->emp_code,
+                        'biotime_emp_id' => (string) (int) $mydata->id,
+                        'biotime_facility_id' => ($area && isset($area->id)) ? (string) (int) $area->id : '',
+                        'biotime_fac_id' => ($area && isset($area->area_code)) ? (string) $area->area_code : '',
+                    ];
+                    $message = $this->db->replace('biotime_enrollment', $data);
+                    if ($message) {
+                        $saved++;
+                    }
+                }
+            }
+
+            $process = 7;
+            $method = 'bioitimejobs/biotime_employees';
+            $status = ($saved > 0) ? 'successful' : 'failed';
+            $this->cronjob_register($process, $method, $status);
+            return $this->log($message ? $message : ('biotime_employees saved=' . $saved));
+        } catch (Exception $e) {
+            log_message('error', 'biotime_employees Exception: ' . $e->getMessage());
+            $this->cronjob_register(7, 'bioitimejobs/biotime_employees', 'failed');
+            return false;
+        } catch (Error $e) {
+            log_message('error', 'biotime_employees Fatal Error: ' . $e->getMessage());
+            $this->cronjob_register(7, 'bioitimejobs/biotime_employees', 'failed');
+            return false;
         }
-        $this->cronjob_register($process, $method, $status);
-        return $this->log($message);
     }
 
     //create multiple new users cronjob
     public function transfer_employees()
     {
         //effective transfers
-        $howmany = array();
-        $query = $this->db->query("SELECT * FROM  biotime_transfers");
+        $query = $this->db->query('SELECT * FROM  biotime_transfers');
         $trasnfers = $query->result();
-        foreach ($trasnfers as $newuser):
-
+        $message = null;
+        foreach ($trasnfers as $newuser) {
             $message = $this->update_biotimeuser($newuser);
-
-
-        endforeach;
-        $process = 5;
-        $method = "bioitimejobs/tranfer_employees";
-        if (@$message) {
-            $status = "successful";
-        } else {
-            $status = "failed";
         }
+        $process = 5;
+        $method = 'bioitimejobs/tranfer_employees';
+        $status = @$message ? 'successful' : 'failed';
         $this->cronjob_register($process, $method, $status);
         $this->log($status);
 
-
         echo $status;
+    }
+
+    /**
+     * CLI/browser smoke test for BioTime 9.5 employee sync (fixtures + optional live API).
+     * Usage: php index.php biotimejobs testBioTime95Sync
+     */
+    public function testBioTime95Sync()
+    {
+        header('Content-Type: text/plain; charset=utf-8');
+        $pass = 0;
+        $fail = 0;
+        $lines = [];
+        $assert = function ($ok, $label) use (&$pass, &$fail, &$lines) {
+            if ($ok) {
+                $pass++;
+                $lines[] = "[PASS] $label";
+            } else {
+                $fail++;
+                $lines[] = "[FAIL] $label";
+            }
+        };
+
+        $lines[] = '=== BioTime 9.5 employee sync smoke test ===';
+        $lines[] = 'BIO_URL=' . (defined('BIO_URL') ? BIO_URL : '(undefined)');
+        $lines[] = 'Time=' . date('Y-m-d H:i:s');
+
+        // --- Fixture shaped like BioTime 9.5 employee list ---
+        $fixture = json_decode(json_encode([
+            'count' => 2,
+            'next' => null,
+            'previous' => null,
+            'msg' => '',
+            'code' => 0,
+            'data' => [
+                [
+                    'id' => 91001,
+                    'emp_code' => 'TESTBT95001',
+                    'first_name' => 'Demo',
+                    'last_name' => 'One',
+                    'enroll_sn' => 'SN-TEST-001',
+                    'enable_att' => true,
+                    'area' => [
+                        ['id' => 77, 'area_code' => 'facility|TEST77', 'area_name' => 'Test Facility 77'],
+                    ],
+                ],
+                [
+                    'id' => 91002,
+                    'emp_code' => 'TESTBT95002',
+                    'first_name' => 'Demo',
+                    'last_name' => 'Two',
+                    'enroll_sn' => '',
+                    'attemployee' => [
+                        'id' => 91002,
+                        'enable_attendance' => false,
+                    ],
+                    'area' => [
+                        ['id' => 88, 'area_code' => 'facility|TEST88', 'area_name' => 'Test Facility 88'],
+                    ],
+                ],
+            ],
+        ]));
+
+        $rows = $this->_biotime_list_rows($fixture);
+        $assert(count($rows) === 2, 'parse list rows from data[]');
+        $assert($this->_biotime_list_pages($fixture, 100) === 1, 'page count with page_size=100');
+        $assert($this->_biotime_list_pages($fixture, 1) === 2, 'page count with page_size=1');
+
+        $area1 = $this->_biotime_employee_area($rows[0]);
+        $assert($area1 && $area1->area_code === 'facility|TEST77', 'area array[0].area_code');
+        $assert($this->_biotime_employee_att_status($rows[0]) === 1, 'enable_att true → att_status 1');
+        $assert($this->_biotime_employee_att_status($rows[1]) === 0, 'attemployee.enable_attendance false → 0');
+
+        // area as object (some 9.x payloads)
+        $objEmp = (object) [
+            'emp_code' => 'X',
+            'area' => (object) ['id' => 1, 'area_code' => 'A1', 'area_name' => 'Area1'],
+        ];
+        $areaObj = $this->_biotime_employee_area($objEmp);
+        $assert($areaObj && $areaObj->area_code === 'A1', 'area as object');
+
+        // empty area
+        $assert($this->_biotime_employee_area((object) ['emp_code' => 'Y', 'area' => []]) === null, 'empty area → null');
+
+        // results[] alternate key
+        $alt = (object) ['results' => $rows, 'count' => 2];
+        $assert(count($this->_biotime_list_rows($alt)) === 2, 'parse list rows from results[]');
+
+        // --- Persist enrolled staging (insert) ---
+        $staging_rows = [];
+        foreach ($rows as $mydata) {
+            $area = $this->_biotime_employee_area($mydata);
+            $staging_rows[] = [
+                'entry_id' => $area->area_code . '-' . $mydata->emp_code,
+                'card_number' => (string) $mydata->emp_code,
+                'facilityId' => (string) $area->area_code,
+                'source' => 'Biotime',
+                'device' => isset($mydata->enroll_sn) ? (string) $mydata->enroll_sn : '',
+                'att_status' => $this->_biotime_employee_att_status($mydata),
+            ];
+        }
+
+        // Isolate test rows: delete previous test markers then insert via model path
+        $this->db->where_in('card_number', ['TESTBT95001', 'TESTBT95002']);
+        $this->db->delete('fingerprints_staging');
+
+        $inserted = $this->db->insert_batch('fingerprints_staging', $staging_rows);
+        $assert($inserted !== false && (int) $inserted === 2, 'insert fingerprints_staging (2 rows)');
+
+        $q = $this->db->query("SELECT card_number, facilityId, att_status, device FROM fingerprints_staging WHERE card_number IN ('TESTBT95001','TESTBT95002') ORDER BY card_number");
+        $got = $q ? $q->result() : [];
+        $assert(count($got) === 2, 'staging rows readable');
+        $assert(isset($got[0]) && (string) $got[0]->att_status === '1' && $got[0]->device === 'SN-TEST-001', 'staging row1 att/device');
+        $assert(isset($got[1]) && (string) $got[1]->att_status === '0', 'staging row2 att_status 0');
+
+        // --- Update staging (att_status flip) ---
+        $this->db->where('card_number', 'TESTBT95001');
+        $upd = $this->db->update('fingerprints_staging', ['att_status' => '0', 'device' => 'SN-UPDATED']);
+        $assert($upd === true, 'update fingerprints_staging');
+        $check = $this->db->query("SELECT att_status, device FROM fingerprints_staging WHERE card_number='TESTBT95001'")->row();
+        $assert($check && (string) $check->att_status === '0' && $check->device === 'SN-UPDATED', 'staging update persisted');
+
+        // --- biotime_enrollment replace insert + update ---
+        $this->db->where_in('emp_code', ['TESTBT95001', 'TESTBT95002']);
+        $this->db->delete('biotime_enrollment');
+
+        foreach ($rows as $mydata) {
+            $area = $this->_biotime_employee_area($mydata);
+            $data = [
+                'emp_code' => (string) $mydata->emp_code,
+                'biotime_emp_id' => (string) (int) $mydata->id,
+                'biotime_facility_id' => ($area && isset($area->id)) ? (string) (int) $area->id : '',
+                'biotime_fac_id' => ($area && isset($area->area_code)) ? (string) $area->area_code : '',
+            ];
+            $assert($this->db->replace('biotime_enrollment', $data) === true, 'enrollment replace insert ' . $mydata->emp_code);
+        }
+
+        $enr = $this->db->query("SELECT emp_code, biotime_emp_id, biotime_facility_id, biotime_fac_id FROM biotime_enrollment WHERE emp_code='TESTBT95001'")->row();
+        $assert($enr && $enr->biotime_emp_id === '91001' && $enr->biotime_fac_id === 'facility|TEST77', 'enrollment insert values');
+
+        // update same emp_code via replace (facility change)
+        $assert($this->db->replace('biotime_enrollment', [
+            'emp_code' => 'TESTBT95001',
+            'biotime_emp_id' => '91001',
+            'biotime_facility_id' => '99',
+            'biotime_fac_id' => 'facility|UPDATED99',
+        ]) === true, 'enrollment replace update');
+        $enr2 = $this->db->query("SELECT biotime_facility_id, biotime_fac_id FROM biotime_enrollment WHERE emp_code='TESTBT95001'")->row();
+        $assert($enr2 && $enr2->biotime_facility_id === '99' && $enr2->biotime_fac_id === 'facility|UPDATED99', 'enrollment update persisted');
+
+        // employee with missing area still saves with empty facility fields
+        $assert($this->db->replace('biotime_enrollment', [
+            'emp_code' => 'TESTBT95003',
+            'biotime_emp_id' => '91003',
+            'biotime_facility_id' => '',
+            'biotime_fac_id' => '',
+        ]) === true, 'enrollment without area (empty strings)');
+
+        // --- Lookup helpers against existing synced tables ---
+        $fac = $this->db->query('SELECT area_code FROM biotime_facilities LIMIT 1')->row();
+        if ($fac) {
+            $id = $this->getbioloc($fac->area_code);
+            $assert(!empty($id), 'getbioloc resolves existing facility ' . $fac->area_code);
+        } else {
+            $lines[] = '[SKIP] getbioloc — biotime_facilities empty';
+        }
+        $job = $this->db->query('SELECT position_code FROM biotime_jobs WHERE position_code IS NOT NULL AND position_code <> "" LIMIT 1')->row();
+        if ($job) {
+            $jid = $this->getbiojobs($job->position_code);
+            $assert(!empty($jid), 'getbiojobs resolves existing position ' . $job->position_code);
+        } else {
+            $lines[] = '[SKIP] getbiojobs — biotime_jobs empty';
+        }
+        $dep = $this->db->query('SELECT dept_code FROM biotime_departments WHERE dept_code IS NOT NULL AND dept_code <> "" LIMIT 1')->row();
+        if ($dep) {
+            $did = $this->getbiodeps($dep->dept_code);
+            $assert(!empty($did), 'getbiodeps resolves existing department ' . $dep->dept_code);
+        } else {
+            $lines[] = '[SKIP] getbiodeps — biotime_departments empty';
+        }
+
+        // --- Live API probe (skip if BioTime host unreachable from this network) ---
+        $lines[] = '--- Live API probe ---';
+        $bioHostReachable = false;
+        if (defined('BIO_URL')) {
+            $parts = parse_url(BIO_URL);
+            $host = isset($parts['host']) ? $parts['host'] : '';
+            $port = isset($parts['port']) ? (int) $parts['port'] : ((isset($parts['scheme']) && $parts['scheme'] === 'https') ? 443 : 80);
+            if ($host !== '') {
+                $errno = 0;
+                $errstr = '';
+                $fp = @fsockopen($host, $port, $errno, $errstr, 3);
+                if ($fp) {
+                    $bioHostReachable = true;
+                    fclose($fp);
+                } else {
+                    $lines[] = "[SKIP] live API — cannot connect to {$host}:{$port} ({$errstr})";
+                }
+            }
+        }
+
+        if ($bioHostReachable) {
+            try {
+                $token = $this->get_token();
+                $assert(!empty($token), 'JWT token from /jwt-api-token-auth/');
+                if (!empty($token)) {
+                    $live = $this->get_Enrolled(1, 5);
+                    $assert(is_object($live) && isset($live->count), 'GET /personnel/api/employees/?page=1&page_size=5');
+                    if (is_object($live) && isset($live->count)) {
+                        $lines[] = '[INFO] live employee count=' . (int) $live->count;
+                        $liveRows = $this->_biotime_list_rows($live);
+                        $lines[] = '[INFO] page1 rows=' . count($liveRows);
+                        if (!empty($liveRows[0])) {
+                            $a = $this->_biotime_employee_area($liveRows[0]);
+                            $lines[] = '[INFO] sample emp_code=' . (isset($liveRows[0]->emp_code) ? $liveRows[0]->emp_code : '?')
+                                . ' area=' . ($a && isset($a->area_code) ? $a->area_code : '(none)');
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                $fail++;
+                $lines[] = '[FAIL] live API: ' . $e->getMessage();
+            } catch (Error $e) {
+                $fail++;
+                $lines[] = '[FAIL] live API fatal: ' . $e->getMessage();
+            }
+        }
+
+        // cleanup test rows (keep DB clean)
+        $this->db->where_in('card_number', ['TESTBT95001', 'TESTBT95002']);
+        $this->db->delete('fingerprints_staging');
+        $this->db->where_in('emp_code', ['TESTBT95001', 'TESTBT95002', 'TESTBT95003']);
+        $this->db->delete('biotime_enrollment');
+        $lines[] = '[INFO] cleaned test rows from staging/enrollment';
+
+        $lines[] = "=== Result: $pass passed, $fail failed ===";
+        echo implode("\n", $lines) . "\n";
+        return ($fail === 0);
     }
 
 

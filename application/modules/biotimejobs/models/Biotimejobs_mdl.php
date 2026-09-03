@@ -9,7 +9,7 @@ class Biotimejobs_mdl extends CI_Model
     public  function __construct()
     {
         parent::__construct();
-        $this->facility = $_SESSION['facility'];
+        $this->facility = isset($_SESSION['facility']) ? $_SESSION['facility'] : null;
     }
 
 
@@ -70,21 +70,19 @@ class Biotimejobs_mdl extends CI_Model
 
     public function add_enrolled($data)
     {
-        if ($count = count($data) > 1) {
+        if (!is_array($data) || count($data) < 1) {
+            return print_r($this->exect()) . " saveEnrolled() add_enrolled() Failed — empty payload";
+        }
+
+        if (count($data) > 0) {
             $this->db->query("CALL `fingerpints_cache`()");
             $this->db->query("TRUNCATE fingerprints_staging");
         }
         $query = $this->db->insert_batch('fingerprints_staging', $data);
 
-
-
         if ($query) {
             $n = $this->db->query("select entry_id from fingerprints_staging");
-
             $message = print_r($this->exect()) . " saveEnrolled() add_enrolled() Created Enrolled users from Biotime " . $n->num_rows();
-
-            // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows() ));
-            // ");
         } else {
             $message = print_r($this->exect()) . " saveEnrolled() add_enrolled() Failed ";
         }
@@ -134,15 +132,25 @@ class Biotimejobs_mdl extends CI_Model
         }
         
         $values = array();
+        $has_biotime_id = $this->db->field_exists('biotime_dept_id', 'biotime_departments');
         foreach ($data as $row) {
             $dept_code = isset($row['dept_code']) ? $this->db->escape($row['dept_code']) : 'NULL';
             $dept_name = isset($row['dept_name']) ? $this->db->escape($row['dept_name']) : 'NULL';
-            $values[] = "($dept_code, $dept_name)";
+            if ($has_biotime_id) {
+                $biotime_id = isset($row['biotime_dept_id']) ? (int) $row['biotime_dept_id'] : 'NULL';
+                $values[] = "($dept_code, $dept_name, $biotime_id)";
+            } else {
+                $values[] = "($dept_code, $dept_name)";
+            }
         }
         
         // Use REPLACE INTO - this will delete existing row if dept_code matches and insert new one
         // id is auto-increment, so we don't include it - MySQL will generate new id
-        $sql = "REPLACE INTO biotime_departments (dept_code, dept_name) VALUES " . implode(', ', $values);
+        if ($has_biotime_id) {
+            $sql = "REPLACE INTO biotime_departments (dept_code, dept_name, biotime_dept_id) VALUES " . implode(', ', $values);
+        } else {
+            $sql = "REPLACE INTO biotime_departments (dept_code, dept_name) VALUES " . implode(', ', $values);
+        }
         
         $query = $this->db->query($sql);
         if ($query) {
