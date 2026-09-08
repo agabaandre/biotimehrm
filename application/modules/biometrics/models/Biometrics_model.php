@@ -435,7 +435,7 @@ public function get_new_users_datatable()
         5 => "({$resolved})",
     ];
     $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'i.surname';
-    $sql = "SELECT i.ihris_pid, i.surname, i.firstname, i.fullname, i.othername, i.job, i.card_number,
+    $sql = "SELECT i.ihris_pid, i.surname, i.firstname, i.othername, i.job, i.card_number,
                    ({$resolved}) AS biotime_emp_code
             $from $where_extra
             ORDER BY $order_by {$p['order_dir']}
@@ -446,8 +446,8 @@ public function get_new_users_datatable()
     $n = $p['start'] + 1;
     foreach ($rows as $r) {
         $name = trim(($r->surname ?? '') . ' ' . ($r->firstname ?? ''));
-        if ($name === '') {
-            $name = trim(($r->fullname ?? '') . ' ' . ($r->othername ?? ''));
+        if ($name === '' && !empty($r->othername)) {
+            $name = trim((string) $r->othername);
         }
         $emp = (string) ($r->biotime_emp_code ?? '');
         $ihris = (string) ($r->ihris_pid ?? '');
