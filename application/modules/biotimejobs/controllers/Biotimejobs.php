@@ -1742,14 +1742,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     {
         $facility = $this->db->escape_str($facility);
         $person = $this->biotimejobs_mdl->sql_person_emp_code('ihrisdata');
-        $be_match = $this->biotimejobs_mdl->sql_emp_code_match_any('be.emp_code', 'ihrisdata');
         $query = $this->db->query(
             "SELECT ihrisdata.*
              FROM ihrisdata
-             LEFT JOIN biotime_enrollment be ON {$be_match}
              WHERE ihrisdata.facility_id='$facility'
                AND ({$person}) <> ''
-               AND be.emp_code IS NULL"
+               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ihrisdata.card_number)
+               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(ihrisdata.ipps, '') IS NOT NULL AND be.emp_code = ihrisdata.ipps)
+               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))"
         );
         return $query ? $query->result() : [];
     }
