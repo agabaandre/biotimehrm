@@ -148,6 +148,7 @@ class Biometrics extends MX_Controller{
     /**
      * Force a single BioTime employee update (facility/job sync).
      * POST card_number and/or ihris_pid
+     * If the iHRIS facility has no BioTime area, assigns area 1 (Not Authorized).
      */
     public function forceUpdate(){
         if (ob_get_level()) {
@@ -186,6 +187,12 @@ class Biometrics extends MX_Controller{
             if (!$enr && $card !== '') {
                 $enr = $this->db->get_where('biotime_enrollment', ['emp_code' => $card], 1)->row();
             }
+            if (!$enr && !empty($staff->card_number)) {
+                $enr = $this->db->get_where('biotime_enrollment', ['emp_code' => $staff->card_number], 1)->row();
+            }
+            if (!$enr && !empty($staff->ipps)) {
+                $enr = $this->db->get_where('biotime_enrollment', ['emp_code' => $staff->ipps], 1)->row();
+            }
             if (!$enr || empty($enr->biotime_emp_id)) {
                 echo json_encode(['status' => 'error', 'message' => 'No BioTime enrollment for this staff']);
                 exit;
@@ -198,6 +205,45 @@ class Biometrics extends MX_Controller{
             $row = $staff;
         }
 
+        $targetFac = '';
+        if (!empty($row->new_facility)) {
+            $targetFac = trim((string) $row->new_facility);
+        } elseif (!empty($row->facility_id)) {
+            $targetFac = trim((string) $row->facility_id);
+        }
+
+        // Resolve BioTime area; if missing, Force Update parks in Not Authorized (area 1)
+        $areaId = null;
+        if ($targetFac !== '') {
+            $esc = $this->db->escape_str($targetFac);
+            $areaRow = $this->db->query("SELECT id FROM biotime_facilities WHERE area_code = '$esc' LIMIT 1")->row();
+            if (!$areaRow && strpos($targetFac, 'facility|') === 0) {
+                $bare = $this->db->escape_str(substr($targetFac, strlen('facility|')));
+                $areaRow = $this->db->query("SELECT id FROM biotime_facilities WHERE area_code = '$bare' LIMIT 1")->row();
+            }
+            if (!$areaRow && strpos($targetFac, 'facility|') !== 0) {
+                $pref = $this->db->escape_str('facility|' . $targetFac);
+                $areaRow = $this->db->query("SELECT id FROM biotime_facilities WHERE area_code = '$pref' LIMIT 1")->row();
+            }
+            if ($areaRow) {
+                $areaId = (int) $areaRow->id;
+            }
+        }
+        $usedNotAuthorized = false;
+        if (empty($areaId)) {
+            $na = $this->db->query(
+                "SELECT id FROM biotime_facilities
+                 WHERE area_code = '1' OR id = 1
+                 ORDER BY CASE WHEN area_code = '1' THEN 0 ELSE 1 END, id ASC
+                 LIMIT 1"
+            )->row();
+            $areaId = $na ? (int) $na->id : 1;
+            $row->force_area_id = $areaId;
+            $row->force_not_authorized = 1;
+            $usedNotAuthorized = true;
+            log_message('error', 'forceUpdate: BioTime area not found for ' . $targetFac . '; using Not Authorized area_id=' . $areaId);
+        }
+
         $label = $card !== '' ? $card : $ihris_pid;
         try {
             $response = Modules::run('biotimejobs/update_biotimeuser', $row);
@@ -208,9 +254,15 @@ class Biometrics extends MX_Controller{
                     'timestamp' => date('Y-m-d H:i:s'),
                 ]);
             } else {
+                $msg = 'BioTime update applied for ' . $label;
+                if ($usedNotAuthorized) {
+                    $msg .= ' (assigned to area ' . $areaId . ' Not Authorized — facility not in BioTime)';
+                }
                 echo json_encode([
                     'status' => 'success',
-                    'message' => 'BioTime update applied for ' . $label,
+                    'message' => $msg,
+                    'area_id' => $areaId,
+                    'not_authorized' => $usedNotAuthorized,
                     'timestamp' => date('Y-m-d H:i:s'),
                 ]);
             }

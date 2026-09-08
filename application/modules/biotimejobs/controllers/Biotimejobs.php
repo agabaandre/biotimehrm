@@ -1522,14 +1522,21 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             return ['ok' => false, 'error' => 'facility/area is required'];
         }
 
-        $barea = $this->getbioloc($facility_code);
-        if (empty($barea)) {
-            // BioTime area missing for this iHRIS facility — park in area 1 (Not Authorized)
-            log_message(
-                'error',
-                'BioTime area not found for ' . $facility_code . '; assigning area_id 1 (Not Authorized)'
-            );
-            $barea = 1;
+        $area_fallback = false;
+        if (!empty($overrides['area_id'])) {
+            $barea = (int) $overrides['area_id'];
+            $area_fallback = !empty($overrides['force_not_authorized']);
+        } else {
+            $barea = $this->getbioloc($facility_code);
+            if (empty($barea)) {
+                // BioTime area missing for this iHRIS facility — park in area 1 (Not Authorized)
+                $barea = $this->biotime_not_authorized_area_id();
+                $area_fallback = true;
+                log_message(
+                    'error',
+                    'BioTime area not found for ' . $facility_code . '; assigning area_id ' . $barea . ' (Not Authorized)'
+                );
+            }
         }
 
         // Department: map when possible, else default 1 (per BioTime docs / product default)
@@ -1644,6 +1651,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             'body' => $body,
             'facility_code' => $facility_code,
             'area_id' => (int) $barea,
+            'area_fallback' => !empty($area_fallback),
             'emp_code' => $emp_code,
         ];
     }
@@ -1667,6 +1675,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         if (!empty($userdata->facility_id) && empty($overrides['new_facility'])) {
             $overrides['facility_id'] = $userdata->facility_id;
         }
+        // Force Update / UI can pin area to Not Authorized (area 1)
+        if (!empty($userdata->force_area_id)) {
+            $overrides['area_id'] = (int) $userdata->force_area_id;
+            $overrides['force_not_authorized'] = !empty($userdata->force_not_authorized);
+        } elseif (!empty($userdata->force_not_authorized)) {
+            $overrides['area_id'] = $this->biotime_not_authorized_area_id();
+            $overrides['force_not_authorized'] = true;
+        }
 
         // Resolve emp_code from local enrollment map when transfer row lacks it
         if (empty($userdata->emp_code) && empty($userdata->card_number)) {
@@ -1687,6 +1703,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
         $token = $this->get_token();
         if (empty($token)) {
+            log_message('error', 'update_biotimeuser: BioTime token unavailable');
             return false;
         }
 
@@ -1868,12 +1885,41 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
     public function getbioloc($facility)
     {
-        $facility = $this->db->escape_str((string) $facility);
-        $query = $this->db->query("SELECT id from biotime_facilities where area_code='$facility' LIMIT 1");
-        if (!$query || $query->num_rows() < 1) {
+        $facility = trim(urldecode((string) $facility));
+        if ($facility === '') {
             return null;
         }
-        return $query->row()->id;
+        $candidates = [$facility];
+        if (strpos($facility, 'facility|') === 0) {
+            $candidates[] = substr($facility, strlen('facility|'));
+        } else {
+            $candidates[] = 'facility|' . $facility;
+        }
+        foreach (array_unique($candidates) as $code) {
+            $esc = $this->db->escape_str($code);
+            $query = $this->db->query("SELECT id FROM biotime_facilities WHERE area_code='$esc' LIMIT 1");
+            if ($query && $query->num_rows() > 0) {
+                return (int) $query->row()->id;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * BioTime area id for "Not Authorized" (area_code 1, else numeric id 1).
+     */
+    public function biotime_not_authorized_area_id()
+    {
+        $q = $this->db->query(
+            "SELECT id FROM biotime_facilities
+             WHERE area_code = '1' OR id = 1
+             ORDER BY CASE WHEN area_code = '1' THEN 0 ELSE 1 END, id ASC
+             LIMIT 1"
+        );
+        if ($q && $q->num_rows() > 0) {
+            return (int) $q->row()->id;
+        }
+        return 1;
     }
     //not working
     public function biotimeFacilities()

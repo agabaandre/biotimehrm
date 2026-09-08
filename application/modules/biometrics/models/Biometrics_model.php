@@ -703,14 +703,12 @@ public function get_users_needing_update(){
  * Single transfer candidate by emp/card/person id (for force update).
  */
 public function get_transfer_by_card($card_number){
-    $card = $this->db->escape_str(trim((string) $card_number));
+    $card = trim((string) $card_number);
     if ($card === '') {
         return null;
     }
-    $person = $this->sql_person_emp_code('i');
-    $be_match = $this->sql_emp_code_match_any('be.emp_code', 'i');
-    $query = $this->db->query(
-        "SELECT i.*,
+    $esc = $this->db->escape_str($card);
+    $select = "i.*,
                 i.facility_id AS new_facility,
                 i.facility AS new_fname,
                 be.id AS enrollment_row_id,
@@ -718,14 +716,41 @@ public function get_transfer_by_card($card_number){
                 be.biotime_emp_id,
                 be.biotime_facility_id AS biotime_area_id,
                 be.biotime_fac_id,
-                be.last_update AS enrollment_last_update
-         FROM ihrisdata i
-         INNER JOIN biotime_enrollment be ON {$be_match}
-         WHERE (({$person}) = '$card' OR i.card_number = '$card' OR i.ipps = '$card' OR be.emp_code = '$card')
+                be.last_update AS enrollment_last_update";
+
+    // Prefer direct emp_code hit (indexed), then card/ipps/person joins
+    $q = $this->db->query(
+        "SELECT {$select}
+         FROM biotime_enrollment be
+         INNER JOIN ihrisdata i ON (
+                i.card_number = be.emp_code
+             OR i.ipps = be.emp_code
+             OR i.ihris_pid = CONCAT('person|', be.emp_code)
+             OR (be.emp_code LIKE '4253%' AND CHAR_LENGTH(be.emp_code) > 4
+                 AND i.ihris_pid = CONCAT('UCMB-person|', SUBSTRING(be.emp_code, 5)))
+         )
+         WHERE be.emp_code = '$esc'
            AND i.facility_id <> be.biotime_fac_id
          LIMIT 1"
     );
-    return ($query && $query->num_rows()) ? $query->row() : null;
+    if ($q && $q->num_rows()) {
+        return $q->row();
+    }
+
+    $person = $this->sql_person_emp_code('i');
+    $q2 = $this->db->query(
+        "SELECT {$select}
+         FROM ihrisdata i
+         INNER JOIN biotime_enrollment be ON (
+                be.emp_code = i.card_number
+             OR (NULLIF(i.ipps, '') IS NOT NULL AND be.emp_code = i.ipps)
+             OR be.emp_code = ({$person})
+         )
+         WHERE (i.card_number = '$esc' OR i.ipps = '$esc' OR ({$person}) = '$esc' OR i.ihris_pid = '$esc')
+           AND i.facility_id <> be.biotime_fac_id
+         LIMIT 1"
+    );
+    return ($q2 && $q2->num_rows()) ? $q2->row() : null;
 }
 
 public function get_ihris_by_card($card_number){
