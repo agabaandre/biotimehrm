@@ -1485,6 +1485,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      * New enrollments: emp_code = iHRIS person id (UCMB → 4253+id).
      * Updates: keep existing biotime enrollment emp_code when present.
      * Required: emp_code, area. Department defaults to 1 when unmapped.
+     * Area defaults to 1 (Not Authorized) when the iHRIS facility has no BioTime area.
      *
      * @param object|array $staff
      * @param array $overrides facility/area/department/job keys when transferring
@@ -1523,7 +1524,12 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
         $barea = $this->getbioloc($facility_code);
         if (empty($barea)) {
-            return ['ok' => false, 'error' => 'BioTime area not found for ' . $facility_code];
+            // BioTime area missing for this iHRIS facility — park in area 1 (Not Authorized)
+            log_message(
+                'error',
+                'BioTime area not found for ' . $facility_code . '; assigning area_id 1 (Not Authorized)'
+            );
+            $barea = 1;
         }
 
         // Department: map when possible, else default 1 (per BioTime docs / product default)
