@@ -83,6 +83,60 @@ class Biometrics extends MX_Controller{
         echo Modules::run("templates/main", $data);
     }
 
+    /**
+     * Server-side DataTables: enrolled users.
+     */
+    public function enrolledAjax()
+    {
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/json');
+        try {
+            echo json_encode($this->biometrics_mdl->get_enrolled_datatable());
+        } catch (Throwable $e) {
+            log_message('error', 'enrolledAjax: ' . $e->getMessage());
+            echo json_encode(['draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Server-side DataTables: new / unenrolled users.
+     */
+    public function unenrolledAjax()
+    {
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/json');
+        try {
+            echo json_encode($this->biometrics_mdl->get_new_users_datatable());
+        } catch (Throwable $e) {
+            log_message('error', 'unenrolledAjax: ' . $e->getMessage());
+            echo json_encode(['draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Server-side DataTables: users needing BioTime update.
+     */
+    public function needsUpdateAjax()
+    {
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/json');
+        try {
+            echo json_encode($this->biometrics_mdl->get_needs_update_datatable());
+        } catch (Throwable $e) {
+            log_message('error', 'needsUpdateAjax: ' . $e->getMessage());
+            echo json_encode(['draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
+
     public function get_enrolled(){
         return $this->biometrics_mdl->get_enrolled();
     }
@@ -93,7 +147,7 @@ class Biometrics extends MX_Controller{
 
     /**
      * Force a single BioTime employee update (facility/job sync).
-     * POST card_number
+     * POST card_number and/or ihris_pid
      */
     public function forceUpdate(){
         if (ob_get_level()) {
@@ -101,23 +155,39 @@ class Biometrics extends MX_Controller{
         }
         header('Content-Type: application/json');
 
-        $card = $this->input->post('card_number');
-        if (empty($card)) {
-            echo json_encode(['status' => 'error', 'message' => 'card_number is required']);
+        $card = trim((string) $this->input->post('card_number'));
+        $ihris_pid = trim((string) $this->input->post('ihris_pid'));
+        if ($card === '' && $ihris_pid === '') {
+            echo json_encode(['status' => 'error', 'message' => 'card_number or ihris_pid is required']);
             exit;
         }
 
-        $row = $this->biometrics_mdl->get_transfer_by_card($card);
+        $row = null;
+        if ($card !== '') {
+            $row = $this->biometrics_mdl->get_transfer_by_card($card);
+        }
         if (!$row) {
-            // Allow force refresh even if facilities already match: rebuild from enrollment + ihris
-            $staff = $this->biometrics_mdl->get_ihris_by_card($card);
+            $staff = null;
+            if ($ihris_pid !== '') {
+                $staff = $this->biometrics_mdl->get_ihris_by_pid($ihris_pid);
+            }
+            if (!$staff && $card !== '') {
+                $staff = $this->biometrics_mdl->get_ihris_by_card($card);
+            }
             if (!$staff) {
-                echo json_encode(['status' => 'error', 'message' => 'Staff not found for card ' . $card]);
+                echo json_encode(['status' => 'error', 'message' => 'Staff not found']);
                 exit;
             }
-            $enr = $this->db->get_where('biotime_enrollment', ['emp_code' => $card], 1)->row();
+            $resolved = $this->biometrics_mdl->resolve_emp_code_for_staff($staff);
+            $enr = null;
+            if ($resolved !== '') {
+                $enr = $this->db->get_where('biotime_enrollment', ['emp_code' => $resolved], 1)->row();
+            }
+            if (!$enr && $card !== '') {
+                $enr = $this->db->get_where('biotime_enrollment', ['emp_code' => $card], 1)->row();
+            }
             if (!$enr || empty($enr->biotime_emp_id)) {
-                echo json_encode(['status' => 'error', 'message' => 'No BioTime enrollment for card ' . $card]);
+                echo json_encode(['status' => 'error', 'message' => 'No BioTime enrollment for this staff']);
                 exit;
             }
             $staff->new_facility = $staff->facility_id;
@@ -128,18 +198,19 @@ class Biometrics extends MX_Controller{
             $row = $staff;
         }
 
+        $label = $card !== '' ? $card : $ihris_pid;
         try {
             $response = Modules::run('biotimejobs/update_biotimeuser', $row);
             if ($response === false || $response === null) {
                 echo json_encode([
                     'status' => 'error',
-                    'message' => 'Update failed for card ' . $card . '. Check BioTime logs.',
+                    'message' => 'Update failed for ' . $label . '. Check BioTime logs.',
                     'timestamp' => date('Y-m-d H:i:s'),
                 ]);
             } else {
                 echo json_encode([
                     'status' => 'success',
-                    'message' => 'BioTime update applied for card ' . $card,
+                    'message' => 'BioTime update applied for ' . $label,
                     'timestamp' => date('Y-m-d H:i:s'),
                 ]);
             }
@@ -152,7 +223,7 @@ class Biometrics extends MX_Controller{
 
     /**
      * Force create / enroll a single iHRIS staff member in BioTime.
-     * POST card_number
+     * POST card_number and/or ihris_pid
      */
     public function forceEnroll(){
         if (ob_get_level()) {
@@ -160,18 +231,26 @@ class Biometrics extends MX_Controller{
         }
         header('Content-Type: application/json');
 
-        $card = $this->input->post('card_number');
-        if (empty($card)) {
-            echo json_encode(['status' => 'error', 'message' => 'card_number is required']);
+        $card = trim((string) $this->input->post('card_number'));
+        $ihris_pid = trim((string) $this->input->post('ihris_pid'));
+        if ($card === '' && $ihris_pid === '') {
+            echo json_encode(['status' => 'error', 'message' => 'card_number or ihris_pid is required']);
             exit;
         }
 
-        $staff = $this->biometrics_mdl->get_ihris_by_card($card);
+        $staff = null;
+        if ($ihris_pid !== '') {
+            $staff = $this->biometrics_mdl->get_ihris_by_pid($ihris_pid);
+        }
+        if (!$staff && $card !== '') {
+            $staff = $this->biometrics_mdl->get_ihris_by_card($card);
+        }
         if (!$staff) {
-            echo json_encode(['status' => 'error', 'message' => 'Staff not found for card ' . $card]);
+            echo json_encode(['status' => 'error', 'message' => 'Staff not found']);
             exit;
         }
 
+        $label = $card !== '' ? $card : $ihris_pid;
         try {
             $response = Modules::run('biotimejobs/create_new_biotimeuser_from_ihris', $staff);
             $ok = ($response !== false && $response !== null && $response !== '');
@@ -179,13 +258,13 @@ class Biometrics extends MX_Controller{
             if (!$ok) {
                 echo json_encode([
                     'status' => 'error',
-                    'message' => 'Enrollment failed for card ' . $card . '. Check BioTime API / server logs.',
+                    'message' => 'Enrollment failed for ' . $label . '. Check BioTime API / server logs.',
                     'timestamp' => date('Y-m-d H:i:s'),
                 ]);
             } else {
                 echo json_encode([
                     'status' => 'success',
-                    'message' => 'Enrollment submitted for card ' . $card,
+                    'message' => 'Enrollment submitted for ' . $label,
                     'timestamp' => date('Y-m-d H:i:s'),
                 ]);
             }

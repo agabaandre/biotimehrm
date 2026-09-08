@@ -174,13 +174,260 @@ return $query->result();
 }
 
 /**
+ * SQL: bare / UCMB-prefixed person emp_code from ihris_pid.
+ * UCMB-person|123 → 4253123; person|123 → 123.
+ */
+public function sql_person_emp_code($alias = '')
+{
+    $p = ($alias !== '' && $alias !== null) ? preg_replace('/[^a-zA-Z0-9_]/', '', $alias) . '.' : '';
+    return "CASE WHEN {$p}ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX({$p}ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX({$p}ihris_pid, 'person|', -1)) END";
+}
+
+/**
+ * SQL: resolved BioTime emp_code (UCMB → 4253+id; else numeric card; else bare person id).
+ */
+public function sql_resolved_emp_code($alias = '')
+{
+    $p = ($alias !== '' && $alias !== null) ? preg_replace('/[^a-zA-Z0-9_]/', '', $alias) . '.' : '';
+    $person = $this->sql_person_emp_code($alias);
+    return "CASE WHEN {$p}ihris_pid LIKE '%UCMB%' THEN {$person} WHEN {$p}card_number REGEXP '^[0-9]+$' THEN TRIM({$p}card_number) ELSE {$person} END";
+}
+
+/**
+ * Parse DataTables POST params.
+ */
+protected function _dt_params()
+{
+    $draw = (int) $this->input->post('draw');
+    $start = max(0, (int) $this->input->post('start'));
+    $length = (int) $this->input->post('length');
+    if ($length < 1 || $length > 500) {
+        $length = 25;
+    }
+    $search_post = $this->input->post('search');
+    $search = '';
+    if (is_array($search_post) && isset($search_post['value'])) {
+        $search = trim((string) $search_post['value']);
+    }
+    $order_col = 1;
+    $order_dir = 'asc';
+    $order_post = $this->input->post('order');
+    if (is_array($order_post) && isset($order_post[0]['column'])) {
+        $order_col = (int) $order_post[0]['column'];
+        $order_dir = (isset($order_post[0]['dir']) && strtolower($order_post[0]['dir']) === 'desc') ? 'desc' : 'asc';
+    }
+    return compact('draw', 'start', 'length', 'search', 'order_col', 'order_dir');
+}
+
+/**
+ * Server-side enrolled users (fingerprints_final with device).
+ */
+public function get_enrolled_datatable()
+{
+    $p = $this->_dt_params();
+    $facility = $this->db->escape_str($this->facility);
+    $where = "facilityId = '$facility' AND device != '' AND device IS NOT NULL";
+    if ($p['search'] !== '') {
+        $s = $this->db->escape_like_str($p['search']);
+        $where .= " AND (ihris_pid LIKE '%$s%' OR fullname LIKE '%$s%' OR othername LIKE '%$s%' OR job LIKE '%$s%' OR card_number LIKE '%$s%' OR facility LIKE '%$s%' OR device LIKE '%$s%')";
+    }
+
+    $total = (int) $this->db->query("SELECT COUNT(*) AS c FROM fingerprints_final WHERE facilityId = '$facility' AND device != '' AND device IS NOT NULL")->row()->c;
+    $filtered = (int) $this->db->query("SELECT COUNT(*) AS c FROM fingerprints_final WHERE $where")->row()->c;
+
+    $order_map = [
+        1 => 'ihris_pid',
+        2 => 'fullname',
+        3 => 'facility',
+        4 => 'device',
+        5 => 'job',
+        6 => 'card_number',
+        7 => 'att_status',
+    ];
+    $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'fullname';
+    $sql = "SELECT * FROM fingerprints_final WHERE $where ORDER BY $order_by {$p['order_dir']} LIMIT {$p['length']} OFFSET {$p['start']}";
+    $rows = $this->db->query($sql)->result();
+
+    $data = [];
+    $n = $p['start'] + 1;
+    foreach ($rows as $r) {
+        $status = ((string) ($r->att_status ?? '') === '1')
+            ? "<span style='color:green;'>Active</span>"
+            : "<span style='color:#999;'>In-Active</span>";
+        $data[] = [
+            $n++,
+            htmlspecialchars(str_replace('person|', '', $r->ihris_pid ?? '')),
+            htmlspecialchars(trim(($r->fullname ?? '') . ' ' . ($r->othername ?? ''))),
+            htmlspecialchars($r->facility ?? ''),
+            htmlspecialchars($r->device ?? ''),
+            htmlspecialchars($r->job ?? ''),
+            htmlspecialchars($r->card_number ?? ''),
+            $status,
+        ];
+    }
+
+    return [
+        'draw' => $p['draw'],
+        'recordsTotal' => $total,
+        'recordsFiltered' => $filtered,
+        'data' => $data,
+    ];
+}
+
+/**
+ * Server-side new (unenrolled) users — uses resolved emp_code like enrollment.
+ */
+public function get_new_users_datatable()
+{
+    $p = $this->_dt_params();
+    $facility = $this->db->escape_str($this->facility);
+    $resolved = $this->sql_resolved_emp_code('');
+    $base_where = "facility_id = '$facility'
+           AND {$resolved} <> ''
+           AND {$resolved} NOT IN (
+                SELECT card_number FROM fingerprints_staging
+                WHERE card_number IS NOT NULL AND card_number <> ''
+           )";
+    $where = $base_where;
+    if ($p['search'] !== '') {
+        $s = $this->db->escape_like_str($p['search']);
+        $where .= " AND (ihris_pid LIKE '%$s%' OR surname LIKE '%$s%' OR firstname LIKE '%$s%' OR othername LIKE '%$s%' OR job LIKE '%$s%' OR card_number LIKE '%$s%' OR {$resolved} LIKE '%$s%')";
+    }
+
+    $total = (int) $this->db->query("SELECT COUNT(*) AS c FROM ihrisdata WHERE $base_where")->row()->c;
+    $filtered = (int) $this->db->query("SELECT COUNT(*) AS c FROM ihrisdata WHERE $where")->row()->c;
+
+    $order_map = [
+        1 => 'ihris_pid',
+        2 => 'surname',
+        3 => 'job',
+        4 => 'card_number',
+        5 => $resolved,
+    ];
+    $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'surname';
+    $sql = "SELECT *, {$resolved} AS biotime_emp_code FROM ihrisdata WHERE $where ORDER BY $order_by {$p['order_dir']} LIMIT {$p['length']} OFFSET {$p['start']}";
+    $rows = $this->db->query($sql)->result();
+
+    $data = [];
+    $n = $p['start'] + 1;
+    foreach ($rows as $r) {
+        $name = trim(($r->surname ?? '') . ' ' . ($r->firstname ?? ''));
+        if ($name === '') {
+            $name = trim(($r->fullname ?? '') . ' ' . ($r->othername ?? ''));
+        }
+        $emp = (string) ($r->biotime_emp_code ?? '');
+        $ihris = (string) ($r->ihris_pid ?? '');
+        $card = (string) ($r->card_number ?? '');
+        $btn = '';
+        if ($emp !== '' || $ihris !== '') {
+            $btn = '<button type="button" class="btn btn-sm btn-primary force-enroll-btn"'
+                . ' data-card="' . htmlspecialchars($emp !== '' ? $emp : $card, ENT_QUOTES, 'UTF-8') . '"'
+                . ' data-ihris="' . htmlspecialchars($ihris, ENT_QUOTES, 'UTF-8') . '">'
+                . '<i class="fas fa-user-plus"></i> Force Enroll</button>';
+        } else {
+            $btn = '<span class="text-muted">No emp code</span>';
+        }
+        $data[] = [
+            $n++,
+            htmlspecialchars(str_replace('person|', '', $ihris)),
+            htmlspecialchars($name),
+            htmlspecialchars($r->job ?? ''),
+            htmlspecialchars($card),
+            htmlspecialchars($emp),
+            $btn,
+        ];
+    }
+
+    return [
+        'draw' => $p['draw'],
+        'recordsTotal' => $total,
+        'recordsFiltered' => $filtered,
+        'data' => $data,
+    ];
+}
+
+/**
+ * Server-side users needing BioTime facility/job update.
+ */
+public function get_needs_update_datatable()
+{
+    $p = $this->_dt_params();
+    $facility = $this->db->escape_str($this->facility);
+    $resolved = $this->sql_resolved_emp_code('i');
+    $from = "FROM ihrisdata i
+         INNER JOIN biotime_enrollment be ON be.emp_code = {$resolved}
+         WHERE i.facility_id <> be.biotime_fac_id
+           AND (i.facility_id = '$facility' OR be.biotime_fac_id = '$facility')";
+    $search_sql = '';
+    if ($p['search'] !== '') {
+        $s = $this->db->escape_like_str($p['search']);
+        $search_sql = " AND (i.ihris_pid LIKE '%$s%' OR i.surname LIKE '%$s%' OR i.firstname LIKE '%$s%' OR i.job LIKE '%$s%' OR i.card_number LIKE '%$s%' OR i.facility LIKE '%$s%' OR be.emp_code LIKE '%$s%' OR be.biotime_fac_id LIKE '%$s%')";
+    }
+
+    $total = (int) $this->db->query("SELECT COUNT(*) AS c $from")->row()->c;
+    $filtered = (int) $this->db->query("SELECT COUNT(*) AS c $from $search_sql")->row()->c;
+
+    $order_map = [
+        1 => 'i.ihris_pid',
+        2 => 'i.surname',
+        3 => 'i.job',
+        4 => 'i.card_number',
+        5 => 'be.emp_code',
+        6 => 'i.facility',
+        7 => 'be.biotime_fac_id',
+    ];
+    $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'i.surname';
+    $sql = "SELECT i.*,
+                i.facility_id AS new_facility,
+                i.facility AS new_fname,
+                be.emp_code,
+                be.biotime_emp_id,
+                be.biotime_fac_id,
+                {$resolved} AS biotime_emp_code
+         $from $search_sql
+         ORDER BY $order_by {$p['order_dir']}
+         LIMIT {$p['length']} OFFSET {$p['start']}";
+    $rows = $this->db->query($sql)->result();
+
+    $data = [];
+    $n = $p['start'] + 1;
+    foreach ($rows as $r) {
+        $name = trim(($r->surname ?? '') . ' ' . ($r->firstname ?? ''));
+        $emp = (string) ($r->emp_code ?? $r->biotime_emp_code ?? '');
+        $ihris = (string) ($r->ihris_pid ?? '');
+        $card = (string) ($r->card_number ?? '');
+        $btn = '<button type="button" class="btn btn-sm btn-warning force-update-btn"'
+            . ' data-card="' . htmlspecialchars($emp !== '' ? $emp : $card, ENT_QUOTES, 'UTF-8') . '"'
+            . ' data-ihris="' . htmlspecialchars($ihris, ENT_QUOTES, 'UTF-8') . '">'
+            . '<i class="fas fa-sync"></i> Force Update</button>';
+        $data[] = [
+            $n++,
+            htmlspecialchars(str_replace('person|', '', $ihris)),
+            htmlspecialchars($name),
+            htmlspecialchars($r->job ?? ''),
+            htmlspecialchars($card),
+            htmlspecialchars($emp),
+            htmlspecialchars($r->new_fname ?? $r->facility ?? ''),
+            htmlspecialchars($r->biotime_fac_id ?? ''),
+            $btn,
+        ];
+    }
+
+    return [
+        'draw' => $p['draw'],
+        'recordsTotal' => $total,
+        'recordsFiltered' => $filtered,
+        'data' => $data,
+    ];
+}
+
+/**
  * Staff at this facility who are not yet in BioTime (fingerprints_staging).
  * Uses resolved emp_code: UCMB → 4253+person id; else numeric card; else bare person id.
  */
 public function get_new_users(){
     $facility = $this->db->escape_str($this->facility);
-    $person = "CASE WHEN ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) END";
-    $resolved = "CASE WHEN ihris_pid LIKE '%UCMB%' THEN {$person} WHEN card_number REGEXP '^[0-9]+$' THEN TRIM(card_number) ELSE {$person} END";
+    $resolved = $this->sql_resolved_emp_code('');
     $query = $this->db->query(
         "SELECT * FROM ihrisdata
          WHERE facility_id = '$facility'
@@ -200,8 +447,7 @@ public function get_new_users(){
  */
 public function get_users_needing_update(){
     $facility = $this->db->escape_str($this->facility);
-    $person = "CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END";
-    $resolved = "CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN {$person} WHEN i.card_number REGEXP '^[0-9]+$' THEN TRIM(i.card_number) ELSE {$person} END";
+    $resolved = $this->sql_resolved_emp_code('i');
     $query = $this->db->query(
         "SELECT i.*,
                 i.facility_id AS new_facility,
@@ -229,8 +475,7 @@ public function get_transfer_by_card($card_number){
     if ($card === '') {
         return null;
     }
-    $person = "CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END";
-    $resolved = "CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN {$person} WHEN i.card_number REGEXP '^[0-9]+$' THEN TRIM(i.card_number) ELSE {$person} END";
+    $resolved = $this->sql_resolved_emp_code('i');
     $query = $this->db->query(
         "SELECT i.*,
                 i.facility_id AS new_facility,
@@ -260,8 +505,8 @@ public function get_ihris_by_card($card_number){
         return $query->row();
     }
     $esc = $this->db->escape_str($card);
-    $person = "CASE WHEN ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) END";
-    $resolved = "CASE WHEN ihris_pid LIKE '%UCMB%' THEN {$person} WHEN card_number REGEXP '^[0-9]+$' THEN TRIM(card_number) ELSE {$person} END";
+    $person = $this->sql_person_emp_code('');
+    $resolved = $this->sql_resolved_emp_code('');
     $q2 = $this->db->query(
         "SELECT * FROM ihrisdata
          WHERE {$resolved} = '$esc'
@@ -270,6 +515,33 @@ public function get_ihris_by_card($card_number){
     );
     return ($q2 && $q2->num_rows()) ? $q2->row() : null;
 }
+
+public function get_ihris_by_pid($ihris_pid){
+    $pid = trim((string) $ihris_pid);
+    if ($pid === '') {
+        return null;
+    }
+    $query = $this->db->get_where('ihrisdata', ['ihris_pid' => $pid], 1);
+    return ($query && $query->num_rows()) ? $query->row() : null;
+}
+
+/**
+ * Resolve BioTime emp_code for a staff row (same rules as enrollment).
+ */
+public function resolve_emp_code_for_staff($staff)
+{
+    if (empty($staff) || empty($staff->ihris_pid)) {
+        return '';
+    }
+    $pid = $this->db->escape_str($staff->ihris_pid);
+    $resolved = $this->sql_resolved_emp_code('');
+    $q = $this->db->query("SELECT {$resolved} AS emp FROM ihrisdata WHERE ihris_pid = '$pid' LIMIT 1");
+    if ($q && $q->num_rows()) {
+        return trim((string) $q->row()->emp);
+    }
+    return '';
+}
+
  public function get_new_deps(){
     $facility=$_SESSION['facility'];
     $query=$this->db->query("SELECT distinct(department),department_id FROM  ihrisdata WHERE department_id NOT IN (SELECT dept_code from biotime_departments)");

@@ -1,86 +1,110 @@
-<!-- Main content -->
+<?php
+$base = base_url();
+$csrf_name = $this->security->get_csrf_token_name();
+$csrf_hash = $this->security->get_csrf_hash();
+?>
 <div class="card">
   <section class="content">
     <div class="container-fluid">
       <div class="row" style="min-height:550px">
         <section class="col-lg-12">
-          <h5 style="margin-top:10px;"><?php echo $uptitle ?></h5>
-          <p class="text-muted">Staff whose iHRIS facility no longer matches BioTime enrollment. Use Force Update to sync now; the background job also runs every 5 minutes.</p>
-
-          <?php
-          $staffs = Modules::run('biometrics/get_users_needing_update');
-          if (!is_array($staffs) && !($staffs instanceof Traversable)) {
-              $staffs = [];
-          }
-          ?>
-          <table id="needsUpdateTable" class="table table-bordered table-striped mytable">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Staff iHRIS ID</th>
-                <th>Name</th>
-                <th>Job</th>
-                <th>Card Number</th>
-                <th>iHRIS Facility</th>
-                <th>BioTime Facility ID</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php $i = 1;
-              foreach ($staffs as $staff) {
-                  $card = $staff->card_number ?? $staff->emp_code ?? '';
-                  $name = trim(($staff->surname ?? '') . ' ' . ($staff->firstname ?? ''));
-                  if ($name === '') {
-                      $name = trim(($staff->fullname ?? '') . ' ' . ($staff->othername ?? ''));
-                  }
-              ?>
-                <tr id="row-update-<?php echo htmlspecialchars($card, ENT_QUOTES, 'UTF-8'); ?>">
-                  <td data-label="No"><?php echo $i++; ?></td>
-                  <td data-label="Staff iHRIS ID"><?php echo str_replace('person|', '', $staff->ihris_pid ?? ''); ?></td>
-                  <td data-label="NAME"><?php echo htmlspecialchars($name); ?></td>
-                  <td data-label="JOB"><?php echo htmlspecialchars($staff->job ?? ''); ?></td>
-                  <td data-label="CARD NUMBER"><?php echo htmlspecialchars($card); ?></td>
-                  <td data-label="iHRIS Facility"><?php echo htmlspecialchars($staff->new_fname ?? $staff->facility ?? ''); ?></td>
-                  <td data-label="BioTime Facility"><?php echo htmlspecialchars($staff->biotime_fac_id ?? ''); ?></td>
-                  <td data-label="Actions">
-                    <button type="button"
-                            class="btn btn-sm btn-warning force-update-btn"
-                            data-card="<?php echo htmlspecialchars($card, ENT_QUOTES, 'UTF-8'); ?>">
-                      <i class="fas fa-sync"></i> Force Update
-                    </button>
-                  </td>
+          <h5 style="margin-top:10px;"><?php echo htmlspecialchars($uptitle); ?></h5>
+          <p class="text-muted">Staff whose iHRIS facility no longer matches BioTime enrollment (matched by resolved emp code: numeric card, bare person id, or UCMB 4253+id). Force Update syncs now; background job also runs every 5 minutes.</p>
+          <div class="table-responsive" style="margin-top:10px;">
+            <table id="needsUpdateTable" class="table table-bordered table-striped" style="width:100%;">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Staff iHRIS ID</th>
+                  <th>Name</th>
+                  <th>Job</th>
+                  <th>Card Number</th>
+                  <th>BioTime Emp Code</th>
+                  <th>iHRIS Facility</th>
+                  <th>BioTime Facility ID</th>
+                  <th>Actions</th>
                 </tr>
-              <?php } ?>
-            </tbody>
-          </table>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </section>
       </div>
     </div>
   </section>
 </div>
 
-<script>
+<script type="text/javascript">
 (function ($) {
-  $(document).on('click', '.force-update-btn', function () {
-    var $btn = $(this);
-    var card = $btn.data('card');
-    if (!card) {
+  var baseUrl = '<?php echo addslashes($base); ?>';
+  var csrfName = '<?php echo addslashes($csrf_name); ?>';
+  var csrfHash = '<?php echo addslashes($csrf_hash); ?>';
+  var table;
+
+  $(function () {
+    if (typeof $.fn.DataTable !== 'function') {
+      console.error('DataTables not loaded');
       return;
     }
-    if (!window.confirm('Force BioTime update for card ' + card + '?')) {
+    table = $('#needsUpdateTable').DataTable({
+      processing: true,
+      serverSide: true,
+      searching: true,
+      ordering: true,
+      order: [[2, 'asc']],
+      pageLength: 25,
+      lengthMenu: [[10, 25, 50, 100, 200], [10, 25, 50, 100, 200]],
+      ajax: {
+        url: baseUrl + 'biometrics/needsUpdateAjax',
+        type: 'POST',
+        data: function (d) {
+          d[csrfName] = csrfHash;
+        },
+        error: function (xhr, error, thrown) {
+          console.error('needsUpdateAjax error', { xhr: xhr, error: error, thrown: thrown, body: xhr.responseText });
+        }
+      },
+      columns: [
+        { data: 0, orderable: false },
+        { data: 1 },
+        { data: 2 },
+        { data: 3 },
+        { data: 4 },
+        { data: 5 },
+        { data: 6 },
+        { data: 7 },
+        { data: 8, orderable: false }
+      ],
+      language: { processing: '<i class="fa fa-spinner fa-spin"></i> Loading...' }
+    });
+  });
+
+  $(document).on('click', '.force-update-btn', function () {
+    var $btn = $(this);
+    var card = $btn.data('card') || '';
+    var ihris = $btn.data('ihris') || '';
+    if (!card && !ihris) {
+      return;
+    }
+    if (!window.confirm('Force BioTime update for ' + (card || ihris) + '?')) {
       return;
     }
     $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Updating...');
+    var payload = {};
+    payload[csrfName] = csrfHash;
+    payload.card_number = card;
+    payload.ihris_pid = ihris;
     $.ajax({
-      url: '<?php echo base_url("biometrics/forceUpdate"); ?>',
+      url: baseUrl + 'biometrics/forceUpdate',
       type: 'POST',
       dataType: 'json',
-      data: { card_number: card },
+      data: payload,
       success: function (res) {
         if (res && res.status === 'success') {
           alert(res.message || 'Update successful');
-          $btn.closest('tr').fadeOut(400, function () { $(this).remove(); });
+          if (table) {
+            table.ajax.reload(null, false);
+          }
         } else {
           alert((res && res.message) ? res.message : 'Update failed');
           $btn.prop('disabled', false).html('<i class="fas fa-sync"></i> Force Update');
