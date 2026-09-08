@@ -68,45 +68,164 @@ class Biotimejobs_mdl extends CI_Model
         return $message;
     }
 
+    /**
+     * Dedupe rows by a unique-key column (last wins), then INSERT IGNORE in chunks.
+     * Prevents BioTime sync jobs from failing when the API returns duplicate unique keys.
+     *
+     * @param string $table
+     * @param array $rows
+     * @param string $uniqueKey Column that must be unique (PRIMARY/UNIQUE)
+     * @param int $chunkSize
+     * @return array{attempted:int,unique:int,inserted:int,skipped_dupes:int}
+     */
+    public function insert_batch_skip_duplicates($table, array $rows, $uniqueKey, $chunkSize = 200)
+    {
+        $stats = [
+            'attempted' => count($rows),
+            'unique' => 0,
+            'inserted' => 0,
+            'skipped_dupes' => 0,
+        ];
+
+        if (empty($rows) || $uniqueKey === '' || $uniqueKey === null) {
+            return $stats;
+        }
+
+        $table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $table);
+        $uniqueKey = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $uniqueKey);
+        if ($table === '' || $uniqueKey === '') {
+            return $stats;
+        }
+
+        $deduped = [];
+        foreach ($rows as $row) {
+            if (!is_array($row) || !array_key_exists($uniqueKey, $row)) {
+                continue;
+            }
+            $key = trim((string) $row[$uniqueKey]);
+            if ($key === '') {
+                continue;
+            }
+            $row[$uniqueKey] = $key;
+            if (isset($deduped[$key])) {
+                $stats['skipped_dupes']++;
+            }
+            $deduped[$key] = $row;
+        }
+
+        $deduped = array_values($deduped);
+        $stats['unique'] = count($deduped);
+        if (empty($deduped)) {
+            return $stats;
+        }
+
+        $fields = array_keys($deduped[0]);
+        $chunkSize = max(1, (int) $chunkSize);
+
+        foreach (array_chunk($deduped, $chunkSize) as $chunk) {
+            $valueSql = [];
+            foreach ($chunk as $row) {
+                $escaped = [];
+                foreach ($fields as $field) {
+                    if (!array_key_exists($field, $row) || $row[$field] === null) {
+                        $escaped[] = 'NULL';
+                    } else {
+                        $escaped[] = $this->db->escape($row[$field]);
+                    }
+                }
+                $valueSql[] = '(' . implode(',', $escaped) . ')';
+            }
+
+            $sql = 'INSERT IGNORE INTO `' . $table . '` (`' . implode('`,`', $fields) . '`) VALUES '
+                . implode(',', $valueSql);
+
+            try {
+                if ($this->db->query($sql)) {
+                    // affected_rows is rows actually written (excludes ignored duplicates)
+                    $stats['inserted'] += (int) $this->db->affected_rows();
+                } else {
+                    $err = $this->db->error();
+                    log_message(
+                        'error',
+                        'insert_batch_skip_duplicates(' . $table . '): '
+                        . (isset($err['message']) ? $err['message'] : 'query failed')
+                    );
+                }
+            } catch (Exception $e) {
+                log_message('error', 'insert_batch_skip_duplicates(' . $table . ') Exception: ' . $e->getMessage());
+            } catch (Error $e) {
+                log_message('error', 'insert_batch_skip_duplicates(' . $table . ') Fatal: ' . $e->getMessage());
+            }
+        }
+
+        if ($stats['skipped_dupes'] > 0) {
+            log_message(
+                'info',
+                'insert_batch_skip_duplicates(' . $table . '): skipped '
+                . $stats['skipped_dupes'] . ' duplicate ' . $uniqueKey . ' value(s) from BioTime payload'
+            );
+        }
+
+        return $stats;
+    }
+
     public function add_enrolled($data)
     {
         if (!is_array($data) || count($data) < 1) {
             return print_r($this->exect()) . " saveEnrolled() add_enrolled() Failed — empty payload";
         }
 
-        if (count($data) > 0) {
-            $this->db->query("CALL `fingerpints_cache`()");
-            $this->db->query("TRUNCATE fingerprints_staging");
-        }
-        $query = $this->db->insert_batch('fingerprints_staging', $data);
+        $this->db->query("CALL `fingerpints_cache`()");
+        $this->db->query("TRUNCATE fingerprints_staging");
 
-        if ($query) {
-            $n = $this->db->query("select entry_id from fingerprints_staging");
-            $message = print_r($this->exect()) . " saveEnrolled() add_enrolled() Created Enrolled users from Biotime " . $n->num_rows();
+        // PRIMARY KEY is entry_id — dedupe + INSERT IGNORE so API duplicates never abort the sync
+        $stats = $this->insert_batch_skip_duplicates('fingerprints_staging', $data, 'entry_id');
+
+        $n = $this->db->query("select entry_id from fingerprints_staging");
+        $count = $n ? $n->num_rows() : 0;
+        if ($count > 0) {
+            $message = print_r($this->exect()) . " saveEnrolled() add_enrolled() Created Enrolled users from Biotime "
+                . $count . " (unique=" . $stats['unique'] . ", skipped_dupes=" . $stats['skipped_dupes'] . ")";
         } else {
             $message = print_r($this->exect()) . " saveEnrolled() add_enrolled() Failed ";
+            log_message('error', 'add_enrolled failed after skip-duplicates insert: ' . json_encode($stats));
         }
 
         return $message;
     }
     public function add_time_logs($data)
     {
+        if (!is_array($data) || count($data) < 1) {
+            return print_r($this->exect()) . " fetchBiotTimeLogs()  add_time_logs() Failed — empty payload";
+        }
+
         if (count($data) > 1) {
             $this->db->query("CALL `biotime_cache`()");
             $this->db->query("TRUNCATE biotime_data");
         }
-        $query = $this->db->insert_batch('biotime_data', $data);
+
+        // Prefer a stable natural key when present so duplicate punches from BioTime are skipped
+        $uniqueKey = null;
+        if (!empty($data[0]) && is_array($data[0])) {
+            if (array_key_exists('id', $data[0]) && $data[0]['id'] !== null && $data[0]['id'] !== '') {
+                $uniqueKey = 'id';
+            } elseif (array_key_exists('punch_id', $data[0])) {
+                $uniqueKey = 'punch_id';
+            }
+        }
+
+        if ($uniqueKey) {
+            $stats = $this->insert_batch_skip_duplicates('biotime_data', $data, $uniqueKey);
+            $query = $stats['unique'] > 0;
+        } else {
+            $query = $this->db->insert_batch('biotime_data', $data);
+        }
         $this->db->query(" DELETE from biotime_data where emp_code='0'");
-
-
-
 
         if ($query) {
             $n = $this->db->get("biotime_data");
 
             $message = print_r($this->exect()) . " fetchBiotTimeLogs()  add_time_logs() Created Logs from Biotime " . $n->num_rows();
-            // $this->db->insert("INSERT INTO `biotime_sync_log` (`serial_no`,  `last_gen`, `records`) VALUES (NULL, current_timestamp(), $n->num_rows());
-            // ");
         } else {
             $message = print_r($this->exect()) . " fetchBiotTimeLogs()  add_time_logs() Failed ";
         }
@@ -203,15 +322,19 @@ class Biotimejobs_mdl extends CI_Model
     }
     public function addMachines($data)
     {
+        if (!is_array($data) || count($data) < 1) {
+            return "Failed to SYNC Biotime Devices — empty payload";
+        }
 
-       
         $this->db->truncate('biotime_devices');
-        
-        $query = $this->db->insert_batch('biotime_devices', $data);
-        if ($query) {
-            $message = "Successful SYNC Biotime Devices " . $this->db->affected_rows();
+
+        // UNIQUE KEY sn — skip duplicate serials from BioTime instead of failing the sync
+        $stats = $this->insert_batch_skip_duplicates('biotime_devices', $data, 'sn');
+        if ($stats['unique'] > 0) {
+            $message = "Successful SYNC Biotime Devices " . $stats['inserted']
+                . " (unique=" . $stats['unique'] . ", skipped_dupes=" . $stats['skipped_dupes'] . ")";
         } else {
-            $message = "Failed to SYNC Biotime Decices";
+            $message = "Failed to SYNC Biotime Devices";
         }
 
         return $message;
@@ -238,6 +361,104 @@ class Biotimejobs_mdl extends CI_Model
         // Remove internal spaces and common separators occasionally present in exports.
         $code = str_replace(array(' ', "\t", "\r", "\n"), '', $code);
         return $code;
+    }
+
+    /**
+     * True when value is digits-only (BioTime-safe numeric card / emp_code).
+     */
+    public function is_numeric_emp_code($code)
+    {
+        $code = trim((string) $code);
+        return $code !== '' && ctype_digit($code);
+    }
+
+    /**
+     * Strip iHRIS person| prefix (and any prefix before it, e.g. UCMB-person|123 → 123).
+     */
+    public function ihris_person_id_only($ihris_pid)
+    {
+        $pid = trim((string) $ihris_pid);
+        if ($pid === '') {
+            return '';
+        }
+        if (preg_match('/person\|(.+)$/i', $pid, $m)) {
+            return trim($m[1]);
+        }
+        return $pid;
+    }
+
+    /**
+     * BioTime emp_code for enrollment: numeric card_number, else bare iHRIS person id.
+     *
+     * @param object|array $staff
+     * @param array $overrides
+     * @return string
+     */
+    public function resolve_biotime_emp_code($staff, array $overrides = [])
+    {
+        $s = is_array($staff) ? (object) $staff : $staff;
+        if (!is_object($s)) {
+            return '';
+        }
+
+        if (!empty($overrides['emp_code'])) {
+            return trim((string) $overrides['emp_code']);
+        }
+
+        $card = '';
+        if (!empty($overrides['card_number'])) {
+            $card = trim((string) $overrides['card_number']);
+        } elseif (isset($s->emp_code) && trim((string) $s->emp_code) !== '') {
+            $card = trim((string) $s->emp_code);
+        } elseif (isset($s->card_number) && trim((string) $s->card_number) !== '') {
+            $card = trim((string) $s->card_number);
+        }
+
+        if ($this->is_numeric_emp_code($card)) {
+            return $card;
+        }
+
+        $pid = '';
+        if (!empty($overrides['ihris_pid'])) {
+            $pid = $overrides['ihris_pid'];
+        } elseif (!empty($s->ihris_pid)) {
+            $pid = $s->ihris_pid;
+        }
+        $idOnly = $this->ihris_person_id_only($pid);
+        if ($idOnly !== '') {
+            return $idOnly;
+        }
+
+        return $card;
+    }
+
+    /**
+     * SQL expression: resolved BioTime emp_code from an ihrisdata alias.
+     * Numeric card_number, else id after person|.
+     */
+    public function sql_resolved_emp_code($alias = 'i')
+    {
+        $a = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $alias);
+        if ($a === '') {
+            $a = 'i';
+        }
+        return "CASE WHEN {$a}.card_number REGEXP '^[0-9]+$' THEN TRIM({$a}.card_number) ELSE TRIM(SUBSTRING_INDEX({$a}.ihris_pid, 'person|', -1)) END";
+    }
+
+    /**
+     * SQL ON clause fragment matching biotime emp_code to card_number, ipps, or bare person id.
+     */
+    public function sql_emp_code_match($biotimeAlias = 'b', $ihrisAlias = 'i')
+    {
+        $b = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $biotimeAlias);
+        $i = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $ihrisAlias);
+        if ($b === '') {
+            $b = 'b';
+        }
+        if ($i === '') {
+            $i = 'i';
+        }
+        return "({$b}.emp_code = {$i}.card_number OR {$b}.emp_code = {$i}.ipps OR {$b}.emp_code = TRIM(SUBSTRING_INDEX({$i}.ihris_pid, 'person|', -1)))";
     }
 
 
@@ -686,7 +907,16 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                             $emp_to_pid[$norm] = $pid;
                         }
                     }
+                    // Non-numeric cards enroll as bare iHRIS person id — match punches the same way as ipps
                     if ($pid !== null && $pid !== '') {
+                        $idOnly = $this->ihris_person_id_only($pid);
+                        if ($idOnly !== '') {
+                            $emp_to_pid[$idOnly] = $pid;
+                            $normId = $this->normalize_emp_code($idOnly);
+                            if ($normId !== '') {
+                                $emp_to_pid[$normId] = $pid;
+                            }
+                        }
                         $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
                     }
                 }
@@ -1086,7 +1316,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             INNER JOIN (
                 SELECT i.ihris_pid, DATE_SUB(DATE(b.punch_time), INTERVAL 1 DAY) AS log_date, MAX(b.punch_time) AS punch_time
                 FROM biotime_data_history b
-                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)))
                 WHERE b.punch_time >= ? AND b.punch_time <= ?
                 GROUP BY i.ihris_pid, log_date
             ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date
@@ -1115,7 +1345,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             INNER JOIN (
                 SELECT i.ihris_pid, DATE_SUB(DATE(b.punch_time), INTERVAL 1 DAY) AS log_date, MAX(b.punch_time) AS punch_time
                 FROM biotime_data_history b
-                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)))
                 WHERE b.punch_time >= ? AND b.punch_time <= ?
                 GROUP BY i.ihris_pid, log_date
             ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date

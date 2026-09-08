@@ -174,16 +174,17 @@ return $query->result();
 }
 
 /**
- * Staff at this facility with a card number who are not yet in BioTime (fingerprints_staging).
+ * Staff at this facility who are not yet in BioTime (fingerprints_staging).
+ * Uses resolved emp_code: numeric card_number, else bare iHRIS person id.
  */
 public function get_new_users(){
     $facility = $this->db->escape_str($this->facility);
+    $resolved = "CASE WHEN card_number REGEXP '^[0-9]+$' THEN TRIM(card_number) ELSE TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) END";
     $query = $this->db->query(
         "SELECT * FROM ihrisdata
          WHERE facility_id = '$facility'
-           AND card_number IS NOT NULL
-           AND card_number <> ''
-           AND card_number NOT IN (
+           AND {$resolved} <> ''
+           AND {$resolved} NOT IN (
                 SELECT card_number FROM fingerprints_staging
                 WHERE card_number IS NOT NULL AND card_number <> ''
            )
@@ -198,6 +199,7 @@ public function get_new_users(){
  */
 public function get_users_needing_update(){
     $facility = $this->db->escape_str($this->facility);
+    $resolved = "CASE WHEN i.card_number REGEXP '^[0-9]+$' THEN TRIM(i.card_number) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END";
     $query = $this->db->query(
         "SELECT i.*,
                 i.facility_id AS new_facility,
@@ -209,7 +211,7 @@ public function get_users_needing_update(){
                 be.biotime_fac_id,
                 be.last_update AS enrollment_last_update
          FROM ihrisdata i
-         INNER JOIN biotime_enrollment be ON be.emp_code = i.card_number
+         INNER JOIN biotime_enrollment be ON be.emp_code = {$resolved}
          WHERE i.facility_id <> be.biotime_fac_id
            AND (i.facility_id = '$facility' OR be.biotime_fac_id = '$facility')
          ORDER BY i.surname, i.firstname"
@@ -218,13 +220,14 @@ public function get_users_needing_update(){
 }
 
 /**
- * Single transfer candidate by emp/card number (for force update).
+ * Single transfer candidate by emp/card/person id (for force update).
  */
 public function get_transfer_by_card($card_number){
     $card = $this->db->escape_str(trim((string) $card_number));
     if ($card === '') {
         return null;
     }
+    $resolved = "CASE WHEN i.card_number REGEXP '^[0-9]+$' THEN TRIM(i.card_number) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END";
     $query = $this->db->query(
         "SELECT i.*,
                 i.facility_id AS new_facility,
@@ -236,8 +239,8 @@ public function get_transfer_by_card($card_number){
                 be.biotime_fac_id,
                 be.last_update AS enrollment_last_update
          FROM ihrisdata i
-         INNER JOIN biotime_enrollment be ON be.emp_code = i.card_number
-         WHERE i.card_number = '$card'
+         INNER JOIN biotime_enrollment be ON be.emp_code = {$resolved}
+         WHERE ({$resolved} = '$card' OR i.card_number = '$card' OR be.emp_code = '$card')
            AND i.facility_id <> be.biotime_fac_id
          LIMIT 1"
     );
@@ -250,7 +253,18 @@ public function get_ihris_by_card($card_number){
         return null;
     }
     $query = $this->db->get_where('ihrisdata', ['card_number' => $card], 1);
-    return ($query && $query->num_rows()) ? $query->row() : null;
+    if ($query && $query->num_rows()) {
+        return $query->row();
+    }
+    $esc = $this->db->escape_str($card);
+    $resolved = "CASE WHEN card_number REGEXP '^[0-9]+$' THEN TRIM(card_number) ELSE TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) END";
+    $q2 = $this->db->query(
+        "SELECT * FROM ihrisdata
+         WHERE {$resolved} = '$esc'
+            OR TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) = '$esc'
+         LIMIT 1"
+    );
+    return ($q2 && $q2->num_rows()) ? $q2->row() : null;
 }
  public function get_new_deps(){
     $facility=$_SESSION['facility'];

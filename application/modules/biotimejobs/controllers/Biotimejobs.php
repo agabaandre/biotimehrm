@@ -769,10 +769,15 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                         continue;
                     }
 
-                    $emp_code = (string) $mydata->emp_code;
-                    $area_code = (string) $area->area_code;
+                    $emp_code = trim((string) $mydata->emp_code);
+                    $area_code = trim((string) $area->area_code);
+                    if ($emp_code === '' || $area_code === '') {
+                        continue;
+                    }
+                    // PRIMARY KEY fingerprints_staging.entry_id = facilityId-emp_code
                     $entry_id = $area_code . '-' . $emp_code;
                     if (isset($seen[$entry_id])) {
+                        log_message('debug', 'saveEnrolled: Skipping duplicate entry_id ' . $entry_id);
                         continue;
                     }
                     $seen[$entry_id] = true;
@@ -793,6 +798,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 return false;
             }
 
+            // Model also dedupes + INSERT IGNORE so unique-key collisions never abort the job
             $message = $this->biotimejobs_mdl->add_enrolled($rows);
             $this->log($message);
             $process = 3;
@@ -1416,12 +1422,16 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     //create multiple new users cronjob
     public function multiple_new_users()
     {
+        $resolved = $this->biotimejobs_mdl->sql_resolved_emp_code('ihrisdata');
         $query = $this->db->query(
             "SELECT * FROM ihrisdata
              WHERE ihrisdata.facility_id IN (SELECT area_code FROM biotime_devices)
-               AND ihrisdata.card_number IS NOT NULL
-               AND ihrisdata.card_number <> ''
-               AND ihrisdata.card_number NOT IN (
+               AND (
+                    (ihrisdata.card_number IS NOT NULL AND ihrisdata.card_number <> '')
+                    OR (ihrisdata.ihris_pid IS NOT NULL AND ihrisdata.ihris_pid <> '')
+               )
+               AND {$resolved} <> ''
+               AND {$resolved} NOT IN (
                     SELECT fingerprints_staging.card_number
                     FROM fingerprints_staging
                     WHERE fingerprints_staging.card_number IS NOT NULL
@@ -1489,17 +1499,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             return ['ok' => false, 'error' => 'invalid staff payload'];
         }
 
-        $emp_code = '';
-        foreach (['emp_code', 'card_number'] as $k) {
-            if (!empty($overrides[$k])) {
-                $emp_code = trim((string) $overrides[$k]);
-                break;
-            }
-            if (isset($s->$k) && trim((string) $s->$k) !== '') {
-                $emp_code = trim((string) $s->$k);
-                break;
-            }
-        }
+        $emp_code = $this->biotimejobs_mdl->resolve_biotime_emp_code($s, $overrides);
         if ($emp_code === '') {
             return ['ok' => false, 'error' => 'emp_code/card_number is required'];
         }
@@ -1743,8 +1743,17 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     public function get_new_users($facility)
     {
         $facility = $this->db->escape_str($facility);
-        $query = $this->db->query("SELECT * FROM  ihrisdata WHERE ihrisdata.facility_id='$facility' AND ihrisdata.card_number NOT IN (SELECT fingerprints_staging.card_number from fingerprints_staging)");
-        return $query->result();
+        $resolved = $this->biotimejobs_mdl->sql_resolved_emp_code('ihrisdata');
+        $query = $this->db->query(
+            "SELECT * FROM ihrisdata
+             WHERE ihrisdata.facility_id='$facility'
+               AND {$resolved} <> ''
+               AND {$resolved} NOT IN (
+                    SELECT fingerprints_staging.card_number FROM fingerprints_staging
+                    WHERE fingerprints_staging.card_number IS NOT NULL
+               )"
+        );
+        return $query ? $query->result() : [];
     }
 
     /**
@@ -2145,10 +2154,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     be.biotime_fac_id,
                     be.last_update AS enrollment_last_update
              FROM ihrisdata i
-             INNER JOIN biotime_enrollment be ON be.emp_code = i.card_number
+             INNER JOIN biotime_enrollment be ON be.emp_code = " . $this->biotimejobs_mdl->sql_resolved_emp_code('i') . "
              WHERE i.facility_id <> be.biotime_fac_id
-               AND i.card_number IS NOT NULL
-               AND i.card_number <> ''"
+               AND " . $this->biotimejobs_mdl->sql_resolved_emp_code('i') . " <> ''"
         );
         $transfers = $query ? $query->result() : [];
         $ok = 0;
@@ -2591,7 +2599,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(d.area_name, b.area_alias) ORDER BY b.punch_time), ',', 1)
             FROM biotime_data b
             JOIN biotime_devices d ON b.terminal_sn = d.sn
-            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps)
+            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)))
             WHERE b.punch_time >= ?
             AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
             {$terminalFilter}
@@ -2641,7 +2649,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             UPDATE clk_log cl
             JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date
             JOIN biotime_data b ON b.punch_time >= ? AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
-            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps) AND i.ihris_pid = cl.ihris_pid
+            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) AND i.ihris_pid = cl.ihris_pid
             SET cl.time_out = b.punch_time
             WHERE dr.schedule_id = '16'
             AND cl.date BETWEEN ? AND ?
@@ -2702,7 +2710,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         ini_set('max_execution_time', 0);
         //$query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
 
-        $query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.emp_code=ihrisdata.ipps)  AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
+        $query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.emp_code=ihrisdata.ipps or biotime_data.emp_code=TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)))  AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
         $entry_id = $query->result();
 
         foreach ($entry_id as $entry) {
@@ -2737,13 +2745,16 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
        }
         $yesterday = date($today, strtotime("-1 day"));
 
-        $nights = $this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,card_number from duty_rosta,ihrisdata where schedule_id='16' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
+        $nights = $this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,
+            CASE WHEN ihrisdata.card_number REGEXP '^[0-9]+$' THEN TRIM(ihrisdata.card_number) ELSE TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)) END as card_number
+            from duty_rosta,ihrisdata where schedule_id='16' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
          )")->result();
         foreach ($nights as $night):
             //yesterdays entry_id 
             $nights = $yesterday . $night->person_id;
 
-            $querys = $this->db->query("SELECT punch_time,punch_state from biotime_data,ihrisdata where (biotime_data.emp_code='$night->card_number') AND DATE(biotime_data.punch_time)='$today' ");
+            $emp = $this->db->escape_str($night->card_number);
+            $querys = $this->db->query("SELECT punch_time,punch_state from biotime_data where biotime_data.emp_code='$emp' AND DATE(biotime_data.punch_time)='$today' ");
             $entry = $querys->row();
             //get time in for the log
             $timein = $this->db->query("select time_in from clk_log WHERE entry_id='$nights'")->row()->time_in;
@@ -2790,13 +2801,17 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         }
         $yesterday = date($today, strtotime("-1 day"));
 
-        $nights = $this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,ipps as card_number from duty_rosta,ihrisdata where schedule_id='16' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
+        $nights = $this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,ipps as card_number,
+            TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)) as person_code
+            from duty_rosta,ihrisdata where schedule_id='16' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
          )")->result();
         foreach ($nights as $night):
             //yesterdays entry_id 
             $nights = $yesterday . $night->person_id;
 
-            $querys = $this->db->query("SELECT punch_time,punch_state from biotime_data,ihrisdata where (biotime_data.emp_code='$night->card_number') AND DATE(biotime_data.punch_time)='$today' ");
+            $emp = $this->db->escape_str($night->card_number);
+            $person = $this->db->escape_str($night->person_code);
+            $querys = $this->db->query("SELECT punch_time,punch_state from biotime_data where (biotime_data.emp_code='$emp' OR biotime_data.emp_code='$person') AND DATE(biotime_data.punch_time)='$today' ");
             $entry = $querys->row();
             //get time in for the log
             $timein = $this->db->query("select time_in from clk_log WHERE entry_id='$nights'")->row()->time_in;
