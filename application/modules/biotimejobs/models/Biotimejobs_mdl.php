@@ -373,7 +373,8 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
-     * Strip iHRIS person| prefix (and any prefix before it, e.g. UCMB-person|123 → 123).
+     * Strip iHRIS person| prefix (and any prefix before it).
+     * UCMB person ids become 4253 + bare id (e.g. UCMB-person|113498 → 4253113498).
      */
     public function ihris_person_id_only($ihris_pid)
     {
@@ -381,14 +382,22 @@ class Biotimejobs_mdl extends CI_Model
         if ($pid === '') {
             return '';
         }
+        $idOnly = $pid;
         if (preg_match('/person\|(.+)$/i', $pid, $m)) {
-            return trim($m[1]);
+            $idOnly = trim($m[1]);
         }
-        return $pid;
+        if ($idOnly === '') {
+            return '';
+        }
+        // UCMB BioTime emp_code: always prefix bare person id with 4253
+        if (stripos($pid, 'UCMB') !== false) {
+            return '4253' . $idOnly;
+        }
+        return $idOnly;
     }
 
     /**
-     * BioTime emp_code for enrollment: numeric card_number, else bare iHRIS person id.
+     * BioTime emp_code for enrollment: UCMB → 4253+person id; else numeric card; else bare person id.
      *
      * @param object|array $staff
      * @param array $overrides
@@ -405,6 +414,21 @@ class Biotimejobs_mdl extends CI_Model
             return trim((string) $overrides['emp_code']);
         }
 
+        $pid = '';
+        if (!empty($overrides['ihris_pid'])) {
+            $pid = (string) $overrides['ihris_pid'];
+        } elseif (!empty($s->ihris_pid)) {
+            $pid = (string) $s->ihris_pid;
+        }
+
+        // UCMB always uses 4253 + bare iHRIS person id (even when card_number is numeric)
+        if ($pid !== '' && stripos($pid, 'UCMB') !== false) {
+            $ucmbCode = $this->ihris_person_id_only($pid);
+            if ($ucmbCode !== '') {
+                return $ucmbCode;
+            }
+        }
+
         $card = '';
         if (!empty($overrides['card_number'])) {
             $card = trim((string) $overrides['card_number']);
@@ -418,12 +442,6 @@ class Biotimejobs_mdl extends CI_Model
             return $card;
         }
 
-        $pid = '';
-        if (!empty($overrides['ihris_pid'])) {
-            $pid = $overrides['ihris_pid'];
-        } elseif (!empty($s->ihris_pid)) {
-            $pid = $s->ihris_pid;
-        }
         $idOnly = $this->ihris_person_id_only($pid);
         if ($idOnly !== '') {
             return $idOnly;
@@ -433,8 +451,21 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
+     * SQL expression: bare / UCMB-prefixed person emp_code from ihris_pid.
+     * UCMB-person|123 → 4253123; person|123 → 123.
+     */
+    public function sql_person_emp_code($alias = 'i')
+    {
+        $a = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $alias);
+        if ($a === '') {
+            $a = 'i';
+        }
+        return "CASE WHEN {$a}.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX({$a}.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX({$a}.ihris_pid, 'person|', -1)) END";
+    }
+
+    /**
      * SQL expression: resolved BioTime emp_code from an ihrisdata alias.
-     * Numeric card_number, else id after person|.
+     * UCMB → 4253+person id; else numeric card_number; else bare person id.
      */
     public function sql_resolved_emp_code($alias = 'i')
     {
@@ -442,11 +473,12 @@ class Biotimejobs_mdl extends CI_Model
         if ($a === '') {
             $a = 'i';
         }
-        return "CASE WHEN {$a}.card_number REGEXP '^[0-9]+$' THEN TRIM({$a}.card_number) ELSE TRIM(SUBSTRING_INDEX({$a}.ihris_pid, 'person|', -1)) END";
+        $person = $this->sql_person_emp_code($a);
+        return "CASE WHEN {$a}.ihris_pid LIKE '%UCMB%' THEN {$person} WHEN {$a}.card_number REGEXP '^[0-9]+$' THEN TRIM({$a}.card_number) ELSE {$person} END";
     }
 
     /**
-     * SQL ON clause fragment matching biotime emp_code to card_number, ipps, or bare person id.
+     * SQL ON clause fragment matching biotime emp_code to card_number, ipps, or person emp_code.
      */
     public function sql_emp_code_match($biotimeAlias = 'b', $ihrisAlias = 'i')
     {
@@ -458,7 +490,8 @@ class Biotimejobs_mdl extends CI_Model
         if ($i === '') {
             $i = 'i';
         }
-        return "({$b}.emp_code = {$i}.card_number OR {$b}.emp_code = {$i}.ipps OR {$b}.emp_code = TRIM(SUBSTRING_INDEX({$i}.ihris_pid, 'person|', -1)))";
+        $person = $this->sql_person_emp_code($i);
+        return "({$b}.emp_code = {$i}.card_number OR {$b}.emp_code = {$i}.ipps OR {$b}.emp_code = {$person})";
     }
 
 
@@ -1316,7 +1349,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             INNER JOIN (
                 SELECT i.ihris_pid, DATE_SUB(DATE(b.punch_time), INTERVAL 1 DAY) AS log_date, MAX(b.punch_time) AS punch_time
                 FROM biotime_data_history b
-                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)))
+                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END)
                 WHERE b.punch_time >= ? AND b.punch_time <= ?
                 GROUP BY i.ihris_pid, log_date
             ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date
@@ -1345,7 +1378,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             INNER JOIN (
                 SELECT i.ihris_pid, DATE_SUB(DATE(b.punch_time), INTERVAL 1 DAY) AS log_date, MAX(b.punch_time) AS punch_time
                 FROM biotime_data_history b
-                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)))
+                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END)
                 WHERE b.punch_time >= ? AND b.punch_time <= ?
                 GROUP BY i.ihris_pid, log_date
             ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date

@@ -175,11 +175,12 @@ return $query->result();
 
 /**
  * Staff at this facility who are not yet in BioTime (fingerprints_staging).
- * Uses resolved emp_code: numeric card_number, else bare iHRIS person id.
+ * Uses resolved emp_code: UCMB → 4253+person id; else numeric card; else bare person id.
  */
 public function get_new_users(){
     $facility = $this->db->escape_str($this->facility);
-    $resolved = "CASE WHEN card_number REGEXP '^[0-9]+$' THEN TRIM(card_number) ELSE TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) END";
+    $person = "CASE WHEN ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) END";
+    $resolved = "CASE WHEN ihris_pid LIKE '%UCMB%' THEN {$person} WHEN card_number REGEXP '^[0-9]+$' THEN TRIM(card_number) ELSE {$person} END";
     $query = $this->db->query(
         "SELECT * FROM ihrisdata
          WHERE facility_id = '$facility'
@@ -199,7 +200,8 @@ public function get_new_users(){
  */
 public function get_users_needing_update(){
     $facility = $this->db->escape_str($this->facility);
-    $resolved = "CASE WHEN i.card_number REGEXP '^[0-9]+$' THEN TRIM(i.card_number) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END";
+    $person = "CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END";
+    $resolved = "CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN {$person} WHEN i.card_number REGEXP '^[0-9]+$' THEN TRIM(i.card_number) ELSE {$person} END";
     $query = $this->db->query(
         "SELECT i.*,
                 i.facility_id AS new_facility,
@@ -227,7 +229,8 @@ public function get_transfer_by_card($card_number){
     if ($card === '') {
         return null;
     }
-    $resolved = "CASE WHEN i.card_number REGEXP '^[0-9]+$' THEN TRIM(i.card_number) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END";
+    $person = "CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END";
+    $resolved = "CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN {$person} WHEN i.card_number REGEXP '^[0-9]+$' THEN TRIM(i.card_number) ELSE {$person} END";
     $query = $this->db->query(
         "SELECT i.*,
                 i.facility_id AS new_facility,
@@ -257,11 +260,12 @@ public function get_ihris_by_card($card_number){
         return $query->row();
     }
     $esc = $this->db->escape_str($card);
-    $resolved = "CASE WHEN card_number REGEXP '^[0-9]+$' THEN TRIM(card_number) ELSE TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) END";
+    $person = "CASE WHEN ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) END";
+    $resolved = "CASE WHEN ihris_pid LIKE '%UCMB%' THEN {$person} WHEN card_number REGEXP '^[0-9]+$' THEN TRIM(card_number) ELSE {$person} END";
     $q2 = $this->db->query(
         "SELECT * FROM ihrisdata
          WHERE {$resolved} = '$esc'
-            OR TRIM(SUBSTRING_INDEX(ihris_pid, 'person|', -1)) = '$esc'
+            OR {$person} = '$esc'
          LIMIT 1"
     );
     return ($q2 && $q2->num_rows()) ? $q2->row() : null;

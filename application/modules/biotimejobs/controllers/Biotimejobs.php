@@ -2599,7 +2599,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(d.area_name, b.area_alias) ORDER BY b.punch_time), ',', 1)
             FROM biotime_data b
             JOIN biotime_devices d ON b.terminal_sn = d.sn
-            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)))
+            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END)
             WHERE b.punch_time >= ?
             AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
             {$terminalFilter}
@@ -2649,7 +2649,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             UPDATE clk_log cl
             JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date
             JOIN biotime_data b ON b.punch_time >= ? AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
-            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) AND i.ihris_pid = cl.ihris_pid
+            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END) AND i.ihris_pid = cl.ihris_pid
             SET cl.time_out = b.punch_time
             WHERE dr.schedule_id = '16'
             AND cl.date BETWEEN ? AND ?
@@ -2710,7 +2710,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         ini_set('max_execution_time', 0);
         //$query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
 
-        $query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.emp_code=ihrisdata.ipps or biotime_data.emp_code=TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)))  AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
+        $query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.emp_code=ihrisdata.ipps or biotime_data.emp_code=CASE WHEN ihrisdata.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)) END)  AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
         $entry_id = $query->result();
 
         foreach ($entry_id as $entry) {
@@ -2746,7 +2746,11 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $yesterday = date($today, strtotime("-1 day"));
 
         $nights = $this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,
-            CASE WHEN ihrisdata.card_number REGEXP '^[0-9]+$' THEN TRIM(ihrisdata.card_number) ELSE TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)) END as card_number
+            CASE
+              WHEN ihrisdata.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)))
+              WHEN ihrisdata.card_number REGEXP '^[0-9]+$' THEN TRIM(ihrisdata.card_number)
+              ELSE TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1))
+            END as card_number
             from duty_rosta,ihrisdata where schedule_id='16' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
          )")->result();
         foreach ($nights as $night):
@@ -2802,7 +2806,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $yesterday = date($today, strtotime("-1 day"));
 
         $nights = $this->db->query("SELECT duty_date,duty_rosta.ihris_pid as person_id,entry_id,ipps as card_number,
-            TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)) as person_code
+            CASE WHEN ihrisdata.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)) END as person_code
             from duty_rosta,ihrisdata where schedule_id='16' and ihrisdata.ihris_pid=duty_rosta.ihris_pid  and concat(duty_date,duty_rosta.ihris_pid) in (SELECT entry_id from clk_log WHERE date='$yesterday'
          )")->result();
         foreach ($nights as $night):
