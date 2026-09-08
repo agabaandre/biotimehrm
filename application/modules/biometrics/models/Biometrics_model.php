@@ -261,6 +261,7 @@ public function count_needs_update()
 
 /**
  * SQL: bare / UCMB-prefixed person emp_code from ihris_pid.
+ * Used as BioTime emp_code for all NEW enrollments.
  * UCMB-person|123 → 4253123; person|123 → 123.
  */
 public function sql_person_emp_code($alias = '')
@@ -270,13 +271,28 @@ public function sql_person_emp_code($alias = '')
 }
 
 /**
- * SQL: resolved BioTime emp_code (UCMB → 4253+id; else numeric card; else bare person id).
+ * SQL: emp_code for new enrollment (= iHRIS person id rule).
  */
 public function sql_resolved_emp_code($alias = '')
 {
-    $p = ($alias !== '' && $alias !== null) ? preg_replace('/[^a-zA-Z0-9_]/', '', $alias) . '.' : '';
-    $person = $this->sql_person_emp_code($alias);
-    return "CASE WHEN {$p}ihris_pid LIKE '%UCMB%' THEN {$person} WHEN {$p}card_number REGEXP '^[0-9]+$' THEN TRIM({$p}card_number) ELSE {$person} END";
+    return $this->sql_person_emp_code($alias);
+}
+
+/**
+ * Match biotime emp_code to person id, card_number, or ipps (backward compatible).
+ */
+public function sql_emp_code_match_any($biotimeEmpExpr, $alias = 'i')
+{
+    $i = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $alias);
+    if ($i === '') {
+        $i = 'i';
+    }
+    $person = $this->sql_person_emp_code($i);
+    return "("
+        . "{$biotimeEmpExpr} = ({$person})"
+        . " OR (NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$biotimeEmpExpr} = TRIM({$i}.card_number))"
+        . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$biotimeEmpExpr} = TRIM({$i}.ipps))"
+        . ")";
 }
 
 /**
@@ -374,35 +390,52 @@ public function get_enrolled_datatable()
 }
 
 /**
- * FROM/WHERE for unenrolled: facility staff not in fingerprints_staging or biotime_enrollment.
- * Uses LEFT JOIN (indexed emp_code / card_number) instead of NOT IN subqueries.
+ * FROM/WHERE for unenrolled: facility staff who still need BioTime enrollment.
+ *
+ * New emp_code = iHRIS person id (UCMB → 4253+id). Already-enrolled detection
+ * still matches person id, card_number, or ipps for backward compatibility.
+ * Empty-device staging alone does not hide candidates.
  */
 protected function _unenrolled_from_sql($facility)
 {
     $esc = $this->db->escape_str($facility);
-    $resolved = $this->sql_resolved_emp_code('i');
+    $person = $this->sql_person_emp_code('i');
+    $be_match = $this->sql_emp_code_match_any('be.emp_code', 'i');
     return "FROM ihrisdata i
-         LEFT JOIN fingerprints_staging fs ON fs.card_number = ({$resolved})
-         LEFT JOIN biotime_enrollment be ON be.emp_code = ({$resolved})
+         LEFT JOIN biotime_enrollment be ON {$be_match}
+         LEFT JOIN fingerprints f ON (
+                f.device IS NOT NULL AND TRIM(f.device) <> ''
+            AND (
+                    f.card_number = ({$person})
+                 OR (NULLIF(TRIM(i.card_number), '') IS NOT NULL AND f.card_number = TRIM(i.card_number))
+                 OR (NULLIF(TRIM(i.ipps), '') IS NOT NULL AND f.card_number = TRIM(i.ipps))
+             )
+         )
+         LEFT JOIN fingerprints_staging fs ON (
+                fs.device IS NOT NULL AND TRIM(fs.device) <> ''
+            AND (
+                    fs.card_number = ({$person})
+                 OR (NULLIF(TRIM(i.card_number), '') IS NOT NULL AND fs.card_number = TRIM(i.card_number))
+                 OR (NULLIF(TRIM(i.ipps), '') IS NOT NULL AND fs.card_number = TRIM(i.ipps))
+             )
+         )
          WHERE i.facility_id = '$esc'
-           AND ({$resolved}) <> ''
-           AND fs.card_number IS NULL
-           AND be.emp_code IS NULL";
+           AND ({$person}) <> ''
+           AND be.emp_code IS NULL
+           AND f.card_number IS NULL
+           AND fs.card_number IS NULL";
 }
 
 /**
- * FROM/WHERE for needs-update: enrolled, facility mismatch, scoped to logged-in facility.
- * Criteria: i.facility_id <> be.biotime_fac_id AND staff touches this facility
- * (currently at this facility in iHRIS, OR still enrolled under this facility in BioTime).
+ * FROM/WHERE for needs-update: enrolled (any historical emp_code key), facility mismatch.
  */
 protected function _needs_update_from_sql($facility)
 {
     $esc = $this->db->escape_str($facility);
-    $resolved = $this->sql_resolved_emp_code('i');
+    $be_match = $this->sql_emp_code_match_any('be.emp_code', 'i');
     return "FROM ihrisdata i
-         INNER JOIN biotime_enrollment be ON be.emp_code = ({$resolved})
-         WHERE ({$resolved}) <> ''
-           AND i.facility_id <> be.biotime_fac_id
+         INNER JOIN biotime_enrollment be ON {$be_match}
+         WHERE i.facility_id <> be.biotime_fac_id
            AND (i.facility_id = '$esc' OR be.biotime_fac_id = '$esc')";
 }
 
@@ -615,7 +648,8 @@ public function get_transfer_by_card($card_number){
     if ($card === '') {
         return null;
     }
-    $resolved = $this->sql_resolved_emp_code('i');
+    $person = $this->sql_person_emp_code('i');
+    $be_match = $this->sql_emp_code_match_any('be.emp_code', 'i');
     $query = $this->db->query(
         "SELECT i.*,
                 i.facility_id AS new_facility,
@@ -627,8 +661,8 @@ public function get_transfer_by_card($card_number){
                 be.biotime_fac_id,
                 be.last_update AS enrollment_last_update
          FROM ihrisdata i
-         INNER JOIN biotime_enrollment be ON be.emp_code = {$resolved}
-         WHERE ({$resolved} = '$card' OR i.card_number = '$card' OR be.emp_code = '$card')
+         INNER JOIN biotime_enrollment be ON {$be_match}
+         WHERE (({$person}) = '$card' OR i.card_number = '$card' OR i.ipps = '$card' OR be.emp_code = '$card')
            AND i.facility_id <> be.biotime_fac_id
          LIMIT 1"
     );
@@ -646,11 +680,10 @@ public function get_ihris_by_card($card_number){
     }
     $esc = $this->db->escape_str($card);
     $person = $this->sql_person_emp_code('');
-    $resolved = $this->sql_resolved_emp_code('');
     $q2 = $this->db->query(
         "SELECT * FROM ihrisdata
-         WHERE {$resolved} = '$esc'
-            OR {$person} = '$esc'
+         WHERE ({$person}) = '$esc'
+            OR TRIM(ipps) = '$esc'
          LIMIT 1"
     );
     return ($q2 && $q2->num_rows()) ? $q2->row() : null;

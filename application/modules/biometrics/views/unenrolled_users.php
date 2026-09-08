@@ -9,7 +9,7 @@ $csrf_hash = $this->security->get_csrf_hash();
       <div class="row" style="min-height:550px">
         <section class="col-lg-12">
           <h5 style="margin-top:10px;"><?php echo htmlspecialchars($uptitle); ?></h5>
-          <p class="text-muted">Staff at <strong>your logged-in facility</strong> who are not yet in BioTime (missing from fingerprints staging and enrollment). BioTime Emp Code uses numeric card, or bare iHRIS person id (UCMB prefixed with 4253). Force Enroll creates them now; background enrollment also runs every 5 minutes.</p>
+          <p class="text-muted">Staff at <strong>your logged-in facility</strong> who still need BioTime enrollment (not in biotime_enrollment and no fingerprint device on file). <strong>BioTime Emp Code</strong> is always the iHRIS person id (UCMB ids prefixed with 4253). Force Enroll creates them now; background enrollment also runs every 5 minutes.</p>
           <div class="table-responsive" style="margin-top:10px;">
             <table id="unenrolledTable" class="table table-bordered table-striped" style="width:100%;">
               <thead>

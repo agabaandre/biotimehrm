@@ -1422,20 +1422,35 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     //create multiple new users cronjob
     public function multiple_new_users()
     {
-        $resolved = $this->biotimejobs_mdl->sql_resolved_emp_code('ihrisdata');
+        // New enrollments always use iHRIS person id as emp_code.
+        // Already-enrolled detection still matches person id, card, or ipps.
+        $person = $this->biotimejobs_mdl->sql_person_emp_code('i');
+        $be_match = $this->biotimejobs_mdl->sql_emp_code_match_any('be.emp_code', 'i');
         $query = $this->db->query(
-            "SELECT * FROM ihrisdata
-             WHERE ihrisdata.facility_id IN (SELECT area_code FROM biotime_devices)
-               AND (
-                    (ihrisdata.card_number IS NOT NULL AND ihrisdata.card_number <> '')
-                    OR (ihrisdata.ihris_pid IS NOT NULL AND ihrisdata.ihris_pid <> '')
-               )
-               AND {$resolved} <> ''
-               AND {$resolved} NOT IN (
-                    SELECT fingerprints_staging.card_number
-                    FROM fingerprints_staging
-                    WHERE fingerprints_staging.card_number IS NOT NULL
-               )"
+            "SELECT i.*
+             FROM ihrisdata i
+             LEFT JOIN biotime_enrollment be ON {$be_match}
+             LEFT JOIN fingerprints f ON (
+                    f.device IS NOT NULL AND TRIM(f.device) <> ''
+                AND (
+                        f.card_number = ({$person})
+                     OR (NULLIF(TRIM(i.card_number), '') IS NOT NULL AND f.card_number = TRIM(i.card_number))
+                     OR (NULLIF(TRIM(i.ipps), '') IS NOT NULL AND f.card_number = TRIM(i.ipps))
+                 )
+             )
+             LEFT JOIN fingerprints_staging fs ON (
+                    fs.device IS NOT NULL AND TRIM(fs.device) <> ''
+                AND (
+                        fs.card_number = ({$person})
+                     OR (NULLIF(TRIM(i.card_number), '') IS NOT NULL AND fs.card_number = TRIM(i.card_number))
+                     OR (NULLIF(TRIM(i.ipps), '') IS NOT NULL AND fs.card_number = TRIM(i.ipps))
+                 )
+             )
+             WHERE i.facility_id IN (SELECT area_code FROM biotime_devices)
+               AND ({$person}) <> ''
+               AND be.emp_code IS NULL
+               AND f.card_number IS NULL
+               AND fs.card_number IS NULL"
         );
         $newusers = $query ? $query->result() : [];
         $ok = 0;
@@ -1485,8 +1500,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
     /**
      * Build BioTime 9.5 employee create/update body from iHRIS / transfer data.
+     * New enrollments: emp_code = iHRIS person id (UCMB → 4253+id).
+     * Updates: keep existing biotime enrollment emp_code when present.
      * Required: emp_code, area. Department defaults to 1 when unmapped.
-     * Optional: position (job), names, mobile, email, gender, birthday, etc.
      *
      * @param object|array $staff
      * @param array $overrides facility/area/department/job keys when transferring
@@ -1743,15 +1759,23 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     public function get_new_users($facility)
     {
         $facility = $this->db->escape_str($facility);
-        $resolved = $this->biotimejobs_mdl->sql_resolved_emp_code('ihrisdata');
+        $person = $this->biotimejobs_mdl->sql_person_emp_code('ihrisdata');
+        $be_match = $this->biotimejobs_mdl->sql_emp_code_match_any('be.emp_code', 'ihrisdata');
         $query = $this->db->query(
-            "SELECT * FROM ihrisdata
+            "SELECT ihrisdata.*
+             FROM ihrisdata
+             LEFT JOIN biotime_enrollment be ON {$be_match}
+             LEFT JOIN fingerprints_staging fs ON (
+                    fs.device IS NOT NULL AND TRIM(fs.device) <> ''
+                AND (
+                        fs.card_number = ({$person})
+                     OR (NULLIF(TRIM(ihrisdata.card_number), '') IS NOT NULL AND fs.card_number = TRIM(ihrisdata.card_number))
+                 )
+             )
              WHERE ihrisdata.facility_id='$facility'
-               AND {$resolved} <> ''
-               AND {$resolved} NOT IN (
-                    SELECT fingerprints_staging.card_number FROM fingerprints_staging
-                    WHERE fingerprints_staging.card_number IS NOT NULL
-               )"
+               AND ({$person}) <> ''
+               AND be.emp_code IS NULL
+               AND fs.card_number IS NULL"
         );
         return $query ? $query->result() : [];
     }
@@ -2143,6 +2167,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      */
     public function transfer_employees()
     {
+        $be_match = $this->biotimejobs_mdl->sql_emp_code_match_any('be.emp_code', 'i');
         $query = $this->db->query(
             "SELECT i.*,
                     i.facility_id AS new_facility,
@@ -2154,9 +2179,8 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     be.biotime_fac_id,
                     be.last_update AS enrollment_last_update
              FROM ihrisdata i
-             INNER JOIN biotime_enrollment be ON be.emp_code = " . $this->biotimejobs_mdl->sql_resolved_emp_code('i') . "
-             WHERE i.facility_id <> be.biotime_fac_id
-               AND " . $this->biotimejobs_mdl->sql_resolved_emp_code('i') . " <> ''"
+             INNER JOIN biotime_enrollment be ON {$be_match}
+             WHERE i.facility_id <> be.biotime_fac_id"
         );
         $transfers = $query ? $query->result() : [];
         $ok = 0;

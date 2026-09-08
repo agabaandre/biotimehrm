@@ -12,7 +12,7 @@ $csrf_hash = $this->security->get_csrf_hash();
           <div class="alert alert-info" style="margin-top:10px;">
             <strong>Needs update criteria</strong>
             <ul class="mb-0" style="margin-top:6px;">
-              <!-- <li>Staff must already exist in <code>biotime_enrollment</code> (matched by resolved emp code: numeric card, bare person id, or UCMB <code>4253</code>+id).</li>
+              <!-- <li>Staff must already exist in <code>biotime_enrollment</code> (matched by person id, card number, or ipps for older enrollments; UCMB person ids use <code>4253</code>+id).</li>
               <li>Flagged when <strong>iHRIS <code>facility_id</code> ≠ BioTime <code>biotime_fac_id</code></strong> (facility transfer / reassignment).</li>
               <li>List is limited to your logged-in facility: staff whose <em>current</em> iHRIS facility is yours, or whose BioTime enrollment is still under yours.</li>
               <li>Job/department are pushed on Force Update / cron, but are <strong>not</strong> used as mismatch triggers (enrollment table has no job field).</li> -->

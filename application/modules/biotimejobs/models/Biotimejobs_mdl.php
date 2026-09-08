@@ -397,7 +397,9 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
-     * BioTime emp_code for enrollment: UCMB → 4253+person id; else numeric card; else bare person id.
+     * BioTime emp_code for NEW enrollment: always bare iHRIS person id
+     * (UCMB → 4253 + id). Existing BioTime emp_code is kept on updates
+     * when biotime_emp_id + emp_code are already present.
      *
      * @param object|array $staff
      * @param array $overrides
@@ -414,6 +416,11 @@ class Biotimejobs_mdl extends CI_Model
             return trim((string) $overrides['emp_code']);
         }
 
+        // Updates / transfers: keep the emp_code already stored in BioTime enrollment
+        if (!empty($s->biotime_emp_id) && isset($s->emp_code) && trim((string) $s->emp_code) !== '') {
+            return trim((string) $s->emp_code);
+        }
+
         $pid = '';
         if (!empty($overrides['ihris_pid'])) {
             $pid = (string) $overrides['ihris_pid'];
@@ -421,38 +428,13 @@ class Biotimejobs_mdl extends CI_Model
             $pid = (string) $s->ihris_pid;
         }
 
-        // UCMB always uses 4253 + bare iHRIS person id (even when card_number is numeric)
-        if ($pid !== '' && stripos($pid, 'UCMB') !== false) {
-            $ucmbCode = $this->ihris_person_id_only($pid);
-            if ($ucmbCode !== '') {
-                return $ucmbCode;
-            }
-        }
-
-        $card = '';
-        if (!empty($overrides['card_number'])) {
-            $card = trim((string) $overrides['card_number']);
-        } elseif (isset($s->emp_code) && trim((string) $s->emp_code) !== '') {
-            $card = trim((string) $s->emp_code);
-        } elseif (isset($s->card_number) && trim((string) $s->card_number) !== '') {
-            $card = trim((string) $s->card_number);
-        }
-
-        if ($this->is_numeric_emp_code($card)) {
-            return $card;
-        }
-
-        $idOnly = $this->ihris_person_id_only($pid);
-        if ($idOnly !== '') {
-            return $idOnly;
-        }
-
-        return $card;
+        return $this->ihris_person_id_only($pid);
     }
 
     /**
      * SQL expression: bare / UCMB-prefixed person emp_code from ihris_pid.
      * UCMB-person|123 → 4253123; person|123 → 123.
+     * Used as the emp_code for all NEW enrollments.
      */
     public function sql_person_emp_code($alias = 'i')
     {
@@ -464,17 +446,29 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
-     * SQL expression: resolved BioTime emp_code from an ihrisdata alias.
-     * UCMB → 4253+person id; else numeric card_number; else bare person id.
+     * SQL: emp_code used for new enrollment (= person id rule).
      */
     public function sql_resolved_emp_code($alias = 'i')
     {
-        $a = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $alias);
-        if ($a === '') {
-            $a = 'i';
+        return $this->sql_person_emp_code($alias);
+    }
+
+    /**
+     * SQL ON fragment: match BioTime emp_code to person id, card_number, or ipps
+     * (backward compatible with older card-based enrollments).
+     */
+    public function sql_emp_code_match_any($biotimeEmpExpr, $ihrisAlias = 'i')
+    {
+        $i = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $ihrisAlias);
+        if ($i === '') {
+            $i = 'i';
         }
-        $person = $this->sql_person_emp_code($a);
-        return "CASE WHEN {$a}.ihris_pid LIKE '%UCMB%' THEN {$person} WHEN {$a}.card_number REGEXP '^[0-9]+$' THEN TRIM({$a}.card_number) ELSE {$person} END";
+        $person = $this->sql_person_emp_code($i);
+        return "("
+            . "{$biotimeEmpExpr} = ({$person})"
+            . " OR (NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$biotimeEmpExpr} = TRIM({$i}.card_number))"
+            . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$biotimeEmpExpr} = TRIM({$i}.ipps))"
+            . ")";
     }
 
     /**
@@ -490,8 +484,7 @@ class Biotimejobs_mdl extends CI_Model
         if ($i === '') {
             $i = 'i';
         }
-        $person = $this->sql_person_emp_code($i);
-        return "({$b}.emp_code = {$i}.card_number OR {$b}.emp_code = {$i}.ipps OR {$b}.emp_code = {$person})";
+        return $this->sql_emp_code_match_any("{$b}.emp_code", $i);
     }
 
 
