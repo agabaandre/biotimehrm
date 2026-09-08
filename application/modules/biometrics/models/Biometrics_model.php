@@ -14,9 +14,12 @@ Class Biometrics_model extends CI_Model
    public  function __construct(){
         parent:: __construct();
         
-        // Safely get facility from session
-        $userdata = $this->session->userdata;
-        $this->facility = isset($userdata['facility']) ? $userdata['facility'] : null;
+        // Logged-in facility only (same keys as dashboard / filters).
+        $fac = trim((string) $this->session->userdata('facility'));
+        if ($fac === '') {
+            $fac = trim((string) $this->session->userdata('facility_id'));
+        }
+        $this->facility = ($fac !== '') ? $fac : null;
         $this->user = $this->session->get_userdata();
         $this->watermark = FCPATH."assets/img/448px-Coat_of_arms_of_Uganda.svg.png";
         
@@ -27,6 +30,29 @@ Class Biometrics_model extends CI_Model
             $this->filters = array();
             log_message('error', 'Failed to get session filters: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Facility id for the logged-in user (empty = refuse unscoped queries).
+     */
+    protected function _facility_id()
+    {
+        return trim((string) $this->facility);
+    }
+
+    /**
+     * Empty DataTables payload when facility is missing.
+     */
+    protected function _empty_datatable($draw = 0)
+    {
+        return [
+            'draw' => (int) $draw,
+            'recordsTotal' => 0,
+            'recordsFiltered' => 0,
+            'data' => [],
+            'facility' => '',
+            'error' => 'No facility in session — switch facility or log in again.',
+        ];
     }
 
    
@@ -169,8 +195,68 @@ public function getMachinesPaginated($start, $length, $search = '', $order = nul
     }
 }
 public function get_enrolled(){
-  $query= $this->db->query("SELECT * FROM fingerprints_final WHERE facilityId='$this->facility' AND device!=''");
-return $query->result(); 
+  $facility = $this->db->escape_str($this->_facility_id());
+  if ($facility === '') {
+      return [];
+  }
+  // Query base tables (fingerprints_final is a VIEW).
+  $query = $this->db->query(
+      "SELECT i.ihris_pid,
+              CONCAT(i.surname, ' ', i.firstname) AS fullname,
+              i.othername,
+              i.facility,
+              f.device,
+              i.job,
+              f.card_number,
+              f.att_status,
+              f.last_gen
+       FROM fingerprints f
+       INNER JOIN ihrisdata i ON i.card_number = f.card_number
+       WHERE f.facilityId = '$facility'
+         AND f.device != '' AND f.device IS NOT NULL"
+  );
+  return $query ? $query->result() : [];
+}
+
+/**
+ * Fast counts for biometrics control panel (avoids loading full result sets).
+ */
+public function count_enrolled()
+{
+    $facility = $this->db->escape_str($this->_facility_id());
+    if ($facility === '') {
+        return 0;
+    }
+    $row = $this->db->query(
+        "SELECT COUNT(*) AS c
+         FROM fingerprints f
+         INNER JOIN ihrisdata i ON i.card_number = f.card_number
+         WHERE f.facilityId = '$facility'
+           AND f.device != '' AND f.device IS NOT NULL"
+    )->row();
+    return $row ? (int) $row->c : 0;
+}
+
+public function count_new_users()
+{
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return 0;
+    }
+    $from = $this->_unenrolled_from_sql($facility);
+    $row = $this->db->query("SELECT COUNT(*) AS c $from")->row();
+    return $row ? (int) $row->c : 0;
+}
+
+public function count_needs_update()
+{
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return 0;
+    }
+    $from = $this->_needs_update_from_sql($facility);
+    $row = $this->db->query("SELECT COUNT(*) AS c $from")->row();
+    return $row ? (int) $row->c : 0;
 }
 
 /**
@@ -220,32 +306,44 @@ protected function _dt_params()
 }
 
 /**
- * Server-side enrolled users (fingerprints_final with device).
+ * Server-side enrolled users — facility scoped via fingerprints + ihrisdata (not the view).
  */
 public function get_enrolled_datatable()
 {
     $p = $this->_dt_params();
-    $facility = $this->db->escape_str($this->facility);
-    $where = "facilityId = '$facility' AND device != '' AND device IS NOT NULL";
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return $this->_empty_datatable($p['draw']);
+    }
+    $esc = $this->db->escape_str($facility);
+    $from = "FROM fingerprints f
+         INNER JOIN ihrisdata i ON i.card_number = f.card_number
+         WHERE f.facilityId = '$esc'
+           AND f.device != '' AND f.device IS NOT NULL";
+    $where_extra = '';
     if ($p['search'] !== '') {
         $s = $this->db->escape_like_str($p['search']);
-        $where .= " AND (ihris_pid LIKE '%$s%' OR fullname LIKE '%$s%' OR othername LIKE '%$s%' OR job LIKE '%$s%' OR card_number LIKE '%$s%' OR facility LIKE '%$s%' OR device LIKE '%$s%')";
+        $where_extra = " AND (i.ihris_pid LIKE '%$s%' OR i.surname LIKE '%$s%' OR i.firstname LIKE '%$s%' OR i.othername LIKE '%$s%' OR i.job LIKE '%$s%' OR f.card_number LIKE '%$s%' OR i.facility LIKE '%$s%' OR f.device LIKE '%$s%')";
     }
 
-    $total = (int) $this->db->query("SELECT COUNT(*) AS c FROM fingerprints_final WHERE facilityId = '$facility' AND device != '' AND device IS NOT NULL")->row()->c;
-    $filtered = (int) $this->db->query("SELECT COUNT(*) AS c FROM fingerprints_final WHERE $where")->row()->c;
+    $total = (int) $this->db->query("SELECT COUNT(*) AS c $from")->row()->c;
+    $filtered = (int) $this->db->query("SELECT COUNT(*) AS c $from $where_extra")->row()->c;
 
     $order_map = [
-        1 => 'ihris_pid',
-        2 => 'fullname',
-        3 => 'facility',
-        4 => 'device',
-        5 => 'job',
-        6 => 'card_number',
-        7 => 'att_status',
+        1 => 'i.ihris_pid',
+        2 => 'i.surname',
+        3 => 'i.facility',
+        4 => 'f.device',
+        5 => 'i.job',
+        6 => 'f.card_number',
+        7 => 'f.att_status',
     ];
-    $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'fullname';
-    $sql = "SELECT * FROM fingerprints_final WHERE $where ORDER BY $order_by {$p['order_dir']} LIMIT {$p['length']} OFFSET {$p['start']}";
+    $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'i.surname';
+    $sql = "SELECT i.ihris_pid, i.surname, i.firstname, i.othername, i.facility, i.job,
+                   f.device, f.card_number, f.att_status
+            $from $where_extra
+            ORDER BY $order_by {$p['order_dir']}
+            LIMIT {$p['length']} OFFSET {$p['start']}";
     $rows = $this->db->query($sql)->result();
 
     $data = [];
@@ -257,7 +355,7 @@ public function get_enrolled_datatable()
         $data[] = [
             $n++,
             htmlspecialchars(str_replace('person|', '', $r->ihris_pid ?? '')),
-            htmlspecialchars(trim(($r->fullname ?? '') . ' ' . ($r->othername ?? ''))),
+            htmlspecialchars(trim(($r->surname ?? '') . ' ' . ($r->firstname ?? '') . ' ' . ($r->othername ?? ''))),
             htmlspecialchars($r->facility ?? ''),
             htmlspecialchars($r->device ?? ''),
             htmlspecialchars($r->job ?? ''),
@@ -271,41 +369,77 @@ public function get_enrolled_datatable()
         'recordsTotal' => $total,
         'recordsFiltered' => $filtered,
         'data' => $data,
+        'facility' => $facility,
     ];
 }
 
 /**
- * Server-side new (unenrolled) users — uses resolved emp_code like enrollment.
+ * FROM/WHERE for unenrolled: facility staff not in fingerprints_staging or biotime_enrollment.
+ * Uses LEFT JOIN (indexed emp_code / card_number) instead of NOT IN subqueries.
+ */
+protected function _unenrolled_from_sql($facility)
+{
+    $esc = $this->db->escape_str($facility);
+    $resolved = $this->sql_resolved_emp_code('i');
+    return "FROM ihrisdata i
+         LEFT JOIN fingerprints_staging fs ON fs.card_number = ({$resolved})
+         LEFT JOIN biotime_enrollment be ON be.emp_code = ({$resolved})
+         WHERE i.facility_id = '$esc'
+           AND ({$resolved}) <> ''
+           AND fs.card_number IS NULL
+           AND be.emp_code IS NULL";
+}
+
+/**
+ * FROM/WHERE for needs-update: enrolled, facility mismatch, scoped to logged-in facility.
+ * Criteria: i.facility_id <> be.biotime_fac_id AND staff touches this facility
+ * (currently at this facility in iHRIS, OR still enrolled under this facility in BioTime).
+ */
+protected function _needs_update_from_sql($facility)
+{
+    $esc = $this->db->escape_str($facility);
+    $resolved = $this->sql_resolved_emp_code('i');
+    return "FROM ihrisdata i
+         INNER JOIN biotime_enrollment be ON be.emp_code = ({$resolved})
+         WHERE ({$resolved}) <> ''
+           AND i.facility_id <> be.biotime_fac_id
+           AND (i.facility_id = '$esc' OR be.biotime_fac_id = '$esc')";
+}
+
+/**
+ * Server-side new (unenrolled) users — facility scoped, resolved emp_code anti-join.
  */
 public function get_new_users_datatable()
 {
     $p = $this->_dt_params();
-    $facility = $this->db->escape_str($this->facility);
-    $resolved = $this->sql_resolved_emp_code('');
-    $base_where = "facility_id = '$facility'
-           AND {$resolved} <> ''
-           AND {$resolved} NOT IN (
-                SELECT card_number FROM fingerprints_staging
-                WHERE card_number IS NOT NULL AND card_number <> ''
-           )";
-    $where = $base_where;
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return $this->_empty_datatable($p['draw']);
+    }
+    $resolved = $this->sql_resolved_emp_code('i');
+    $from = $this->_unenrolled_from_sql($facility);
+    $where_extra = '';
     if ($p['search'] !== '') {
         $s = $this->db->escape_like_str($p['search']);
-        $where .= " AND (ihris_pid LIKE '%$s%' OR surname LIKE '%$s%' OR firstname LIKE '%$s%' OR othername LIKE '%$s%' OR job LIKE '%$s%' OR card_number LIKE '%$s%' OR {$resolved} LIKE '%$s%')";
+        $where_extra = " AND (i.ihris_pid LIKE '%$s%' OR i.surname LIKE '%$s%' OR i.firstname LIKE '%$s%' OR i.othername LIKE '%$s%' OR i.job LIKE '%$s%' OR i.card_number LIKE '%$s%' OR ({$resolved}) LIKE '%$s%')";
     }
 
-    $total = (int) $this->db->query("SELECT COUNT(*) AS c FROM ihrisdata WHERE $base_where")->row()->c;
-    $filtered = (int) $this->db->query("SELECT COUNT(*) AS c FROM ihrisdata WHERE $where")->row()->c;
+    $total = (int) $this->db->query("SELECT COUNT(*) AS c $from")->row()->c;
+    $filtered = (int) $this->db->query("SELECT COUNT(*) AS c $from $where_extra")->row()->c;
 
     $order_map = [
-        1 => 'ihris_pid',
-        2 => 'surname',
-        3 => 'job',
-        4 => 'card_number',
-        5 => $resolved,
+        1 => 'i.ihris_pid',
+        2 => 'i.surname',
+        3 => 'i.job',
+        4 => 'i.card_number',
+        5 => "({$resolved})",
     ];
-    $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'surname';
-    $sql = "SELECT *, {$resolved} AS biotime_emp_code FROM ihrisdata WHERE $where ORDER BY $order_by {$p['order_dir']} LIMIT {$p['length']} OFFSET {$p['start']}";
+    $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'i.surname';
+    $sql = "SELECT i.ihris_pid, i.surname, i.firstname, i.fullname, i.othername, i.job, i.card_number,
+                   ({$resolved}) AS biotime_emp_code
+            $from $where_extra
+            ORDER BY $order_by {$p['order_dir']}
+            LIMIT {$p['length']} OFFSET {$p['start']}";
     $rows = $this->db->query($sql)->result();
 
     $data = [];
@@ -343,21 +477,21 @@ public function get_new_users_datatable()
         'recordsTotal' => $total,
         'recordsFiltered' => $filtered,
         'data' => $data,
+        'facility' => $facility,
     ];
 }
 
 /**
- * Server-side users needing BioTime facility/job update.
+ * Server-side users needing BioTime facility update (facility mismatch only).
  */
 public function get_needs_update_datatable()
 {
     $p = $this->_dt_params();
-    $facility = $this->db->escape_str($this->facility);
-    $resolved = $this->sql_resolved_emp_code('i');
-    $from = "FROM ihrisdata i
-         INNER JOIN biotime_enrollment be ON be.emp_code = {$resolved}
-         WHERE i.facility_id <> be.biotime_fac_id
-           AND (i.facility_id = '$facility' OR be.biotime_fac_id = '$facility')";
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return $this->_empty_datatable($p['draw']);
+    }
+    $from = $this->_needs_update_from_sql($facility);
     $search_sql = '';
     if ($p['search'] !== '') {
         $s = $this->db->escape_like_str($p['search']);
@@ -375,15 +509,15 @@ public function get_needs_update_datatable()
         5 => 'be.emp_code',
         6 => 'i.facility',
         7 => 'be.biotime_fac_id',
+        8 => 'i.facility_id',
     ];
     $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'i.surname';
-    $sql = "SELECT i.*,
+    $sql = "SELECT i.ihris_pid, i.surname, i.firstname, i.job, i.card_number, i.facility_id, i.facility,
                 i.facility_id AS new_facility,
                 i.facility AS new_fname,
                 be.emp_code,
                 be.biotime_emp_id,
-                be.biotime_fac_id,
-                {$resolved} AS biotime_emp_code
+                be.biotime_fac_id
          $from $search_sql
          ORDER BY $order_by {$p['order_dir']}
          LIMIT {$p['length']} OFFSET {$p['start']}";
@@ -393,9 +527,15 @@ public function get_needs_update_datatable()
     $n = $p['start'] + 1;
     foreach ($rows as $r) {
         $name = trim(($r->surname ?? '') . ' ' . ($r->firstname ?? ''));
-        $emp = (string) ($r->emp_code ?? $r->biotime_emp_code ?? '');
+        $emp = (string) ($r->emp_code ?? '');
         $ihris = (string) ($r->ihris_pid ?? '');
         $card = (string) ($r->card_number ?? '');
+        $ihrisFac = (string) ($r->new_fname ?? $r->facility ?? '');
+        $ihrisFacId = (string) ($r->new_facility ?? $r->facility_id ?? '');
+        $bioFac = (string) ($r->biotime_fac_id ?? '');
+        $reason = 'Facility mismatch: iHRIS '
+            . ($ihrisFac !== '' ? $ihrisFac : '(unknown)')
+            . ' (' . $ihrisFacId . ') ≠ BioTime facility ' . $bioFac;
         $btn = '<button type="button" class="btn btn-sm btn-warning force-update-btn"'
             . ' data-card="' . htmlspecialchars($emp !== '' ? $emp : $card, ENT_QUOTES, 'UTF-8') . '"'
             . ' data-ihris="' . htmlspecialchars($ihris, ENT_QUOTES, 'UTF-8') . '">'
@@ -407,8 +547,9 @@ public function get_needs_update_datatable()
             htmlspecialchars($r->job ?? ''),
             htmlspecialchars($card),
             htmlspecialchars($emp),
-            htmlspecialchars($r->new_fname ?? $r->facility ?? ''),
-            htmlspecialchars($r->biotime_fac_id ?? ''),
+            htmlspecialchars($ihrisFac) . ' <small class="text-muted">(' . htmlspecialchars($ihrisFacId) . ')</small>',
+            htmlspecialchars($bioFac),
+            htmlspecialchars($reason),
             $btn,
         ];
     }
@@ -418,36 +559,38 @@ public function get_needs_update_datatable()
         'recordsTotal' => $total,
         'recordsFiltered' => $filtered,
         'data' => $data,
+        'facility' => $facility,
+        'criteria' => 'Needs update when iHRIS facility_id differs from biotime_enrollment.biotime_fac_id for the same resolved emp_code (numeric card, bare person id, or UCMB 4253+id). Job/department are synced on update but are not used as mismatch triggers.',
     ];
 }
 
 /**
- * Staff at this facility who are not yet in BioTime (fingerprints_staging).
- * Uses resolved emp_code: UCMB → 4253+person id; else numeric card; else bare person id.
+ * Staff at this facility who are not yet in BioTime (staging or enrollment).
  */
 public function get_new_users(){
-    $facility = $this->db->escape_str($this->facility);
-    $resolved = $this->sql_resolved_emp_code('');
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return [];
+    }
+    $resolved = $this->sql_resolved_emp_code('i');
+    $from = $this->_unenrolled_from_sql($facility);
     $query = $this->db->query(
-        "SELECT * FROM ihrisdata
-         WHERE facility_id = '$facility'
-           AND {$resolved} <> ''
-           AND {$resolved} NOT IN (
-                SELECT card_number FROM fingerprints_staging
-                WHERE card_number IS NOT NULL AND card_number <> ''
-           )
-         ORDER BY surname, firstname"
+        "SELECT i.*, ({$resolved}) AS biotime_emp_code
+         $from
+         ORDER BY i.surname, i.firstname"
     );
     return $query ? $query->result() : [];
 }
 
 /**
- * Enrolled BioTime users whose iHRIS facility no longer matches biotime_enrollment
- * (same logic as biotime_transfers view, without relying on the view definer).
+ * Enrolled BioTime users whose iHRIS facility no longer matches biotime_enrollment.
  */
 public function get_users_needing_update(){
-    $facility = $this->db->escape_str($this->facility);
-    $resolved = $this->sql_resolved_emp_code('i');
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return [];
+    }
+    $from = $this->_needs_update_from_sql($facility);
     $query = $this->db->query(
         "SELECT i.*,
                 i.facility_id AS new_facility,
@@ -458,10 +601,7 @@ public function get_users_needing_update(){
                 be.biotime_facility_id AS biotime_area_id,
                 be.biotime_fac_id,
                 be.last_update AS enrollment_last_update
-         FROM ihrisdata i
-         INNER JOIN biotime_enrollment be ON be.emp_code = {$resolved}
-         WHERE i.facility_id <> be.biotime_fac_id
-           AND (i.facility_id = '$facility' OR be.biotime_fac_id = '$facility')
+         $from
          ORDER BY i.surname, i.firstname"
     );
     return $query ? $query->result() : [];

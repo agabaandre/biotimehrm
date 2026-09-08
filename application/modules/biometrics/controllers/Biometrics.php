@@ -307,7 +307,7 @@ class Biometrics extends MX_Controller{
     }
 
     public function bioihriscontrol(){
-        $data['biousers']=count($this->get_enrolled());
+        $data['biousers']=$this->biometrics_mdl->count_enrolled();
         $data['ihrisusers']=count($this->getihris_users());
         $data['biojobs']=count($this->getbiojobs());
         $data['biodeps']=count($this->getbioDeps());
@@ -315,15 +315,29 @@ class Biometrics extends MX_Controller{
         $data['ihrisjobs']=$this->getihrisjobs();
         $data['ihrisfacs']=$this->getihrisfacilities();
         $data['ihrisdeps']=$this->getihrisDeps();
-        $data['usersgap']=count($this->biometrics_mdl->get_new_users());
+        $data['usersgap']=$this->biometrics_mdl->count_new_users();
         $data['jobsgap']=count($this->biometrics_mdl->get_new_jobs());
         $data['depsgap']=count($this->biometrics_mdl->get_new_deps());
         $data['facsgap']=count($this->biometrics_mdl->get_new_facs());
-        $data['biouserssync']=$this->get_enrolled()[0]->last_gen;
-        $data['ilastsync']=$this->getihris_users()[0]->last_update;
-        $data['blastjobssync']=$this->biometrics_mdl->getbiojobs()[0]->last_gen;
-        $data['blastdepssync']=$this->biometrics_mdl->getbioDeps()[0]->last_update;
-        $data['blastfacsync']=$this->biometrics_mdl->getbiofacilities()[0]->last_gen;;
+        $enrolled_sample = $this->db->query(
+            "SELECT f.last_gen FROM fingerprints f
+             WHERE f.facilityId = ".$this->db->escape($this->session->userdata('facility'))."
+               AND f.device != '' AND f.device IS NOT NULL
+             ORDER BY f.last_gen DESC LIMIT 1"
+        )->row();
+        $data['biouserssync'] = $enrolled_sample->last_gen ?? null;
+        $ihris_sample = $this->db->query(
+            "SELECT last_update FROM ihrisdata
+             WHERE facility_id = ".$this->db->escape($this->session->userdata('facility'))."
+             ORDER BY last_update DESC LIMIT 1"
+        )->row();
+        $data['ilastsync'] = $ihris_sample->last_update ?? null;
+        $jobs = $this->biometrics_mdl->getbiojobs();
+        $deps = $this->biometrics_mdl->getbioDeps();
+        $facs = $this->biometrics_mdl->getbiofacilities();
+        $data['blastjobssync'] = (!empty($jobs[0]->last_gen)) ? $jobs[0]->last_gen : null;
+        $data['blastdepssync'] = (!empty($deps[0]->last_update)) ? $deps[0]->last_update : null;
+        $data['blastfacsync'] = (!empty($facs[0]->last_gen)) ? $facs[0]->last_gen : null;
     return $data;
     }
     public function syncDepartments(){

@@ -9,7 +9,16 @@ $csrf_hash = $this->security->get_csrf_hash();
       <div class="row" style="min-height:550px">
         <section class="col-lg-12">
           <h5 style="margin-top:10px;"><?php echo htmlspecialchars($uptitle); ?></h5>
-          <p class="text-muted">Staff whose iHRIS facility no longer matches BioTime enrollment (matched by resolved emp code: numeric card, bare person id, or UCMB 4253+id). Force Update syncs now; background job also runs every 5 minutes.</p>
+          <div class="alert alert-info" style="margin-top:10px;">
+            <strong>Needs update criteria</strong>
+            <ul class="mb-0" style="margin-top:6px;">
+              <!-- <li>Staff must already exist in <code>biotime_enrollment</code> (matched by resolved emp code: numeric card, bare person id, or UCMB <code>4253</code>+id).</li>
+              <li>Flagged when <strong>iHRIS <code>facility_id</code> ≠ BioTime <code>biotime_fac_id</code></strong> (facility transfer / reassignment).</li>
+              <li>List is limited to your logged-in facility: staff whose <em>current</em> iHRIS facility is yours, or whose BioTime enrollment is still under yours.</li>
+              <li>Job/department are pushed on Force Update / cron, but are <strong>not</strong> used as mismatch triggers (enrollment table has no job field).</li> -->
+            </ul>
+          </div>
+          <p class="text-muted">Force Update syncs now; background transfer job also runs every 5 minutes.</p>
           <div class="table-responsive" style="margin-top:10px;">
             <table id="needsUpdateTable" class="table table-bordered table-striped" style="width:100%;">
               <thead>
@@ -22,6 +31,7 @@ $csrf_hash = $this->security->get_csrf_hash();
                   <th>BioTime Emp Code</th>
                   <th>iHRIS Facility</th>
                   <th>BioTime Facility ID</th>
+                  <th>Reason</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -73,7 +83,8 @@ $csrf_hash = $this->security->get_csrf_hash();
         { data: 5 },
         { data: 6 },
         { data: 7 },
-        { data: 8, orderable: false }
+        { data: 8, orderable: false },
+        { data: 9, orderable: false }
       ],
       language: { processing: '<i class="fa fa-spinner fa-spin"></i> Loading...' }
     });
