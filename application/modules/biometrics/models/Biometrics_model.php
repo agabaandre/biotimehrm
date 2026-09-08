@@ -254,8 +254,8 @@ public function count_needs_update()
     if ($facility === '') {
         return 0;
     }
-    $from = $this->_needs_update_from_sql($facility);
-    $row = $this->db->query("SELECT COUNT(*) AS c $from")->row();
+    $union = $this->_needs_update_union_sql($facility, 'be.emp_code', '');
+    $row = $this->db->query("SELECT COUNT(*) AS c FROM ({$union}) needs_upd")->row();
     return $row ? (int) $row->c : 0;
 }
 
@@ -279,20 +279,83 @@ public function sql_resolved_emp_code($alias = '')
 }
 
 /**
- * Match biotime emp_code to person id, card_number, or ipps (backward compatible).
+ * Match biotime emp_code ← ihris identifiers (index-friendly).
+ * Prefer equality on indexed columns (card_number, ihris_pid, emp_code) instead of
+ * CASE/TRIM on the iHRIS side, which prevents index use and slows Needs Update.
  */
 public function sql_emp_code_match_any($biotimeEmpExpr, $alias = 'i')
 {
+    // Legacy signature kept: when expr is "be.emp_code", build join against alias i.
     $i = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $alias);
     if ($i === '') {
         $i = 'i';
     }
+    $expr = trim((string) $biotimeEmpExpr);
+    // If caller passes be.emp_code, use reverse equalities that hit indexes.
+    if (preg_match('/^[a-zA-Z0-9_]+\.emp_code$/', $expr)) {
+        return $this->sql_enrollment_to_ihris_on(explode('.', $expr)[0], $i);
+    }
     $person = $this->sql_person_emp_code($i);
     return "("
-        . "{$biotimeEmpExpr} = ({$person})"
-        . " OR (NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$biotimeEmpExpr} = TRIM({$i}.card_number))"
-        . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$biotimeEmpExpr} = TRIM({$i}.ipps))"
+        . "{$expr} = ({$person})"
+        . " OR (NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$expr} = TRIM({$i}.card_number))"
+        . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$expr} = TRIM({$i}.ipps))"
         . ")";
+}
+
+/**
+ * INNER JOIN condition: biotime_enrollment → ihrisdata via indexed keys.
+ */
+public function sql_enrollment_to_ihris_on($beAlias = 'be', $iAlias = 'i')
+{
+    $be = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $beAlias);
+    $i = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $iAlias);
+    if ($be === '') {
+        $be = 'be';
+    }
+    if ($i === '') {
+        $i = 'i';
+    }
+    return "("
+        . "{$i}.card_number = {$be}.emp_code"
+        . " OR {$i}.ipps = {$be}.emp_code"
+        . " OR {$i}.ihris_pid = CONCAT('person|', {$be}.emp_code)"
+        . " OR ({$be}.emp_code LIKE '4253%' AND CHAR_LENGTH({$be}.emp_code) > 4"
+        . " AND {$i}.ihris_pid = CONCAT('UCMB-person|', SUBSTRING({$be}.emp_code, 5)))"
+        . ")";
+}
+
+/**
+ * Needs-update match branches (UNION) — each ON clause is sargable.
+ *
+ * @return string[]
+ */
+protected function _needs_update_match_ons()
+{
+    return [
+        'i.card_number = be.emp_code',
+        "(NULLIF(i.ipps, '') IS NOT NULL AND i.ipps = be.emp_code)",
+        "i.ihris_pid = CONCAT('person|', be.emp_code)",
+        "(be.emp_code LIKE '4253%' AND CHAR_LENGTH(be.emp_code) > 4 AND i.ihris_pid = CONCAT('UCMB-person|', SUBSTRING(be.emp_code, 5)))",
+    ];
+}
+
+/**
+ * Build UNION of index-friendly needs-update SELECTs.
+ */
+protected function _needs_update_union_sql($facility, $selectList, $searchSql = '')
+{
+    $esc = $this->db->escape_str($facility);
+    $parts = [];
+    foreach ($this->_needs_update_match_ons() as $on) {
+        $parts[] = "SELECT {$selectList}
+            FROM biotime_enrollment be
+            INNER JOIN ihrisdata i ON {$on}
+            WHERE i.facility_id <> be.biotime_fac_id
+              AND (i.facility_id = '{$esc}' OR be.biotime_fac_id = '{$esc}')
+              {$searchSql}";
+    }
+    return implode("\nUNION\n", $parts);
 }
 
 /**
@@ -391,50 +454,38 @@ public function get_enrolled_datatable()
 
 /**
  * FROM/WHERE for unenrolled: facility staff who still need BioTime enrollment.
- *
- * New emp_code = iHRIS person id (UCMB → 4253+id). Already-enrolled detection
- * still matches person id, card_number, or ipps for backward compatibility.
- * Empty-device staging alone does not hide candidates.
+ * Uses NOT EXISTS against emp_code (unique index) instead of OR/CASE joins.
  */
 protected function _unenrolled_from_sql($facility)
 {
     $esc = $this->db->escape_str($facility);
     $person = $this->sql_person_emp_code('i');
-    $be_match = $this->sql_emp_code_match_any('be.emp_code', 'i');
     return "FROM ihrisdata i
-         LEFT JOIN biotime_enrollment be ON {$be_match}
-         LEFT JOIN fingerprints f ON (
-                f.device IS NOT NULL AND TRIM(f.device) <> ''
-            AND (
-                    f.card_number = ({$person})
-                 OR (NULLIF(TRIM(i.card_number), '') IS NOT NULL AND f.card_number = TRIM(i.card_number))
-                 OR (NULLIF(TRIM(i.ipps), '') IS NOT NULL AND f.card_number = TRIM(i.ipps))
-             )
-         )
-         LEFT JOIN fingerprints_staging fs ON (
-                fs.device IS NOT NULL AND TRIM(fs.device) <> ''
-            AND (
-                    fs.card_number = ({$person})
-                 OR (NULLIF(TRIM(i.card_number), '') IS NOT NULL AND fs.card_number = TRIM(i.card_number))
-                 OR (NULLIF(TRIM(i.ipps), '') IS NOT NULL AND fs.card_number = TRIM(i.ipps))
-             )
-         )
          WHERE i.facility_id = '$esc'
            AND ({$person}) <> ''
-           AND be.emp_code IS NULL
-           AND f.card_number IS NULL
-           AND fs.card_number IS NULL";
+           AND NOT EXISTS (
+                SELECT 1 FROM biotime_enrollment be
+                WHERE be.emp_code = i.card_number
+           )
+           AND NOT EXISTS (
+                SELECT 1 FROM biotime_enrollment be
+                WHERE NULLIF(i.ipps, '') IS NOT NULL AND be.emp_code = i.ipps
+           )
+           AND NOT EXISTS (
+                SELECT 1 FROM biotime_enrollment be
+                WHERE be.emp_code = ({$person})
+           )";
 }
 
 /**
- * FROM/WHERE for needs-update: enrolled (any historical emp_code key), facility mismatch.
+ * FROM/WHERE for needs-update (legacy helper — prefer UNION helpers for DataTables).
  */
 protected function _needs_update_from_sql($facility)
 {
     $esc = $this->db->escape_str($facility);
-    $be_match = $this->sql_emp_code_match_any('be.emp_code', 'i');
-    return "FROM ihrisdata i
-         INNER JOIN biotime_enrollment be ON {$be_match}
+    $on = $this->sql_enrollment_to_ihris_on('be', 'i');
+    return "FROM biotime_enrollment be
+         INNER JOIN ihrisdata i ON {$on}
          WHERE i.facility_id <> be.biotime_fac_id
            AND (i.facility_id = '$esc' OR be.biotime_fac_id = '$esc')";
 }
@@ -516,6 +567,7 @@ public function get_new_users_datatable()
 
 /**
  * Server-side users needing BioTime facility update (facility mismatch only).
+ * Uses UNION of indexed emp_code match paths to avoid slow OR/CASE joins.
  */
 public function get_needs_update_datatable()
 {
@@ -524,35 +576,42 @@ public function get_needs_update_datatable()
     if ($facility === '') {
         return $this->_empty_datatable($p['draw']);
     }
-    $from = $this->_needs_update_from_sql($facility);
+
     $search_sql = '';
     if ($p['search'] !== '') {
         $s = $this->db->escape_like_str($p['search']);
         $search_sql = " AND (i.ihris_pid LIKE '%$s%' OR i.surname LIKE '%$s%' OR i.firstname LIKE '%$s%' OR i.job LIKE '%$s%' OR i.card_number LIKE '%$s%' OR i.facility LIKE '%$s%' OR be.emp_code LIKE '%$s%' OR be.biotime_fac_id LIKE '%$s%')";
     }
 
-    $total = (int) $this->db->query("SELECT COUNT(*) AS c $from")->row()->c;
-    $filtered = (int) $this->db->query("SELECT COUNT(*) AS c $from $search_sql")->row()->c;
-
-    $order_map = [
-        1 => 'i.ihris_pid',
-        2 => 'i.surname',
-        3 => 'i.job',
-        4 => 'i.card_number',
-        5 => 'be.emp_code',
-        6 => 'i.facility',
-        7 => 'be.biotime_fac_id',
-        8 => 'i.facility_id',
-    ];
-    $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'i.surname';
-    $sql = "SELECT i.ihris_pid, i.surname, i.firstname, i.job, i.card_number, i.facility_id, i.facility,
+    $selectList = "i.ihris_pid, i.surname, i.firstname, i.job, i.card_number, i.facility_id, i.facility,
                 i.facility_id AS new_facility,
                 i.facility AS new_fname,
                 be.emp_code,
                 be.biotime_emp_id,
-                be.biotime_fac_id
-         $from $search_sql
-         ORDER BY $order_by {$p['order_dir']}
+                be.biotime_fac_id";
+
+    $union = $this->_needs_update_union_sql($facility, $selectList, $search_sql);
+
+    // One count when there is no search filter
+    $countSql = "SELECT COUNT(*) AS c FROM ({$union}) needs_upd";
+    $filtered = (int) $this->db->query($countSql)->row()->c;
+    $total = ($search_sql === '') ? $filtered : (int) $this->db->query(
+        "SELECT COUNT(*) AS c FROM (" . $this->_needs_update_union_sql($facility, $selectList, '') . ") needs_upd_all"
+    )->row()->c;
+
+    $order_map = [
+        1 => 'ihris_pid',
+        2 => 'surname',
+        3 => 'job',
+        4 => 'card_number',
+        5 => 'emp_code',
+        6 => 'facility',
+        7 => 'biotime_fac_id',
+        8 => 'facility_id',
+    ];
+    $order_by = isset($order_map[$p['order_col']]) ? $order_map[$p['order_col']] : 'surname';
+    $sql = "SELECT * FROM ({$union}) needs_upd
+         ORDER BY {$order_by} {$p['order_dir']}
          LIMIT {$p['length']} OFFSET {$p['start']}";
     $rows = $this->db->query($sql)->result();
 
@@ -593,7 +652,7 @@ public function get_needs_update_datatable()
         'recordsFiltered' => $filtered,
         'data' => $data,
         'facility' => $facility,
-        'criteria' => 'Needs update when iHRIS facility_id differs from biotime_enrollment.biotime_fac_id for the same resolved emp_code (numeric card, bare person id, or UCMB 4253+id). Job/department are synced on update but are not used as mismatch triggers.',
+        'criteria' => 'Needs update when iHRIS facility_id differs from biotime_enrollment.biotime_fac_id (matched by card, ipps, or person id).',
     ];
 }
 
@@ -623,9 +682,7 @@ public function get_users_needing_update(){
     if ($facility === '') {
         return [];
     }
-    $from = $this->_needs_update_from_sql($facility);
-    $query = $this->db->query(
-        "SELECT i.*,
+    $selectList = "i.*,
                 i.facility_id AS new_facility,
                 i.facility AS new_fname,
                 be.id AS enrollment_row_id,
@@ -633,9 +690,11 @@ public function get_users_needing_update(){
                 be.biotime_emp_id,
                 be.biotime_facility_id AS biotime_area_id,
                 be.biotime_fac_id,
-                be.last_update AS enrollment_last_update
-         $from
-         ORDER BY i.surname, i.firstname"
+                be.last_update AS enrollment_last_update";
+    $union = $this->_needs_update_union_sql($facility, $selectList, '');
+    $query = $this->db->query(
+        "SELECT * FROM ({$union}) needs_upd
+         ORDER BY surname, firstname"
     );
     return $query ? $query->result() : [];
 }

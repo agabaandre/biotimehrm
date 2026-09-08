@@ -454,6 +454,28 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
+     * Index-friendly JOIN: biotime_enrollment.emp_code → ihrisdata (card / ipps / person| / UCMB).
+     */
+    public function sql_enrollment_to_ihris_on($beAlias = 'be', $iAlias = 'i')
+    {
+        $be = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $beAlias);
+        $i = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $iAlias);
+        if ($be === '') {
+            $be = 'be';
+        }
+        if ($i === '') {
+            $i = 'i';
+        }
+        return "("
+            . "{$i}.card_number = {$be}.emp_code"
+            . " OR {$i}.ipps = {$be}.emp_code"
+            . " OR {$i}.ihris_pid = CONCAT('person|', {$be}.emp_code)"
+            . " OR ({$be}.emp_code LIKE '4253%' AND CHAR_LENGTH({$be}.emp_code) > 4"
+            . " AND {$i}.ihris_pid = CONCAT('UCMB-person|', SUBSTRING({$be}.emp_code, 5)))"
+            . ")";
+    }
+
+    /**
      * SQL ON fragment: match BioTime emp_code to person id, card_number, or ipps
      * (backward compatible with older card-based enrollments).
      */
@@ -463,11 +485,15 @@ class Biotimejobs_mdl extends CI_Model
         if ($i === '') {
             $i = 'i';
         }
+        $expr = trim((string) $biotimeEmpExpr);
+        if (preg_match('/^([a-zA-Z0-9_]+)\.emp_code$/', $expr, $m)) {
+            return $this->sql_enrollment_to_ihris_on($m[1], $i);
+        }
         $person = $this->sql_person_emp_code($i);
         return "("
-            . "{$biotimeEmpExpr} = ({$person})"
-            . " OR (NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$biotimeEmpExpr} = TRIM({$i}.card_number))"
-            . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$biotimeEmpExpr} = TRIM({$i}.ipps))"
+            . "{$expr} = ({$person})"
+            . " OR (NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$expr} = TRIM({$i}.card_number))"
+            . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$expr} = TRIM({$i}.ipps))"
             . ")";
     }
 
