@@ -1898,11 +1898,18 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             'biotime_fac_id' => (string) $facilityCode,
         ];
         if ($this->db->field_exists('biotime_resign_id', 'biotime_enrollment')) {
-            $data['biotime_resign_id'] = ($resignId !== null && $resignId !== '')
-                ? (string) (int) $resignId
-                : null;
+            if ($resignId !== null && $resignId !== '') {
+                $data['biotime_resign_id'] = (string) (int) $resignId;
+            }
         }
-        return $this->db->replace('biotime_enrollment', $data);
+        $ok = $this->db->replace('biotime_enrollment', $data);
+        // REPLACE may omit NULL — explicitly clear resign id after successful reinstate/update
+        if ($ok && $this->db->field_exists('biotime_resign_id', 'biotime_enrollment')
+            && ($resignId === null || $resignId === '')) {
+            $this->db->where('biotime_emp_id', (string) (int) $empId)
+                ->update('biotime_enrollment', ['biotime_resign_id' => null]);
+        }
+        return $ok;
     }
 
     /**
