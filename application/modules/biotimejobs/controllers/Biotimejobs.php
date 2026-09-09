@@ -2304,8 +2304,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      *
      * Preserves anyone with fingerprint, face, palm, or vl_face enrolled.
      * Deletes (no bio only):
-     *   1) alphanumeric emp_codes (card-style)
-     *   2) remaining no-bio employees (numeric included) to reclaim capacity
+     *   1) alphanumeric emp_codes (card-style) — always
+     *   2) numeric emp_codes that are NOT a current iHRIS person id (orphans / old dups)
+     * Does NOT delete no-bio person ids that still exist in ihrisdata (awaiting device enroll).
      *
      * @param int $max_deletes safety cap per run (default 200)
      * @return array{scanned:int,deleted:int,preserved:int,failed:int,alphanumeric_deleted:int}
@@ -2322,6 +2323,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             'preserved' => 0,
             'failed' => 0,
             'alphanumeric_deleted' => 0,
+            'orphan_numeric_deleted' => 0,
         ];
 
         $token = $this->get_token();
@@ -2329,6 +2331,22 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             log_message('error', 'cleanup_biotime_employees: no BioTime token');
             $this->cronjob_register(8, 'bioitimejobs/cleanup_biotime_employees', 'failed');
             return $stats;
+        }
+
+        // Active iHRIS person emp_codes — keep these even if biometrics not yet on device
+        $person = $this->biotimejobs_mdl->sql_person_emp_code('i');
+        $activePersonCodes = [];
+        $pq = $this->db->query(
+            "SELECT DISTINCT ({$person}) AS emp
+             FROM ihrisdata i
+             WHERE ({$person}) <> '' AND ({$person}) REGEXP '^[0-9]+$'"
+        );
+        if ($pq) {
+            foreach ($pq->result() as $r) {
+                if (!empty($r->emp)) {
+                    $activePersonCodes[(string) $r->emp] = true;
+                }
+            }
         }
 
         $page_size = $this->biotime_employee_page_size;
@@ -2341,7 +2359,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
         $pages = $this->_biotime_list_pages($resp, $page_size);
         $alphaCandidates = [];
-        $otherCandidates = [];
+        $orphanNumeric = [];
 
         for ($page = 1; $page <= $pages; $page++) {
             $response = ($page === 1) ? $resp : $this->fetch_biotime_employees($page, $page_size);
@@ -2359,22 +2377,22 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 $row = [
                     'id' => (int) $emp->id,
                     'emp_code' => $code,
-                    'first_name' => isset($emp->first_name) ? (string) $emp->first_name : '',
-                    'last_name' => isset($emp->last_name) ? (string) $emp->last_name : '',
                 ];
                 if ($this->_biotime_is_alphanumeric_emp_code($code)) {
                     $alphaCandidates[] = $row;
-                } else {
-                    $otherCandidates[] = $row;
+                    continue;
+                }
+                // Numeric no-bio: only delete if not an active iHRIS person id
+                if ($code !== '' && ctype_digit($code) && empty($activePersonCodes[$code])) {
+                    $orphanNumeric[] = $row;
                 }
             }
-            if ((count($alphaCandidates) + count($otherCandidates)) >= ($max_deletes * 2)) {
-                // Enough candidates collected for this run
+            if ((count($alphaCandidates) + count($orphanNumeric)) >= ($max_deletes * 2)) {
                 break;
             }
         }
 
-        $toDelete = array_merge($alphaCandidates, $otherCandidates);
+        $toDelete = array_merge($alphaCandidates, $orphanNumeric);
         $toDelete = array_slice($toDelete, 0, $max_deletes);
 
         foreach ($toDelete as $row) {
@@ -2383,6 +2401,8 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 $stats['deleted']++;
                 if ($this->_biotime_is_alphanumeric_emp_code($row['emp_code'])) {
                     $stats['alphanumeric_deleted']++;
+                } else {
+                    $stats['orphan_numeric_deleted']++;
                 }
             } else {
                 $stats['failed']++;
