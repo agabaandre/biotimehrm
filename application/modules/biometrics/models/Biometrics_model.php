@@ -377,10 +377,12 @@ protected function _dt_params()
     if ($length < 1 || $length > 500) {
         $length = 25;
     }
-    $search_post = $this->input->post('search');
-    $search = '';
-    if (is_array($search_post) && isset($search_post['value'])) {
-        $search = trim((string) $search_post['value']);
+    $search = $this->_dt_extract_search($this->input->post('search'));
+    if ($search === '' && isset($_POST['search'])) {
+        $search = $this->_dt_extract_search($_POST['search']);
+    }
+    if ($search === '' && $this->input->get('search') !== null) {
+        $search = $this->_dt_extract_search($this->input->get('search'));
     }
     $order_col = 1;
     $order_dir = 'asc';
@@ -390,6 +392,68 @@ protected function _dt_params()
         $order_dir = (isset($order_post[0]['dir']) && strtolower($order_post[0]['dir']) === 'desc') ? 'desc' : 'asc';
     }
     return compact('draw', 'start', 'length', 'search', 'order_col', 'order_dir');
+}
+
+/**
+ * Normalize DataTables search value (array or string).
+ */
+protected function _dt_extract_search($search_post)
+{
+    if (is_array($search_post) && isset($search_post['value'])) {
+        return trim((string) $search_post['value']);
+    }
+    if (is_string($search_post)) {
+        return trim($search_post);
+    }
+    return '';
+}
+
+/**
+ * Escape a value for use inside a LIKE '%…%' fragment (quotes + LIKE wildcards).
+ */
+protected function _dt_like_escape($search)
+{
+    $search = trim((string) $search);
+    if ($search === '') {
+        return '';
+    }
+    // escape_like_str handles %/_ ; still need to escape quotes for raw SQL fragments
+    return str_replace("'", "''", $this->db->escape_like_str($search));
+}
+
+/**
+ * Shared staff search predicate (full name, person id, card, job, extras).
+ *
+ * @param string   $search
+ * @param string[] $extraExprs SQL expressions to OR with LIKE (no trailing LIKE)
+ */
+protected function _dt_staff_search_sql($search, array $extraExprs = [])
+{
+    $search = trim((string) $search);
+    if ($search === '') {
+        return '';
+    }
+    $s = $this->_dt_like_escape($search);
+    $bare = $this->_dt_like_escape(preg_replace('/^(?:UCMB-)?person\|/i', '', $search));
+
+    $parts = [
+        "i.ihris_pid LIKE '%{$s}%'",
+        "REPLACE(REPLACE(i.ihris_pid, 'UCMB-person|', ''), 'person|', '') LIKE '%{$bare}%'",
+        "i.surname LIKE '%{$s}%'",
+        "i.firstname LIKE '%{$s}%'",
+        "COALESCE(i.othername, '') LIKE '%{$s}%'",
+        "COALESCE(i.job, '') LIKE '%{$s}%'",
+        "COALESCE(i.card_number, '') LIKE '%{$s}%'",
+        "CONCAT_WS(' ', i.surname, i.firstname, NULLIF(i.othername, '')) LIKE '%{$s}%'",
+        "CONCAT_WS(' ', i.firstname, i.surname, NULLIF(i.othername, '')) LIKE '%{$s}%'",
+    ];
+    foreach ($extraExprs as $expr) {
+        $expr = trim((string) $expr);
+        if ($expr !== '') {
+            $parts[] = "({$expr}) LIKE '%{$s}%'";
+        }
+    }
+    return ' AND (' . implode(' OR ', $parts) . ')';
 }
 
 /**
@@ -415,8 +479,12 @@ public function get_enrolled_datatable()
            AND {$pred}";
     $where_extra = '';
     if ($p['search'] !== '') {
-        $s = $this->db->escape_like_str($p['search']);
-        $where_extra = " AND (i.ihris_pid LIKE '%$s%' OR i.surname LIKE '%$s%' OR i.firstname LIKE '%$s%' OR i.othername LIKE '%$s%' OR i.job LIKE '%$s%' OR f.card_number LIKE '%$s%' OR i.facility LIKE '%$s%' OR f.device LIKE '%$s%')";
+        $where_extra = $this->_dt_staff_search_sql($p['search'], [
+            'i.facility',
+            'f.device',
+            'f.card_number',
+            'f.att_status',
+        ]);
     }
 
     $total = (int) $this->db->query("SELECT COUNT(*) AS c $from")->row()->c;
@@ -566,8 +634,7 @@ public function get_new_users_datatable()
     $from = $this->_unenrolled_from_sql($facility);
     $where_extra = '';
     if ($p['search'] !== '') {
-        $s = $this->db->escape_like_str($p['search']);
-        $where_extra = " AND (i.ihris_pid LIKE '%$s%' OR i.surname LIKE '%$s%' OR i.firstname LIKE '%$s%' OR i.othername LIKE '%$s%' OR i.job LIKE '%$s%' OR i.card_number LIKE '%$s%' OR ({$resolved}) LIKE '%$s%')";
+        $where_extra = $this->_dt_staff_search_sql($p['search'], ["({$resolved})"]);
     }
 
     $total = (int) $this->db->query("SELECT COUNT(*) AS c $from")->row()->c;
@@ -641,8 +708,12 @@ public function get_needs_update_datatable()
 
     $search_sql = '';
     if ($p['search'] !== '') {
-        $s = $this->db->escape_like_str($p['search']);
-        $search_sql = " AND (i.ihris_pid LIKE '%$s%' OR i.surname LIKE '%$s%' OR i.firstname LIKE '%$s%' OR i.job LIKE '%$s%' OR i.card_number LIKE '%$s%' OR i.facility LIKE '%$s%' OR be.emp_code LIKE '%$s%' OR be.biotime_fac_id LIKE '%$s%')";
+        $search_sql = $this->_dt_staff_search_sql($p['search'], [
+            'i.facility',
+            'i.facility_id',
+            'be.emp_code',
+            'be.biotime_fac_id',
+        ]);
     }
 
     $selectList = "i.ihris_pid, i.surname, i.firstname, i.job, i.card_number, i.facility_id, i.facility,
@@ -715,6 +786,146 @@ public function get_needs_update_datatable()
         'data' => $data,
         'facility' => $facility,
         'criteria' => 'Needs update when iHRIS facility_id differs from biotime_enrollment.biotime_fac_id (matched by card, ipps, or person id).',
+    ];
+}
+
+/**
+ * Export rows for enrolled table (plain arrays, respects search).
+ *
+ * @return array{headers: string[], rows: array<int, array>}
+ */
+public function export_enrolled_rows($search = '')
+{
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return ['headers' => [], 'rows' => []];
+    }
+    $esc = $this->db->escape_str($facility);
+    $pred = $this->sql_fingerprint_enrolled_predicate('f');
+    $person = $this->sql_person_emp_code('i');
+    $from = "FROM fingerprints f
+         INNER JOIN ihrisdata i ON (
+                i.card_number = f.card_number
+             OR f.card_number = ({$person})
+             OR (NULLIF(i.ipps, '') IS NOT NULL AND f.card_number = i.ipps)
+         )
+         WHERE f.facilityId = '$esc'
+           AND {$pred}";
+    $where_extra = $this->_dt_staff_search_sql($search, ['i.facility', 'f.device', 'f.card_number', 'f.att_status']);
+    $sql = "SELECT i.ihris_pid, i.surname, i.firstname, i.othername, i.facility, i.job,
+                   f.device, f.card_number, f.att_status
+            $from $where_extra
+            ORDER BY i.surname, i.firstname";
+    $rows = $this->db->query($sql)->result();
+    $out = [];
+    $n = 1;
+    foreach ($rows as $r) {
+        $out[] = [
+            $n++,
+            str_replace('person|', '', (string) ($r->ihris_pid ?? '')),
+            trim(($r->surname ?? '') . ' ' . ($r->firstname ?? '') . ' ' . ($r->othername ?? '')),
+            (string) ($r->facility ?? ''),
+            (string) ($r->device ?? ''),
+            (string) ($r->job ?? ''),
+            (string) ($r->card_number ?? ''),
+            ((string) ($r->att_status ?? '') === '1') ? 'Active' : 'In-Active',
+        ];
+    }
+    return [
+        'headers' => ['#', 'Staff iHRIS ID', 'Name', 'Facility', 'Device', 'Job', 'Card / Emp Code', 'Status'],
+        'rows' => $out,
+    ];
+}
+
+/**
+ * Export rows for new/unenrolled users (plain arrays, respects search).
+ *
+ * @return array{headers: string[], rows: array<int, array>}
+ */
+public function export_unenrolled_rows($search = '')
+{
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return ['headers' => [], 'rows' => []];
+    }
+    $resolved = $this->sql_resolved_emp_code('i');
+    $from = $this->_unenrolled_from_sql($facility);
+    $where_extra = $this->_dt_staff_search_sql($search, ["({$resolved})"]);
+    $sql = "SELECT i.ihris_pid, i.surname, i.firstname, i.othername, i.job, i.card_number,
+                   ({$resolved}) AS biotime_emp_code
+            $from $where_extra
+            ORDER BY i.surname, i.firstname";
+    $rows = $this->db->query($sql)->result();
+    $out = [];
+    $n = 1;
+    foreach ($rows as $r) {
+        $name = trim(($r->surname ?? '') . ' ' . ($r->firstname ?? ''));
+        if ($name === '' && !empty($r->othername)) {
+            $name = trim((string) $r->othername);
+        }
+        $out[] = [
+            $n++,
+            str_replace('person|', '', (string) ($r->ihris_pid ?? '')),
+            $name,
+            (string) ($r->job ?? ''),
+            (string) ($r->card_number ?? ''),
+            (string) ($r->biotime_emp_code ?? ''),
+        ];
+    }
+    return [
+        'headers' => ['#', 'Staff iHRIS ID', 'Name', 'Job', 'Card Number', 'BioTime Emp Code'],
+        'rows' => $out,
+    ];
+}
+
+/**
+ * Export rows for needs-update table (plain arrays, respects search).
+ *
+ * @return array{headers: string[], rows: array<int, array>}
+ */
+public function export_needs_update_rows($search = '')
+{
+    $facility = $this->_facility_id();
+    if ($facility === '') {
+        return ['headers' => [], 'rows' => []];
+    }
+    $search_sql = $this->_dt_staff_search_sql($search, [
+        'i.facility',
+        'i.facility_id',
+        'be.emp_code',
+        'be.biotime_fac_id',
+    ]);
+    $selectList = "i.ihris_pid, i.surname, i.firstname, i.job, i.card_number, i.facility_id, i.facility,
+                i.facility_id AS new_facility,
+                i.facility AS new_fname,
+                be.emp_code,
+                be.biotime_emp_id,
+                be.biotime_fac_id";
+    $union = $this->_needs_update_union_sql($facility, $selectList, $search_sql);
+    $sql = "SELECT * FROM ({$union}) needs_upd ORDER BY surname, firstname";
+    $rows = $this->db->query($sql)->result();
+    $out = [];
+    $n = 1;
+    foreach ($rows as $r) {
+        $name = trim(($r->surname ?? '') . ' ' . ($r->firstname ?? ''));
+        $ihrisFac = (string) ($r->new_fname ?? $r->facility ?? '');
+        $ihrisFacId = (string) ($r->new_facility ?? $r->facility_id ?? '');
+        $bioFac = (string) ($r->biotime_fac_id ?? '');
+        $out[] = [
+            $n++,
+            str_replace('person|', '', (string) ($r->ihris_pid ?? '')),
+            $name,
+            (string) ($r->job ?? ''),
+            (string) ($r->card_number ?? ''),
+            (string) ($r->emp_code ?? ''),
+            $ihrisFac . ' (' . $ihrisFacId . ')',
+            $bioFac,
+            'Facility mismatch: iHRIS ' . ($ihrisFac !== '' ? $ihrisFac : '(unknown)') . ' (' . $ihrisFacId . ') ≠ BioTime facility ' . $bioFac,
+        ];
+    }
+    return [
+        'headers' => ['#', 'Staff iHRIS ID', 'Name', 'Job', 'Card Number', 'BioTime Emp Code', 'iHRIS Facility', 'BioTime Facility ID', 'Reason'],
+        'rows' => $out,
     ];
 }
 

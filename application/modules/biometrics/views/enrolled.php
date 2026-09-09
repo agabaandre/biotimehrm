@@ -9,7 +9,6 @@ $csrf_hash = $this->security->get_csrf_hash();
       <div class="row">
         <section class="col-lg-12">
           <h5 style="margin-top:10px;"><?php echo htmlspecialchars($uptitle); ?></h5>
-          <p class="text-muted">Enrolled BioTime users at this facility (server-side search &amp; paging).</p>
           <div class="table-responsive" style="margin-top:10px;">
             <table id="enrolledTable" class="table table-bordered table-striped" style="width:100%;">
               <thead>
@@ -38,20 +37,35 @@ $csrf_hash = $this->security->get_csrf_hash();
   var baseUrl = '<?php echo addslashes($base); ?>';
   var csrfName = '<?php echo addslashes($csrf_name); ?>';
   var csrfHash = '<?php echo addslashes($csrf_hash); ?>';
+  var table;
 
   $(function () {
     if (typeof $.fn.DataTable !== 'function') {
       console.error('DataTables not loaded');
       return;
     }
-    $('#enrolledTable').DataTable({
+    table = $('#enrolledTable').DataTable({
       processing: true,
       serverSide: true,
       searching: true,
+      searchDelay: 400,
       ordering: true,
       order: [[2, 'asc']],
       pageLength: 25,
       lengthMenu: [[10, 25, 50, 100, 200], [10, 25, 50, 100, 200]],
+      dom: '<"row"<"col-sm-12 col-md-6"B><"col-sm-12 col-md-6"f>>' +
+           '<"row"<"col-sm-12"tr>>' +
+           '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+      buttons: [
+        {
+          text: '<i class="fas fa-file-excel"></i> Export Excel',
+          className: 'btn btn-success btn-sm',
+          action: function () {
+            var q = '?type=enrolled&search=' + encodeURIComponent(table.search() || '');
+            window.location = baseUrl + 'biometrics/exportExcel' + q;
+          }
+        }
+      ],
       ajax: {
         url: baseUrl + 'biometrics/enrolledAjax',
         type: 'POST',

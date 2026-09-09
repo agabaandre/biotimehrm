@@ -1,6 +1,68 @@
+<?php
+  $is_sadmin = ((string) $this->session->userdata('role') === 'sadmin');
+  $admin_facility = trim((string) (
+    $this->session->userdata('dashboard_facility')
+    ?: $this->session->userdata('facility')
+    ?: ''
+  ));
+  $admin_facility_label = trim((string) $this->session->userdata('facility_name'));
+  if ($admin_facility_label === '' && $admin_facility !== '') {
+      $admin_facility_label = $admin_facility;
+  }
+?>
 <!-- Main content -->
 <section class="content">
   <div class="container-fluid">
+    <?php if ($is_sadmin): ?>
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card border-secondary">
+          <div class="card-header bg-light">
+            <h3 class="card-title mb-0">
+              <i class="fas fa-fingerprint text-success mr-2"></i>Admin · Machine orphan cleanup
+            </h3>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">
+              Removes people already deleted from BioTime but still left on devices (usually when machines were offline).
+              <strong>Rebuild</strong> wipes device users then uploads only current BioTime staff — devices must be online and will be briefly empty.
+              <?php if ($admin_facility_label !== ''): ?>
+                Current facility: <strong><?php echo htmlspecialchars($admin_facility_label, ENT_QUOTES, 'UTF-8'); ?></strong>
+              <?php endif; ?>
+            </p>
+            <div class="form-row align-items-end">
+              <div class="form-group col-md-3 mb-2">
+                <label for="bio_purge_mode">Action</label>
+                <select id="bio_purge_mode" class="form-control">
+                  <option value="rebuild" selected>Rebuild (clear + upload)</option>
+                  <option value="upload">Upload only (gentler)</option>
+                </select>
+              </div>
+              <div class="form-group col-md-3 mb-2">
+                <label for="bio_purge_scope">Scope</label>
+                <select id="bio_purge_scope" class="form-control">
+                  <option value="facility" selected>This facility</option>
+                  <option value="all">All terminals</option>
+                </select>
+              </div>
+              <div class="form-group col-md-6 mb-2">
+                <button type="button" id="bio_purge_dispatch" class="btn btn-primary">
+                  <i class="fas fa-broom"></i> Dispatch cleanup
+                </button>
+              </div>
+            </div>
+            <div id="bio_purge_status" class="small text-muted mt-2" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Main row -->
     <div class="row">
       <!-- Left col -->
@@ -851,6 +913,60 @@ $(document).ready(function() {
     setInterval(function() {
         table.ajax.reload(null, false);
     }, 60000);
+
+    // Admin-only: machine orphan cleanup (sadmin)
+    (function() {
+        var $btn = $('#bio_purge_dispatch');
+        if (!$btn.length) {
+            return;
+        }
+        var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
+        var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
+        var $status = $('#bio_purge_status');
+
+        $btn.on('click', function() {
+            var mode = $('#bio_purge_mode').val() || 'rebuild';
+            var scope = $('#bio_purge_scope').val() || 'facility';
+            var label = mode === 'rebuild' ? 'Rebuild (clear + upload)' : 'Upload only';
+            var scopeLabel = scope === 'all' ? 'ALL terminals' : 'this facility';
+            if (!window.confirm('Dispatch ' + label + ' for ' + scopeLabel + '?\n\nDevices must be online. Rebuild temporarily empties machines until upload finishes.')) {
+                return;
+            }
+            $btn.prop('disabled', true);
+            $status.removeClass('text-success text-danger').addClass('text-muted').html('<i class="fas fa-spinner fa-spin"></i> Dispatching… this can take a minute.');
+            var payload = { mode: mode, scope: scope };
+            payload[csrfName] = csrfHash;
+            $.ajax({
+                type: 'POST',
+                url: '<?php echo base_url('biometrics/purgeOrphanMachines'); ?>',
+                dataType: 'json',
+                data: payload,
+                timeout: 300000
+            }).done(function(resp) {
+                if (resp && resp.ok) {
+                    var msg = 'Queued on ' + (resp.terminals || 0) + ' terminal(s). Local FP purged: ' + (resp.local_fp_purged || 0) + '.';
+                    if (resp.note) {
+                        msg += ' ' + resp.note;
+                    }
+                    $status.removeClass('text-muted text-danger').addClass('text-success').text(msg);
+                } else {
+                    var err = (resp && (resp.message || resp.note || resp.error)) ? (resp.message || resp.note || resp.error) : 'Cleanup failed.';
+                    $status.removeClass('text-muted text-success').addClass('text-danger').text(err);
+                }
+            }).fail(function(xhr) {
+                var msg = 'Request failed.';
+                try {
+                    var j = xhr.responseJSON || JSON.parse(xhr.responseText || '{}');
+                    if (j && (j.message || j.error)) {
+                        msg = j.message || j.error;
+                    }
+                } catch (e) {}
+                $status.removeClass('text-muted text-success').addClass('text-danger').text(msg);
+            }).always(function() {
+                $btn.prop('disabled', false);
+            });
+        });
+    })();
 
     // Add passive event listeners to improve performance
     document.addEventListener('scroll', function() {}, { passive: true });

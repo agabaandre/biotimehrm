@@ -2527,6 +2527,13 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $step('cleanup_biotime_employees', 'skipped (pass cleanup as 2nd arg to run)', true);
         }
 
+        $step('orphan_machine_cleanup', [
+            'command' => "php index.php biotimejobs/purge_orphan_machine_users rebuild",
+            'per_facility' => "php index.php biotimejobs/purge_orphan_machine_users rebuild 'facility|ID'",
+            'gentler' => "php index.php biotimejobs/purge_orphan_machine_users upload",
+            'why' => 'Users already deleted from BioTime but still on offline devices need clear_all + upload_all (rebuild).',
+        ], true);
+
         $report['finished_at'] = date('Y-m-d H:i:s');
         $this->log(['production_bootstrap' => $report]);
         echo "\n=== SUMMARY ===\n";
@@ -2535,7 +2542,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             'started_at' => $report['started_at'],
             'finished_at' => $report['finished_at'],
             'totals' => $totals,
-            'hint' => 'New Users now = active staff with numeric person emp_code, no person-id in biotime_enrollment, no fingerprint device. Legacy card/ipps no longer hide them.',
+            'hint' => 'New Users = active staff with numeric person emp_code, no person-id enrollment, no device/template. For users already deleted from BioTime but still on machines: php index.php biotimejobs/purge_orphan_machine_users rebuild',
         ], JSON_PRETTY_PRINT) . "\n";
         return $report;
     }
@@ -3363,7 +3370,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $result['note'] = 'No BioTime terminals found (check token / area filter). Local fingerprint orphans purged only.';
             $result['ok'] = true;
             $this->log(['purge_orphan_machine_users' => $result]);
-            echo json_encode($result, JSON_PRETTY_PRINT);
+            if (is_cli()) {
+                echo json_encode($result, JSON_PRETTY_PRINT) . "\n";
+            }
             return $result;
         }
 
@@ -3398,7 +3407,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
         $this->cronjob_register(9, 'bioitimejobs/purge_orphan_machine_users', $result['ok'] ? 'successful' : 'failed');
         $this->log(['purge_orphan_machine_users' => $result]);
-        echo json_encode($result, JSON_PRETTY_PRINT);
+        if (is_cli()) {
+            echo json_encode($result, JSON_PRETTY_PRINT) . "\n";
+        }
         return $result;
     }
 

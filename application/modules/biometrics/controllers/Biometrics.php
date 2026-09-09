@@ -53,6 +53,92 @@ class Biometrics extends MX_Controller{
   
        
     }
+
+    /**
+     * Admin-only (sadmin): purge orphan users left on devices after BioTime deletes.
+     * POST mode=rebuild|upload, scope=facility|all
+     */
+    public function purgeOrphanMachines()
+    {
+        $this->output->set_content_type('application/json');
+
+        if (!$this->session->userdata('isLoggedIn')) {
+            return $this->output->set_status_header(401)->set_output(json_encode([
+                'ok' => false,
+                'error' => 'unauthorized',
+                'message' => 'Please sign in again.',
+            ]));
+        }
+
+        if ((string) $this->session->userdata('role') !== 'sadmin') {
+            return $this->output->set_status_header(403)->set_output(json_encode([
+                'ok' => false,
+                'error' => 'forbidden',
+                'message' => 'Only system administrators can dispatch machine cleanup.',
+            ]));
+        }
+
+        if (strtoupper((string) $this->input->method(true)) !== 'POST') {
+            return $this->output->set_status_header(405)->set_output(json_encode([
+                'ok' => false,
+                'error' => 'method_not_allowed',
+                'message' => 'POST required.',
+            ]));
+        }
+
+        $mode = strtolower(trim((string) $this->input->post('mode')));
+        if (!in_array($mode, ['rebuild', 'upload'], true)) {
+            $mode = 'rebuild';
+        }
+
+        $scope = strtolower(trim((string) $this->input->post('scope')));
+        $area_code = '';
+        if ($scope !== 'all') {
+            $facility = trim((string) (
+                $this->session->userdata('dashboard_facility')
+                ?: $this->session->userdata('facility')
+                ?: $this->session->userdata('facility_id')
+                ?: ''
+            ));
+            if ($facility === '') {
+                return $this->output->set_status_header(400)->set_output(json_encode([
+                    'ok' => false,
+                    'error' => 'no_facility',
+                    'message' => 'No facility in session. Switch facility first, or choose All terminals.',
+                ]));
+            }
+            $area_code = (strpos($facility, 'facility|') === 0) ? $facility : ('facility|' . $facility);
+        }
+
+        ignore_user_abort(true);
+        @ini_set('max_execution_time', '300');
+
+        try {
+            $result = Modules::run('biotimejobs/purge_orphan_machine_users', $mode, $area_code);
+            if (!is_array($result)) {
+                $result = [
+                    'ok' => false,
+                    'error' => 'dispatch_failed',
+                    'message' => 'Cleanup job did not return a result.',
+                    'mode' => $mode,
+                    'area_code' => $area_code,
+                ];
+            } else {
+                $result['dispatched_by'] = (string) $this->session->userdata('username');
+                $result['dispatched_at'] = date('c');
+            }
+
+            $status = !empty($result['ok']) ? 200 : 502;
+            return $this->output->set_status_header($status)->set_output(json_encode($result));
+        } catch (Throwable $e) {
+            log_message('error', 'biometrics/purgeOrphanMachines: ' . $e->getMessage());
+            return $this->output->set_status_header(500)->set_output(json_encode([
+                'ok' => false,
+                'error' => 'server_error',
+                'message' => 'Machine cleanup failed to start.',
+            ]));
+        }
+    }
     public function enrolled(){
     
         $data['view']='enrolled';
@@ -134,6 +220,50 @@ class Biometrics extends MX_Controller{
             log_message('error', 'needsUpdateAjax: ' . $e->getMessage());
             echo json_encode(['draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
         }
+        exit;
+    }
+
+    /**
+     * Stream Excel (.xls TSV) for a biometrics list.
+     * GET: type=enrolled|unenrolled|needsUpdate, search=
+     */
+    public function exportExcel()
+    {
+        if (!$this->session->userdata('isLoggedIn')) {
+            show_error('Unauthorized', 401);
+            return;
+        }
+        $type = strtolower(trim((string) $this->input->get('type')));
+        $search = trim((string) $this->input->get('search'));
+        if ($type === 'enrolled') {
+            $payload = $this->biometrics_mdl->export_enrolled_rows($search);
+            $filename = 'enrolled_users_' . date('Y-m-d_His') . '.xls';
+        } elseif ($type === 'unenrolled' || $type === 'new') {
+            $payload = $this->biometrics_mdl->export_unenrolled_rows($search);
+            $filename = 'new_users_' . date('Y-m-d_His') . '.xls';
+        } elseif ($type === 'needsupdate' || $type === 'needs_update') {
+            $payload = $this->biometrics_mdl->export_needs_update_rows($search);
+            $filename = 'needs_update_' . date('Y-m-d_His') . '.xls';
+        } else {
+            show_error('Unknown export type', 400);
+            return;
+        }
+
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache');
+        $fh = fopen('php://output', 'w');
+        fprintf($fh, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        if (!empty($payload['headers'])) {
+            fputcsv($fh, $payload['headers'], "\t");
+        }
+        foreach ($payload['rows'] as $row) {
+            fputcsv($fh, $row, "\t");
+        }
+        fclose($fh);
         exit;
     }
 

@@ -9,7 +9,6 @@ $csrf_hash = $this->security->get_csrf_hash();
       <div class="row" style="min-height:550px">
         <section class="col-lg-12">
           <h5 style="margin-top:10px;"><?php echo htmlspecialchars($uptitle); ?></h5>
-          <p class="text-muted">Staff at <strong>your logged-in facility</strong> who are not device-/template-enrolled and do not yet have a BioTime <strong>person-id</strong> emp_code. Multi-device facilities share one area code — enrollment on any terminal counts. Fingerprint cache refreshes from BioTime before enrollment jobs. Create uses iHRIS person id (UCMB prefixed with 4253).</p>
           <div class="table-responsive" style="margin-top:10px;">
             <table id="unenrolledTable" class="table table-bordered table-striped" style="width:100%;">
               <thead>
@@ -48,10 +47,24 @@ $csrf_hash = $this->security->get_csrf_hash();
       processing: true,
       serverSide: true,
       searching: true,
+      searchDelay: 400,
       ordering: true,
       order: [[2, 'asc']],
       pageLength: 25,
       lengthMenu: [[10, 25, 50, 100, 200], [10, 25, 50, 100, 200]],
+      dom: '<"row"<"col-sm-12 col-md-6"B><"col-sm-12 col-md-6"f>>' +
+           '<"row"<"col-sm-12"tr>>' +
+           '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+      buttons: [
+        {
+          text: '<i class="fas fa-file-excel"></i> Export Excel',
+          className: 'btn btn-success btn-sm',
+          action: function () {
+            var q = '?type=unenrolled&search=' + encodeURIComponent(table.search() || '');
+            window.location = baseUrl + 'biometrics/exportExcel' + q;
+          }
+        }
+      ],
       ajax: {
         url: baseUrl + 'biometrics/unenrolledAjax',
         type: 'POST',

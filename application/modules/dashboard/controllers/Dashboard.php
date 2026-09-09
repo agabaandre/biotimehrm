@@ -735,6 +735,4 @@ class Dashboard extends MX_Controller {
 		}
 	}
 
-
-
 }

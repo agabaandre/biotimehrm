@@ -9,16 +9,6 @@ $csrf_hash = $this->security->get_csrf_hash();
       <div class="row" style="min-height:550px">
         <section class="col-lg-12">
           <h5 style="margin-top:10px;"><?php echo htmlspecialchars($uptitle); ?></h5>
-          <div class="alert alert-info" style="margin-top:10px;">
-            <strong>Needs update criteria</strong>
-            <ul class="mb-0" style="margin-top:6px;">
-              <!-- <li>Staff must already exist in <code>biotime_enrollment</code> (matched by person id, card number, or ipps for older enrollments; UCMB person ids use <code>4253</code>+id).</li>
-              <li>Flagged when <strong>iHRIS <code>facility_id</code> ≠ BioTime <code>biotime_fac_id</code></strong> (facility transfer / reassignment).</li>
-              <li>List is limited to your logged-in facility: staff whose <em>current</em> iHRIS facility is yours, or whose BioTime enrollment is still under yours.</li>
-              <li>Job/department are pushed on Force Update / cron, but are <strong>not</strong> used as mismatch triggers (enrollment table has no job field).</li> -->
-            </ul>
-          </div>
-          <p class="text-muted">Force Update syncs now; background transfer job also runs every 5 minutes.</p>
           <div class="table-responsive" style="margin-top:10px;">
             <table id="needsUpdateTable" class="table table-bordered table-striped" style="width:100%;">
               <thead>
@@ -60,10 +50,24 @@ $csrf_hash = $this->security->get_csrf_hash();
       processing: true,
       serverSide: true,
       searching: true,
+      searchDelay: 400,
       ordering: true,
       order: [[2, 'asc']],
       pageLength: 25,
       lengthMenu: [[10, 25, 50, 100, 200], [10, 25, 50, 100, 200]],
+      dom: '<"row"<"col-sm-12 col-md-6"B><"col-sm-12 col-md-6"f>>' +
+           '<"row"<"col-sm-12"tr>>' +
+           '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+      buttons: [
+        {
+          text: '<i class="fas fa-file-excel"></i> Export Excel',
+          className: 'btn btn-success btn-sm',
+          action: function () {
+            var q = '?type=needsUpdate&search=' + encodeURIComponent(table.search() || '');
+            window.location = baseUrl + 'biometrics/exportExcel' + q;
+          }
+        }
+      ],
       ajax: {
         url: baseUrl + 'biometrics/needsUpdateAjax',
         type: 'POST',
