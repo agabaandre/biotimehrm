@@ -3189,6 +3189,219 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         return $stats;
     }
 
+    /**
+     * Fetch live BioTime terminals (needs BioTime id for device commands).
+     *
+     * @param string $area_code optional iHRIS/BioTime area_code filter
+     * @return array<int, object> terminals with ->id, ->sn, ->area_code
+     * @see https://attendance.health.go.ug/docs/api-docs/terminal_api.html#list
+     */
+    public function fetch_biotime_terminals_live($area_code = '')
+    {
+        $token = $this->get_token();
+        if (empty($token)) {
+            return [];
+        }
+        $http = new HttpUtils();
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => 'JWT ' . $token,
+        ];
+        $want = trim(urldecode((string) $area_code));
+        $out = [];
+        $page = 1;
+        $page_size = 200;
+        do {
+            $endpoint = 'iclock/api/terminals/?' . http_build_query([
+                'page' => $page,
+                'page_size' => $page_size,
+            ]);
+            $resp = $http->curlgetHttp($endpoint, $headers, []);
+            $rows = $this->_biotime_list_rows($resp);
+            if (empty($rows)) {
+                break;
+            }
+            foreach ($rows as $t) {
+                if (!is_object($t) || empty($t->id)) {
+                    continue;
+                }
+                $ac = '';
+                if (isset($t->area) && is_object($t->area) && isset($t->area->area_code)) {
+                    $ac = trim((string) $t->area->area_code);
+                } elseif (isset($t->area_code)) {
+                    $ac = trim((string) $t->area_code);
+                }
+                $t->area_code = $ac;
+                if ($want !== '' && $ac !== $want) {
+                    // also allow bare facility id match
+                    if ($ac !== 'facility|' . $want && str_replace('facility|', '', $ac) !== str_replace('facility|', '', $want)) {
+                        continue;
+                    }
+                }
+                $out[] = $t;
+            }
+            $count = isset($resp->count) ? (int) $resp->count : count($rows);
+            $pages = $count > 0 ? (int) ceil($count / $page_size) : 1;
+            $page++;
+        } while ($page <= $pages);
+
+        return $out;
+    }
+
+    /**
+     * POST a terminals bulk action (clear_all / upload_all / etc).
+     *
+     * @param string $action clear_all|upload_all|clear_command|reboot|...
+     * @param int[]  $terminalIds BioTime terminal ids
+     * @return object|false
+     * @see https://attendance.health.go.ug/docs/api-docs/terminal_api.html
+     */
+    public function biotime_terminals_action($action, array $terminalIds)
+    {
+        $action = preg_replace('/[^a-z_]/', '', strtolower((string) $action));
+        $allowed = ['clear_all', 'upload_all', 'clear_command', 'clear_capture', 'upload_transaction', 'reboot'];
+        if (!in_array($action, $allowed, true)) {
+            return false;
+        }
+        $ids = array_values(array_filter(array_map('intval', $terminalIds), function ($id) {
+            return $id > 0;
+        }));
+        if (empty($ids)) {
+            return false;
+        }
+        $token = $this->get_token();
+        if (empty($token)) {
+            return false;
+        }
+        $body = ['terminals' => $ids];
+        $json = json_encode($body);
+        $http = new HttpUtils();
+        $response = $http->curlsendHttpPost(
+            'iclock/api/terminals/' . $action . '/',
+            $this->_biotime_json_headers($token, $json),
+            $body
+        );
+        $this->log(['terminals_action' => $action, 'terminals' => $ids, 'response' => $response]);
+        return $response;
+    }
+
+    /**
+     * Clean machines of users already deleted from BioTime (offline devices often keep them).
+     *
+     * Already-deleted employees cannot be DELETE'd again — rebuild devices from server truth:
+     *   rebuild = clear_all (wipe device users) then upload_all (push current BioTime employees only)
+     *   upload  = upload_all only (gentler; may not remove orphans on all firmware)
+     *
+     * Also purges local fingerprints for emp_codes no longer in biotime_enrollment.
+     *
+     * Usage:
+     *   php index.php biotimejobs/purge_orphan_machine_users
+     *   php index.php biotimejobs/purge_orphan_machine_users rebuild
+     *   php index.php biotimejobs/purge_orphan_machine_users rebuild facility|123
+     *   php index.php biotimejobs/purge_orphan_machine_users upload facility|123
+     *
+     * @param string $mode      rebuild|upload
+     * @param string $area_code optional area filter
+     * @return array
+     */
+    public function purge_orphan_machine_users($mode = 'rebuild', $area_code = '')
+    {
+        ignore_user_abort(true);
+        @ini_set('max_execution_time', '0');
+
+        $mode = strtolower(trim((string) $mode));
+        if ($mode === '' || $mode === 'dry') {
+            $mode = 'rebuild';
+        }
+        // Allow swapped args: facility first
+        if (strpos($mode, 'facility|') === 0 || (strpos($mode, '|') !== false && !in_array($mode, ['rebuild', 'upload'], true))) {
+            $tmp = $area_code;
+            $area_code = $mode;
+            $mode = (strtolower((string) $tmp) === 'upload') ? 'upload' : 'rebuild';
+        }
+        if (!in_array($mode, ['rebuild', 'upload'], true)) {
+            $mode = 'rebuild';
+        }
+
+        $result = [
+            'mode' => $mode,
+            'area_code' => $area_code,
+            'terminals' => 0,
+            'terminal_sns' => [],
+            'clear_all' => null,
+            'upload_all' => null,
+            'local_fp_purged' => 0,
+            'ok' => false,
+            'note' => '',
+        ];
+
+        // Local: drop fingerprint cache rows for emp_codes no longer enrolled in BioTime map
+        if ($this->db->table_exists('fingerprints') && $this->db->table_exists('biotime_enrollment')) {
+            $q = $this->db->query(
+                "DELETE f FROM fingerprints f
+                 LEFT JOIN biotime_enrollment be ON be.emp_code = f.card_number
+                 WHERE be.emp_code IS NULL
+                   AND (f.source IN ('Biotime','biotime') OR f.source IS NULL OR f.source = '')"
+            );
+            $result['local_fp_purged'] = (int) $this->db->affected_rows();
+        }
+
+        $terminals = $this->fetch_biotime_terminals_live($area_code);
+        $ids = [];
+        foreach ($terminals as $t) {
+            $ids[] = (int) $t->id;
+            $result['terminal_sns'][] = [
+                'id' => (int) $t->id,
+                'sn' => isset($t->sn) ? (string) $t->sn : '',
+                'area_code' => isset($t->area_code) ? (string) $t->area_code : '',
+            ];
+        }
+        $result['terminals'] = count($ids);
+
+        if (empty($ids)) {
+            $result['note'] = 'No BioTime terminals found (check token / area filter). Local fingerprint orphans purged only.';
+            $result['ok'] = true;
+            $this->log(['purge_orphan_machine_users' => $result]);
+            echo json_encode($result, JSON_PRETTY_PRINT);
+            return $result;
+        }
+
+        // Chunk device commands (API safety)
+        $chunks = array_chunk($ids, 25);
+        $clearOk = true;
+        $uploadOk = true;
+
+        if ($mode === 'rebuild') {
+            $result['note'] = 'clear_all then upload_all — devices must be online; temporarily empty until upload finishes.';
+            foreach ($chunks as $chunk) {
+                $resp = $this->biotime_terminals_action('clear_all', $chunk);
+                if ($resp === false) {
+                    $clearOk = false;
+                }
+            }
+            $result['clear_all'] = $clearOk ? 'queued' : 'failed';
+            // Brief pause so clear commands are accepted before upload
+            sleep(2);
+        } else {
+            $result['note'] = 'upload_all only — orphans may remain on some firmware; use rebuild to force wipe+resync.';
+        }
+
+        foreach ($chunks as $chunk) {
+            $resp = $this->biotime_terminals_action('upload_all', $chunk);
+            if ($resp === false) {
+                $uploadOk = false;
+            }
+        }
+        $result['upload_all'] = $uploadOk ? 'queued' : 'failed';
+        $result['ok'] = $uploadOk && ($mode !== 'rebuild' || $clearOk);
+
+        $this->cronjob_register(9, 'bioitimejobs/purge_orphan_machine_users', $result['ok'] ? 'successful' : 'failed');
+        $this->log(['purge_orphan_machine_users' => $result]);
+        echo json_encode($result, JSON_PRETTY_PRINT);
+        return $result;
+    }
+
     // get all biotime deployments (BioTime 9.x employees list)
     public function fetch_biotime_employees($page = 1, $page_size = null)
     {
