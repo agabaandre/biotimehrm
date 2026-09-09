@@ -199,7 +199,8 @@ public function get_enrolled(){
   if ($facility === '') {
       return [];
   }
-  // Query base tables (fingerprints_final is a VIEW).
+  // Query base tables. Multi-device areas share facilityId; enrolled = device or template marker.
+  $pred = $this->sql_fingerprint_enrolled_predicate('f');
   $query = $this->db->query(
       "SELECT i.ihris_pid,
               CONCAT(i.surname, ' ', i.firstname) AS fullname,
@@ -213,7 +214,7 @@ public function get_enrolled(){
        FROM fingerprints f
        INNER JOIN ihrisdata i ON i.card_number = f.card_number
        WHERE f.facilityId = '$facility'
-         AND f.device != '' AND f.device IS NOT NULL"
+         AND {$pred}"
   );
   return $query ? $query->result() : [];
 }
@@ -227,12 +228,13 @@ public function count_enrolled()
     if ($facility === '') {
         return 0;
     }
+    $pred = $this->sql_fingerprint_enrolled_predicate('f');
     $row = $this->db->query(
         "SELECT COUNT(*) AS c
          FROM fingerprints f
          INNER JOIN ihrisdata i ON i.card_number = f.card_number
          WHERE f.facilityId = '$facility'
-           AND f.device != '' AND f.device IS NOT NULL"
+           AND {$pred}"
     )->row();
     return $row ? (int) $row->c : 0;
 }
@@ -401,10 +403,16 @@ public function get_enrolled_datatable()
         return $this->_empty_datatable($p['draw']);
     }
     $esc = $this->db->escape_str($facility);
+    $pred = $this->sql_fingerprint_enrolled_predicate('f');
+    $person = $this->sql_person_emp_code('i');
     $from = "FROM fingerprints f
-         INNER JOIN ihrisdata i ON i.card_number = f.card_number
+         INNER JOIN ihrisdata i ON (
+                i.card_number = f.card_number
+             OR f.card_number = ({$person})
+             OR (NULLIF(i.ipps, '') IS NOT NULL AND f.card_number = i.ipps)
+         )
          WHERE f.facilityId = '$esc'
-           AND f.device != '' AND f.device IS NOT NULL";
+           AND {$pred}";
     $where_extra = '';
     if ($p['search'] !== '') {
         $s = $this->db->escape_like_str($p['search']);
@@ -459,17 +467,56 @@ public function get_enrolled_datatable()
 }
 
 /**
+ * SQL fragment: fingerprints row counts as enrolled (device SN, BIO-TEMPLATE, or template summary).
+ * Multi-device facilities share facilityId (= area_code); one row covers all terminals in the area.
+ */
+public function sql_fingerprint_enrolled_predicate($fAlias = 'f')
+{
+    $f = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $fAlias);
+    if ($f === '') {
+        $f = 'f';
+    }
+    return "("
+        . "({$f}.device IS NOT NULL AND TRIM({$f}.device) <> '' AND TRIM({$f}.device) <> '-')"
+        . " OR ({$f}.fingerprint IS NOT NULL AND TRIM({$f}.fingerprint) <> '' AND TRIM({$f}.fingerprint) <> '-')"
+        . ")";
+}
+
+/**
+ * SQL: staff already device-/template-enrolled at facility (any matching card/person/ipps).
+ */
+public function sql_exists_fingerprint_enrolled($facilityEscaped, $iAlias = 'i', $personSql = null)
+{
+    $i = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $iAlias);
+    if ($i === '') {
+        $i = 'i';
+    }
+    if ($personSql === null) {
+        $personSql = $this->sql_person_emp_code($i);
+    }
+    $pred = $this->sql_fingerprint_enrolled_predicate('f');
+    return "EXISTS (
+                SELECT 1 FROM fingerprints f
+                WHERE f.facilityId = '{$facilityEscaped}'
+                  AND {$pred}
+                  AND (
+                        (NULLIF({$i}.card_number, '') IS NOT NULL AND f.card_number = {$i}.card_number)
+                     OR f.card_number = ({$personSql})
+                     OR (NULLIF({$i}.ipps, '') IS NOT NULL AND f.card_number = {$i}.ipps)
+                  )
+           )";
+}
+/**
  * FROM/WHERE for unenrolled (New Users): facility staff who still need a BioTime
- * person-id enrollment and are not already device-enrolled.
+ * person-id enrollment and are not already device-/template-enrolled.
  *
  * Excludes only:
  *   - missing/non-numeric person emp_code (cannot create)
  *   - biotime_enrollment under that person emp_code (already created)
- *   - fingerprints with a device at this facility (already on Enrolled list)
+ *   - fingerprints enrolled at this facility (device SN, BIO-TEMPLATE, or template summary)
  *
- * Does NOT hide staff solely because a legacy card/ipps emp_code exists in
- * biotime_enrollment (those are cleaned/migrated separately). That was hiding
- * hundreds of Employees − Enrolled from New Users.
+ * Multi-device areas share facilityId (= area_code); one fingerprint row covers all terminals.
+ * Legacy card/ipps biotime_enrollment rows alone do not hide candidates.
  */
 protected function _unenrolled_from_sql($facility)
 {
@@ -479,6 +526,7 @@ protected function _unenrolled_from_sql($facility)
     if ($this->db->field_exists('is_active_employee', 'ihrisdata')) {
         $active = ' AND COALESCE(i.is_active_employee, 1) = 1';
     }
+    $fpEnrolled = $this->sql_exists_fingerprint_enrolled($esc, 'i', $person);
     return "FROM ihrisdata i
          WHERE i.facility_id = '$esc'
            AND ({$person}) <> ''
@@ -488,16 +536,7 @@ protected function _unenrolled_from_sql($facility)
                 SELECT 1 FROM biotime_enrollment be
                 WHERE be.emp_code = ({$person})
            )
-           AND NOT EXISTS (
-                SELECT 1 FROM fingerprints f
-                WHERE f.facilityId = '$esc'
-                  AND f.device IS NOT NULL AND TRIM(f.device) <> ''
-                  AND (
-                        (NULLIF(i.card_number, '') IS NOT NULL AND f.card_number = i.card_number)
-                     OR f.card_number = ({$person})
-                     OR (NULLIF(i.ipps, '') IS NOT NULL AND f.card_number = i.ipps)
-                  )
-           )";
+           AND NOT ({$fpEnrolled})";
 }
 
 /**

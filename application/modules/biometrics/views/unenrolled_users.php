@@ -9,7 +9,7 @@ $csrf_hash = $this->security->get_csrf_hash();
       <div class="row" style="min-height:550px">
         <section class="col-lg-12">
           <h5 style="margin-top:10px;"><?php echo htmlspecialchars($uptitle); ?></h5>
-          <p class="text-muted">Staff at <strong>your logged-in facility</strong> who are not device-enrolled (no fingerprint device) and do not yet have a BioTime <strong>person-id</strong> emp_code. Legacy card/ipps enrollment rows no longer hide them from this list. Create uses iHRIS person id (UCMB prefixed with 4253). Force Enroll runs now; background enrollment also runs every 5 minutes.</p>
+          <p class="text-muted">Staff at <strong>your logged-in facility</strong> who are not device-/template-enrolled and do not yet have a BioTime <strong>person-id</strong> emp_code. Multi-device facilities share one area code — enrollment on any terminal counts. Fingerprint cache refreshes from BioTime before enrollment jobs. Create uses iHRIS person id (UCMB prefixed with 4253).</p>
           <div class="table-responsive" style="margin-top:10px;">
             <table id="unenrolledTable" class="table table-bordered table-striped" style="width:100%;">
               <thead>

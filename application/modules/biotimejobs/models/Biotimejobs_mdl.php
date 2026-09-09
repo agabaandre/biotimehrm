@@ -175,22 +175,45 @@ class Biotimejobs_mdl extends CI_Model
             return print_r($this->exect()) . " saveEnrolled() add_enrolled() Failed — empty payload";
         }
 
-        $this->db->query("CALL `fingerpints_cache`()");
+        // 1) Load latest BioTime snapshot into staging FIRST (old order ran cache before insert → lag)
         $this->db->query("TRUNCATE fingerprints_staging");
-
-        // PRIMARY KEY is entry_id — dedupe + INSERT IGNORE so API duplicates never abort the sync
         $stats = $this->insert_batch_skip_duplicates('fingerprints_staging', $data, 'entry_id');
 
-        $n = $this->db->query("select entry_id from fingerprints_staging");
+        $n = $this->db->query("SELECT entry_id FROM fingerprints_staging");
         $count = $n ? $n->num_rows() : 0;
-        if ($count > 0) {
-            $message = print_r($this->exect()) . " saveEnrolled() add_enrolled() Created Enrolled users from Biotime "
-                . $count . " (unique=" . $stats['unique'] . ", skipped_dupes=" . $stats['skipped_dupes'] . ")";
-        } else {
+        if ($count < 1) {
             $message = print_r($this->exect()) . " saveEnrolled() add_enrolled() Failed ";
             log_message('error', 'add_enrolled failed after skip-duplicates insert: ' . json_encode($stats));
+            return $message;
         }
 
+        // 2) Optional legacy procedure (typo name on some servers)
+        $procOk = false;
+        $proc = $this->db->query(
+            "SELECT ROUTINE_NAME FROM information_schema.ROUTINES
+             WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'fingerpints_cache' LIMIT 1"
+        );
+        if ($proc && $proc->num_rows() > 0) {
+            $this->db->query("CALL `fingerpints_cache`()");
+            $procOk = true;
+        }
+
+        // 3) Deterministic refresh of Biotime-sourced fingerprint rows (multi-device areas share area_code)
+        $this->db->query("DELETE FROM fingerprints WHERE source IN ('Biotime', 'biotime')");
+        $this->db->query(
+            "INSERT INTO fingerprints (
+                entry_id, fingerprint, pin, ihris_pid, card_number, location,
+                facilityId, enroll_date, source, device, att_status, last_gen
+             )
+             SELECT
+                entry_id, fingerprint, pin, ihris_pid, card_number, location,
+                facilityId, enroll_date, COALESCE(NULLIF(source, ''), 'Biotime'), device, att_status, last_gen
+             FROM fingerprints_staging"
+        );
+
+        $message = print_r($this->exect()) . " saveEnrolled() add_enrolled() Synced Enrolled users from Biotime "
+            . $count . " (unique=" . $stats['unique'] . ", skipped_dupes=" . $stats['skipped_dupes']
+            . ", proc=" . ($procOk ? 'yes' : 'fallback') . ")";
         return $message;
     }
     public function add_time_logs($data)

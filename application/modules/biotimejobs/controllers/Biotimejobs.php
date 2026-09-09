@@ -789,9 +789,84 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         return [];
     }
 
+    /**
+     * Normalize all BioTime employee areas (supports multi-area / multi-device facilities).
+     *
+     * @param object $employee
+     * @return object[] list of {id, area_code, area_name}
+     */
+    protected function _biotime_employee_areas($employee)
+    {
+        $out = [];
+        if (!is_object($employee) || !isset($employee->area)) {
+            return $out;
+        }
+        $area = $employee->area;
+        $list = [];
+        if (is_array($area)) {
+            $list = $area;
+        } elseif (is_object($area)) {
+            $list = [$area];
+        }
+        $seen = [];
+        foreach ($list as $a) {
+            if (!is_object($a)) {
+                continue;
+            }
+            $code = isset($a->area_code) ? trim((string) $a->area_code) : '';
+            if ($code === '' || isset($seen[$code])) {
+                continue;
+            }
+            $seen[$code] = true;
+            $out[] = $a;
+        }
+        return $out;
+    }
+
+    /**
+     * Device / template marker for fingerprints sync.
+     * Multi-device facilities often leave enroll_sn empty even when templates exist —
+     * treat fingerprint/face/palm/vl_face as enrolled on the area.
+     */
+    protected function _biotime_employee_device_marker($employee)
+    {
+        $sn = '';
+        if (is_object($employee) && isset($employee->enroll_sn)) {
+            $sn = trim((string) $employee->enroll_sn);
+        }
+        if ($sn !== '' && $sn !== '-') {
+            return $sn;
+        }
+        if ($this->_biotime_employee_has_biometrics($employee)) {
+            // Not a SN, but marks row as enrolled for Enrolled / New Users logic
+            return 'BIO-TEMPLATE';
+        }
+        return '';
+    }
+
+    /**
+     * Optional fingerprint summary column value from BioTime employee.
+     */
+    protected function _biotime_employee_fp_summary($employee)
+    {
+        if (!is_object($employee)) {
+            return null;
+        }
+        $parts = [];
+        foreach (['fingerprint', 'face', 'palm', 'vl_face'] as $f) {
+            if (isset($employee->$f) && $this->_biotime_template_present($employee->$f)) {
+                $parts[] = $f . ':' . trim((string) $employee->$f);
+            }
+        }
+        if (empty($parts)) {
+            return null;
+        }
+        $s = implode('|', $parts);
+        return strlen($s) > 90 ? substr($s, 0, 90) : $s;
+    }
+
     //cronjob
-    //get enrolled data from biotime
-    //after run call fingerprint cache procedure
+    //get enrolled data from biotime — keeps fingerprints current for all area devices
     public function saveEnrolled()
     {
         try {
@@ -806,6 +881,23 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $pages = $this->_biotime_list_pages($resp, $page_size);
             $rows = [];
             $seen = [];
+
+            // Known device SNs by area — used when enroll_sn empty but area has terminals
+            $devicesByArea = [];
+            $dq = $this->db->query(
+                "SELECT area_code, sn FROM biotime_devices
+                 WHERE area_code IS NOT NULL AND TRIM(area_code) <> ''
+                   AND sn IS NOT NULL AND TRIM(sn) <> ''"
+            );
+            if ($dq) {
+                foreach ($dq->result() as $d) {
+                    $ac = trim((string) $d->area_code);
+                    if (!isset($devicesByArea[$ac])) {
+                        $devicesByArea[$ac] = [];
+                    }
+                    $devicesByArea[$ac][] = trim((string) $d->sn);
+                }
+            }
 
             for ($currentPage = 1; $currentPage <= $pages; $currentPage++) {
                 $response = ($currentPage === 1) ? $resp : $this->get_Enrolled($currentPage, $page_size);
@@ -822,33 +914,70 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                         continue;
                     }
 
-                    $area = $this->_biotime_employee_area($mydata);
-                    if ($area === null || !isset($area->area_code) || $area->area_code === '' || $area->area_code === null) {
-                        log_message('debug', 'saveEnrolled: Skipping emp_code ' . $mydata->emp_code . ' (no area)');
-                        continue;
-                    }
-
                     $emp_code = trim((string) $mydata->emp_code);
-                    $area_code = trim((string) $area->area_code);
-                    if ($emp_code === '' || $area_code === '') {
+                    if ($emp_code === '') {
                         continue;
                     }
-                    // PRIMARY KEY fingerprints_staging.entry_id = facilityId-emp_code
-                    $entry_id = $area_code . '-' . $emp_code;
-                    if (isset($seen[$entry_id])) {
-                        log_message('debug', 'saveEnrolled: Skipping duplicate entry_id ' . $entry_id);
-                        continue;
-                    }
-                    $seen[$entry_id] = true;
 
-                    $rows[] = [
-                        'entry_id' => $entry_id,
-                        'card_number' => $emp_code,
-                        'facilityId' => $area_code,
-                        'source' => 'Biotime',
-                        'device' => isset($mydata->enroll_sn) ? (string) $mydata->enroll_sn : '',
-                        'att_status' => $this->_biotime_employee_att_status($mydata),
-                    ];
+                    $areas = $this->_biotime_employee_areas($mydata);
+                    if (empty($areas)) {
+                        // Fall back to single-area helper for odd payloads
+                        $one = $this->_biotime_employee_area($mydata);
+                        if ($one) {
+                            $areas = [$one];
+                        }
+                    }
+                    if (empty($areas)) {
+                        log_message('debug', 'saveEnrolled: Skipping emp_code ' . $emp_code . ' (no area)');
+                        continue;
+                    }
+
+                    $deviceMarker = $this->_biotime_employee_device_marker($mydata);
+                    $fpSummary = $this->_biotime_employee_fp_summary($mydata);
+                    $att = $this->_biotime_employee_att_status($mydata);
+                    $lastGen = null;
+                    if (!empty($mydata->update_time)) {
+                        $ts = strtotime((string) $mydata->update_time);
+                        if ($ts !== false) {
+                            $lastGen = date('Y-m-d H:i:s', $ts);
+                        }
+                    }
+                    if ($lastGen === null) {
+                        $lastGen = date('Y-m-d H:i:s');
+                    }
+
+                    foreach ($areas as $area) {
+                        $area_code = isset($area->area_code) ? trim((string) $area->area_code) : '';
+                        if ($area_code === '') {
+                            continue;
+                        }
+                        // One row per facility+emp (covers multi-device areas via shared area_code)
+                        $entry_id = $area_code . '-' . $emp_code;
+                        if (isset($seen[$entry_id])) {
+                            continue;
+                        }
+                        $seen[$entry_id] = true;
+
+                        $device = $deviceMarker;
+                        // If still empty but facility has terminals, mark as area-enrolled without inventing a SN
+                        if ($device === '' && !empty($devicesByArea[$area_code]) && $this->_biotime_employee_has_biometrics($mydata)) {
+                            $device = 'AREA:' . count($devicesByArea[$area_code]) . 'DEV';
+                        }
+
+                        $row = [
+                            'entry_id' => $entry_id,
+                            'card_number' => $emp_code,
+                            'facilityId' => $area_code,
+                            'source' => 'Biotime',
+                            'device' => $device,
+                            'att_status' => $att,
+                            'last_gen' => $lastGen,
+                        ];
+                        if ($fpSummary !== null) {
+                            $row['fingerprint'] = $fpSummary;
+                        }
+                        $rows[] = $row;
+                    }
                 }
             }
 
@@ -857,7 +986,6 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 return false;
             }
 
-            // Model also dedupes + INSERT IGNORE so unique-key collisions never abort the job
             $message = $this->biotimejobs_mdl->add_enrolled($rows);
             $this->log($message);
             $process = 3;
@@ -1481,18 +1609,34 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     //create multiple new users cronjob
     public function multiple_new_users()
     {
+        // Keep fingerprints fresh before discovery (stale if older than 15 minutes)
+        $stale = true;
+        $lg = $this->db->query(
+            "SELECT MAX(last_gen) AS m FROM fingerprints WHERE source IN ('Biotime','biotime')"
+        )->row();
+        if ($lg && !empty($lg->m) && strtotime($lg->m) !== false && (time() - strtotime($lg->m)) < 900) {
+            $stale = false;
+        }
+        if ($stale) {
+            $this->log(['pre_enrollment_saveEnrolled' => 'refreshing fingerprints (stale or empty)']);
+            $this->saveEnrolled();
+        }
+
         // Free BioTime license slots + remove bad alphanumeric/no-bio rows before creating anyone.
         $cleanup = $this->cleanup_biotime_employees();
         $this->log(['pre_enrollment_cleanup' => $cleanup]);
 
         // New enrollments use iHRIS person id. Discover anyone without that person emp_code
-        // in biotime_enrollment and without a device fingerprint (Enrolled list).
-        // Do not hide candidates solely due to legacy card/ipps biotime_enrollment rows.
+        // in biotime_enrollment and without device/template enrollment (multi-device areas share area_code).
         $person = $this->biotimejobs_mdl->sql_person_emp_code('i');
         $activeSql = '';
         if ($this->db->field_exists('is_active_employee', 'ihrisdata')) {
             $activeSql = ' AND COALESCE(i.is_active_employee, 1) = 1';
         }
+        $fpPred = "("
+            . "(f.device IS NOT NULL AND TRIM(f.device) <> '' AND TRIM(f.device) <> '-')"
+            . " OR (f.fingerprint IS NOT NULL AND TRIM(f.fingerprint) <> '' AND TRIM(f.fingerprint) <> '-')"
+            . ")";
         $query = $this->db->query(
             "SELECT i.*
              FROM ihrisdata i
@@ -1504,7 +1648,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                AND NOT EXISTS (
                     SELECT 1 FROM fingerprints f
                     WHERE f.facilityId = i.facility_id
-                      AND f.device IS NOT NULL AND TRIM(f.device) <> ''
+                      AND {$fpPred}
                       AND (
                             (NULLIF(i.card_number, '') IS NOT NULL AND f.card_number = i.card_number)
                          OR f.card_number = ({$person})
@@ -2405,6 +2549,10 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         if ($this->db->field_exists('is_active_employee', 'ihrisdata')) {
             $activeSql = ' AND COALESCE(ihrisdata.is_active_employee, 1) = 1';
         }
+        $fpPred = "("
+            . "(f.device IS NOT NULL AND TRIM(f.device) <> '' AND TRIM(f.device) <> '-')"
+            . " OR (f.fingerprint IS NOT NULL AND TRIM(f.fingerprint) <> '' AND TRIM(f.fingerprint) <> '-')"
+            . ")";
         $query = $this->db->query(
             "SELECT ihrisdata.*
              FROM ihrisdata
@@ -2416,7 +2564,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                AND NOT EXISTS (
                     SELECT 1 FROM fingerprints f
                     WHERE f.facilityId = '$facility'
-                      AND f.device IS NOT NULL AND TRIM(f.device) <> ''
+                      AND {$fpPred}
                       AND (
                             (NULLIF(ihrisdata.card_number, '') IS NOT NULL AND f.card_number = ihrisdata.card_number)
                          OR f.card_number = ({$person})

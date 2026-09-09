@@ -71,7 +71,7 @@ class Jobs extends MX_Controller {
          * ---------------------------------------------------------- */
         if (!$education) {
             if ($minute % 20 == 0) $jobsToRun[] = 'biotimejobs terminals';
-            if ($minute % 30 == 0) $jobsToRun[] = 'biotimejobs saveEnrolled';
+            if ($minute % 15 == 0) $jobsToRun[] = 'biotimejobs saveEnrolled';
             if ($minute % 45 == 0) $jobsToRun[] = 'biotimejobs biotimeFacilities';
             // enrollment (multiple_new_users) + facility updates (transfer_employees)
             // run every 5 minutes outside the heavy lock (see below)
