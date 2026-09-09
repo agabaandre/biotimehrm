@@ -1736,9 +1736,182 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
+     * Ensure biotime_enrollment.biotime_resign_id exists (stores BioTime resign id for reinstatement).
+     */
+    protected function _ensure_enrollment_resign_column()
+    {
+        if (!$this->db->field_exists('biotime_resign_id', 'biotime_enrollment')) {
+            $this->db->query(
+                "ALTER TABLE biotime_enrollment
+                 ADD COLUMN biotime_resign_id VARCHAR(50) NULL DEFAULT NULL AFTER biotime_fac_id"
+            );
+        }
+    }
+
+    /**
+     * Create BioTime resign record for an employee.
+     * resign_type 4 = transfer (facility move without BioTime area).
+     *
+     * @param int    $biotime_emp_id
+     * @param string $reason
+     * @param int    $resign_type
+     * @return object|false
+     * @see https://attendance.health.go.ug/docs/api-docs/resign_api.html#create
+     */
+    public function resign_biotime_employee($biotime_emp_id, $reason = '', $resign_type = 4)
+    {
+        $empId = (int) $biotime_emp_id;
+        if ($empId < 1) {
+            return false;
+        }
+        $token = $this->get_token();
+        if (empty($token)) {
+            return false;
+        }
+
+        // Avoid duplicate resigns
+        $existing = $this->find_active_resign_for_employee($empId);
+        if ($existing && isset($existing->id)) {
+            return $existing;
+        }
+
+        $body = [
+            'employee' => $empId,
+            'disableatt' => true,
+            'resign_type' => (int) $resign_type,
+            'resign_date' => date('Y-m-d'),
+            'reason' => $reason !== '' ? $reason : 'iHRIS facility has no BioTime area',
+        ];
+        $json = json_encode($body);
+        $http = new HttpUtils();
+        $response = $http->curlsendHttpPost(
+            'personnel/api/resigns/',
+            $this->_biotime_json_headers($token, $json),
+            $body
+        );
+        $this->log(['resign_employee' => $response, 'request' => $body]);
+        if ($this->_biotime_response_ok($response) && isset($response->id)) {
+            return $response;
+        }
+        log_message('error', 'resign_biotime_employee failed id=' . $empId . ' resp=' . json_encode($response));
+        return false;
+    }
+
+    /**
+     * Find an active resign row for a BioTime employee id.
+     *
+     * @param int $biotime_emp_id
+     * @return object|null
+     * @see https://attendance.health.go.ug/docs/api-docs/resign_api.html#list
+     */
+    public function find_active_resign_for_employee($biotime_emp_id)
+    {
+        $empId = (int) $biotime_emp_id;
+        if ($empId < 1) {
+            return null;
+        }
+        $token = $this->get_token();
+        if (empty($token)) {
+            return null;
+        }
+        $http = new HttpUtils();
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => 'JWT ' . $token,
+        ];
+        $endpoint = 'personnel/api/resigns/?' . http_build_query([
+            'employee' => $empId,
+            'page' => 1,
+            'page_size' => 20,
+        ]);
+        $resp = $http->curlgetHttp($endpoint, $headers, []);
+        $rows = $this->_biotime_list_rows($resp);
+        foreach ($rows as $row) {
+            if (!is_object($row) || !isset($row->id)) {
+                continue;
+            }
+            // Prefer exact employee match
+            if (isset($row->employee)) {
+                $eid = is_object($row->employee) && isset($row->employee->id)
+                    ? (int) $row->employee->id
+                    : (int) $row->employee;
+                if ($eid === $empId) {
+                    return $row;
+                }
+            }
+        }
+        return isset($rows[0]) && is_object($rows[0]) ? $rows[0] : null;
+    }
+
+    /**
+     * Reinstate resigned BioTime employees.
+     *
+     * @param int|int[] $resign_ids
+     * @return object|false
+     * @see https://attendance.health.go.ug/docs/api-docs/resign_api.html#reinstatement
+     */
+    public function reinstate_biotime_resigns($resign_ids)
+    {
+        $ids = is_array($resign_ids) ? $resign_ids : [$resign_ids];
+        $ids = array_values(array_filter(array_map('intval', $ids), function ($id) {
+            return $id > 0;
+        }));
+        if (empty($ids)) {
+            return false;
+        }
+        $token = $this->get_token();
+        if (empty($token)) {
+            return false;
+        }
+        $body = ['resigns' => $ids];
+        $json = json_encode($body);
+        $http = new HttpUtils();
+        $response = $http->curlsendHttpPost(
+            'personnel/api/resigns/reinstatement/',
+            $this->_biotime_json_headers($token, $json),
+            $body
+        );
+        $this->log(['reinstate_resigns' => $response, 'request' => $body]);
+        // Reinstatement may return empty/code 0
+        if ($this->_biotime_response_ok($response) || (is_object($response) && isset($response->code) && (int) $response->code === 0)) {
+            return $response ? $response : (object) ['ok' => true, 'resigns' => $ids];
+        }
+        // Some BioTime builds return null/empty body on success
+        if ($response === null || $response === '' || (is_object($response) && empty((array) $response))) {
+            return (object) ['ok' => true, 'resigns' => $ids];
+        }
+        log_message('error', 'reinstate_biotime_resigns failed ids=' . implode(',', $ids) . ' resp=' . json_encode($response));
+        return false;
+    }
+
+    /**
+     * Persist enrollment row including optional resign id.
+     */
+    protected function _save_enrollment_row($emp_code, $empId, $areaId, $facilityCode, $resignId = null)
+    {
+        $this->_ensure_enrollment_resign_column();
+        $data = [
+            'emp_code' => (string) $emp_code,
+            'biotime_emp_id' => (string) (int) $empId,
+            'biotime_facility_id' => (string) (int) $areaId,
+            'biotime_fac_id' => (string) $facilityCode,
+        ];
+        if ($this->db->field_exists('biotime_resign_id', 'biotime_enrollment')) {
+            $data['biotime_resign_id'] = ($resignId !== null && $resignId !== '')
+                ? (string) (int) $resignId
+                : null;
+        }
+        return $this->db->replace('biotime_enrollment', $data);
+    }
+
+    /**
      * Update enrolled BioTime employee (facility transfer / job change).
-     * BioTime 9.5 PUT requires emp_code + department + area; department defaults to 1.
+     * If target iHRIS facility has no BioTime area → resign (disable attendance).
+     * When a valid area exists later → reinstate then adjust area / PUT.
+     *
      * @see https://attendance.health.go.ug/docs/api-docs/employee_api.html#create
+     * @see https://attendance.health.go.ug/docs/api-docs/resign_api.html#resign
      */
     public function update_biotimeuser($userdata)
     {
@@ -1747,20 +1920,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             return false;
         }
 
+        $this->_ensure_enrollment_resign_column();
+
         $overrides = [];
         if (!empty($userdata->new_facility)) {
             $overrides['new_facility'] = $userdata->new_facility;
         }
         if (!empty($userdata->facility_id) && empty($overrides['new_facility'])) {
             $overrides['facility_id'] = $userdata->facility_id;
-        }
-        // Force Update / UI can pin area to Not Authorized (area 1)
-        if (!empty($userdata->force_area_id)) {
-            $overrides['area_id'] = (int) $userdata->force_area_id;
-            $overrides['force_not_authorized'] = !empty($userdata->force_not_authorized);
-        } elseif (!empty($userdata->force_not_authorized)) {
-            $overrides['area_id'] = $this->biotime_not_authorized_area_id();
-            $overrides['force_not_authorized'] = true;
         }
 
         // Resolve emp_code from local enrollment map when transfer row lacks it
@@ -1774,6 +1941,82 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             }
         }
 
+        // Resolve target facility code early
+        $facility_code = '';
+        foreach (['new_facility', 'facility_id', 'area'] as $k) {
+            if (!empty($overrides[$k])) {
+                $facility_code = trim((string) $overrides[$k]);
+                break;
+            }
+            if (isset($userdata->$k) && trim((string) $userdata->$k) !== '') {
+                $facility_code = trim((string) $userdata->$k);
+                break;
+            }
+        }
+        $facility_code = urldecode($facility_code);
+        $mappedArea = ($facility_code !== '') ? $this->getbioloc($facility_code) : null;
+        $empId = (int) $userdata->biotime_emp_id;
+
+        // Resolve emp_code for local save
+        $emp_code = '';
+        if (!empty($overrides['emp_code'])) {
+            $emp_code = trim((string) $overrides['emp_code']);
+        } elseif (!empty($userdata->emp_code)) {
+            $emp_code = trim((string) $userdata->emp_code);
+        }
+
+        // --- No valid BioTime area: resign instead of parking in Not Authorized ---
+        if (empty($mappedArea)) {
+            $reason = 'iHRIS facility has no BioTime area: ' . $facility_code;
+            log_message('error', 'update_biotimeuser: ' . $reason . ' — resigning emp_id=' . $empId);
+            $resign = $this->resign_biotime_employee($empId, $reason, 4);
+            if ($resign && isset($resign->id)) {
+                if ($emp_code === '') {
+                    $emp_code = !empty($userdata->emp_code) ? (string) $userdata->emp_code : ('id-' . $empId);
+                }
+                // Mark handled: biotime_fac_id matches iHRIS so Needs Update clears; keep resign id for later reinstate
+                $this->_save_enrollment_row(
+                    $emp_code,
+                    $empId,
+                    0,
+                    $facility_code !== '' ? $facility_code : 'RESIGNED',
+                    $resign->id
+                );
+                $this->cronjob_register(6, 'bioitimejobs/update_biotimeuser', 'successful');
+                return $resign;
+            }
+            $this->cronjob_register(6, 'bioitimejobs/update_biotimeuser', 'failed');
+            return false;
+        }
+
+        // --- Valid area: reinstate if previously resigned, then update ---
+        $localResignId = null;
+        if ($this->db->field_exists('biotime_resign_id', 'biotime_enrollment')) {
+            $enrRow = $this->db->get_where('biotime_enrollment', ['biotime_emp_id' => (string) $empId], 1)->row();
+            if ($enrRow && !empty($enrRow->biotime_resign_id)) {
+                $localResignId = (int) $enrRow->biotime_resign_id;
+            }
+            if ($enrRow && $emp_code === '' && !empty($enrRow->emp_code)) {
+                $emp_code = (string) $enrRow->emp_code;
+            }
+        }
+        if (empty($localResignId)) {
+            $activeResign = $this->find_active_resign_for_employee($empId);
+            if ($activeResign && isset($activeResign->id)) {
+                $localResignId = (int) $activeResign->id;
+            }
+        }
+        if (!empty($localResignId)) {
+            $reinstated = $this->reinstate_biotime_resigns([$localResignId]);
+            if ($reinstated === false) {
+                log_message('error', 'update_biotimeuser: reinstatement failed resign_id=' . $localResignId . ' emp_id=' . $empId);
+                // Continue to area update — employee may already be active
+            } else {
+                $this->log(['update_biotimeuser_reinstated' => $localResignId, 'emp_id' => $empId]);
+            }
+        }
+
+        $overrides['area_id'] = (int) $mappedArea;
         $built = $this->_build_biotime_employee_payload($userdata, $overrides);
         if (empty($built['ok'])) {
             log_message('error', 'update_biotimeuser: ' . (isset($built['error']) ? $built['error'] : 'payload failed'));
@@ -1787,14 +2030,13 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         }
 
         $http = new HttpUtils();
-        $empId = (int) $userdata->biotime_emp_id;
         $ok = false;
         $response = null;
         $body = $built['body'];
         $barea = $built['area_id'];
         $emp_code = $built['emp_code'];
 
-        // 1) Adjust area (facility move) — proven working on BioTime 9.5
+        // 1) Adjust area (facility move)
         $adjustBody = [
             'employees' => [$empId],
             'areas' => [(int) $barea],
@@ -1810,7 +2052,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $this->log(['adjust_area' => $response]);
         }
 
-        // 2) Full PUT with required emp_code, department (default 1), area + optional job/ihris fields
+        // 2) Full PUT
         $json = json_encode($body);
         $endpoint = 'personnel/api/employees/' . $empId . '/';
         $putResponse = $http->curlupdateHttpPost($endpoint, $this->_biotime_json_headers($token, $json), $body);
@@ -1823,12 +2065,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         }
 
         if ($ok) {
-            $this->db->replace('biotime_enrollment', [
-                'emp_code' => $emp_code,
-                'biotime_emp_id' => (string) $empId,
-                'biotime_facility_id' => (string) (int) $barea,
-                'biotime_fac_id' => (string) $built['facility_code'],
-            ]);
+            $this->_save_enrollment_row($emp_code, $empId, $barea, $built['facility_code'], null);
         }
 
         $process = 6;
@@ -1838,6 +2075,134 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         return $ok ? $response : false;
     }
 
+    /**
+     * Reinstate resigned enrollments whose iHRIS facility now has a BioTime area.
+     */
+    public function reinstate_ready_employees()
+    {
+        $this->_ensure_enrollment_resign_column();
+        if (!$this->db->field_exists('biotime_resign_id', 'biotime_enrollment')) {
+            return ['candidates' => 0, 'ok' => 0, 'failed' => 0];
+        }
+        $on = $this->biotimejobs_mdl->sql_enrollment_to_ihris_on('be', 'i');
+        $query = $this->db->query(
+            "SELECT i.*,
+                    i.facility_id AS new_facility,
+                    i.facility AS new_fname,
+                    be.emp_code,
+                    be.biotime_emp_id,
+                    be.biotime_resign_id,
+                    be.biotime_fac_id
+             FROM biotime_enrollment be
+             INNER JOIN ihrisdata i ON {$on}
+             WHERE be.biotime_resign_id IS NOT NULL
+               AND TRIM(be.biotime_resign_id) <> ''"
+        );
+        $rows = $query ? $query->result() : [];
+        $ok = 0;
+        $fail = 0;
+        foreach ($rows as $row) {
+            $area = $this->getbioloc($row->facility_id);
+            if (empty($area)) {
+                continue;
+            }
+            $result = $this->update_biotimeuser($row);
+            if ($result) {
+                $ok++;
+            } else {
+                $fail++;
+            }
+        }
+        $this->log(['reinstate_ready_employees' => ['candidates' => count($rows), 'ok' => $ok, 'failed' => $fail]]);
+        return ['candidates' => count($rows), 'ok' => $ok, 'failed' => $fail];
+    }
+
+    /**
+     * CLI/self-check: resign + reinstate API wiring (dry checks + optional live probe).
+     * Usage: php index.php biotimejobs/test_resign_reinstate_flow
+     *        php index.php biotimejobs/test_resign_reinstate_flow live
+     */
+    public function test_resign_reinstate_flow($mode = 'dry')
+    {
+        $out = [];
+        $pass = 0;
+        $fail = 0;
+        $assert = function ($cond, $label) use (&$pass, &$fail, &$out) {
+            if ($cond) {
+                $pass++;
+                $out[] = "PASS: $label";
+            } else {
+                $fail++;
+                $out[] = "FAIL: $label";
+            }
+        };
+
+        $this->_ensure_enrollment_resign_column();
+        $assert($this->db->field_exists('biotime_resign_id', 'biotime_enrollment'), 'biotime_resign_id column exists');
+        $assert(method_exists($this, 'resign_biotime_employee'), 'resign_biotime_employee method');
+        $assert(method_exists($this, 'reinstate_biotime_resigns'), 'reinstate_biotime_resigns method');
+        $assert(method_exists($this, 'find_active_resign_for_employee'), 'find_active_resign_for_employee method');
+        $assert(method_exists($this, 'reinstate_ready_employees'), 'reinstate_ready_employees method');
+
+        $mapped = $this->getbioloc('facility|__no_such_area_xyz__');
+        $assert(empty($mapped), 'getbioloc returns empty for unknown facility');
+
+        $token = $this->get_token();
+        if (empty($token)) {
+            $out[] = 'SKIP: BioTime JWT unavailable in this environment (expected on local without prod credentials)';
+        } else {
+            $assert(true, 'BioTime JWT token available');
+            $http = new HttpUtils();
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'Authorization' => 'JWT ' . $token,
+            ];
+            $list = $http->curlgetHttp(
+                'personnel/api/resigns/?' . http_build_query(['page' => 1, 'page_size' => 5]),
+                $headers,
+                []
+            );
+            $assert(is_object($list) && (isset($list->count) || isset($list->data) || isset($list->results)),
+                'GET /personnel/api/resigns/ reachable');
+        }
+
+        if ($mode === 'live' && !empty($token)) {
+            // Pick a local enrollment whose iHRIS facility is missing from biotime_facilities
+            $on = $this->biotimejobs_mdl->sql_enrollment_to_ihris_on('be', 'i');
+            $cand = $this->db->query(
+                "SELECT be.emp_code, be.biotime_emp_id, i.facility_id, i.facility AS new_fname,
+                        i.firstname, i.surname, i.ihris_pid
+                 FROM biotime_enrollment be
+                 INNER JOIN ihrisdata i ON {$on}
+                 WHERE i.facility_id NOT IN (SELECT area_code FROM biotime_facilities)
+                 LIMIT 1"
+            )->row();
+            if ($cand && !empty($cand->biotime_emp_id)) {
+                $cand->new_facility = $cand->facility_id;
+                $beforeResign = $this->find_active_resign_for_employee((int) $cand->biotime_emp_id);
+                $res = $this->update_biotimeuser($cand);
+                $assert(is_object($res) && isset($res->id), 'live resign via update_biotimeuser for emp ' . $cand->emp_code);
+                $enr = $this->db->get_where('biotime_enrollment', ['biotime_emp_id' => (string) $cand->biotime_emp_id], 1)->row();
+                $assert($enr && !empty($enr->biotime_resign_id), 'local biotime_resign_id saved after resign');
+                $out[] = 'INFO: resigned emp_code=' . $cand->emp_code . ' resign_id=' . (isset($res->id) ? $res->id : '');
+                // Do not auto-reinstate in live probe (facility still invalid)
+                if ($beforeResign && isset($beforeResign->id)) {
+                    $out[] = 'INFO: employee already had resign id ' . $beforeResign->id;
+                }
+            } else {
+                $out[] = 'SKIP live resign: no enrollment with unmapped iHRIS facility';
+            }
+        } else {
+            $out[] = 'INFO: dry mode only (pass live to mutate a real unmapped-facility employee)';
+        }
+
+        $summary = compact('pass', 'fail', 'out');
+        $this->log(['test_resign_reinstate_flow' => $summary]);
+        header('Content-Type: application/json');
+        echo json_encode($summary, JSON_PRETTY_PRINT);
+        return $summary;
+    }
 
     //enroll new users (Front End Action that requires login);
     public function get_new_users($facility)
@@ -2512,6 +2877,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      */
     public function transfer_employees()
     {
+        // First reinstate anyone resigned whose facility now has a BioTime area
+        $reinstated = $this->reinstate_ready_employees();
+
         $on = $this->biotimejobs_mdl->sql_enrollment_to_ihris_on('be', 'i');
         $query = $this->db->query(
             "SELECT i.*,
@@ -2549,6 +2917,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             'updated' => $ok,
             'failed' => $fail,
             'candidates' => count($transfers),
+            'reinstate_ready' => $reinstated,
         ]);
 
         echo $status;

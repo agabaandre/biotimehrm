@@ -148,7 +148,7 @@ class Biometrics extends MX_Controller{
     /**
      * Force a single BioTime employee update (facility/job sync).
      * POST card_number and/or ihris_pid
-     * If the iHRIS facility has no BioTime area, assigns area 1 (Not Authorized).
+     * If the iHRIS facility has no BioTime area, resigns the employee (reinstated later when area exists).
      */
     public function forceUpdate(){
         if (ob_get_level()) {
@@ -212,7 +212,6 @@ class Biometrics extends MX_Controller{
             $targetFac = trim((string) $row->facility_id);
         }
 
-        // Resolve BioTime area; if missing, Force Update parks in Not Authorized (area 1)
         $areaId = null;
         if ($targetFac !== '') {
             $esc = $this->db->escape_str($targetFac);
@@ -229,19 +228,9 @@ class Biometrics extends MX_Controller{
                 $areaId = (int) $areaRow->id;
             }
         }
-        $usedNotAuthorized = false;
-        if (empty($areaId)) {
-            $na = $this->db->query(
-                "SELECT id FROM biotime_facilities
-                 WHERE area_code = '1' OR id = 1
-                 ORDER BY CASE WHEN area_code = '1' THEN 0 ELSE 1 END, id ASC
-                 LIMIT 1"
-            )->row();
-            $areaId = $na ? (int) $na->id : 1;
-            $row->force_area_id = $areaId;
-            $row->force_not_authorized = 1;
-            $usedNotAuthorized = true;
-            log_message('error', 'forceUpdate: BioTime area not found for ' . $targetFac . '; using Not Authorized area_id=' . $areaId);
+        $willResign = empty($areaId);
+        if ($willResign) {
+            log_message('error', 'forceUpdate: BioTime area not found for ' . $targetFac . '; will resign employee');
         }
 
         $label = $card !== '' ? $card : $ihris_pid;
@@ -255,14 +244,19 @@ class Biometrics extends MX_Controller{
                 ]);
             } else {
                 $msg = 'BioTime update applied for ' . $label;
-                if ($usedNotAuthorized) {
-                    $msg .= ' (assigned to area ' . $areaId . ' Not Authorized — facility not in BioTime)';
+                $resigned = $willResign || (is_object($response) && isset($response->resign_type));
+                if ($resigned) {
+                    $rid = is_object($response) && isset($response->id) ? $response->id : '';
+                    $msg = 'Resigned in BioTime for ' . $label
+                        . ' (facility has no BioTime area'
+                        . ($rid !== '' ? '; resign_id ' . $rid : '')
+                        . '). Will reinstate when area is available.';
                 }
                 echo json_encode([
                     'status' => 'success',
                     'message' => $msg,
                     'area_id' => $areaId,
-                    'not_authorized' => $usedNotAuthorized,
+                    'resigned' => $resigned,
                     'timestamp' => date('Y-m-d H:i:s'),
                 ]);
             }
