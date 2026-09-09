@@ -2980,6 +2980,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
     /**
      * DELETE /personnel/api/employees/{id}/
+     * Removes the employee from BioTime and queues removal from area devices/machines.
+     * Also clears local enrollment + fingerprint cache rows (all facilities / multi-device).
+     *
      * @see https://attendance.health.go.ug/docs/api-docs/employee_api.html#delete
      *
      * @param int         $biotime_emp_id
@@ -2996,21 +2999,42 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         if (empty($token)) {
             return false;
         }
+
+        // Resolve emp_code + area ids before delete (needed for local/device cleanup)
+        if ($emp_code === null || trim((string) $emp_code) === '') {
+            $enr = $this->db->get_where('biotime_enrollment', ['biotime_emp_id' => (string) $id], 1)->row();
+            if ($enr && !empty($enr->emp_code)) {
+                $emp_code = (string) $enr->emp_code;
+            }
+        }
+        $emp_code = $emp_code !== null ? trim((string) $emp_code) : '';
+
         $http = new HttpUtils();
         $headers = $this->_biotime_json_headers($token);
+
+        // Ensure devices drop any residual templates before employee delete (no-op if none)
+        $delBioBody = [
+            'employees' => [$id],
+            'finger_print' => true,
+            'face' => true,
+            'finger_vein' => true,
+            'palm' => true,
+        ];
+        $delBioJson = json_encode($delBioBody);
+        $delBioResp = $http->curlsendHttpPost(
+            'personnel/api/employees/del_bio_template/',
+            $this->_biotime_json_headers($token, $delBioJson),
+            $delBioBody
+        );
+        $this->log(['del_bio_template_before_delete' => ['id' => $id, 'resp' => $delBioResp]]);
+
+        // DELETE employee — BioTime pushes user deletion to machines in their areas
         $endpoint = 'personnel/api/employees/' . $id . '/';
         $response = $http->curldeleteHttp($endpoint, $headers);
         $ok = $this->_biotime_response_ok($response);
         if ($ok) {
-            $this->db->where('biotime_emp_id', (string) $id)->delete('biotime_enrollment');
-            if ($emp_code !== null && trim((string) $emp_code) !== '') {
-                $code = trim((string) $emp_code);
-                $this->db->where('emp_code', $code)->delete('biotime_enrollment');
-                if ($this->db->table_exists('fingerprints_staging')) {
-                    $this->db->where('card_number', $code)->delete('fingerprints_staging');
-                }
-            }
-            $this->log(['delete_employee' => ['id' => $id, 'emp_code' => $emp_code, 'ok' => true]]);
+            $this->_purge_local_employee_machine_rows($id, $emp_code);
+            $this->log(['delete_employee' => ['id' => $id, 'emp_code' => $emp_code, 'ok' => true, 'machine_purge' => true]]);
         } else {
             log_message('error', 'delete_biotime_employee failed id=' . $id . ' resp=' . json_encode($response));
         }
@@ -3018,8 +3042,31 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
+     * Clear local enrollment/fingerprint rows for a deleted BioTime employee (all area devices).
+     */
+    protected function _purge_local_employee_machine_rows($biotime_emp_id, $emp_code = '')
+    {
+        $id = (string) (int) $biotime_emp_id;
+        $this->db->where('biotime_emp_id', $id)->delete('biotime_enrollment');
+
+        $code = trim((string) $emp_code);
+        if ($code === '') {
+            return;
+        }
+        $this->db->where('emp_code', $code)->delete('biotime_enrollment');
+
+        // Multi-device facilities: remove fingerprint cache for this emp across all facilityIds
+        if ($this->db->table_exists('fingerprints')) {
+            $this->db->where('card_number', $code)->delete('fingerprints');
+        }
+        if ($this->db->table_exists('fingerprints_staging')) {
+            $this->db->where('card_number', $code)->delete('fingerprints_staging');
+        }
+    }
+
+    /**
      * Remove BioTime employees that have no biometric templates to free license slots
-     * and clear alphanumeric/duplicate junk before enrollment.
+     * and clear them from area machines (DELETE pushes user removal to devices).
      *
      * Preserves anyone with fingerprint, face, palm, or vl_face enrolled.
      * Deletes (no bio only):
@@ -3043,6 +3090,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             'failed' => 0,
             'alphanumeric_deleted' => 0,
             'orphan_numeric_deleted' => 0,
+            'machine_purged' => 0,
         ];
 
         $token = $this->get_token();
@@ -3088,6 +3136,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     continue;
                 }
                 $stats['scanned']++;
+                // Keep anyone with fingerprint / face / palm / vl_face on BioTime (and thus on machines)
                 if ($this->_biotime_employee_has_biometrics($emp)) {
                     $stats['preserved']++;
                     continue;
@@ -3115,9 +3164,11 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $toDelete = array_slice($toDelete, 0, $max_deletes);
 
         foreach ($toDelete as $row) {
+            // DELETE API removes from BioTime + pushes user delete to area machines
             $ok = $this->delete_biotime_employee($row['id'], $row['emp_code']);
             if ($ok) {
                 $stats['deleted']++;
+                $stats['machine_purged']++;
                 if ($this->_biotime_is_alphanumeric_emp_code($row['emp_code'])) {
                     $stats['alphanumeric_deleted']++;
                 } else {
