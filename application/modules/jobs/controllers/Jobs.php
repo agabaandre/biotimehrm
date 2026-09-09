@@ -139,10 +139,10 @@ class Jobs extends MX_Controller {
         }
 
         /* ============================================================
-         * ENROLLMENT + UPDATES (every 5 min, WITHOUT heavy lock)
+         * ENROLLMENT + UPDATES (every 40 min, WITHOUT heavy lock)
          * ============================================================ */
 
-        if (!$education && ((int) $minute % 5 === 0)) {
+        if (!$education && ((int) $minute % 40 === 0)) {
             echo "\nRunning BioTime cleanup + enrollment + transfers (no lock)...\n";
             // multiple_new_users runs cleanup_biotime_employees first (delete API)
             $this->run('biotimejobs multiple_new_users');
