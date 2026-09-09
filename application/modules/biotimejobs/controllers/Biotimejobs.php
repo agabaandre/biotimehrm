@@ -70,6 +70,7 @@ class Biotimejobs extends MX_Controller
 
     /**
      * True when BioTime create/update returned an employee object (has id or emp_code).
+     * Also treats successful DELETE (2xx / deleted flag) as OK.
      *
      * @param mixed $response
      * @return bool
@@ -89,6 +90,14 @@ class Biotimejobs extends MX_Controller
         if (!is_object($response)) {
             return false;
         }
+        if (!empty($response->deleted)) {
+            return true;
+        }
+        if (isset($response->http_code) && (int) $response->http_code >= 200 && (int) $response->http_code < 300
+            && !isset($response->detail) && !isset($response->id) && !isset($response->emp_code)) {
+            // Empty DELETE success body
+            return true;
+        }
         if (isset($response->detail) && is_string($response->detail)
             && stripos($response->detail, 'success') !== false) {
             return true;
@@ -105,6 +114,56 @@ class Biotimejobs extends MX_Controller
             return true;
         }
         return false;
+    }
+
+    /**
+     * BioTime template field is "present" when not empty and not "-".
+     */
+    protected function _biotime_template_present($value)
+    {
+        $v = trim((string) $value);
+        return $v !== '' && $v !== '-' && strcasecmp($v, 'null') !== 0;
+    }
+
+    /**
+     * True when employee has fingerprint, face, palm, or vl_face enrolled.
+     * Preserve these; safe to delete only when all are empty/"-".
+     *
+     * @param object $employee
+     * @return bool
+     */
+    protected function _biotime_employee_has_biometrics($employee)
+    {
+        if (!is_object($employee)) {
+            return false;
+        }
+        foreach (['fingerprint', 'face', 'palm', 'vl_face'] as $field) {
+            if (isset($employee->$field) && $this->_biotime_template_present($employee->$field)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * emp_code suitable for NEW enrollment: digits only (person id / UCMB 4253…).
+     */
+    protected function _biotime_is_person_emp_code($emp_code)
+    {
+        $code = trim((string) $emp_code);
+        return $code !== '' && ctype_digit($code) && strlen($code) <= 20;
+    }
+
+    /**
+     * True when emp_code looks alphanumeric / card-style (not a person id).
+     */
+    protected function _biotime_is_alphanumeric_emp_code($emp_code)
+    {
+        $code = trim((string) $emp_code);
+        if ($code === '') {
+            return false;
+        }
+        return !ctype_digit($code);
     }
 
     //get terminals
@@ -1422,6 +1481,10 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     //create multiple new users cronjob
     public function multiple_new_users()
     {
+        // Free BioTime license slots + remove bad alphanumeric/no-bio rows before creating anyone.
+        $cleanup = $this->cleanup_biotime_employees();
+        $this->log(['pre_enrollment_cleanup' => $cleanup]);
+
         // New enrollments always use iHRIS person id as emp_code.
         // "Already enrolled" = row in biotime_enrollment (person id, card, or ipps).
         $person = $this->biotimejobs_mdl->sql_person_emp_code('i');
@@ -1430,6 +1493,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
              FROM ihrisdata i
              WHERE i.facility_id IN (SELECT area_code FROM biotime_devices)
                AND ({$person}) <> ''
+               AND ({$person}) REGEXP '^[0-9]+$'
                AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = i.card_number)
                AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(i.ipps, '') IS NOT NULL AND be.emp_code = i.ipps)
                AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))"
@@ -1437,10 +1501,13 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $newusers = $query ? $query->result() : [];
         $ok = 0;
         $fail = 0;
+        $skipped = 0;
 
         foreach ($newusers as $newuser) {
             $response = $this->create_new_biotimeuser_from_ihris($newuser);
-            if ($this->_biotime_response_ok($response)) {
+            if ($response === 'skipped') {
+                $skipped++;
+            } elseif ($this->_biotime_response_ok($response)) {
                 $ok++;
             } else {
                 $fail++;
@@ -1449,9 +1516,16 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
         $process = 5;
         $method = 'bioitimejobs/multiple_new_users';
-        $status = ($ok > 0 && $fail === 0) ? 'successful' : (($ok > 0) ? 'partial' : 'failed');
+        $status = ($ok > 0 && $fail === 0) ? 'successful' : (($ok > 0) ? 'partial' : (($skipped > 0 && $fail === 0) ? 'successful' : 'failed'));
         $this->cronjob_register($process, $method, $status);
-        $this->log(['multiple_new_users' => $status, 'created' => $ok, 'failed' => $fail, 'candidates' => count($newusers)]);
+        $this->log([
+            'multiple_new_users' => $status,
+            'created' => $ok,
+            'failed' => $fail,
+            'skipped' => $skipped,
+            'candidates' => count($newusers),
+            'cleanup' => $cleanup,
+        ]);
 
         return $status;
     }
@@ -1504,6 +1578,11 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         }
         if (strlen($emp_code) > 20) {
             return ['ok' => false, 'error' => 'emp_code exceeds 20 characters'];
+        }
+        // New creates must use person-id emp_code (digits only). Updates may keep legacy codes.
+        $isUpdate = !empty($s->biotime_emp_id) || !empty($overrides['allow_legacy_emp_code']);
+        if (!$isUpdate && !$this->_biotime_is_person_emp_code($emp_code)) {
+            return ['ok' => false, 'error' => 'new enrollment emp_code must be iHRIS person id (numeric), got: ' . $emp_code];
         }
 
         $facility_code = '';
@@ -1779,9 +1858,11 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
     /**
      * Create from full ihrisdata row (preferred).
+     * New emp_code is always iHRIS person id (digits / UCMB 4253…).
+     * Skips create when BioTime already has that emp_code (avoids duplicates).
      *
      * @param object $staff
-     * @return object|false
+     * @return object|false|string  response object, false on failure, 'skipped' if already exists / invalid
      */
     public function create_new_biotimeuser_from_ihris($staff)
     {
@@ -1789,6 +1870,35 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         if (empty($built['ok'])) {
             log_message('error', 'create_new_biotimeuser_from_ihris: ' . (isset($built['error']) ? $built['error'] : 'payload failed'));
             return false;
+        }
+
+        $emp_code = (string) $built['emp_code'];
+        // Never create alphanumeric / card-style emp codes
+        if (!$this->_biotime_is_person_emp_code($emp_code)) {
+            log_message('error', 'create_new_biotimeuser_from_ihris: refusing non-person emp_code=' . $emp_code);
+            return 'skipped';
+        }
+
+        // Already enrolled locally under person emp_code
+        $local = $this->db->get_where('biotime_enrollment', ['emp_code' => $emp_code], 1)->row();
+        if ($local && !empty($local->biotime_emp_id)) {
+            return 'skipped';
+        }
+
+        // Already exists in BioTime under this person emp_code
+        if ($this->biotime_employee_exists_by_emp_code($emp_code)) {
+            // Refresh local map from live employee if possible
+            $live = $this->fetch_biotime_employee_by_emp_code($emp_code);
+            if ($live && isset($live->id)) {
+                $area = $this->_biotime_employee_area($live);
+                $this->db->replace('biotime_enrollment', [
+                    'emp_code' => $emp_code,
+                    'biotime_emp_id' => (string) (int) $live->id,
+                    'biotime_facility_id' => ($area && isset($area->id)) ? (string) (int) $area->id : (string) (int) $built['area_id'],
+                    'biotime_fac_id' => ($area && isset($area->area_code)) ? (string) $area->area_code : (string) $built['facility_code'],
+                ]);
+            }
+            return 'skipped';
         }
 
         $token = $this->get_token();
@@ -1808,13 +1918,13 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         if ($response) {
             $this->log(['create_employee' => $response, 'request' => $body]);
         } else {
-            log_message('error', 'create_new_biotimeuser_from_ihris: empty response emp_code=' . $built['emp_code'] . ' body=' . $json);
+            log_message('error', 'create_new_biotimeuser_from_ihris: empty response emp_code=' . $emp_code . ' body=' . $json);
         }
 
         $ok = $this->_biotime_response_ok($response);
         if ($ok && isset($response->id)) {
             $this->db->replace('biotime_enrollment', [
-                'emp_code' => $built['emp_code'],
+                'emp_code' => $emp_code,
                 'biotime_emp_id' => (string) (int) $response->id,
                 'biotime_facility_id' => (string) (int) $built['area_id'],
                 'biotime_fac_id' => (string) $built['facility_code'],
@@ -2099,7 +2209,196 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
     public function deleteEnrolled()
     {
+        return $this->cleanup_biotime_employees();
     }
+
+    /**
+     * Look up a single BioTime employee by exact emp_code.
+     *
+     * @param string $emp_code
+     * @return object|null
+     */
+    public function fetch_biotime_employee_by_emp_code($emp_code)
+    {
+        $emp_code = trim((string) $emp_code);
+        if ($emp_code === '') {
+            return null;
+        }
+        $token = $this->get_token();
+        if (empty($token)) {
+            return null;
+        }
+        $http = new HttpUtils();
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => 'JWT ' . $token,
+        ];
+        $query = [
+            'emp_code' => $emp_code,
+            'page' => 1,
+            'page_size' => 5,
+        ];
+        $endpoint = 'personnel/api/employees/?' . http_build_query($query);
+        $resp = $http->curlgetHttp($endpoint, $headers, []);
+        $rows = $this->_biotime_list_rows($resp);
+        foreach ($rows as $row) {
+            if (is_object($row) && isset($row->emp_code) && (string) $row->emp_code === $emp_code) {
+                return $row;
+            }
+        }
+        return isset($rows[0]) && is_object($rows[0]) ? $rows[0] : null;
+    }
+
+    /**
+     * @param string $emp_code
+     * @return bool
+     */
+    public function biotime_employee_exists_by_emp_code($emp_code)
+    {
+        return (bool) $this->fetch_biotime_employee_by_emp_code($emp_code);
+    }
+
+    /**
+     * DELETE /personnel/api/employees/{id}/
+     * @see https://attendance.health.go.ug/docs/api-docs/employee_api.html#delete
+     *
+     * @param int         $biotime_emp_id
+     * @param string|null $emp_code optional local cleanup key
+     * @return bool
+     */
+    public function delete_biotime_employee($biotime_emp_id, $emp_code = null)
+    {
+        $id = (int) $biotime_emp_id;
+        if ($id < 1) {
+            return false;
+        }
+        $token = $this->get_token();
+        if (empty($token)) {
+            return false;
+        }
+        $http = new HttpUtils();
+        $headers = $this->_biotime_json_headers($token);
+        $endpoint = 'personnel/api/employees/' . $id . '/';
+        $response = $http->curldeleteHttp($endpoint, $headers);
+        $ok = $this->_biotime_response_ok($response);
+        if ($ok) {
+            $this->db->where('biotime_emp_id', (string) $id)->delete('biotime_enrollment');
+            if ($emp_code !== null && trim((string) $emp_code) !== '') {
+                $code = trim((string) $emp_code);
+                $this->db->where('emp_code', $code)->delete('biotime_enrollment');
+                if ($this->db->table_exists('fingerprints_staging')) {
+                    $this->db->where('card_number', $code)->delete('fingerprints_staging');
+                }
+            }
+            $this->log(['delete_employee' => ['id' => $id, 'emp_code' => $emp_code, 'ok' => true]]);
+        } else {
+            log_message('error', 'delete_biotime_employee failed id=' . $id . ' resp=' . json_encode($response));
+        }
+        return $ok;
+    }
+
+    /**
+     * Remove BioTime employees that have no biometric templates to free license slots
+     * and clear alphanumeric/duplicate junk before enrollment.
+     *
+     * Preserves anyone with fingerprint, face, palm, or vl_face enrolled.
+     * Deletes (no bio only):
+     *   1) alphanumeric emp_codes (card-style)
+     *   2) remaining no-bio employees (numeric included) to reclaim capacity
+     *
+     * @param int $max_deletes safety cap per run (default 200)
+     * @return array{scanned:int,deleted:int,preserved:int,failed:int,alphanumeric_deleted:int}
+     */
+    public function cleanup_biotime_employees($max_deletes = 200)
+    {
+        ignore_user_abort(true);
+        @ini_set('max_execution_time', '0');
+
+        $max_deletes = max(1, (int) $max_deletes);
+        $stats = [
+            'scanned' => 0,
+            'deleted' => 0,
+            'preserved' => 0,
+            'failed' => 0,
+            'alphanumeric_deleted' => 0,
+        ];
+
+        $token = $this->get_token();
+        if (empty($token)) {
+            log_message('error', 'cleanup_biotime_employees: no BioTime token');
+            $this->cronjob_register(8, 'bioitimejobs/cleanup_biotime_employees', 'failed');
+            return $stats;
+        }
+
+        $page_size = $this->biotime_employee_page_size;
+        $resp = $this->fetch_biotime_employees(1, $page_size);
+        if (empty($resp) || !isset($resp->count)) {
+            log_message('error', 'cleanup_biotime_employees: invalid employee list response');
+            $this->cronjob_register(8, 'bioitimejobs/cleanup_biotime_employees', 'failed');
+            return $stats;
+        }
+
+        $pages = $this->_biotime_list_pages($resp, $page_size);
+        $alphaCandidates = [];
+        $otherCandidates = [];
+
+        for ($page = 1; $page <= $pages; $page++) {
+            $response = ($page === 1) ? $resp : $this->fetch_biotime_employees($page, $page_size);
+            $employees = $this->_biotime_list_rows($response);
+            foreach ($employees as $emp) {
+                if (!is_object($emp) || !isset($emp->id)) {
+                    continue;
+                }
+                $stats['scanned']++;
+                if ($this->_biotime_employee_has_biometrics($emp)) {
+                    $stats['preserved']++;
+                    continue;
+                }
+                $code = isset($emp->emp_code) ? trim((string) $emp->emp_code) : '';
+                $row = [
+                    'id' => (int) $emp->id,
+                    'emp_code' => $code,
+                    'first_name' => isset($emp->first_name) ? (string) $emp->first_name : '',
+                    'last_name' => isset($emp->last_name) ? (string) $emp->last_name : '',
+                ];
+                if ($this->_biotime_is_alphanumeric_emp_code($code)) {
+                    $alphaCandidates[] = $row;
+                } else {
+                    $otherCandidates[] = $row;
+                }
+            }
+            if ((count($alphaCandidates) + count($otherCandidates)) >= ($max_deletes * 2)) {
+                // Enough candidates collected for this run
+                break;
+            }
+        }
+
+        $toDelete = array_merge($alphaCandidates, $otherCandidates);
+        $toDelete = array_slice($toDelete, 0, $max_deletes);
+
+        foreach ($toDelete as $row) {
+            $ok = $this->delete_biotime_employee($row['id'], $row['emp_code']);
+            if ($ok) {
+                $stats['deleted']++;
+                if ($this->_biotime_is_alphanumeric_emp_code($row['emp_code'])) {
+                    $stats['alphanumeric_deleted']++;
+                }
+            } else {
+                $stats['failed']++;
+            }
+        }
+
+        $status = ($stats['failed'] === 0) ? 'successful' : (($stats['deleted'] > 0) ? 'partial' : 'failed');
+        if ($stats['deleted'] === 0 && $stats['failed'] === 0) {
+            $status = 'successful';
+        }
+        $this->cronjob_register(8, 'bioitimejobs/cleanup_biotime_employees', $status);
+        $this->log(['cleanup_biotime_employees' => $stats, 'status' => $status]);
+
+        return $stats;
+    }
+
     // get all biotime deployments (BioTime 9.x employees list)
     public function fetch_biotime_employees($page = 1, $page_size = null)
     {

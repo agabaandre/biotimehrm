@@ -413,7 +413,11 @@ class Biotimejobs_mdl extends CI_Model
         }
 
         if (!empty($overrides['emp_code'])) {
-            return trim((string) $overrides['emp_code']);
+            $overrideCode = trim((string) $overrides['emp_code']);
+            // Allow override only when numeric person-style, or when updating an existing BioTime employee
+            if ($this->is_numeric_emp_code($overrideCode) || !empty($s->biotime_emp_id)) {
+                return $overrideCode;
+            }
         }
 
         // Updates / transfers: keep the emp_code already stored in BioTime enrollment
@@ -428,7 +432,12 @@ class Biotimejobs_mdl extends CI_Model
             $pid = (string) $s->ihris_pid;
         }
 
-        return $this->ihris_person_id_only($pid);
+        $person = $this->ihris_person_id_only($pid);
+        // New enrollment emp_code must be digits-only person id (never card alphanumeric)
+        if ($person !== '' && $this->is_numeric_emp_code($person)) {
+            return $person;
+        }
+        return '';
     }
 
     /**

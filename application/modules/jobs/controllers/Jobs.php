@@ -143,7 +143,8 @@ class Jobs extends MX_Controller {
          * ============================================================ */
 
         if (!$education && ((int) $minute % 5 === 0)) {
-            echo "\nRunning BioTime enrollment + transfers (no lock)...\n";
+            echo "\nRunning BioTime cleanup + enrollment + transfers (no lock)...\n";
+            // multiple_new_users runs cleanup_biotime_employees first (delete API)
             $this->run('biotimejobs multiple_new_users');
             $this->run('biotimejobs transfer_employees');
         }

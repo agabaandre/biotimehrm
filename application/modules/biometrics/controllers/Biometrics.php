@@ -304,8 +304,20 @@ class Biometrics extends MX_Controller{
 
         $label = $card !== '' ? $card : $ihris_pid;
         try {
+            // Free slots / remove no-bio junk before force create
+            Modules::run('biotimejobs/cleanup_biotime_employees', 50);
             $response = Modules::run('biotimejobs/create_new_biotimeuser_from_ihris', $staff);
-            $ok = ($response !== false && $response !== null && $response !== '');
+            if ($response === 'skipped') {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Already enrolled (or invalid emp_code skipped) for ' . $label,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                ]);
+                exit;
+            }
+            $ok = is_object($response) && (
+                isset($response->id) || isset($response->emp_code)
+            );
 
             if (!$ok) {
                 echo json_encode([
@@ -314,9 +326,10 @@ class Biometrics extends MX_Controller{
                     'timestamp' => date('Y-m-d H:i:s'),
                 ]);
             } else {
+                $emp = isset($response->emp_code) ? $response->emp_code : '';
                 echo json_encode([
                     'status' => 'success',
-                    'message' => 'Enrollment submitted for ' . $label,
+                    'message' => 'Enrollment submitted for ' . $label . ($emp !== '' ? ' (emp_code ' . $emp . ')' : ''),
                     'timestamp' => date('Y-m-d H:i:s'),
                 ]);
             }

@@ -287,6 +287,54 @@ class HttpUtils
         return $decodedResponse;
     }
 
+    /**
+     * DELETE request to BioTime API.
+     * Employee delete returns empty body on success — include http_code in result object.
+     *
+     * @param string $endpoint
+     * @param array  $headers
+     * @return object|string
+     * @see https://attendance.health.go.ug/docs/api-docs/employee_api.html#delete
+     */
+    public function curldeleteHttp($endpoint, $headers)
+    {
+        $url = BIO_URL . $endpoint;
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 120);
+        $result = curl_exec($ch);
+        $curl_errno = curl_errno($ch);
+        $curl_error = curl_error($ch);
+        $info = curl_getinfo($ch);
+        $http_code = isset($info['http_code']) ? (int) $info['http_code'] : 0;
+        if ($curl_errno > 0) {
+            curl_close($ch);
+            return "CURL Error ($curl_errno): $curl_error\n";
+        }
+        curl_close($ch);
+
+        if ($result === '' || $result === null || $result === false) {
+            return (object) [
+                'http_code' => $http_code,
+                'deleted' => ($http_code >= 200 && $http_code < 300),
+            ];
+        }
+        $decoded = json_decode($result);
+        if (is_object($decoded)) {
+            $decoded->http_code = $http_code;
+            return $decoded;
+        }
+        return (object) [
+            'http_code' => $http_code,
+            'raw' => $result,
+            'deleted' => ($http_code >= 200 && $http_code < 300),
+        ];
+    }
+
     public function curlgetHttp($endpoint, $headers, $body=FALSE)
     {
         $url = BIO_URL . $endpoint;
