@@ -267,7 +267,13 @@ public function count_needs_update()
 public function sql_person_emp_code($alias = '')
 {
     $p = ($alias !== '' && $alias !== null) ? preg_replace('/[^a-zA-Z0-9_]/', '', $alias) . '.' : '';
-    return "CASE WHEN {$p}ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX({$p}ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX({$p}ihris_pid, 'person|', -1)) END";
+    // Bare numeric ihris_pid, person|123, or UCMB-person|123 → 4253123
+    return "CASE
+        WHEN {$p}ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX({$p}ihris_pid, 'person|', -1)))
+        WHEN {$p}ihris_pid LIKE '%person|%' THEN TRIM(SUBSTRING_INDEX({$p}ihris_pid, 'person|', -1))
+        WHEN TRIM({$p}ihris_pid) REGEXP '^[0-9]+$' THEN TRIM({$p}ihris_pid)
+        ELSE TRIM(SUBSTRING_INDEX({$p}ihris_pid, 'person|', -1))
+    END";
 }
 
 /**
@@ -453,27 +459,44 @@ public function get_enrolled_datatable()
 }
 
 /**
- * FROM/WHERE for unenrolled: facility staff who still need BioTime enrollment.
- * Uses NOT EXISTS against emp_code (unique index) instead of OR/CASE joins.
+ * FROM/WHERE for unenrolled (New Users): facility staff who still need a BioTime
+ * person-id enrollment and are not already device-enrolled.
+ *
+ * Excludes only:
+ *   - missing/non-numeric person emp_code (cannot create)
+ *   - biotime_enrollment under that person emp_code (already created)
+ *   - fingerprints with a device at this facility (already on Enrolled list)
+ *
+ * Does NOT hide staff solely because a legacy card/ipps emp_code exists in
+ * biotime_enrollment (those are cleaned/migrated separately). That was hiding
+ * hundreds of Employees − Enrolled from New Users.
  */
 protected function _unenrolled_from_sql($facility)
 {
     $esc = $this->db->escape_str($facility);
     $person = $this->sql_person_emp_code('i');
+    $active = '';
+    if ($this->db->field_exists('is_active_employee', 'ihrisdata')) {
+        $active = ' AND COALESCE(i.is_active_employee, 1) = 1';
+    }
     return "FROM ihrisdata i
          WHERE i.facility_id = '$esc'
            AND ({$person}) <> ''
-           AND NOT EXISTS (
-                SELECT 1 FROM biotime_enrollment be
-                WHERE be.emp_code = i.card_number
-           )
-           AND NOT EXISTS (
-                SELECT 1 FROM biotime_enrollment be
-                WHERE NULLIF(i.ipps, '') IS NOT NULL AND be.emp_code = i.ipps
-           )
+           AND ({$person}) REGEXP '^[0-9]+$'
+           {$active}
            AND NOT EXISTS (
                 SELECT 1 FROM biotime_enrollment be
                 WHERE be.emp_code = ({$person})
+           )
+           AND NOT EXISTS (
+                SELECT 1 FROM fingerprints f
+                WHERE f.facilityId = '$esc'
+                  AND f.device IS NOT NULL AND TRIM(f.device) <> ''
+                  AND (
+                        (NULLIF(i.card_number, '') IS NOT NULL AND f.card_number = i.card_number)
+                     OR f.card_number = ({$person})
+                     OR (NULLIF(i.ipps, '') IS NOT NULL AND f.card_number = i.ipps)
+                  )
            )";
 }
 

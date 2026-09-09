@@ -1485,18 +1485,32 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $cleanup = $this->cleanup_biotime_employees();
         $this->log(['pre_enrollment_cleanup' => $cleanup]);
 
-        // New enrollments always use iHRIS person id as emp_code.
-        // "Already enrolled" = row in biotime_enrollment (person id, card, or ipps).
+        // New enrollments use iHRIS person id. Discover anyone without that person emp_code
+        // in biotime_enrollment and without a device fingerprint (Enrolled list).
+        // Do not hide candidates solely due to legacy card/ipps biotime_enrollment rows.
         $person = $this->biotimejobs_mdl->sql_person_emp_code('i');
+        $activeSql = '';
+        if ($this->db->field_exists('is_active_employee', 'ihrisdata')) {
+            $activeSql = ' AND COALESCE(i.is_active_employee, 1) = 1';
+        }
         $query = $this->db->query(
             "SELECT i.*
              FROM ihrisdata i
              WHERE i.facility_id IN (SELECT area_code FROM biotime_devices)
                AND ({$person}) <> ''
                AND ({$person}) REGEXP '^[0-9]+$'
-               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = i.card_number)
-               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(i.ipps, '') IS NOT NULL AND be.emp_code = i.ipps)
-               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))"
+               {$activeSql}
+               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))
+               AND NOT EXISTS (
+                    SELECT 1 FROM fingerprints f
+                    WHERE f.facilityId = i.facility_id
+                      AND f.device IS NOT NULL AND TRIM(f.device) <> ''
+                      AND (
+                            (NULLIF(i.card_number, '') IS NOT NULL AND f.card_number = i.card_number)
+                         OR f.card_number = ({$person})
+                         OR (NULLIF(i.ipps, '') IS NOT NULL AND f.card_number = i.ipps)
+                      )
+               )"
         );
         $newusers = $query ? $query->result() : [];
         $ok = 0;
@@ -2211,19 +2225,204 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         return $summary;
     }
 
+    /**
+     * Production bootstrap / healthcheck for BioTime enrollment + resign fixes.
+     *
+     * Runs migrations (resign column), dry resign checks, discovery counts, optional cleanup.
+     *
+     * Usage on production:
+     *   php index.php biotimejobs/production_bootstrap
+     *   php index.php biotimejobs/production_bootstrap facility|123
+     *   php index.php biotimejobs/production_bootstrap facility|123 cleanup
+     *   php index.php biotimejobs/production_bootstrap all cleanup
+     */
+    public function production_bootstrap($facility = '', $do_cleanup = '')
+    {
+        ignore_user_abort(true);
+        @ini_set('max_execution_time', '0');
+
+        $report = [
+            'started_at' => date('Y-m-d H:i:s'),
+            'steps' => [],
+            'ok' => true,
+        ];
+        $step = function ($name, $data, $ok = true) use (&$report) {
+            $report['steps'][] = ['name' => $name, 'ok' => (bool) $ok, 'data' => $data];
+            if (!$ok) {
+                $report['ok'] = false;
+            }
+            echo "\n=== {$name} ===\n";
+            if (is_string($data)) {
+                echo $data . "\n";
+            } else {
+                echo json_encode($data, JSON_PRETTY_PRINT) . "\n";
+            }
+        };
+
+        // 1) Migration: biotime_resign_id
+        $this->_ensure_enrollment_resign_column();
+        $hasResignCol = $this->db->field_exists('biotime_resign_id', 'biotime_enrollment');
+        $step('migration_biotime_resign_id', [
+            'column_exists' => $hasResignCol,
+            'sql_file' => 'application/migrations/20260909_add_biotime_resign_id.sql',
+        ], $hasResignCol);
+
+        // 2) Resign/reinstate dry self-test
+        ob_start();
+        $resignTest = $this->test_resign_reinstate_flow('dry');
+        ob_end_clean();
+        $step('resign_reinstate_dry_test', $resignTest, empty($resignTest['fail']));
+
+        // 3) Token probe (non-fatal on local)
+        $token = $this->get_token();
+        $step('biotime_token', [
+            'available' => !empty($token),
+            'note' => empty($token) ? 'JWT failed — check biotime credentials / network to attendance.health.go.ug' : 'ok',
+        ], true);
+
+        // 4) Discovery counts for facility (or all device facilities)
+        $person = $this->biotimejobs_mdl->sql_person_emp_code('i');
+        $facilities = [];
+        if ($facility !== '' && strtolower($facility) !== 'all') {
+            $facilities[] = urldecode($facility);
+        } else {
+            $fq = $this->db->query('SELECT DISTINCT area_code AS fac FROM biotime_devices WHERE area_code IS NOT NULL AND TRIM(area_code) <> \'\'');
+            if ($fq) {
+                foreach ($fq->result() as $r) {
+                    $facilities[] = $r->fac;
+                }
+            }
+        }
+
+        $totals = [
+            'facilities' => 0,
+            'employees_active' => 0,
+            'enrolled_fingerprints' => 0,
+            'new_users_discoverable' => 0,
+            'person_in_biotime_enrollment' => 0,
+            'legacy_card_ipps_only' => 0,
+            'no_person_emp_code' => 0,
+        ];
+        $perFac = [];
+        $activeSql = $this->db->field_exists('is_active_employee', 'ihrisdata')
+            ? ' AND COALESCE(i.is_active_employee, 1) = 1'
+            : '';
+
+        foreach ($facilities as $fac) {
+            $esc = $this->db->escape_str($fac);
+            $employees = (int) $this->db->query(
+                "SELECT COUNT(DISTINCT i.ihris_pid) AS c FROM ihrisdata i WHERE i.facility_id = '$esc' {$activeSql}"
+            )->row()->c;
+            $enrolled = (int) $this->db->query(
+                "SELECT COUNT(*) AS c FROM fingerprints f
+                 INNER JOIN ihrisdata i ON i.card_number = f.card_number
+                 WHERE f.facilityId = '$esc' AND f.device IS NOT NULL AND TRIM(f.device) <> ''"
+            )->row()->c;
+            $newUsers = (int) $this->db->query(
+                "SELECT COUNT(*) AS c FROM ihrisdata i
+                 WHERE i.facility_id = '$esc'
+                   AND ({$person}) <> '' AND ({$person}) REGEXP '^[0-9]+$'
+                   {$activeSql}
+                   AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))
+                   AND NOT EXISTS (
+                        SELECT 1 FROM fingerprints f
+                        WHERE f.facilityId = '$esc'
+                          AND f.device IS NOT NULL AND TRIM(f.device) <> ''
+                          AND (
+                                (NULLIF(i.card_number, '') IS NOT NULL AND f.card_number = i.card_number)
+                             OR f.card_number = ({$person})
+                             OR (NULLIF(i.ipps, '') IS NOT NULL AND f.card_number = i.ipps)
+                          )
+                   )"
+            )->row()->c;
+            $personEnrolled = (int) $this->db->query(
+                "SELECT COUNT(*) AS c FROM ihrisdata i
+                 WHERE i.facility_id = '$esc' {$activeSql}
+                   AND EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))"
+            )->row()->c;
+            $legacyOnly = (int) $this->db->query(
+                "SELECT COUNT(*) AS c FROM ihrisdata i
+                 WHERE i.facility_id = '$esc' {$activeSql}
+                   AND ({$person}) <> '' AND ({$person}) REGEXP '^[0-9]+$'
+                   AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))
+                   AND (
+                        EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(i.card_number,'') IS NOT NULL AND be.emp_code = i.card_number)
+                     OR EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(i.ipps,'') IS NOT NULL AND be.emp_code = i.ipps)
+                   )"
+            )->row()->c;
+            $noPerson = (int) $this->db->query(
+                "SELECT COUNT(*) AS c FROM ihrisdata i
+                 WHERE i.facility_id = '$esc' {$activeSql}
+                   AND (({$person}) = '' OR ({$person}) NOT REGEXP '^[0-9]+$')"
+            )->row()->c;
+
+            $row = compact('employees', 'enrolled', 'newUsers', 'personEnrolled', 'legacyOnly', 'noPerson');
+            $row['gap_employees_minus_enrolled_minus_new'] = $employees - $enrolled - $newUsers;
+            $perFac[$fac] = $row;
+            $totals['facilities']++;
+            $totals['employees_active'] += $employees;
+            $totals['enrolled_fingerprints'] += $enrolled;
+            $totals['new_users_discoverable'] += $newUsers;
+            $totals['person_in_biotime_enrollment'] += $personEnrolled;
+            $totals['legacy_card_ipps_only'] += $legacyOnly;
+            $totals['no_person_emp_code'] += $noPerson;
+        }
+        $step('discovery_counts', ['totals' => $totals, 'per_facility' => $perFac], true);
+
+        // 5) Optional cleanup
+        $wantCleanup = in_array(strtolower((string) $do_cleanup), ['cleanup', '1', 'yes', 'true'], true)
+            || strtolower((string) $facility) === 'cleanup';
+        if ($wantCleanup) {
+            if (!empty($token)) {
+                $cleanup = $this->cleanup_biotime_employees(200);
+                $step('cleanup_biotime_employees', $cleanup, true);
+            } else {
+                $step('cleanup_biotime_employees', 'skipped — no BioTime token', false);
+            }
+        } else {
+            $step('cleanup_biotime_employees', 'skipped (pass cleanup as 2nd arg to run)', true);
+        }
+
+        $report['finished_at'] = date('Y-m-d H:i:s');
+        $this->log(['production_bootstrap' => $report]);
+        echo "\n=== SUMMARY ===\n";
+        echo json_encode([
+            'ok' => $report['ok'],
+            'started_at' => $report['started_at'],
+            'finished_at' => $report['finished_at'],
+            'totals' => $totals,
+            'hint' => 'New Users now = active staff with numeric person emp_code, no person-id in biotime_enrollment, no fingerprint device. Legacy card/ipps no longer hide them.',
+        ], JSON_PRETTY_PRINT) . "\n";
+        return $report;
+    }
+
     //enroll new users (Front End Action that requires login);
     public function get_new_users($facility)
     {
         $facility = $this->db->escape_str($facility);
         $person = $this->biotimejobs_mdl->sql_person_emp_code('ihrisdata');
+        $activeSql = '';
+        if ($this->db->field_exists('is_active_employee', 'ihrisdata')) {
+            $activeSql = ' AND COALESCE(ihrisdata.is_active_employee, 1) = 1';
+        }
         $query = $this->db->query(
             "SELECT ihrisdata.*
              FROM ihrisdata
              WHERE ihrisdata.facility_id='$facility'
                AND ({$person}) <> ''
-               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ihrisdata.card_number)
-               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(ihrisdata.ipps, '') IS NOT NULL AND be.emp_code = ihrisdata.ipps)
-               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))"
+               AND ({$person}) REGEXP '^[0-9]+$'
+               {$activeSql}
+               AND NOT EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))
+               AND NOT EXISTS (
+                    SELECT 1 FROM fingerprints f
+                    WHERE f.facilityId = '$facility'
+                      AND f.device IS NOT NULL AND TRIM(f.device) <> ''
+                      AND (
+                            (NULLIF(ihrisdata.card_number, '') IS NOT NULL AND f.card_number = ihrisdata.card_number)
+                         OR f.card_number = ({$person})
+                         OR (NULLIF(ihrisdata.ipps, '') IS NOT NULL AND f.card_number = ihrisdata.ipps)
+                      )
+               )"
         );
         return $query ? $query->result() : [];
     }

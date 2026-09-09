@@ -451,7 +451,7 @@ class Biotimejobs_mdl extends CI_Model
         if ($a === '') {
             $a = 'i';
         }
-        return "CASE WHEN {$a}.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX({$a}.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX({$a}.ihris_pid, 'person|', -1)) END";
+        return "CASE WHEN {$a}.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX({$a}.ihris_pid, 'person|', -1))) WHEN {$a}.ihris_pid LIKE '%person|%' THEN TRIM(SUBSTRING_INDEX({$a}.ihris_pid, 'person|', -1)) WHEN TRIM({$a}.ihris_pid) REGEXP '^[0-9]+$' THEN TRIM({$a}.ihris_pid) ELSE TRIM(SUBSTRING_INDEX({$a}.ihris_pid, 'person|', -1)) END";
     }
 
     /**
