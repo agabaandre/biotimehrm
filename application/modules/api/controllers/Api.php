@@ -599,6 +599,195 @@ class Api extends REST_Controller
         }
     }
 
+    /**
+     * POST /api/outoftstation_clockin
+     *
+     * Clone of clock_user_post for MoH Performance Management System (OOS clocks).
+     * Does not change clock_user_post. Always persists source=performance_system.
+     *
+     * Accepts the same body as clock_user_post, plus PMS aliases:
+     * - employee_number → ihris_pid
+     * - clock_type (in|out) → clock_status
+     * - clock_time (ISO8601) → used for date/time_in or time_out when present
+     * - facility_id optional; resolved from ihrisdata when missing
+     */
+    public function outoftstation_clockin_post()
+    {
+        try {
+            // JWT required (same as other authenticated Attend APIs). Leaves clock_user_post ungated.
+            // REST_Controller::response() does not exit, so stop when auth fails.
+            $decoded = $this->validateRequest();
+            if (empty($decoded)) {
+                return;
+            }
+
+            $input = $this->post();
+            if (empty($input) || !is_array($input)) {
+                $raw = json_decode(file_get_contents('php://input'), true);
+                if (is_array($raw)) {
+                    $input = $raw;
+                }
+            }
+
+            $userRecord = array();
+
+            date_default_timezone_set('Africa/Kampala');
+
+            // PMS may send employee_number; mobile app sends ihris_pid.
+            $ihrisPid = isset($input['ihris_pid']) ? trim((string) $input['ihris_pid']) : '';
+            if ($ihrisPid === '' && !empty($input['employee_number'])) {
+                $ihrisPid = trim((string) $input['employee_number']);
+            }
+            if ($ihrisPid === '') {
+                $this->response([
+                    'status' => false,
+                    'message' => 'ihris_pid (or employee_number) is required',
+                ], 400);
+                return;
+            }
+
+            $facilityId = isset($input['facility_id']) ? trim((string) $input['facility_id']) : '';
+            if ($facilityId === '') {
+                $row = $this->db->query(
+                    "SELECT facility_id FROM ihrisdata WHERE ihris_pid = ? LIMIT 1",
+                    [$ihrisPid]
+                )->row();
+                if ($row && !empty($row->facility_id)) {
+                    $facilityId = $row->facility_id;
+                }
+            }
+            if ($facilityId === '') {
+                $this->response([
+                    'status' => false,
+                    'message' => 'facility_id is required and could not be resolved from ihrisdata',
+                ], 400);
+                return;
+            }
+
+            // Prefer explicit clock time from PMS when provided.
+            $clockMoment = null;
+            if (!empty($input['clock_time'])) {
+                try {
+                    $clockMoment = new DateTime((string) $input['clock_time']);
+                    $clockMoment->setTimezone(new DateTimeZone('Africa/Kampala'));
+                } catch (Exception $ignore) {
+                    $clockMoment = null;
+                }
+            }
+            if ($clockMoment === null) {
+                $clockMoment = new DateTime('now', new DateTimeZone('Africa/Kampala'));
+            }
+            $currentDate = $clockMoment->format('Y-m-d');
+            $currentTime = $clockMoment->format('Y-m-d H:i:s');
+
+            $userRecord['ihris_pid'] = $ihrisPid;
+            $userRecord['facility_id'] = $facilityId;
+            $userRecord['source'] = 'performance_system';
+            $userRecord['latitude'] = isset($input['latitude']) ? $input['latitude'] : null;
+            $userRecord['longitude'] = isset($input['longitude']) ? $input['longitude'] : null;
+            $userRecord['date'] = $currentDate;
+
+            // Map clock_status or PMS clock_type.
+            $clockStatus = '';
+            if (isset($input['clock_status'])) {
+                $clockStatus = strtoupper(trim((string) $input['clock_status']));
+            } elseif (isset($input['clock_type'])) {
+                $clockStatus = strtoupper(trim((string) $input['clock_type']));
+            }
+
+            if ($clockStatus == "IN" || $clockStatus == "CLOCK_IN" || $clockStatus == "CLOCKED_IN" || $clockStatus == "CLOCKIN") {
+                $userRecord['entry_id'] = !empty($input['entry_id'])
+                    ? (string) $input['entry_id']
+                    : (time() . '|' . $ihrisPid);
+                $userRecord['time_in'] = $currentTime;
+                $userRecord['time_out'] = null;
+                $userRecord['status'] = "CLOCKED_IN";
+            } elseif ($clockStatus == "OUT" || $clockStatus == "CLOCK_OUT" || $clockStatus == "CLOCKED_OUT" || $clockStatus == "CLOCKOUT") {
+                $userRecord['entry_id'] = !empty($input['entry_id'])
+                    ? (string) $input['entry_id']
+                    : (time() . '|' . $ihrisPid);
+                $userRecord['time_out'] = $currentTime;
+                $userRecord['time_in'] = null;
+                $userRecord['status'] = "CLOCKED_OUT";
+            } else {
+                $this->response([
+                    'status' => false,
+                    'message' => 'Invalid clock status/type. Expected "IN" or "OUT"',
+                ], 400);
+                return;
+            }
+
+            $currentHour = (int) $clockMoment->format('H');
+            if ($currentHour >= 6 && $currentHour < 14) {
+                $userRecord["shift"] = "Morning";
+            } elseif ($currentHour >= 14 && $currentHour < 22) {
+                $userRecord["shift"] = "Afternoon";
+            } else {
+                $userRecord["shift"] = "Night";
+            }
+
+            $facilityName = $this->mEmployee->get_facility_name($userRecord["facility_id"]);
+            if (empty($facilityName) && !empty($input['location_label'])) {
+                $facilityName = (string) $input['location_label'];
+            }
+            $userRecord["location"] = $facilityName;
+            $userRecord["facility"] = $facilityName;
+
+            $result = $this->mEmployee->clock($userRecord);
+
+            if ($result['status']) {
+                if (isset($result['is_update']) && $result['is_update']) {
+                    $this->response([
+                        'status' => true,
+                        'message' => 'OOS clock-out successful - updated existing record',
+                        'data' => $userRecord
+                    ], 200);
+                } elseif (isset($result['is_new_after_complete']) && $result['is_new_after_complete']) {
+                    $this->response([
+                        'status' => true,
+                        'message' => 'OOS clock recorded after previous complete cycle',
+                        'data' => $userRecord
+                    ], 200);
+                } elseif (isset($result['is_duplicate']) && $result['is_duplicate']) {
+                    $this->response([
+                        'status' => true,
+                        'message' => 'User is already clocked in',
+                        'data' => $userRecord
+                    ], 200);
+                } elseif (isset($result['warning'])) {
+                    $this->response([
+                        'status' => true,
+                        'message' => 'OOS clock-out recorded, but no matching clock-in was found',
+                        'warning' => $result['warning'],
+                        'data' => $userRecord
+                    ], 200);
+                } else {
+                    $this->response([
+                        'status' => true,
+                        'message' => 'OOS clock-in successful',
+                        'data' => $userRecord
+                    ], 200);
+                }
+            } else {
+                $this->response([
+                    'status' => false,
+                    'message' => 'Failed to process OOS attendance record',
+                    'error' => $result['error'] ?? 'Unknown error',
+                    'data' => $userRecord,
+                ], 500);
+            }
+        } catch (Exception $e) {
+            $this->response([
+                'status' => false,
+                'message' => 'An unexpected error occurred',
+                'error' => [
+                    'code' => $e->getCode(),
+                    'message' => $e->getMessage()
+                ]
+            ], 500);
+        }
+    }
+
     // Upload Device Resources
     public function upload_fingerprint_post()
     {
