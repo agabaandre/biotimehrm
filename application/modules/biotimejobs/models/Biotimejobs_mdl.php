@@ -493,6 +493,24 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
+     * Faster numeric equivalence for JOINs (DECIMAL cast, avoids slow TRIM on huge scans).
+     * Safe for card/IPPS lengths up to 20 digits.
+     */
+    public function sql_codes_equal_fast($leftExpr, $rightExpr)
+    {
+        $l = trim((string) $leftExpr);
+        $r = trim((string) $rightExpr);
+        return "("
+            . "{$l} = {$r}"
+            . " OR ("
+            . "{$l} REGEXP '^[0-9]+$' AND {$r} REGEXP '^[0-9]+$'"
+            . " AND CAST({$l} AS DECIMAL(20,0)) = CAST({$r} AS DECIMAL(20,0))"
+            . " AND CAST({$l} AS DECIMAL(20,0)) > 0"
+            . ")"
+            . ")";
+    }
+
+    /**
      * True when value is digits-only (BioTime-safe numeric card / emp_code).
      */
     public function is_numeric_emp_code($code)
@@ -604,10 +622,12 @@ class Biotimejobs_mdl extends CI_Model
         if ($i === '') {
             $i = 'i';
         }
-        $cardEq = $this->sql_codes_equal("TRIM({$i}.card_number)", "TRIM({$be}.emp_code)");
-        $ippsEq = $this->sql_codes_equal("TRIM({$i}.ipps)", "TRIM({$be}.emp_code)");
+        $cardEq = $this->sql_codes_equal_fast("TRIM({$i}.card_number)", "TRIM({$be}.emp_code)");
+        $ippsEq = $this->sql_codes_equal_fast("TRIM({$i}.ipps)", "TRIM({$be}.emp_code)");
         return "("
-            . "(NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$cardEq})"
+            . "{$i}.card_number = {$be}.emp_code"
+            . " OR {$i}.ipps = {$be}.emp_code"
+            . " OR (NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$cardEq})"
             . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$ippsEq})"
             . " OR {$i}.ihris_pid = CONCAT('person|', {$be}.emp_code)"
             . " OR ({$be}.emp_code LIKE '4253%' AND CHAR_LENGTH({$be}.emp_code) > 4"

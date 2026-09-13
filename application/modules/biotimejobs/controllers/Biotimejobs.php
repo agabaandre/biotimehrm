@@ -2424,12 +2424,17 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             }
         }
 
-        // Lock emp_code to whatever BioTime already has (card/ipps/person) so PUT does not rename/collide
-        $liveEmp = $this->fetch_biotime_employee_by_id($empId);
-        if ($liveEmp && !empty($liveEmp->emp_code)) {
-            $overrides['emp_code'] = trim((string) $liveEmp->emp_code);
+        // Prefer emp_code from transfer/enrollment row; only hit BioTime API when missing
+        if ($emp_code !== '') {
+            $overrides['emp_code'] = $emp_code;
             $overrides['allow_legacy_emp_code'] = true;
-            $emp_code = $overrides['emp_code'];
+        } else {
+            $liveEmp = $this->fetch_biotime_employee_by_id($empId);
+            if ($liveEmp && !empty($liveEmp->emp_code)) {
+                $overrides['emp_code'] = trim((string) $liveEmp->emp_code);
+                $overrides['allow_legacy_emp_code'] = true;
+                $emp_code = $overrides['emp_code'];
+            }
         }
 
         $overrides['area_id'] = (int) $mappedArea;
@@ -4724,114 +4729,187 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      */
     public function transfer_employees()
     {
-        // First reinstate anyone resigned whose facility now has a BioTime area
-        $reinstated = $this->reinstate_ready_employees();
+        ignore_user_abort(true);
+        @ini_set('max_execution_time', '0');
+        @ini_set('memory_limit', '512M');
+        $cli = is_cli();
 
-        $on = $this->biotimejobs_mdl->sql_enrollment_to_ihris_on('be', 'i');
-        $hasLastUpdate = $this->db->field_exists('last_update', 'biotime_enrollment');
-        $lastUpdateSelect = $hasLastUpdate ? 'be.last_update AS enrollment_last_update' : 'NULL AS enrollment_last_update';
-        $select = "SELECT i.*,
-                    i.facility_id AS new_facility,
-                    i.facility AS new_fname,
-                    be.id AS enrollment_row_id,
-                    be.emp_code,
-                    be.biotime_emp_id,
-                    be.biotime_facility_id AS biotime_area_id,
-                    be.biotime_fac_id,
-                    {$lastUpdateSelect}
-             FROM biotime_enrollment be
-             INNER JOIN ihrisdata i ON {$on}";
+        try {
+            // First reinstate anyone resigned whose facility now has a BioTime area
+            $reinstated = $this->reinstate_ready_employees();
 
-        $query = $this->db->query(
-            "{$select}
-             WHERE i.facility_id <> be.biotime_fac_id
-               AND be.biotime_emp_id IS NOT NULL
-               AND TRIM(be.biotime_emp_id) <> ''"
-        );
-        $transfers = $query ? $query->result() : [];
-        $ok = 0;
-        $fail = 0;
-        $seenEmp = [];
+            $on = $this->biotimejobs_mdl->sql_enrollment_to_ihris_on('be', 'i');
+            $hasLastUpdate = $this->db->field_exists('last_update', 'biotime_enrollment');
+            $lastUpdateSelect = $hasLastUpdate ? 'be.last_update AS enrollment_last_update' : 'NULL AS enrollment_last_update';
+            $select = "SELECT i.*,
+                        i.facility_id AS new_facility,
+                        i.facility AS new_fname,
+                        be.id AS enrollment_row_id,
+                        be.emp_code,
+                        be.biotime_emp_id,
+                        be.biotime_facility_id AS biotime_area_id,
+                        be.biotime_fac_id,
+                        {$lastUpdateSelect}
+                 FROM biotime_enrollment be
+                 INNER JOIN ihrisdata i ON {$on}";
 
-        foreach ($transfers as $newuser) {
-            $eid = (string) ($newuser->biotime_emp_id ?? '');
-            if ($eid !== '') {
-                $seenEmp[$eid] = true;
+            $query = $this->db->query(
+                "{$select}
+                 WHERE i.facility_id <> be.biotime_fac_id
+                   AND be.biotime_emp_id IS NOT NULL
+                   AND TRIM(be.biotime_emp_id) <> ''"
+            );
+            if ($query === false) {
+                $err = $this->db->error();
+                log_message('error', 'transfer_employees facility query failed: ' . json_encode($err));
+                if ($cli) {
+                    echo "transfer_employees ERROR (facility query): " . json_encode($err) . "\n";
+                }
+                $this->cronjob_register(5, 'bioitimejobs/tranfer_employees', 'failed');
+                echo 'failed';
+                return 'failed';
             }
-            $message = $this->update_biotimeuser($newuser);
-            if ($message) {
-                $ok++;
-            } else {
-                $fail++;
+            $transfers = $query->result();
+            $ok = 0;
+            $fail = 0;
+            $seenEmp = [];
+
+            if ($cli) {
+                echo "transfer_employees: facility mismatches=" . count($transfers) . "\n";
             }
+
+            foreach ($transfers as $idx => $newuser) {
+                $eid = isset($newuser->biotime_emp_id) ? (string) $newuser->biotime_emp_id : '';
+                if ($eid !== '') {
+                    $seenEmp[$eid] = true;
+                }
+                try {
+                    $message = $this->update_biotimeuser($newuser);
+                    if ($message) {
+                        $ok++;
+                    } else {
+                        $fail++;
+                    }
+                } catch (Throwable $e) {
+                    $fail++;
+                    log_message('error', 'transfer_employees update failed emp=' . $eid . ' ' . $e->getMessage());
+                }
+                if ($cli && (($idx + 1) % 25 === 0)) {
+                    echo "transfer_employees: facility progress " . ($idx + 1) . "/" . count($transfers)
+                        . " ok={$ok} fail={$fail}\n";
+                    $this->_cleanup_flush_output();
+                }
+            }
+
+            // Profile / name / job refresh — only reference columns that exist
+            $profileLimit = 400;
+            $orderBy = $hasLastUpdate
+                ? 'ORDER BY (be.last_update IS NULL) DESC, be.last_update ASC, be.id ASC'
+                : 'ORDER BY be.id ASC';
+            $nameParts = [];
+            foreach (['firstname', 'surname', 'othername'] as $col) {
+                if ($this->db->field_exists($col, 'ihrisdata')) {
+                    $nameParts[] = "TRIM(COALESCE(i.{$col}, '')) <> ''";
+                }
+            }
+            foreach (['job', 'job_id', 'department', 'department_id'] as $col) {
+                if ($this->db->field_exists($col, 'ihrisdata')) {
+                    $nameParts[] = "TRIM(COALESCE(i.{$col}, '')) <> ''";
+                }
+            }
+            if (empty($nameParts)) {
+                $nameParts[] = '1=1';
+            }
+            $profileWhere = implode("\n                 OR ", $nameParts);
+            $profileQuery = $this->db->query(
+                "{$select}
+                 WHERE be.biotime_emp_id IS NOT NULL
+                   AND TRIM(be.biotime_emp_id) <> ''
+                   AND (
+                        {$profileWhere}
+                   )
+                 {$orderBy}
+                 LIMIT " . (int) $profileLimit
+            );
+            if ($profileQuery === false) {
+                $err = $this->db->error();
+                log_message('error', 'transfer_employees profile query failed: ' . json_encode($err));
+                if ($cli) {
+                    echo "transfer_employees ERROR (profile query): " . json_encode($err) . "\n";
+                }
+                $profileQuery = null;
+            }
+            $profiles = $profileQuery ? $profileQuery->result() : [];
+            $profileOk = 0;
+            $profileFail = 0;
+            $profileCandidates = 0;
+
+            if ($cli) {
+                echo "transfer_employees: profile candidates=" . count($profiles) . "\n";
+            }
+
+            foreach ($profiles as $idx => $row) {
+                $eid = isset($row->biotime_emp_id) ? (string) $row->biotime_emp_id : '';
+                if ($eid !== '' && isset($seenEmp[$eid])) {
+                    continue;
+                }
+                if ($eid !== '') {
+                    $seenEmp[$eid] = true;
+                }
+                $profileCandidates++;
+                $row->allow_legacy_emp_code = 1;
+                try {
+                    $message = $this->update_biotimeuser($row);
+                    if ($message) {
+                        $profileOk++;
+                        $ok++;
+                    } else {
+                        $profileFail++;
+                        $fail++;
+                    }
+                } catch (Throwable $e) {
+                    $profileFail++;
+                    $fail++;
+                    log_message('error', 'transfer_employees profile failed emp=' . $eid . ' ' . $e->getMessage());
+                }
+                if ($cli && ($profileCandidates % 25 === 0)) {
+                    echo "transfer_employees: profile progress {$profileCandidates}"
+                        . " ok={$profileOk} fail={$profileFail}\n";
+                    $this->_cleanup_flush_output();
+                }
+            }
+
+            $process = 5;
+            $method = 'bioitimejobs/tranfer_employees';
+            $totalCandidates = count($transfers) + $profileCandidates;
+            $status = ($ok > 0 && $fail === 0) ? 'successful' : (($ok > 0) ? 'partial' : ($totalCandidates === 0 ? 'successful' : 'failed'));
+            $this->cronjob_register($process, $method, $status);
+            $payload = [
+                'transfer_employees' => $status,
+                'updated' => $ok,
+                'failed' => $fail,
+                'facility_mismatch_candidates' => count($transfers),
+                'profile_refresh_candidates' => $profileCandidates,
+                'profile_refresh_ok' => $profileOk,
+                'profile_refresh_failed' => $profileFail,
+                'reinstate_ready' => $reinstated,
+            ];
+            $this->log($payload);
+            if ($cli) {
+                echo "transfer_employees: done " . json_encode($payload) . "\n";
+            }
+
+            echo $status;
+            return $status;
+        } catch (Throwable $e) {
+            log_message('error', 'transfer_employees fatal: ' . $e->getMessage());
+            if ($cli) {
+                echo "transfer_employees FATAL: " . $e->getMessage() . "\n";
+            }
+            $this->cronjob_register(5, 'bioitimejobs/tranfer_employees', 'failed');
+            echo 'failed';
+            return 'failed';
         }
-
-        // Profile / name / job refresh for ALL enrolled people matched to iHRIS (not only same-facility).
-        // Prior facility-match-only + LIMIT 100 left most blank-name BioTime rows untouched.
-        $profileLimit = 400;
-        $orderBy = $hasLastUpdate
-            ? 'ORDER BY (be.last_update IS NULL) DESC, be.last_update ASC, be.id ASC'
-            : 'ORDER BY be.id ASC';
-        $profileQuery = $this->db->query(
-            "{$select}
-             WHERE be.biotime_emp_id IS NOT NULL
-               AND TRIM(be.biotime_emp_id) <> ''
-               AND (
-                    TRIM(COALESCE(i.firstname, '')) <> ''
-                 OR TRIM(COALESCE(i.surname, '')) <> ''
-                 OR TRIM(COALESCE(i.othername, '')) <> ''
-                 OR TRIM(COALESCE(i.job, '')) <> ''
-                 OR TRIM(COALESCE(i.job_id, '')) <> ''
-                 OR TRIM(COALESCE(i.department, '')) <> ''
-                 OR TRIM(COALESCE(i.department_id, '')) <> ''
-               )
-             {$orderBy}
-             LIMIT " . (int) $profileLimit
-        );
-        $profiles = $profileQuery ? $profileQuery->result() : [];
-        $profileOk = 0;
-        $profileFail = 0;
-        $profileCandidates = 0;
-
-        foreach ($profiles as $row) {
-            $eid = (string) ($row->biotime_emp_id ?? '');
-            if ($eid !== '' && isset($seenEmp[$eid])) {
-                continue;
-            }
-            if ($eid !== '') {
-                $seenEmp[$eid] = true;
-            }
-            $profileCandidates++;
-            // Keep BioTime emp_code (card/ipps); still push iHRIS names/jobs
-            $row->allow_legacy_emp_code = 1;
-            $message = $this->update_biotimeuser($row);
-            if ($message) {
-                $profileOk++;
-                $ok++;
-            } else {
-                $profileFail++;
-                $fail++;
-            }
-        }
-
-        $process = 5;
-        $method = 'bioitimejobs/tranfer_employees';
-        $totalCandidates = count($transfers) + $profileCandidates;
-        $status = ($ok > 0 && $fail === 0) ? 'successful' : (($ok > 0) ? 'partial' : ($totalCandidates === 0 ? 'successful' : 'failed'));
-        $this->cronjob_register($process, $method, $status);
-        $this->log([
-            'transfer_employees' => $status,
-            'updated' => $ok,
-            'failed' => $fail,
-            'facility_mismatch_candidates' => count($transfers),
-            'profile_refresh_candidates' => $profileCandidates,
-            'profile_refresh_ok' => $profileOk,
-            'profile_refresh_failed' => $profileFail,
-            'reinstate_ready' => $reinstated,
-        ]);
-
-        echo $status;
-        return $status;
     }
 
     /**
