@@ -156,6 +156,7 @@ class Biotimejobs extends MX_Controller
 
     /**
      * Local fingerprints cache shows this emp_code is device-/template-enrolled.
+     * Matches card with or without leading zeros.
      */
     protected function _local_emp_has_fingerprints($emp_code)
     {
@@ -163,17 +164,41 @@ class Biotimejobs extends MX_Controller
         if ($code === '' || !$this->db->table_exists('fingerprints')) {
             return false;
         }
+        $variants = $this->biotimejobs_mdl->emp_code_variants($code);
+        if (empty($variants)) {
+            return false;
+        }
+        $placeholders = implode(',', array_fill(0, count($variants), '?'));
         $q = $this->db->query(
             "SELECT 1 AS ok FROM fingerprints
-             WHERE card_number = ?
+             WHERE card_number IN ({$placeholders})
                AND (
                     (device IS NOT NULL AND TRIM(device) <> '' AND TRIM(device) <> '-')
                  OR (fingerprint IS NOT NULL AND TRIM(fingerprint) <> '' AND TRIM(fingerprint) <> '-')
                )
              LIMIT 1",
-            [$code]
+            $variants
         );
-        return $q && $q->num_rows() > 0;
+        if ($q && $q->num_rows() > 0) {
+            return true;
+        }
+        // Also match via zero-stripped comparison when variants miss a stored form
+        if (ctype_digit($code)) {
+            $norm = $this->biotimejobs_mdl->strip_leading_zeros($code);
+            $q2 = $this->db->query(
+                "SELECT 1 AS ok FROM fingerprints
+                 WHERE card_number REGEXP '^[0-9]+$'
+                   AND TRIM(LEADING '0' FROM card_number) = ?
+                   AND (
+                        (device IS NOT NULL AND TRIM(device) <> '' AND TRIM(device) <> '-')
+                     OR (fingerprint IS NOT NULL AND TRIM(fingerprint) <> '' AND TRIM(fingerprint) <> '-')
+                   )
+                 LIMIT 1",
+                [$norm]
+            );
+            return $q2 && $q2->num_rows() > 0;
+        }
+        return false;
     }
 
     /**
@@ -199,6 +224,7 @@ class Biotimejobs extends MX_Controller
 
     /**
      * Candidate BioTime emp_codes that may already represent this iHRIS staff (person, card, ipps).
+     * Includes leading-zero variants — BioTime often stores 3874135 while iHRIS has 003874135.
      *
      * @param object $staff
      * @return string[]
@@ -211,13 +237,14 @@ class Biotimejobs extends MX_Controller
         }
         $person = $this->biotimejobs_mdl->resolve_biotime_emp_code($staff, []);
         if ($person !== '') {
-            $codes[] = $person;
+            foreach ($this->biotimejobs_mdl->emp_code_variants($person) as $v) {
+                $codes[] = $v;
+            }
         }
         foreach (['card_number', 'ipps', 'emp_code'] as $k) {
             if (!empty($staff->$k)) {
-                $c = trim((string) $staff->$k);
-                if ($c !== '') {
-                    $codes[] = $c;
+                foreach ($this->biotimejobs_mdl->emp_code_variants(trim((string) $staff->$k)) as $v) {
+                    $codes[] = $v;
                 }
             }
         }
@@ -238,26 +265,35 @@ class Biotimejobs extends MX_Controller
             return null;
         }
         $found = [];
+        $seenIds = [];
         foreach ($codes as $code) {
             $live = $this->fetch_biotime_employee_by_emp_code($code);
             if ($live && isset($live->id)) {
-                $found[] = $live;
+                $id = (int) $live->id;
+                if ($id > 0 && !isset($seenIds[$id])) {
+                    $seenIds[$id] = true;
+                    $found[] = $live;
+                }
             }
         }
         if (empty($found)) {
             return null;
         }
         $person = $this->biotimejobs_mdl->resolve_biotime_emp_code($staff, []);
-        usort($found, function ($a, $b) use ($person) {
+        $personNorm = $person !== '' ? $this->biotimejobs_mdl->strip_leading_zeros($person) : '';
+        $self = $this;
+        usort($found, function ($a, $b) use ($person, $personNorm, $self) {
             $aCode = isset($a->emp_code) ? trim((string) $a->emp_code) : '';
             $bCode = isset($b->emp_code) ? trim((string) $b->emp_code) : '';
-            $aPerson = ($person !== '' && $aCode === $person) ? 1 : 0;
-            $bPerson = ($person !== '' && $bCode === $person) ? 1 : 0;
+            $aNorm = $self->biotimejobs_mdl->strip_leading_zeros($aCode);
+            $bNorm = $self->biotimejobs_mdl->strip_leading_zeros($bCode);
+            $aPerson = ($person !== '' && ($aCode === $person || ($personNorm !== '' && $aNorm === $personNorm))) ? 1 : 0;
+            $bPerson = ($person !== '' && ($bCode === $person || ($personNorm !== '' && $bNorm === $personNorm))) ? 1 : 0;
             if ($aPerson !== $bPerson) {
                 return $bPerson - $aPerson;
             }
-            $aBio = $this->_biotime_employee_has_biometrics($a) ? 1 : 0;
-            $bBio = $this->_biotime_employee_has_biometrics($b) ? 1 : 0;
+            $aBio = $self->_biotime_employee_has_biometrics($a) ? 1 : 0;
+            $bBio = $self->_biotime_employee_has_biometrics($b) ? 1 : 0;
             return $bBio - $aBio;
         });
         return $found[0];
@@ -266,6 +302,7 @@ class Biotimejobs extends MX_Controller
     /**
      * Persist enrollment under person emp_code and legacy card/ipps codes (same biotime_emp_id).
      * Stops discovery from creating a second BioTime employee for the same person.
+     * Card aliases include zero-stripped forms (003874135 ↔ 3874135).
      */
     protected function _mirror_enrollment_aliases($staff, $biotimeEmpId, $areaId, $facilityCode, $primaryEmpCode)
     {
@@ -274,12 +311,26 @@ class Biotimejobs extends MX_Controller
             return;
         }
         $primaryEmpCode = trim((string) $primaryEmpCode);
+        $aliases = [];
         if ($primaryEmpCode !== '') {
-            $this->_save_enrollment_row($primaryEmpCode, $biotimeEmpId, $areaId, $facilityCode, null);
+            $aliases[] = $primaryEmpCode;
         }
         $person = $this->biotimejobs_mdl->resolve_biotime_emp_code($staff, []);
-        if ($person !== '' && $person !== $primaryEmpCode && $this->_biotime_is_person_emp_code($person)) {
-            $this->_save_enrollment_row($person, $biotimeEmpId, $areaId, $facilityCode, null);
+        if ($person !== '' && $this->_biotime_is_person_emp_code($person)) {
+            $aliases[] = $person;
+        }
+        foreach (['card_number', 'ipps'] as $k) {
+            if (!empty($staff->$k)) {
+                foreach ($this->biotimejobs_mdl->emp_code_variants(trim((string) $staff->$k)) as $v) {
+                    $aliases[] = $v;
+                }
+            }
+        }
+        foreach (array_unique($aliases) as $alias) {
+            if ($alias === '') {
+                continue;
+            }
+            $this->_save_enrollment_row($alias, $biotimeEmpId, $areaId, $facilityCode, null);
         }
     }
 
@@ -1763,10 +1814,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             . "(f.device IS NOT NULL AND TRIM(f.device) <> '' AND TRIM(f.device) <> '-')"
             . " OR (f.fingerprint IS NOT NULL AND TRIM(f.fingerprint) <> '' AND TRIM(f.fingerprint) <> '-')"
             . ")";
+        $cardEqBe = $this->biotimejobs_mdl->sql_codes_equal('be.emp_code', 'TRIM(i.card_number)');
+        $ippsEqBe = $this->biotimejobs_mdl->sql_codes_equal('be.emp_code', 'TRIM(i.ipps)');
+        $cardEqFp = $this->biotimejobs_mdl->sql_codes_equal('f.card_number', 'TRIM(i.card_number)');
+        $ippsEqFp = $this->biotimejobs_mdl->sql_codes_equal('f.card_number', 'TRIM(i.ipps)');
         $enrolledAlready = "("
             . "EXISTS (SELECT 1 FROM biotime_enrollment be WHERE be.emp_code = ({$person}))"
-            . " OR EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(i.card_number,'') IS NOT NULL AND be.emp_code = i.card_number)"
-            . " OR EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(i.ipps,'') IS NOT NULL AND be.emp_code = i.ipps)"
+            . " OR EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(TRIM(i.card_number),'') IS NOT NULL AND {$cardEqBe})"
+            . " OR EXISTS (SELECT 1 FROM biotime_enrollment be WHERE NULLIF(TRIM(i.ipps),'') IS NOT NULL AND {$ippsEqBe})"
             . ")";
         $query = $this->db->query(
             "SELECT i.*
@@ -1781,9 +1836,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     WHERE f.facilityId = i.facility_id
                       AND {$fpPred}
                       AND (
-                            (NULLIF(i.card_number, '') IS NOT NULL AND f.card_number = i.card_number)
+                            (NULLIF(TRIM(i.card_number), '') IS NOT NULL AND {$cardEqFp})
                          OR f.card_number = ({$person})
-                         OR (NULLIF(i.ipps, '') IS NOT NULL AND f.card_number = i.ipps)
+                         OR (NULLIF(TRIM(i.ipps), '') IS NOT NULL AND {$ippsEqFp})
                       )
                )"
         );
@@ -1911,8 +1966,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             }
         }
 
-        // Department: map when possible, else default 1 (per BioTime docs / product default)
+        // Department: map or create from iHRIS; else default 1 (BioTime UI shows "Department")
         $dep_key = '';
+        $dep_name = '';
         foreach (['department_id', 'department'] as $k) {
             if (!empty($overrides[$k])) {
                 $dep_key = trim((string) $overrides[$k]);
@@ -1923,13 +1979,21 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 break;
             }
         }
-        $bdep = ($dep_key !== '') ? $this->getbiodeps(urldecode($dep_key)) : null;
+        if (!empty($s->department) && trim((string) $s->department) !== '') {
+            $dep_name = trim((string) $s->department);
+        } elseif ($dep_key !== '' && strpos($dep_key, 'department|') !== 0 && !ctype_digit($dep_key)) {
+            $dep_name = $dep_key;
+        }
+        $bdep = ($dep_key !== '')
+            ? $this->ensure_biotime_department(urldecode($dep_key), $dep_name !== '' ? $dep_name : urldecode($dep_key))
+            : null;
         if (empty($bdep)) {
             $bdep = 1;
         }
 
-        // Job / position — include only when mapped
+        // Job / position — map or create so BioTime is not stuck on default "Position"
         $job_key = '';
+        $job_name = '';
         foreach (['job_id', 'job', 'position'] as $k) {
             if (!empty($overrides[$k])) {
                 $job_key = trim((string) $overrides[$k]);
@@ -1940,7 +2004,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 break;
             }
         }
-        $bpos = ($job_key !== '') ? $this->getbiojobs(urldecode($job_key)) : null;
+        if (!empty($s->job) && trim((string) $s->job) !== '') {
+            $job_name = trim((string) $s->job);
+        } elseif ($job_key !== '' && strpos($job_key, 'job|') !== 0 && !ctype_digit($job_key)) {
+            $job_name = $job_key;
+        }
+        $bpos = ($job_key !== '')
+            ? $this->ensure_biotime_position(urldecode($job_key), $job_name !== '' ? $job_name : urldecode($job_key))
+            : null;
 
         $firstname = '';
         if (!empty($overrides['firstname'])) {
@@ -2039,8 +2110,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $body['ssn'] = trim((string) $s->nin);
         }
 
-        // Default hire_date to today when creating (API allows omit; useful for audit)
-        if (empty($body['hire_date'])) {
+        // Only set hire_date on creates — overwriting on every transfer blanks audit and can fail PUT
+        $isUpdate = !empty($s->biotime_emp_id) || !empty($overrides['allow_legacy_emp_code']);
+        if (!$isUpdate && empty($body['hire_date'])) {
             $body['hire_date'] = date('Y-m-d');
         }
 
@@ -2345,11 +2417,26 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             }
         }
 
+        // Lock emp_code to whatever BioTime already has (card/ipps/person) so PUT does not rename/collide
+        $liveEmp = $this->fetch_biotime_employee_by_id($empId);
+        if ($liveEmp && !empty($liveEmp->emp_code)) {
+            $overrides['emp_code'] = trim((string) $liveEmp->emp_code);
+            $overrides['allow_legacy_emp_code'] = true;
+            $emp_code = $overrides['emp_code'];
+        }
+
         $overrides['area_id'] = (int) $mappedArea;
         $built = $this->_build_biotime_employee_payload($userdata, $overrides);
         if (empty($built['ok'])) {
             log_message('error', 'update_biotimeuser: ' . (isset($built['error']) ? $built['error'] : 'payload failed'));
             return false;
+        }
+        if (empty($built['body']['first_name']) && empty($built['body']['last_name'])) {
+            log_message(
+                'error',
+                'update_biotimeuser: iHRIS names empty for biotime_emp_id=' . $empId
+                . ' emp_code=' . (isset($built['emp_code']) ? $built['emp_code'] : '')
+            );
         }
 
         $token = $this->get_token();
@@ -2774,17 +2861,18 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             return 'skipped';
         }
 
-        // Already enrolled locally under person emp_code
-        $local = $this->db->get_where('biotime_enrollment', ['emp_code' => $emp_code], 1)->row();
-        if ($local && !empty($local->biotime_emp_id)) {
-            // Still refresh names if BioTime row looks incomplete
-            $staff->biotime_emp_id = (string) $local->biotime_emp_id;
-            $staff->emp_code = !empty($local->emp_code) ? (string) $local->emp_code : $emp_code;
-            if (empty($staff->new_facility) && !empty($staff->facility_id)) {
-                $staff->new_facility = $staff->facility_id;
+        // Already enrolled locally under person / card / ipps (incl. zero-stripped card forms)
+        foreach ($this->_staff_possible_biotime_emp_codes($staff) as $aliasCode) {
+            $local = $this->db->get_where('biotime_enrollment', ['emp_code' => $aliasCode], 1)->row();
+            if ($local && !empty($local->biotime_emp_id)) {
+                $staff->biotime_emp_id = (string) $local->biotime_emp_id;
+                $staff->emp_code = !empty($local->emp_code) ? (string) $local->emp_code : $emp_code;
+                if (empty($staff->new_facility) && !empty($staff->facility_id)) {
+                    $staff->new_facility = $staff->facility_id;
+                }
+                $this->update_biotimeuser($staff);
+                return 'skipped';
             }
-            $this->update_biotimeuser($staff);
-            return 'skipped';
         }
 
         // Already exists in BioTime under person / card / ipps — do NOT create a second ID
@@ -2878,26 +2966,48 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
     public function getbiojobs($job)
     {
-        $job = $this->db->escape_str((string) $job);
-        $query = $this->db->query("SELECT id from biotime_jobs where position_code='$job' LIMIT 1");
-        if (!$query || $query->num_rows() < 1) {
+        $job = trim((string) $job);
+        if ($job === '') {
             return null;
         }
-        return $query->row()->id;
+        $esc = $this->db->escape_str($job);
+        $query = $this->db->query(
+            "SELECT id FROM biotime_jobs
+             WHERE position_code = '$esc' OR position_name = '$esc'
+             LIMIT 1"
+        );
+        if ($query && $query->num_rows() > 0) {
+            return (int) $query->row()->id;
+        }
+        return null;
     }
     public function getbiodeps($dep_id)
     {
-        $dep_id = $this->db->escape_str((string) $dep_id);
+        $dep_id = trim((string) $dep_id);
+        if ($dep_id === '') {
+            return null;
+        }
+        $esc = $this->db->escape_str($dep_id);
         // Prefer BioTime department id when column exists; API create/update expects numeric id
         if ($this->db->field_exists('biotime_dept_id', 'biotime_departments')) {
-            $query = $this->db->query("SELECT biotime_dept_id AS id from biotime_departments where dept_code='$dep_id' LIMIT 1");
-        } else {
-            $query = $this->db->query("SELECT id from biotime_departments where dept_code='$dep_id' LIMIT 1");
+            $query = $this->db->query(
+                "SELECT biotime_dept_id AS id FROM biotime_departments
+                 WHERE dept_code = '$esc' OR dept_name = '$esc'
+                 LIMIT 1"
+            );
+            if ($query && $query->num_rows() > 0 && !empty($query->row()->id)) {
+                return (int) $query->row()->id;
+            }
         }
+        $query = $this->db->query(
+            "SELECT id FROM biotime_departments
+             WHERE dept_code = '$esc' OR dept_name = '$esc'
+             LIMIT 1"
+        );
         if (!$query || $query->num_rows() < 1) {
             return null;
         }
-        return $query->row()->id;
+        return (int) $query->row()->id;
     }
     public function getbioloc($facility)
     {
@@ -3236,6 +3346,158 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
+     * Resolve or create a BioTime position from iHRIS job_id / job title.
+     *
+     * @param string $position_code
+     * @param string $position_name
+     * @return int|null
+     * @see https://attendance.health.go.ug/docs/api-docs/position_api.html#create
+     */
+    public function ensure_biotime_position($position_code, $position_name = '')
+    {
+        $position_code = trim((string) $position_code);
+        $position_name = trim((string) $position_name);
+        if ($position_code === '' && $position_name === '') {
+            return null;
+        }
+        if ($position_code === '') {
+            $position_code = $position_name;
+        }
+        if ($position_name === '') {
+            $position_name = $position_code;
+        }
+        // Cap codes for BioTime safety
+        if (strlen($position_code) > 80) {
+            $position_code = substr($position_code, 0, 80);
+        }
+
+        $existing = $this->getbiojobs($position_code);
+        if (!empty($existing)) {
+            return (int) $existing;
+        }
+        if ($position_name !== $position_code) {
+            $byName = $this->getbiojobs($position_name);
+            if (!empty($byName)) {
+                return (int) $byName;
+            }
+        }
+
+        $token = $this->get_token();
+        if (empty($token)) {
+            return null;
+        }
+        $body = [
+            'position_code' => $position_code,
+            'position_name' => $position_name,
+            'parent_position' => null,
+        ];
+        $json = json_encode($body);
+        $http = new HttpUtils();
+        $response = $http->curlsendHttpPost(
+            'personnel/api/positions/',
+            $this->_biotime_json_headers($token, $json),
+            $body
+        );
+        $this->log(['ensure_biotime_position' => $response, 'request' => $body]);
+        if (!$this->_biotime_response_ok($response) || empty($response->id)) {
+            // Retry lookup in case of race / already exists
+            $again = $this->getbiojobs($position_code);
+            return !empty($again) ? (int) $again : null;
+        }
+        $id = (int) $response->id;
+        if ($this->db->table_exists('biotime_jobs')) {
+            $row = [
+                'id' => $id,
+                'position_code' => isset($response->position_code) ? (string) $response->position_code : $position_code,
+                'position_name' => isset($response->position_name) ? (string) $response->position_name : $position_name,
+            ];
+            $exists = $this->db->get_where('biotime_jobs', ['id' => $id], 1)->row();
+            if ($exists) {
+                $this->db->where('id', $id)->update('biotime_jobs', $row);
+            } else {
+                $this->db->insert('biotime_jobs', $row);
+            }
+        }
+        return $id;
+    }
+
+    /**
+     * Resolve or create a BioTime department from iHRIS department_id / name.
+     *
+     * @param string $dept_code
+     * @param string $dept_name
+     * @return int|null
+     * @see https://attendance.health.go.ug/docs/api-docs/department_api.html#create
+     */
+    public function ensure_biotime_department($dept_code, $dept_name = '')
+    {
+        $dept_code = trim((string) $dept_code);
+        $dept_name = trim((string) $dept_name);
+        if ($dept_code === '' && $dept_name === '') {
+            return null;
+        }
+        if ($dept_code === '') {
+            $dept_code = $dept_name;
+        }
+        if ($dept_name === '') {
+            $dept_name = $dept_code;
+        }
+        if (strlen($dept_code) > 80) {
+            $dept_code = substr($dept_code, 0, 80);
+        }
+
+        $existing = $this->getbiodeps($dept_code);
+        if (!empty($existing)) {
+            return (int) $existing;
+        }
+        if ($dept_name !== $dept_code) {
+            $byName = $this->getbiodeps($dept_name);
+            if (!empty($byName)) {
+                return (int) $byName;
+            }
+        }
+
+        $token = $this->get_token();
+        if (empty($token)) {
+            return null;
+        }
+        $body = [
+            'dept_code' => $dept_code,
+            'dept_name' => $dept_name,
+            'parent_dept' => null,
+        ];
+        $json = json_encode($body);
+        $http = new HttpUtils();
+        $response = $http->curlsendHttpPost(
+            'personnel/api/departments/',
+            $this->_biotime_json_headers($token, $json),
+            $body
+        );
+        $this->log(['ensure_biotime_department' => $response, 'request' => $body]);
+        if (!$this->_biotime_response_ok($response) || empty($response->id)) {
+            $again = $this->getbiodeps($dept_code);
+            return !empty($again) ? (int) $again : null;
+        }
+        $id = (int) $response->id;
+        if ($this->db->table_exists('biotime_departments')) {
+            $data = [
+                'dept_code' => isset($response->dept_code) ? (string) $response->dept_code : $dept_code,
+                'dept_name' => isset($response->dept_name) ? (string) $response->dept_name : $dept_name,
+            ];
+            if ($this->db->field_exists('biotime_dept_id', 'biotime_departments')) {
+                $data['biotime_dept_id'] = $id;
+            }
+            $exists = $this->db->get_where('biotime_departments', ['dept_code' => $data['dept_code']], 1)->row();
+            if ($exists) {
+                $this->db->where('dept_code', $data['dept_code'])->update('biotime_departments', $data);
+            } else {
+                $this->db->insert('biotime_departments', $data);
+            }
+        }
+        return $id;
+    }
+
+    /**
      * BioTime area id for "Not Authorized" (area_code 1, else numeric id 1).
      * Kept for rare explicit overrides only — enrollment must not use this as facility fallback.
      */
@@ -3434,6 +3696,35 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
+     * Look up a single BioTime employee by numeric id.
+     *
+     * @param int $biotime_emp_id
+     * @return object|null
+     */
+    public function fetch_biotime_employee_by_id($biotime_emp_id)
+    {
+        $id = (int) $biotime_emp_id;
+        if ($id < 1) {
+            return null;
+        }
+        $token = $this->get_token();
+        if (empty($token)) {
+            return null;
+        }
+        $http = new HttpUtils();
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => 'JWT ' . $token,
+        ];
+        $resp = $http->curlgetHttp('personnel/api/employees/' . $id . '/', $headers, []);
+        if (is_object($resp) && isset($resp->id)) {
+            return $resp;
+        }
+        return null;
+    }
+
+    /**
      * Look up a single BioTime employee by exact emp_code.
      *
      * @param string $emp_code
@@ -3463,8 +3754,18 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $endpoint = 'personnel/api/employees/?' . http_build_query($query);
         $resp = $http->curlgetHttp($endpoint, $headers, []);
         $rows = $this->_biotime_list_rows($resp);
+        $wantNorm = $this->biotimejobs_mdl->strip_leading_zeros($emp_code);
         foreach ($rows as $row) {
-            if (is_object($row) && isset($row->emp_code) && (string) $row->emp_code === $emp_code) {
+            if (!is_object($row) || !isset($row->emp_code)) {
+                continue;
+            }
+            $got = (string) $row->emp_code;
+            if ($got === $emp_code) {
+                return $row;
+            }
+            // BioTime may have dropped leading zeros (003874135 vs 3874135)
+            if (ctype_digit($emp_code) && ctype_digit($got)
+                && $this->biotimejobs_mdl->strip_leading_zeros($got) === $wantNorm) {
                 return $row;
             }
         }
@@ -3576,9 +3877,11 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      *   1) alphanumeric emp_codes (card-style)
      *   2) numeric emp_codes that are NOT a current iHRIS person id (orphans)
      *   3) duplicate BioTime rows for the same iHRIS person — keep best
-     *      (prefer person-id emp_code + biometrics), delete other no-bio copies
+     *      (prefer biometrics; then person+bio; if person has no bio but card/ipps
+     *      enrollment exists, keep card/ipps and delete the empty person-id copy).
+     *      Card matches ignore leading zeros (003874135 ↔ 3874135).
      *
-     * Does NOT delete no-bio person ids that still exist in ihrisdata (awaiting device enroll).
+     * Does NOT delete a sole no-bio person id with no card/ipps sibling (awaiting device enroll).
      * Does NOT delete any row that still has biometrics (fingerprints preserved).
      *
      * @param int $max_deletes safety cap per run (default 300)
@@ -3621,12 +3924,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         if ($pq) {
             foreach ($pq->result() as $r) {
                 if (!empty($r->emp)) {
-                    $activePersonCodes[(string) $r->emp] = true;
+                    foreach ($this->biotimejobs_mdl->emp_code_variants((string) $r->emp) as $v) {
+                        $activePersonCodes[$v] = true;
+                    }
                 }
             }
         }
 
-        // Map emp_code → ihris_pid for duplicate grouping
+        // Map emp_code → ihris_pid for duplicate grouping (incl. zero-stripped card forms)
         $empToIhris = [];
         $mq = $this->db->query(
             "SELECT i.ihris_pid, i.card_number, i.ipps, ({$person}) AS person_emp
@@ -3637,13 +3942,19 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             foreach ($mq->result() as $r) {
                 $pid = (string) $r->ihris_pid;
                 if (!empty($r->person_emp)) {
-                    $empToIhris[(string) $r->person_emp] = $pid;
+                    foreach ($this->biotimejobs_mdl->emp_code_variants((string) $r->person_emp) as $v) {
+                        $empToIhris[$v] = $pid;
+                    }
                 }
                 if (!empty($r->card_number)) {
-                    $empToIhris[trim((string) $r->card_number)] = $pid;
+                    foreach ($this->biotimejobs_mdl->emp_code_variants(trim((string) $r->card_number)) as $v) {
+                        $empToIhris[$v] = $pid;
+                    }
                 }
                 if (!empty($r->ipps)) {
-                    $empToIhris[trim((string) $r->ipps)] = $pid;
+                    foreach ($this->biotimejobs_mdl->emp_code_variants(trim((string) $r->ipps)) as $v) {
+                        $empToIhris[$v] = $pid;
+                    }
                 }
             }
         }
@@ -3709,18 +4020,39 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             if (count($rows) < 2) {
                 continue;
             }
-            // Score: person+bio > bio > person > numeric > alpha
-            usort($rows, function ($a, $b) {
-                $score = function ($r) {
+            // Score keeper:
+            //   biometrics first (never delete FP rows)
+            //   person+bio next (canonical)
+            //   if person has NO bio but card/ipps enrollment exists → prefer card/ipps,
+            //     delete the empty person-id duplicate (Leticia-style case)
+            //   sole person no-bio (no card sibling) is kept for device enroll
+            $hasLegacy = false;
+            foreach ($rows as $r) {
+                if (empty($r['is_person'])) {
+                    $hasLegacy = true;
+                    break;
+                }
+            }
+            usort($rows, function ($a, $b) use ($hasLegacy) {
+                $score = function ($r) use ($hasLegacy) {
                     $s = 0;
                     if (!empty($r['has_bio'])) {
                         $s += 100;
                     }
                     if (!empty($r['is_person'])) {
-                        $s += 40;
+                        if (!empty($r['has_bio'])) {
+                            $s += 50; // person + fingerprint wins
+                        } elseif ($hasLegacy) {
+                            $s += 0; // empty person-id loses to existing card/ipps
+                        } else {
+                            $s += 40; // only enrollment — keep awaiting fingerprints
+                        }
+                    } else {
+                        // card_number / ipps legacy enrollment
+                        $s += 25;
                     }
                     if (empty($r['is_alpha']) && !empty($r['emp_code']) && ctype_digit($r['emp_code'])) {
-                        $s += 10;
+                        $s += 5;
                     }
                     return $s;
                 };
@@ -3736,23 +4068,31 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 }
                 $dupNoBio[$loser['id']] = $loser;
             }
-            // Mirror person emp_code enrollment onto keeper so discovery/update use one id
+            // Mirror person + card/ipps aliases onto keeper so discovery/update use one BioTime id
             if (!empty($keeper['id']) && !empty($keeper['emp_code'])) {
                 $personCode = null;
+                $aliasCodes = [$keeper['emp_code']];
                 foreach ($empToIhris as $ecode => $pid) {
-                    if ($pid === $ihrisPid && ctype_digit((string) $ecode) && !empty($activePersonCodes[$ecode])) {
+                    if ($pid !== $ihrisPid) {
+                        continue;
+                    }
+                    $aliasCodes[] = (string) $ecode;
+                    if (ctype_digit((string) $ecode) && !empty($activePersonCodes[$ecode])) {
                         $personCode = (string) $ecode;
-                        break;
                     }
                 }
-                if ($personCode !== null) {
-                    $enr = $this->db->get_where('biotime_enrollment', ['biotime_emp_id' => (string) $keeper['id']], 1)->row();
-                    $areaId = ($enr && !empty($enr->biotime_facility_id)) ? (int) $enr->biotime_facility_id : 0;
-                    $fac = ($enr && !empty($enr->biotime_fac_id)) ? (string) $enr->biotime_fac_id : '';
-                    $this->_save_enrollment_row($keeper['emp_code'], (int) $keeper['id'], $areaId, $fac, null);
-                    if ($personCode !== $keeper['emp_code']) {
-                        $this->_save_enrollment_row($personCode, (int) $keeper['id'], $areaId, $fac, null);
+                $enr = $this->db->get_where('biotime_enrollment', ['biotime_emp_id' => (string) $keeper['id']], 1)->row();
+                $areaId = ($enr && !empty($enr->biotime_facility_id)) ? (int) $enr->biotime_facility_id : 0;
+                $fac = ($enr && !empty($enr->biotime_fac_id)) ? (string) $enr->biotime_fac_id : '';
+                foreach (array_unique($aliasCodes) as $alias) {
+                    if ($alias === '') {
+                        continue;
                     }
+                    $this->_save_enrollment_row($alias, (int) $keeper['id'], $areaId, $fac, null);
+                }
+                // Prefer canonical person emp_code enrollment when we know it
+                if ($personCode !== null && $personCode !== $keeper['emp_code']) {
+                    $this->_save_enrollment_row($personCode, (int) $keeper['id'], $areaId, $fac, null);
                 }
             }
         }
@@ -4120,8 +4460,8 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     /**
      * Sync facility/job/name changes for enrolled users (iHRIS vs biotime_enrollment).
      * 1) Facility mismatches (Needs Update)
-     * 2) Profile refresh: push iHRIS first/last name (+ dept/job) for enrollments that still match
-     *    facility — fixes BioTime rows created without names.
+     * 2) Profile refresh: push iHRIS first/last name + dept/job for up to 400 enrollments
+     *    per run (any facility) — fixes blank BioTime names and default Department/Position.
      */
     public function transfer_employees()
     {
@@ -4167,21 +4507,24 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             }
         }
 
-        // Profile / name refresh for enrollments already on the correct facility.
-        // Oldest last_update first so blank-name BioTime rows get fixed over successive runs.
-        $profileLimit = 100;
+        // Profile / name / job refresh for ALL enrolled people matched to iHRIS (not only same-facility).
+        // Prior facility-match-only + LIMIT 100 left most blank-name BioTime rows untouched.
+        $profileLimit = 400;
         $orderBy = $hasLastUpdate
             ? 'ORDER BY (be.last_update IS NULL) DESC, be.last_update ASC, be.id ASC'
             : 'ORDER BY be.id ASC';
         $profileQuery = $this->db->query(
             "{$select}
-             WHERE i.facility_id = be.biotime_fac_id
-               AND be.biotime_emp_id IS NOT NULL
+             WHERE be.biotime_emp_id IS NOT NULL
                AND TRIM(be.biotime_emp_id) <> ''
                AND (
                     TRIM(COALESCE(i.firstname, '')) <> ''
                  OR TRIM(COALESCE(i.surname, '')) <> ''
                  OR TRIM(COALESCE(i.othername, '')) <> ''
+                 OR TRIM(COALESCE(i.job, '')) <> ''
+                 OR TRIM(COALESCE(i.job_id, '')) <> ''
+                 OR TRIM(COALESCE(i.department, '')) <> ''
+                 OR TRIM(COALESCE(i.department_id, '')) <> ''
                )
              {$orderBy}
              LIMIT " . (int) $profileLimit
@@ -4196,7 +4539,12 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             if ($eid !== '' && isset($seenEmp[$eid])) {
                 continue;
             }
+            if ($eid !== '') {
+                $seenEmp[$eid] = true;
+            }
             $profileCandidates++;
+            // Keep BioTime emp_code (card/ipps); still push iHRIS names/jobs
+            $row->allow_legacy_emp_code = 1;
             $message = $this->update_biotimeuser($row);
             if ($message) {
                 $profileOk++;

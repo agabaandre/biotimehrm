@@ -411,6 +411,66 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
+     * Strip leading zeros from a numeric emp/card code (BioTime often drops them).
+     * "003874135" → "3874135"; non-numeric codes returned trimmed unchanged.
+     */
+    public function strip_leading_zeros($code)
+    {
+        $code = trim((string) $code);
+        if ($code === '' || !ctype_digit($code)) {
+            return $code;
+        }
+        $stripped = ltrim($code, '0');
+        return $stripped === '' ? '0' : $stripped;
+    }
+
+    /**
+     * All emp_code forms that may represent the same card/person on BioTime vs iHRIS.
+     * Includes raw, zero-stripped, and common zero-padded lengths (8–10).
+     *
+     * @param string $code
+     * @return string[]
+     */
+    public function emp_code_variants($code)
+    {
+        $code = trim((string) $code);
+        if ($code === '') {
+            return [];
+        }
+        $out = [$code];
+        if (ctype_digit($code)) {
+            $stripped = $this->strip_leading_zeros($code);
+            $out[] = $stripped;
+            foreach ([8, 9, 10] as $len) {
+                if (strlen($stripped) < $len) {
+                    $out[] = str_pad($stripped, $len, '0', STR_PAD_LEFT);
+                }
+            }
+        }
+        return array_values(array_unique(array_filter($out, function ($c) {
+            return $c !== null && trim((string) $c) !== '';
+        })));
+    }
+
+    /**
+     * SQL: two code expressions match exactly or as the same digit string ignoring leading zeros.
+     * Prevents 003874135 vs 3874135 from looking like different people.
+     */
+    public function sql_codes_equal($leftExpr, $rightExpr)
+    {
+        $l = trim((string) $leftExpr);
+        $r = trim((string) $rightExpr);
+        return "("
+            . "{$l} = {$r}"
+            . " OR ("
+            . "{$l} REGEXP '^[0-9]+$' AND {$r} REGEXP '^[0-9]+$'"
+            . " AND TRIM(LEADING '0' FROM {$l}) <> ''"
+            . " AND TRIM(LEADING '0' FROM {$l}) = TRIM(LEADING '0' FROM {$r})"
+            . ")"
+            . ")";
+    }
+
+    /**
      * True when value is digits-only (BioTime-safe numeric card / emp_code).
      */
     public function is_numeric_emp_code($code)
@@ -522,9 +582,11 @@ class Biotimejobs_mdl extends CI_Model
         if ($i === '') {
             $i = 'i';
         }
+        $cardEq = $this->sql_codes_equal("TRIM({$i}.card_number)", "TRIM({$be}.emp_code)");
+        $ippsEq = $this->sql_codes_equal("TRIM({$i}.ipps)", "TRIM({$be}.emp_code)");
         return "("
-            . "{$i}.card_number = {$be}.emp_code"
-            . " OR {$i}.ipps = {$be}.emp_code"
+            . "(NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$cardEq})"
+            . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$ippsEq})"
             . " OR {$i}.ihris_pid = CONCAT('person|', {$be}.emp_code)"
             . " OR ({$be}.emp_code LIKE '4253%' AND CHAR_LENGTH({$be}.emp_code) > 4"
             . " AND {$i}.ihris_pid = CONCAT('UCMB-person|', SUBSTRING({$be}.emp_code, 5)))"
@@ -546,10 +608,12 @@ class Biotimejobs_mdl extends CI_Model
             return $this->sql_enrollment_to_ihris_on($m[1], $i);
         }
         $person = $this->sql_person_emp_code($i);
+        $cardEq = $this->sql_codes_equal($expr, "TRIM({$i}.card_number)");
+        $ippsEq = $this->sql_codes_equal($expr, "TRIM({$i}.ipps)");
         return "("
             . "{$expr} = ({$person})"
-            . " OR (NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$expr} = TRIM({$i}.card_number))"
-            . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$expr} = TRIM({$i}.ipps))"
+            . " OR (NULLIF(TRIM({$i}.card_number), '') IS NOT NULL AND {$cardEq})"
+            . " OR (NULLIF(TRIM({$i}.ipps), '') IS NOT NULL AND {$ippsEq})"
             . ")";
     }
 
@@ -1000,19 +1064,13 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 foreach ($q->result() as $r) {
                     $pid = $r->ihris_pid;
                     if (!empty($r->card_number)) {
-                        $raw = (string) $r->card_number;
-                        $emp_to_pid[$raw] = $pid;
-                        $norm = $this->normalize_emp_code($raw);
-                        if ($norm !== '') {
-                            $emp_to_pid[$norm] = $pid;
+                        foreach ($this->emp_code_variants((string) $r->card_number) as $v) {
+                            $emp_to_pid[$v] = $pid;
                         }
                     }
                     if (!empty($r->ipps)) {
-                        $raw = (string) $r->ipps;
-                        $emp_to_pid[$raw] = $pid;
-                        $norm = $this->normalize_emp_code($raw);
-                        if ($norm !== '') {
-                            $emp_to_pid[$norm] = $pid;
+                        foreach ($this->emp_code_variants((string) $r->ipps) as $v) {
+                            $emp_to_pid[$v] = $pid;
                         }
                     }
                     // Non-numeric cards enroll as bare iHRIS person id — match punches the same way as ipps
