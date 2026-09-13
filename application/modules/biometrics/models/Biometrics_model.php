@@ -584,7 +584,7 @@ public function sql_exists_fingerprint_enrolled($facilityEscaped, $iAlias = 'i',
  *   - fingerprints enrolled at this facility (device SN, BIO-TEMPLATE, or template summary)
  *
  * Multi-device areas share facilityId (= area_code); one fingerprint row covers all terminals.
- * Legacy card/ipps biotime_enrollment rows alone do not hide candidates.
+ * Also hides candidates already mapped under card/ipps emp_code (legacy) to prevent duplicate creates.
  */
 protected function _unenrolled_from_sql($facility)
 {
@@ -603,6 +603,8 @@ protected function _unenrolled_from_sql($facility)
            AND NOT EXISTS (
                 SELECT 1 FROM biotime_enrollment be
                 WHERE be.emp_code = ({$person})
+                   OR (NULLIF(i.card_number,'') IS NOT NULL AND be.emp_code = i.card_number)
+                   OR (NULLIF(i.ipps,'') IS NOT NULL AND be.emp_code = i.ipps)
            )
            AND NOT ({$fpEnrolled})";
 }

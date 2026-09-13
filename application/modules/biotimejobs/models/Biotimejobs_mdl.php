@@ -171,8 +171,13 @@ class Biotimejobs_mdl extends CI_Model
 
     public function add_enrolled($data)
     {
-        if (!is_array($data) || count($data) < 1) {
-            return print_r($this->exect()) . " saveEnrolled() add_enrolled() Failed — empty payload";
+        if (!is_array($data)) {
+            $data = [];
+        }
+
+        // Empty payload = clear Biotime fingerprint mirror (server has no biometric employees)
+        if (count($data) < 1) {
+            return $this->clear_biotime_fingerprints();
         }
 
         // 1) Load latest BioTime snapshot into staging FIRST (old order ran cache before insert → lag)
@@ -199,6 +204,7 @@ class Biotimejobs_mdl extends CI_Model
         }
 
         // 3) Deterministic refresh of Biotime-sourced fingerprint rows (multi-device areas share area_code)
+        //    Full replace so local fingerprints == current BioTime biometric employees
         $this->db->query("DELETE FROM fingerprints WHERE source IN ('Biotime', 'biotime')");
         $this->db->query(
             "INSERT INTO fingerprints (
@@ -215,6 +221,24 @@ class Biotimejobs_mdl extends CI_Model
             . $count . " (unique=" . $stats['unique'] . ", skipped_dupes=" . $stats['skipped_dupes']
             . ", proc=" . ($procOk ? 'yes' : 'fallback') . ")";
         return $message;
+    }
+
+    /**
+     * Clear Biotime-sourced local fingerprint rows (and staging) so local matches an empty server bio set.
+     *
+     * @return string
+     */
+    public function clear_biotime_fingerprints()
+    {
+        $deleted = 0;
+        if ($this->db->table_exists('fingerprints')) {
+            $this->db->query("DELETE FROM fingerprints WHERE source IN ('Biotime', 'biotime')");
+            $deleted = (int) $this->db->affected_rows();
+        }
+        if ($this->db->table_exists('fingerprints_staging')) {
+            $this->db->query("TRUNCATE fingerprints_staging");
+        }
+        return print_r($this->exect()) . " saveEnrolled() clear_biotime_fingerprints() removed {$deleted} local Biotime fingerprint row(s)";
     }
     public function add_time_logs($data)
     {
