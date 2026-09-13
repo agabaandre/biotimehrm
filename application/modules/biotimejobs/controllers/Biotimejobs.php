@@ -2994,7 +2994,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     public function getbiodeps($dep_id)
     {
         $dep_id = trim((string) $dep_id);
-        if ($dep_id === '') {
+        if ($dep_id === '' || $dep_id === '0') {
             return null;
         }
         $esc = $this->db->escape_str($dep_id);
@@ -3002,22 +3002,26 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         if ($this->db->field_exists('biotime_dept_id', 'biotime_departments')) {
             $query = $this->db->query(
                 "SELECT biotime_dept_id AS id FROM biotime_departments
-                 WHERE dept_code = '$esc' OR dept_name = '$esc'
+                 WHERE (dept_code = '$esc' OR dept_name = '$esc')
+                   AND biotime_dept_id IS NOT NULL AND biotime_dept_id > 0
                  LIMIT 1"
             );
-            if ($query && $query->num_rows() > 0 && !empty($query->row()->id)) {
-                return (int) $query->row()->id;
+            if ($query && $query->num_rows() > 0) {
+                $id = (int) $query->row()->id;
+                return $id > 0 ? $id : null;
             }
         }
         $query = $this->db->query(
             "SELECT id FROM biotime_departments
-             WHERE dept_code = '$esc' OR dept_name = '$esc'
+             WHERE (dept_code = '$esc' OR dept_name = '$esc')
+               AND id IS NOT NULL AND id > 0
              LIMIT 1"
         );
         if (!$query || $query->num_rows() < 1) {
             return null;
         }
-        return (int) $query->row()->id;
+        $id = (int) $query->row()->id;
+        return $id > 0 ? $id : null;
     }
     public function getbioloc($facility)
     {
@@ -3438,6 +3442,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
     /**
      * Resolve or create a BioTime department from iHRIS department_id / name.
+     * Never writes primary key 0; skips duplicate-key errors so transfer can continue.
      *
      * @param string $dept_code
      * @param string $dept_name
@@ -3446,70 +3451,134 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      */
     public function ensure_biotime_department($dept_code, $dept_name = '')
     {
+        try {
+            $dept_code = trim((string) $dept_code);
+            $dept_name = trim((string) $dept_name);
+            if ($dept_code === '' || $dept_code === '0') {
+                if ($dept_name === '' || $dept_name === '0') {
+                    return null;
+                }
+                $dept_code = $dept_name;
+            }
+            if ($dept_name === '') {
+                $dept_name = $dept_code;
+            }
+            if (strlen($dept_code) > 80) {
+                $dept_code = substr($dept_code, 0, 80);
+            }
+
+            $existing = $this->getbiodeps($dept_code);
+            if (!empty($existing) && (int) $existing > 0) {
+                return (int) $existing;
+            }
+            if ($dept_name !== $dept_code) {
+                $byName = $this->getbiodeps($dept_name);
+                if (!empty($byName) && (int) $byName > 0) {
+                    return (int) $byName;
+                }
+            }
+
+            $token = $this->get_token();
+            if (empty($token)) {
+                return null;
+            }
+            $body = [
+                'dept_code' => $dept_code,
+                'dept_name' => $dept_name,
+                'parent_dept' => null,
+            ];
+            $json = json_encode($body);
+            $http = new HttpUtils();
+            $response = $http->curlsendHttpPost(
+                'personnel/api/departments/',
+                $this->_biotime_json_headers($token, $json),
+                $body
+            );
+            $this->log(['ensure_biotime_department' => $response, 'request' => $body]);
+            $id = (is_object($response) && isset($response->id)) ? (int) $response->id : 0;
+            if (!$this->_biotime_response_ok($response) || $id < 1) {
+                $again = $this->getbiodeps($dept_code);
+                return (!empty($again) && (int) $again > 0) ? (int) $again : null;
+            }
+
+            $this->_cache_biotime_department_row(
+                $id,
+                isset($response->dept_code) ? (string) $response->dept_code : $dept_code,
+                isset($response->dept_name) ? (string) $response->dept_name : $dept_name
+            );
+            return $id;
+        } catch (Throwable $e) {
+            log_message('error', 'ensure_biotime_department: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Upsert local biotime_departments cache without touching primary key 0 / duplicate PK fatals.
+     *
+     * @param int    $biotimeId
+     * @param string $dept_code
+     * @param string $dept_name
+     */
+    protected function _cache_biotime_department_row($biotimeId, $dept_code, $dept_name)
+    {
+        $biotimeId = (int) $biotimeId;
         $dept_code = trim((string) $dept_code);
         $dept_name = trim((string) $dept_name);
-        if ($dept_code === '' && $dept_name === '') {
-            return null;
-        }
-        if ($dept_code === '') {
-            $dept_code = $dept_name;
-        }
-        if ($dept_name === '') {
-            $dept_name = $dept_code;
-        }
-        if (strlen($dept_code) > 80) {
-            $dept_code = substr($dept_code, 0, 80);
+        if ($biotimeId < 1 || $dept_code === '' || !$this->db->table_exists('biotime_departments')) {
+            return;
         }
 
-        $existing = $this->getbiodeps($dept_code);
-        if (!empty($existing)) {
-            return (int) $existing;
-        }
-        if ($dept_name !== $dept_code) {
-            $byName = $this->getbiodeps($dept_name);
-            if (!empty($byName)) {
-                return (int) $byName;
-            }
-        }
+        try {
+            // Remove corrupt PK=0 rows that block auto-increment inserts
+            $this->db->query("DELETE FROM biotime_departments WHERE id = 0");
 
-        $token = $this->get_token();
-        if (empty($token)) {
-            return null;
-        }
-        $body = [
-            'dept_code' => $dept_code,
-            'dept_name' => $dept_name,
-            'parent_dept' => null,
-        ];
-        $json = json_encode($body);
-        $http = new HttpUtils();
-        $response = $http->curlsendHttpPost(
-            'personnel/api/departments/',
-            $this->_biotime_json_headers($token, $json),
-            $body
-        );
-        $this->log(['ensure_biotime_department' => $response, 'request' => $body]);
-        if (!$this->_biotime_response_ok($response) || empty($response->id)) {
-            $again = $this->getbiodeps($dept_code);
-            return !empty($again) ? (int) $again : null;
-        }
-        $id = (int) $response->id;
-        if ($this->db->table_exists('biotime_departments')) {
-            $data = [
-                'dept_code' => isset($response->dept_code) ? (string) $response->dept_code : $dept_code,
-                'dept_name' => isset($response->dept_name) ? (string) $response->dept_name : $dept_name,
-            ];
-            if ($this->db->field_exists('biotime_dept_id', 'biotime_departments')) {
-                $data['biotime_dept_id'] = $id;
+            $hasBioId = $this->db->field_exists('biotime_dept_id', 'biotime_departments');
+            $escCode = $this->db->escape($dept_code);
+            $escName = $this->db->escape($dept_name);
+
+            $exists = $this->db->query(
+                "SELECT id FROM biotime_departments WHERE dept_code = {$escCode} AND id > 0 LIMIT 1"
+            )->row();
+
+            if ($exists && !empty($exists->id)) {
+                if ($hasBioId) {
+                    $this->db->query(
+                        "UPDATE biotime_departments
+                         SET dept_name = {$escName}, biotime_dept_id = " . (int) $biotimeId . "
+                         WHERE id = " . (int) $exists->id
+                    );
+                } else {
+                    $this->db->query(
+                        "UPDATE biotime_departments
+                         SET dept_name = {$escName}
+                         WHERE id = " . (int) $exists->id
+                    );
+                }
+                return;
             }
-            $exists = $this->db->get_where('biotime_departments', ['dept_code' => $data['dept_code']], 1)->row();
-            if ($exists) {
-                $this->db->where('dept_code', $data['dept_code'])->update('biotime_departments', $data);
+
+            // Insert without specifying local id (auto-increment). Skip on duplicate key.
+            if ($hasBioId) {
+                $sql = "INSERT IGNORE INTO biotime_departments (dept_code, dept_name, biotime_dept_id)
+                        VALUES ({$escCode}, {$escName}, " . (int) $biotimeId . ")";
             } else {
-                $this->db->insert('biotime_departments', $data);
+                $sql = "INSERT IGNORE INTO biotime_departments (dept_code, dept_name)
+                        VALUES ({$escCode}, {$escName})";
             }
+            $this->db->query($sql);
+
+            // If IGNORE skipped due to unique dept_code, still refresh name/bio id
+            if ($hasBioId) {
+                $this->db->query(
+                    "UPDATE biotime_departments
+                     SET dept_name = {$escName}, biotime_dept_id = " . (int) $biotimeId . "
+                     WHERE dept_code = {$escCode} AND id > 0"
+                );
+            }
+        } catch (Throwable $e) {
+            log_message('error', '_cache_biotime_department_row: ' . $e->getMessage());
         }
-        return $id;
     }
 
     /**

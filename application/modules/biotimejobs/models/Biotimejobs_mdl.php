@@ -283,54 +283,70 @@ class Biotimejobs_mdl extends CI_Model
 
     public function save_department($data)
     {
-        if (count($data) > 1) {
-            // Use TRUNCATE to clear table and reset auto-increment counter
-            $this->db->query("TRUNCATE TABLE biotime_departments");
-            // Ensure auto-increment starts from 1
-            $this->db->query("ALTER TABLE biotime_departments AUTO_INCREMENT = 1");
-        }
-        
-        // Build batch REPLACE with explicit column specification (excluding id)
-        // REPLACE will delete existing row if dept_code matches and insert new one
-        if (empty($data)) {
-            $message = print_r($this->exect()) . " save_department() No data to insert";
-            return $message;
-        }
-        
-        $values = array();
-        $has_biotime_id = $this->db->field_exists('biotime_dept_id', 'biotime_departments');
-        foreach ($data as $row) {
-            $dept_code = isset($row['dept_code']) ? $this->db->escape($row['dept_code']) : 'NULL';
-            $dept_name = isset($row['dept_name']) ? $this->db->escape($row['dept_name']) : 'NULL';
-            if ($has_biotime_id) {
-                $biotime_id = isset($row['biotime_dept_id']) ? (int) $row['biotime_dept_id'] : 'NULL';
-                $values[] = "($dept_code, $dept_name, $biotime_id)";
-            } else {
-                $values[] = "($dept_code, $dept_name)";
-            }
-        }
-        
-        // Use REPLACE INTO - this will delete existing row if dept_code matches and insert new one
-        // id is auto-increment, so we don't include it - MySQL will generate new id
-        if ($has_biotime_id) {
-            $sql = "REPLACE INTO biotime_departments (dept_code, dept_name, biotime_dept_id) VALUES " . implode(', ', $values);
-        } else {
-            $sql = "REPLACE INTO biotime_departments (dept_code, dept_name) VALUES " . implode(', ', $values);
-        }
-        
-        $query = $this->db->query($sql);
-        if ($query) {
-            $n = $this->db->get("biotime_departments");
-            $message = print_r($this->exect()) . " save_department() Created Departments from Biotime " . $n->num_rows();
-        } else {
-            $error = $this->db->error();
-            $error_msg = isset($error['message']) ? $error['message'] : 'Unknown error';
-            $error_code = isset($error['code']) ? $error['code'] : '';
-            $message = print_r($this->exect()) . " Fetch Departments Failed: " . $error_msg . " (Code: " . $error_code . ")";
-            log_message('error', 'save_department failed: ' . $error_msg . ' | SQL: ' . substr($sql, 0, 200));
+        if (!is_array($data) || count($data) < 1) {
+            return print_r($this->exect()) . " save_department() No data to insert";
         }
 
-        return $message;
+        try {
+            // Clear corrupt PK=0 rows that break auto-increment inserts
+            $this->db->query("DELETE FROM biotime_departments WHERE id = 0");
+
+            if (count($data) > 1) {
+                // Use TRUNCATE to clear table and reset auto-increment counter
+                $this->db->query("TRUNCATE TABLE biotime_departments");
+                $this->db->query("ALTER TABLE biotime_departments AUTO_INCREMENT = 1");
+            }
+
+            $values = array();
+            $has_biotime_id = $this->db->field_exists('biotime_dept_id', 'biotime_departments');
+            foreach ($data as $row) {
+                $code = isset($row['dept_code']) ? trim((string) $row['dept_code']) : '';
+                $name = isset($row['dept_name']) ? trim((string) $row['dept_name']) : '';
+                if ($code === '' || $code === '0') {
+                    continue; // skip bad rows
+                }
+                $dept_code = $this->db->escape($code);
+                $dept_name = $this->db->escape($name !== '' ? $name : $code);
+                if ($has_biotime_id) {
+                    $biotime_id = isset($row['biotime_dept_id']) ? (int) $row['biotime_dept_id'] : 0;
+                    if ($biotime_id < 1) {
+                        continue;
+                    }
+                    $values[] = "($dept_code, $dept_name, $biotime_id)";
+                } else {
+                    $values[] = "($dept_code, $dept_name)";
+                }
+            }
+
+            if (empty($values)) {
+                return print_r($this->exect()) . " save_department() No valid department rows";
+            }
+
+            // INSERT IGNORE skips duplicate keys instead of failing the whole sync
+            if ($has_biotime_id) {
+                $sql = "INSERT IGNORE INTO biotime_departments (dept_code, dept_name, biotime_dept_id) VALUES "
+                    . implode(', ', $values);
+            } else {
+                $sql = "INSERT IGNORE INTO biotime_departments (dept_code, dept_name) VALUES "
+                    . implode(', ', $values);
+            }
+
+            $query = $this->db->query($sql);
+            if ($query) {
+                $n = $this->db->get("biotime_departments");
+                $message = print_r($this->exect()) . " save_department() Created Departments from Biotime " . $n->num_rows();
+            } else {
+                $error = $this->db->error();
+                $error_msg = isset($error['message']) ? $error['message'] : 'Unknown error';
+                $error_code = isset($error['code']) ? $error['code'] : '';
+                $message = print_r($this->exect()) . " Fetch Departments Failed: " . $error_msg . " (Code: " . $error_code . ")";
+                log_message('error', 'save_department failed: ' . $error_msg . ' | SQL: ' . substr($sql, 0, 200));
+            }
+            return $message;
+        } catch (Throwable $e) {
+            log_message('error', 'save_department exception: ' . $e->getMessage());
+            return "save_department exception: " . $e->getMessage();
+        }
     }
     public function save_jobs($data)
     {
