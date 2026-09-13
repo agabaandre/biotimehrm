@@ -1848,8 +1848,8 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      * New enrollments: emp_code = iHRIS person id (UCMB → 4253+id).
      * Updates: keep existing biotime enrollment emp_code when present.
      * Required: emp_code, area. Department defaults to 1 when unmapped.
-     * Missing BioTime area → error (do NOT park in Not Authorized / area 1).
-     * Updates with no area are handled by resign in update_biotimeuser().
+     * Missing BioTime area → create from local facility (never park in Not Authorized / area 1).
+     * Updates that still cannot resolve/create an area resign in update_biotimeuser().
      *
      * @param object|array $staff
      * @param array $overrides facility/area/department/job keys when transferring
@@ -1896,12 +1896,12 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $barea = (int) $overrides['area_id'];
             $area_fallback = !empty($overrides['force_not_authorized']);
         } else {
-            $barea = $this->getbioloc($facility_code);
+            // Resolve or create BioTime area from local facility (never park in Not Authorized)
+            $barea = $this->ensure_biotime_area_for_facility($facility_code);
             if (empty($barea)) {
-                // Never assign Not Authorized (area 1) — skip create / resign on update instead
                 log_message(
                     'error',
-                    'BioTime area not found for ' . $facility_code . '; refusing Not Authorized fallback'
+                    'BioTime area missing and could not create from local facility for ' . $facility_code
                 );
                 return [
                     'ok' => false,
@@ -2283,7 +2283,8 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             }
         }
         $facility_code = urldecode($facility_code);
-        $mappedArea = ($facility_code !== '') ? $this->getbioloc($facility_code) : null;
+        // Resolve existing BioTime area, or create it from local employee_facility / ihrisdata
+        $mappedArea = ($facility_code !== '') ? $this->ensure_biotime_area_for_facility($facility_code) : null;
         $empId = (int) $userdata->biotime_emp_id;
 
         // Resolve emp_code for local save
@@ -2294,16 +2295,15 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $emp_code = trim((string) $userdata->emp_code);
         }
 
-        // --- No valid BioTime area: resign instead of parking in Not Authorized ---
+        // --- Still no BioTime area after local create attempt: resign as last resort ---
         if (empty($mappedArea)) {
-            $reason = 'iHRIS facility has no BioTime area: ' . $facility_code;
+            $reason = 'iHRIS facility has no BioTime area and local create failed: ' . $facility_code;
             log_message('error', 'update_biotimeuser: ' . $reason . ' — resigning emp_id=' . $empId);
             $resign = $this->resign_biotime_employee($empId, $reason, 4);
             if ($resign && isset($resign->id)) {
                 if ($emp_code === '') {
                     $emp_code = !empty($userdata->emp_code) ? (string) $userdata->emp_code : ('id-' . $empId);
                 }
-                // Mark handled: biotime_fac_id matches iHRIS so Needs Update clears; keep resign id for later reinstate
                 $this->_save_enrollment_row(
                     $emp_code,
                     $empId,
@@ -2760,7 +2760,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         if (empty($built['ok'])) {
             $err = isset($built['error']) ? $built['error'] : 'payload failed';
             log_message('error', 'create_new_biotimeuser_from_ihris: ' . $err);
-            // No BioTime area for this facility — skip create (do not enroll into Not Authorized)
+            // Area still missing after local create attempt — skip (never Not Authorized)
             if ($err === 'no_biotime_area') {
                 return 'skipped';
             }
@@ -3025,7 +3025,219 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
+     * Resolve facility_id + display name from local DB (employee_facility, ihrisdata, devices).
+     *
+     * @param string $facility_code e.g. facility|770 or 770
+     * @return array{area_code:string,area_name:string}|null
+     */
+    protected function _resolve_local_facility($facility_code)
+    {
+        $facility_code = trim(urldecode((string) $facility_code));
+        if ($facility_code === '') {
+            return null;
+        }
+        $candidates = array_values(array_unique([
+            $facility_code,
+            (strpos($facility_code, 'facility|') === 0)
+                ? substr($facility_code, strlen('facility|'))
+                : ('facility|' . $facility_code),
+        ]));
+
+        // Prefer canonical facility| form for BioTime area_code
+        $preferredCode = $facility_code;
+        foreach ($candidates as $c) {
+            if (strpos($c, 'facility|') === 0) {
+                $preferredCode = $c;
+                break;
+            }
+        }
+
+        // Always prefer facility|{id} as BioTime area_code when we can form it
+        $normalizeCode = function ($raw) use ($preferredCode) {
+            $raw = trim((string) $raw);
+            if ($raw === '') {
+                return $preferredCode;
+            }
+            if (strpos($raw, 'facility|') === 0) {
+                return $raw;
+            }
+            if (strpos($preferredCode, 'facility|') === 0) {
+                return $preferredCode;
+            }
+            return 'facility|' . $raw;
+        };
+
+        // 1) employee_facility (local master list)
+        if ($this->db->table_exists('employee_facility')) {
+            foreach ($candidates as $c) {
+                $row = $this->db->get_where('employee_facility', ['facility_id' => $c], 1)->row();
+                if ($row && !empty($row->facility)) {
+                    return [
+                        'area_code' => $normalizeCode(!empty($row->facility_id) ? $row->facility_id : $preferredCode),
+                        'area_name' => trim((string) $row->facility),
+                    ];
+                }
+            }
+        }
+
+        // 2) ihrisdata
+        if ($this->db->table_exists('ihrisdata')) {
+            foreach ($candidates as $c) {
+                $esc = $this->db->escape_str($c);
+                $q = $this->db->query(
+                    "SELECT facility_id, facility FROM ihrisdata
+                     WHERE facility_id = '$esc' AND facility IS NOT NULL AND TRIM(facility) <> ''
+                     LIMIT 1"
+                );
+                if ($q && $q->num_rows() > 0) {
+                    $row = $q->row();
+                    return [
+                        'area_code' => $normalizeCode(!empty($row->facility_id) ? $row->facility_id : $preferredCode),
+                        'area_name' => trim((string) $row->facility),
+                    ];
+                }
+            }
+        }
+
+        // 3) biotime_devices (already know area_name for this code)
+        if ($this->db->table_exists('biotime_devices')) {
+            foreach ($candidates as $c) {
+                $esc = $this->db->escape_str($c);
+                $q = $this->db->query(
+                    "SELECT area_code, area_name FROM biotime_devices
+                     WHERE area_code = '$esc' AND area_name IS NOT NULL AND TRIM(area_name) <> ''
+                     LIMIT 1"
+                );
+                if ($q && $q->num_rows() > 0) {
+                    $row = $q->row();
+                    return [
+                        'area_code' => $normalizeCode(!empty($row->area_code) ? $row->area_code : $preferredCode),
+                        'area_name' => trim((string) $row->area_name),
+                    ];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a BioTime area and cache it in biotime_facilities.
+     *
+     * @param string   $area_code
+     * @param string   $area_name
+     * @param int|null $parent_area
+     * @return int|null BioTime area id
+     * @see https://attendance.health.go.ug/docs/api-docs/area_api.html#create
+     */
+    public function create_biotime_area($area_code, $area_name, $parent_area = null)
+    {
+        $area_code = trim((string) $area_code);
+        $area_name = trim((string) $area_name);
+        if ($area_code === '' || $area_name === '') {
+            return null;
+        }
+        // Already exists?
+        $existing = $this->getbioloc($area_code);
+        if (!empty($existing)) {
+            return (int) $existing;
+        }
+        $live = $this->_fetch_biotime_area_id_by_code($area_code);
+        if (!empty($live)) {
+            return (int) $live;
+        }
+
+        $token = $this->get_token();
+        if (empty($token)) {
+            return null;
+        }
+        $body = [
+            'area_code' => $area_code,
+            'area_name' => $area_name,
+            'parent_area' => $parent_area,
+        ];
+        $json = json_encode($body);
+        $http = new HttpUtils();
+        $response = $http->curlsendHttpPost(
+            'personnel/api/areas/',
+            $this->_biotime_json_headers($token, $json),
+            $body
+        );
+        $this->log(['create_biotime_area' => $response, 'request' => $body]);
+
+        if (!$this->_biotime_response_ok($response) || empty($response->id)) {
+            // Race: another process may have created it
+            $again = $this->_fetch_biotime_area_id_by_code($area_code);
+            if (!empty($again)) {
+                return (int) $again;
+            }
+            log_message('error', 'create_biotime_area failed for ' . $area_code . ' resp=' . json_encode($response));
+            return null;
+        }
+
+        $id = (int) $response->id;
+        $code = isset($response->area_code) ? trim((string) $response->area_code) : $area_code;
+        $name = isset($response->area_name) ? trim((string) $response->area_name) : $area_name;
+        if ($this->db->table_exists('biotime_facilities')) {
+            $exists = $this->db->get_where('biotime_facilities', ['area_code' => $code], 1)->row();
+            if ($exists) {
+                $this->db->where('area_code', $code)->update('biotime_facilities', [
+                    'id' => $id,
+                    'area_name' => $name,
+                ]);
+            } else {
+                $this->db->insert('biotime_facilities', [
+                    'id' => $id,
+                    'area_code' => $code,
+                    'area_name' => $name,
+                ]);
+            }
+        }
+        return $id;
+    }
+
+    /**
+     * Ensure a BioTime area exists for an iHRIS facility_id.
+     * Looks up local facility name and creates the area on BioTime when missing.
+     *
+     * @param string $facility_code
+     * @return int|null BioTime area id
+     */
+    public function ensure_biotime_area_for_facility($facility_code)
+    {
+        $facility_code = trim(urldecode((string) $facility_code));
+        if ($facility_code === '') {
+            return null;
+        }
+
+        $id = $this->getbioloc($facility_code);
+        if (!empty($id)) {
+            return (int) $id;
+        }
+
+        $local = $this->_resolve_local_facility($facility_code);
+        if ($local === null) {
+            log_message('error', 'ensure_biotime_area_for_facility: no local facility for ' . $facility_code);
+            return null;
+        }
+
+        $created = $this->create_biotime_area($local['area_code'], $local['area_name']);
+        if (!empty($created)) {
+            $this->log([
+                'ensure_biotime_area_created' => [
+                    'area_code' => $local['area_code'],
+                    'area_name' => $local['area_name'],
+                    'id' => (int) $created,
+                ],
+            ]);
+            return (int) $created;
+        }
+        return null;
+    }
+
+    /**
      * BioTime area id for "Not Authorized" (area_code 1, else numeric id 1).
+     * Kept for rare explicit overrides only — enrollment must not use this as facility fallback.
      */
     public function biotime_not_authorized_area_id()
     {

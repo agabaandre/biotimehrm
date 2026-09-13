@@ -58,9 +58,16 @@ class Jobs extends MX_Controller {
 
         $education = is_education_deployment();
 
+        // TEMP: pause BioTime enrollment/sync while we clean facilities & people first.
+        // Set to true to resume cron BioTime jobs.
+        $biotimeCronEnabled = false;
+
         echo "\n============================================\n";
         echo " JOBS MASTER STARTED: ".date('Y-m-d H:i:s')."\n";
         echo " Deployment: ".($education ? 'education' : 'moh')."\n";
+        if (!$education && !$biotimeCronEnabled) {
+            echo " BioTime cron: PAUSED (cleanup mode)\n";
+        }
         echo "============================================\n\n";
 
         $jobsToRun = [];
@@ -69,7 +76,7 @@ class Jobs extends MX_Controller {
         /* ----------------------------------------------------------
          * MOH ONLY — BioTime / iHRIS sync (not used in education)
          * ---------------------------------------------------------- */
-        if (!$education) {
+        if (!$education && $biotimeCronEnabled) {
             if ($minute % 20 == 0) $jobsToRun[] = 'biotimejobs terminals';
             if ($minute % 15 == 0) $jobsToRun[] = 'biotimejobs saveEnrolled';
             if ($minute % 45 == 0) $jobsToRun[] = 'biotimejobs biotimeFacilities';
@@ -87,6 +94,12 @@ class Jobs extends MX_Controller {
             if ($day == 1 && $hour == 0 && $minute == 0)
                 $jobsToRun[] = 'cronjobs AutoMohRoster';
 
+            if ($minute == 15)
+                $jobsToRun[] = 'cronjobs/DashboardCacheCron/warm';
+        } elseif (!$education && !$biotimeCronEnabled) {
+            // Still allow non-BioTime MOH cache warm when BioTime is paused
+            if ($day == 1 && $hour == 0 && $minute == 0)
+                $jobsToRun[] = 'cronjobs AutoMohRoster';
             if ($minute == 15)
                 $jobsToRun[] = 'cronjobs/DashboardCacheCron/warm';
         }
@@ -144,18 +157,20 @@ class Jobs extends MX_Controller {
          * ENROLLMENT + UPDATES (every 40 min, WITHOUT heavy lock)
          * ============================================================ */
 
-        if (!$education && ((int) $minute % 40 === 0)) {
+        if (!$education && $biotimeCronEnabled && ((int) $minute % 40 === 0)) {
             echo "\nRunning BioTime cleanup + enrollment + transfers (no lock)...\n";
             // multiple_new_users runs cleanup_biotime_employees first (delete API)
             $this->run('biotimejobs multiple_new_users');
             $this->run('biotimejobs transfer_employees');
+        } elseif (!$education && !$biotimeCronEnabled && ((int) $minute % 40 === 0)) {
+            echo "\nBioTime enrollment/transfers PAUSED — skipping.\n";
         }
 
         /* ============================================================
          * ATTENDANCE FETCH (Runs WITHOUT lock)
          * ============================================================ */
 
-        if (!$education && $hour % 4 == 0 && $minute == 0) {
+        if (!$education && $biotimeCronEnabled && $hour % 4 == 0 && $minute == 0) {
             echo "\nRunning attendance fetch (no lock)...\n";
             $this->run('biotimejobs fetch_daily_attendance');
         }
