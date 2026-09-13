@@ -491,6 +491,130 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
+     * Index every emp_code variant under $pid (card / IPPS / person / enrollment aliases).
+     *
+     * @param array  $emp_to_pid
+     * @param string $code
+     * @param string $pid
+     */
+    protected function _index_emp_code_variants(&$emp_to_pid, $code, $pid)
+    {
+        $pid = trim((string) $pid);
+        if ($pid === '') {
+            return;
+        }
+        foreach ($this->emp_code_variants($code) as $v) {
+            $emp_to_pid[$v] = $pid;
+            $norm = $this->normalize_emp_code($v);
+            if ($norm !== '' && $norm !== $v) {
+                $emp_to_pid[$norm] = $pid;
+            }
+        }
+    }
+
+    /**
+     * Build emp_code → ihris_pid map for clock-in / attendance.
+     * Keys: card_number, ipps, person emp_code (ihris_pid), plus biotime_enrollment.emp_code,
+     * each expanded with leading-zero variants so 003874135 = 3874135 = 0003874135.
+     *
+     * @return array{emp_to_pid: array, pid_to_department: array}
+     */
+    public function build_emp_code_to_ihris_pid_map()
+    {
+        $emp_to_pid = array();
+        $pid_to_department = array();
+        $dept_col = $this->db->field_exists('department_id', 'ihrisdata') ? 'department_id' : 'department';
+        $q = $this->db->query(
+            "SELECT card_number, ipps, ihris_pid, " . $dept_col . " AS dept FROM ihrisdata"
+        );
+        if ($q && $q->num_rows() > 0) {
+            foreach ($q->result() as $r) {
+                $pid = isset($r->ihris_pid) ? trim((string) $r->ihris_pid) : '';
+                if ($pid === '') {
+                    continue;
+                }
+                if (!empty($r->card_number)) {
+                    $this->_index_emp_code_variants($emp_to_pid, (string) $r->card_number, $pid);
+                }
+                if (!empty($r->ipps)) {
+                    $this->_index_emp_code_variants($emp_to_pid, (string) $r->ipps, $pid);
+                }
+                $idOnly = $this->ihris_person_id_only($pid);
+                if ($idOnly !== '') {
+                    $this->_index_emp_code_variants($emp_to_pid, $idOnly, $pid);
+                }
+                $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
+            }
+        }
+
+        // Enrollment emp_code may differ from current card (legacy) — still map punches.
+        if ($this->db->table_exists('biotime_enrollment')) {
+            $on = $this->sql_enrollment_to_ihris_on('be', 'i');
+            $eq = $this->db->query(
+                "SELECT be.emp_code, i.ihris_pid
+                 FROM biotime_enrollment be
+                 INNER JOIN ihrisdata i ON {$on}
+                 WHERE NULLIF(TRIM(be.emp_code), '') IS NOT NULL
+                   AND NULLIF(TRIM(i.ihris_pid), '') IS NOT NULL"
+            );
+            if ($eq && $eq->num_rows() > 0) {
+                foreach ($eq->result() as $r) {
+                    $this->_index_emp_code_variants(
+                        $emp_to_pid,
+                        (string) $r->emp_code,
+                        (string) $r->ihris_pid
+                    );
+                }
+            }
+        }
+
+        return array(
+            'emp_to_pid' => $emp_to_pid,
+            'pid_to_department' => $pid_to_department,
+        );
+    }
+
+    /**
+     * Resolve BioTime punch emp_code to ihris_pid using the clock-in map
+     * (exact, normalized, zero-stripped, and padded variants).
+     *
+     * @param array  $emp_to_pid
+     * @param string $emp_code
+     * @return string|null
+     */
+    public function lookup_ihris_pid_by_emp_code($emp_to_pid, $emp_code)
+    {
+        if (!is_array($emp_to_pid) || empty($emp_to_pid)) {
+            return null;
+        }
+        $emp = trim((string) $emp_code);
+        if ($emp === '') {
+            return null;
+        }
+        if (isset($emp_to_pid[$emp])) {
+            return $emp_to_pid[$emp];
+        }
+        $norm = $this->normalize_emp_code($emp);
+        if ($norm !== '' && isset($emp_to_pid[$norm])) {
+            return $emp_to_pid[$norm];
+        }
+        $stripped = $this->strip_leading_zeros($emp);
+        if ($stripped !== '' && isset($emp_to_pid[$stripped])) {
+            return $emp_to_pid[$stripped];
+        }
+        foreach ($this->emp_code_variants($emp) as $v) {
+            if (isset($emp_to_pid[$v])) {
+                return $emp_to_pid[$v];
+            }
+            $vn = $this->normalize_emp_code($v);
+            if ($vn !== '' && isset($emp_to_pid[$vn])) {
+                return $emp_to_pid[$vn];
+            }
+        }
+        return null;
+    }
+
+    /**
      * SQL: two code expressions match exactly or as the same digit string ignoring leading zeros.
      * Prevents 003874135 vs 3874135 from looking like different people.
      */
@@ -1113,38 +1237,11 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             }
 
             $t1 = microtime(true);
-            $emp_to_pid = array();
-            $pid_to_department = array();
-            $dept_col = $this->db->field_exists('department_id', 'ihrisdata') ? 'department_id' : 'department';
-            $q = $this->db->query("SELECT card_number, ipps, ihris_pid, " . $dept_col . " AS dept FROM ihrisdata");
-            if ($q && $q->num_rows() > 0) {
-                $result['debug']['lookup_ihris_rows'] = (int) $q->num_rows();
-                foreach ($q->result() as $r) {
-                    $pid = $r->ihris_pid;
-                    if (!empty($r->card_number)) {
-                        foreach ($this->emp_code_variants((string) $r->card_number) as $v) {
-                            $emp_to_pid[$v] = $pid;
-                        }
-                    }
-                    if (!empty($r->ipps)) {
-                        foreach ($this->emp_code_variants((string) $r->ipps) as $v) {
-                            $emp_to_pid[$v] = $pid;
-                        }
-                    }
-                    // Non-numeric cards enroll as bare iHRIS person id — match punches the same way as ipps
-                    if ($pid !== null && $pid !== '') {
-                        $idOnly = $this->ihris_person_id_only($pid);
-                        if ($idOnly !== '') {
-                            $emp_to_pid[$idOnly] = $pid;
-                            $normId = $this->normalize_emp_code($idOnly);
-                            if ($normId !== '') {
-                                $emp_to_pid[$normId] = $pid;
-                            }
-                        }
-                        $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
-                    }
-                }
-            }
+            // Map punches via card_number, ipps, and ihris person emp_code (leading zeros ignored)
+            $maps = $this->build_emp_code_to_ihris_pid_map();
+            $emp_to_pid = $maps['emp_to_pid'];
+            $pid_to_department = $maps['pid_to_department'];
+            $result['debug']['lookup_ihris_rows'] = count($pid_to_department);
             $result['debug']['lookup_emp_map_keys'] = count($emp_to_pid);
             $devices = array();
             $has_night_col = $this->db->field_exists('has_night', 'biotime_devices');
@@ -1203,7 +1300,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 $area_name = isset($row['area_alias']) ? $row['area_alias'] : '';
                 $norm_emp_code = $this->normalize_emp_code($emp_code);
                 $result['debug']['batch_rows']++;
-                if ($datetime && (isset($emp_to_pid[$emp_code]) || ($norm_emp_code !== '' && isset($emp_to_pid[$norm_emp_code])))) {
+                if ($datetime && $this->lookup_ihris_pid_by_emp_code($emp_to_pid, $emp_code)) {
                     $result['debug']['mapped_rows']++;
                 } else {
                     $result['debug']['unmapped_emp_rows']++;
@@ -1211,6 +1308,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                         $result['debug']['unmapped_emp_samples'][] = array(
                             'emp_code' => (string) $emp_code,
                             'normalized' => $norm_emp_code,
+                            'stripped' => $this->strip_leading_zeros($emp_code),
                             'area_alias' => (string) $area_name
                         );
                     }
@@ -1344,8 +1442,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         $agg = array();
         foreach ($batch as $r) {
             $emp = isset($r['emp_code']) ? $r['emp_code'] : '';
-            $norm_emp = $this->normalize_emp_code($emp);
-            $pid = isset($emp_to_pid[$emp]) ? $emp_to_pid[$emp] : (isset($emp_to_pid[$norm_emp]) ? $emp_to_pid[$norm_emp] : null);
+            $pid = $this->lookup_ihris_pid_by_emp_code($emp_to_pid, $emp);
             if (!$pid) {
                 continue;
             }
@@ -1534,13 +1631,14 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 $global_max = $r['max'];
             }
         }
+        $empMatch = $this->sql_emp_code_match('b', 'i');
         $this->db->query("
             UPDATE clk_log cl
             INNER JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date AND dr.schedule_id = '16'
             INNER JOIN (
                 SELECT i.ihris_pid, DATE_SUB(DATE(b.punch_time), INTERVAL 1 DAY) AS log_date, MAX(b.punch_time) AS punch_time
                 FROM biotime_data_history b
-                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END)
+                JOIN ihrisdata i ON {$empMatch}
                 WHERE b.punch_time >= ? AND b.punch_time <= ?
                 GROUP BY i.ihris_pid, log_date
             ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date
@@ -1562,6 +1660,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         if (!$range) {
             return 0;
         }
+        $empMatch = $this->sql_emp_code_match('b', 'i');
         $this->db->trans_start();
         $this->db->query("
             UPDATE clk_log cl
@@ -1569,7 +1668,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             INNER JOIN (
                 SELECT i.ihris_pid, DATE_SUB(DATE(b.punch_time), INTERVAL 1 DAY) AS log_date, MAX(b.punch_time) AS punch_time
                 FROM biotime_data_history b
-                JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END)
+                JOIN ihrisdata i ON {$empMatch}
                 WHERE b.punch_time >= ? AND b.punch_time <= ?
                 GROUP BY i.ihris_pid, log_date
             ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date

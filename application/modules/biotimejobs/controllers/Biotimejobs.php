@@ -5387,6 +5387,8 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 PRIMARY KEY (log_date, ihris_pid)
             ) ENGINE=MEMORY
         ");
+        // Match punches on card_number, ipps, or person emp_code (leading zeros ignored)
+        $empMatch = $this->biotimejobs_mdl->sql_emp_code_match('b', 'i');
         $sqlAgg = "
             INSERT INTO _biotime_agg (log_date, ihris_pid, facility_id, time_in, time_out, location, facility)
             SELECT
@@ -5399,7 +5401,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(d.area_name, b.area_alias) ORDER BY b.punch_time), ',', 1)
             FROM biotime_data b
             JOIN biotime_devices d ON b.terminal_sn = d.sn
-            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END)
+            JOIN ihrisdata i ON {$empMatch}
             WHERE b.punch_time >= ?
             AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
             {$terminalFilter}
@@ -5449,7 +5451,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             UPDATE clk_log cl
             JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date
             JOIN biotime_data b ON b.punch_time >= ? AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
-            JOIN ihrisdata i ON (b.emp_code = i.card_number OR b.emp_code = i.ipps OR b.emp_code = CASE WHEN i.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(i.ihris_pid, 'person|', -1)) END) AND i.ihris_pid = cl.ihris_pid
+            JOIN ihrisdata i ON {$empMatch} AND i.ihris_pid = cl.ihris_pid
             SET cl.time_out = b.punch_time
             WHERE dr.schedule_id = '16'
             AND cl.date BETWEEN ? AND ?
@@ -5510,7 +5512,13 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         ini_set('max_execution_time', 0);
         //$query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.ihris_pid=ihrisdata.ihris_pid) AND (punch_state='1' OR punch_state='Check Out' OR punch_state='0') AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
 
-        $query = $this->db->query("SELECT concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) as `entry_id`, punch_time from biotime_data,ihrisdata where (biotime_data.emp_code=ihrisdata.card_number or biotime_data.emp_code=ihrisdata.ipps or biotime_data.emp_code=CASE WHEN ihrisdata.ihris_pid LIKE '%UCMB%' THEN CONCAT('4253', TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1))) ELSE TRIM(SUBSTRING_INDEX(ihrisdata.ihris_pid, 'person|', -1)) END)  AND concat(DATE(biotime_data.punch_time),ihrisdata.ihris_pid) in (SELECT `entry_id` from clk_log) ");
+        $empMatch = $this->biotimejobs_mdl->sql_emp_code_match('biotime_data', 'ihrisdata');
+        $query = $this->db->query(
+            "SELECT CONCAT(DATE(biotime_data.punch_time), ihrisdata.ihris_pid) AS entry_id, punch_time
+             FROM biotime_data, ihrisdata
+             WHERE {$empMatch}
+               AND CONCAT(DATE(biotime_data.punch_time), ihrisdata.ihris_pid) IN (SELECT entry_id FROM clk_log)"
+        );
         $entry_id = $query->result();
 
         foreach ($entry_id as $entry) {
