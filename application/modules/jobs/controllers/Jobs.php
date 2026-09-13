@@ -60,7 +60,7 @@ class Jobs extends MX_Controller {
 
         // TEMP: pause BioTime enrollment/sync while we clean facilities & people first.
         // Set to true to resume cron BioTime jobs.
-        $biotimeCronEnabled = false;
+        $biotimeCronEnabled = true;
 
         echo "\n============================================\n";
         echo " JOBS MASTER STARTED: ".date('Y-m-d H:i:s')."\n";
@@ -157,7 +157,7 @@ class Jobs extends MX_Controller {
          * ENROLLMENT + UPDATES (every 40 min, WITHOUT heavy lock)
          * ============================================================ */
 
-        if (!$education && $biotimeCronEnabled && ((int) $minute % 40 === 0)) {
+        if (!$education && $biotimeCronEnabled && ((int) $minute % 20 === 0)) {
             echo "\nRunning BioTime cleanup + enrollment + transfers (no lock)...\n";
             // multiple_new_users runs cleanup_biotime_employees first (delete API)
             $this->run('biotimejobs multiple_new_users');
