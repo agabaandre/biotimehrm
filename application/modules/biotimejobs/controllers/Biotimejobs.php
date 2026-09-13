@@ -3365,70 +3365,75 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      */
     public function ensure_biotime_position($position_code, $position_name = '')
     {
-        $position_code = trim((string) $position_code);
-        $position_name = trim((string) $position_name);
-        if ($position_code === '' && $position_name === '') {
-            return null;
-        }
-        if ($position_code === '') {
-            $position_code = $position_name;
-        }
-        if ($position_name === '') {
-            $position_name = $position_code;
-        }
-        // Cap codes for BioTime safety
-        if (strlen($position_code) > 80) {
-            $position_code = substr($position_code, 0, 80);
-        }
-
-        $existing = $this->getbiojobs($position_code);
-        if (!empty($existing)) {
-            return (int) $existing;
-        }
-        if ($position_name !== $position_code) {
-            $byName = $this->getbiojobs($position_name);
-            if (!empty($byName)) {
-                return (int) $byName;
+        try {
+            $position_code = trim((string) $position_code);
+            $position_name = trim((string) $position_name);
+            if ($position_code === '' && $position_name === '') {
+                return null;
             }
-        }
+            if ($position_code === '') {
+                $position_code = $position_name;
+            }
+            if ($position_name === '') {
+                $position_name = $position_code;
+            }
+            // Cap codes for BioTime safety
+            if (strlen($position_code) > 80) {
+                $position_code = substr($position_code, 0, 80);
+            }
 
-        $token = $this->get_token();
-        if (empty($token)) {
-            return null;
-        }
-        $body = [
-            'position_code' => $position_code,
-            'position_name' => $position_name,
-            'parent_position' => null,
-        ];
-        $json = json_encode($body);
-        $http = new HttpUtils();
-        $response = $http->curlsendHttpPost(
-            'personnel/api/positions/',
-            $this->_biotime_json_headers($token, $json),
-            $body
-        );
-        $this->log(['ensure_biotime_position' => $response, 'request' => $body]);
-        if (!$this->_biotime_response_ok($response) || empty($response->id)) {
-            // Retry lookup in case of race / already exists
-            $again = $this->getbiojobs($position_code);
-            return !empty($again) ? (int) $again : null;
-        }
-        $id = (int) $response->id;
-        if ($this->db->table_exists('biotime_jobs')) {
-            $row = [
-                'id' => $id,
-                'position_code' => isset($response->position_code) ? (string) $response->position_code : $position_code,
-                'position_name' => isset($response->position_name) ? (string) $response->position_name : $position_name,
+            $existing = $this->getbiojobs($position_code);
+            if (!empty($existing)) {
+                return (int) $existing;
+            }
+            if ($position_name !== $position_code) {
+                $byName = $this->getbiojobs($position_name);
+                if (!empty($byName)) {
+                    return (int) $byName;
+                }
+            }
+
+            $token = $this->get_token();
+            if (empty($token)) {
+                return null;
+            }
+            $body = [
+                'position_code' => $position_code,
+                'position_name' => $position_name,
+                'parent_position' => null,
             ];
-            $exists = $this->db->get_where('biotime_jobs', ['id' => $id], 1)->row();
-            if ($exists) {
-                $this->db->where('id', $id)->update('biotime_jobs', $row);
-            } else {
-                $this->db->insert('biotime_jobs', $row);
+            $json = json_encode($body);
+            $http = new HttpUtils();
+            $response = $http->curlsendHttpPost(
+                'personnel/api/positions/',
+                $this->_biotime_json_headers($token, $json),
+                $body
+            );
+            $this->log(['ensure_biotime_position' => $response, 'request' => $body]);
+            if (!$this->_biotime_response_ok($response) || empty($response->id)) {
+                // Retry lookup in case of race / already exists
+                $again = $this->getbiojobs($position_code);
+                return !empty($again) ? (int) $again : null;
             }
+            $id = (int) $response->id;
+            if ($this->db->table_exists('biotime_jobs')) {
+                $row = [
+                    'id' => $id,
+                    'position_code' => isset($response->position_code) ? (string) $response->position_code : $position_code,
+                    'position_name' => isset($response->position_name) ? (string) $response->position_name : $position_name,
+                ];
+                $exists = $this->db->get_where('biotime_jobs', ['id' => $id], 1)->row();
+                if ($exists) {
+                    $this->db->where('id', $id)->update('biotime_jobs', $row);
+                } else {
+                    $this->db->insert('biotime_jobs', $row);
+                }
+            }
+            return $id;
+        } catch (Throwable $e) {
+            log_message('error', 'ensure_biotime_position: ' . $e->getMessage());
+            return null;
         }
-        return $id;
     }
 
     /**
