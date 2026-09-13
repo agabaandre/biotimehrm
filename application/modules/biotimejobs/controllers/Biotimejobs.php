@@ -1829,6 +1829,23 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $surname = (string) $s->last_name;
         }
 
+        $othername = '';
+        if (!empty($overrides['othername'])) {
+            $othername = (string) $overrides['othername'];
+        } elseif (!empty($s->othername)) {
+            $othername = (string) $s->othername;
+        }
+
+        $firstname = trim($firstname);
+        $surname = trim($surname);
+        $othername = trim($othername);
+        // iHRIS often puts a single display name in othername when first/surname are empty
+        if ($firstname === '' && $surname === '' && $othername !== '') {
+            $firstname = $othername;
+        } elseif ($firstname === '' && $othername !== '') {
+            $firstname = $othername;
+        }
+
         // Required by BioTime create/update docs
         $body = [
             'emp_code' => $emp_code,
@@ -1836,11 +1853,18 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             'area' => [(int) $barea],
         ];
 
+        // Always push names when available so BioTime UI is not blank after create/update
         if ($firstname !== '') {
             $body['first_name'] = $firstname;
         }
         if ($surname !== '') {
             $body['last_name'] = $surname;
+        }
+        // If only one side is known, still send both so BioTime list shows a name
+        if ($firstname !== '' && $surname === '') {
+            $body['last_name'] = $firstname;
+        } elseif ($surname !== '' && $firstname === '') {
+            $body['first_name'] = $surname;
         }
         if (!empty($bpos)) {
             $body['position'] = (int) $bpos;
@@ -2055,6 +2079,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             'biotime_facility_id' => (string) (int) $areaId,
             'biotime_fac_id' => (string) $facilityCode,
         ];
+        if ($this->db->field_exists('last_update', 'biotime_enrollment')) {
+            $data['last_update'] = date('Y-m-d H:i:s');
+        }
         if ($this->db->field_exists('biotime_resign_id', 'biotime_enrollment')) {
             if ($resignId !== null && $resignId !== '') {
                 $data['biotime_resign_id'] = (string) (int) $resignId;
@@ -2617,12 +2644,24 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $live = $this->fetch_biotime_employee_by_emp_code($emp_code);
             if ($live && isset($live->id)) {
                 $area = $this->_biotime_employee_area($live);
-                $this->db->replace('biotime_enrollment', [
-                    'emp_code' => $emp_code,
-                    'biotime_emp_id' => (string) (int) $live->id,
-                    'biotime_facility_id' => ($area && isset($area->id)) ? (string) (int) $area->id : (string) (int) $built['area_id'],
-                    'biotime_fac_id' => ($area && isset($area->area_code)) ? (string) $area->area_code : (string) $built['facility_code'],
-                ]);
+                $this->_save_enrollment_row(
+                    $emp_code,
+                    (int) $live->id,
+                    ($area && isset($area->id)) ? (int) $area->id : (int) $built['area_id'],
+                    ($area && isset($area->area_code)) ? (string) $area->area_code : (string) $built['facility_code'],
+                    null
+                );
+                // Push iHRIS names when BioTime first/last name is blank
+                $fn = trim((string) ($live->first_name ?? ''));
+                $ln = trim((string) ($live->last_name ?? ''));
+                if ($fn === '' || $ln === '') {
+                    $staff->biotime_emp_id = (string) (int) $live->id;
+                    $staff->emp_code = $emp_code;
+                    if (empty($staff->new_facility) && !empty($staff->facility_id)) {
+                        $staff->new_facility = $staff->facility_id;
+                    }
+                    $this->update_biotimeuser($staff);
+                }
             }
             return 'skipped';
         }
@@ -3501,8 +3540,10 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
-     * Sync facility/job changes for enrolled users (iHRIS vs biotime_enrollment).
-     * Uses inline SQL equivalent of biotime_transfers (avoids broken view definer).
+     * Sync facility/job/name changes for enrolled users (iHRIS vs biotime_enrollment).
+     * 1) Facility mismatches (Needs Update)
+     * 2) Profile refresh: push iHRIS first/last name (+ dept/job) for enrollments that still match
+     *    facility — fixes BioTime rows created without names.
      */
     public function transfer_employees()
     {
@@ -3510,8 +3551,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $reinstated = $this->reinstate_ready_employees();
 
         $on = $this->biotimejobs_mdl->sql_enrollment_to_ihris_on('be', 'i');
-        $query = $this->db->query(
-            "SELECT i.*,
+        $hasLastUpdate = $this->db->field_exists('last_update', 'biotime_enrollment');
+        $lastUpdateSelect = $hasLastUpdate ? 'be.last_update AS enrollment_last_update' : 'NULL AS enrollment_last_update';
+        $select = "SELECT i.*,
                     i.facility_id AS new_facility,
                     i.facility AS new_fname,
                     be.id AS enrollment_row_id,
@@ -3519,16 +3561,26 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     be.biotime_emp_id,
                     be.biotime_facility_id AS biotime_area_id,
                     be.biotime_fac_id,
-                    be.last_update AS enrollment_last_update
+                    {$lastUpdateSelect}
              FROM biotime_enrollment be
-             INNER JOIN ihrisdata i ON {$on}
-             WHERE i.facility_id <> be.biotime_fac_id"
+             INNER JOIN ihrisdata i ON {$on}";
+
+        $query = $this->db->query(
+            "{$select}
+             WHERE i.facility_id <> be.biotime_fac_id
+               AND be.biotime_emp_id IS NOT NULL
+               AND TRIM(be.biotime_emp_id) <> ''"
         );
         $transfers = $query ? $query->result() : [];
         $ok = 0;
         $fail = 0;
+        $seenEmp = [];
 
         foreach ($transfers as $newuser) {
+            $eid = (string) ($newuser->biotime_emp_id ?? '');
+            if ($eid !== '') {
+                $seenEmp[$eid] = true;
+            }
             $message = $this->update_biotimeuser($newuser);
             if ($message) {
                 $ok++;
@@ -3537,15 +3589,59 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             }
         }
 
+        // Profile / name refresh for enrollments already on the correct facility.
+        // Oldest last_update first so blank-name BioTime rows get fixed over successive runs.
+        $profileLimit = 100;
+        $orderBy = $hasLastUpdate
+            ? 'ORDER BY (be.last_update IS NULL) DESC, be.last_update ASC, be.id ASC'
+            : 'ORDER BY be.id ASC';
+        $profileQuery = $this->db->query(
+            "{$select}
+             WHERE i.facility_id = be.biotime_fac_id
+               AND be.biotime_emp_id IS NOT NULL
+               AND TRIM(be.biotime_emp_id) <> ''
+               AND (
+                    TRIM(COALESCE(i.firstname, '')) <> ''
+                 OR TRIM(COALESCE(i.surname, '')) <> ''
+                 OR TRIM(COALESCE(i.othername, '')) <> ''
+               )
+             {$orderBy}
+             LIMIT " . (int) $profileLimit
+        );
+        $profiles = $profileQuery ? $profileQuery->result() : [];
+        $profileOk = 0;
+        $profileFail = 0;
+        $profileCandidates = 0;
+
+        foreach ($profiles as $row) {
+            $eid = (string) ($row->biotime_emp_id ?? '');
+            if ($eid !== '' && isset($seenEmp[$eid])) {
+                continue;
+            }
+            $profileCandidates++;
+            $message = $this->update_biotimeuser($row);
+            if ($message) {
+                $profileOk++;
+                $ok++;
+            } else {
+                $profileFail++;
+                $fail++;
+            }
+        }
+
         $process = 5;
         $method = 'bioitimejobs/tranfer_employees';
-        $status = ($ok > 0 && $fail === 0) ? 'successful' : (($ok > 0) ? 'partial' : (count($transfers) === 0 ? 'successful' : 'failed'));
+        $totalCandidates = count($transfers) + $profileCandidates;
+        $status = ($ok > 0 && $fail === 0) ? 'successful' : (($ok > 0) ? 'partial' : ($totalCandidates === 0 ? 'successful' : 'failed'));
         $this->cronjob_register($process, $method, $status);
         $this->log([
             'transfer_employees' => $status,
             'updated' => $ok,
             'failed' => $fail,
-            'candidates' => count($transfers),
+            'facility_mismatch_candidates' => count($transfers),
+            'profile_refresh_candidates' => $profileCandidates,
+            'profile_refresh_ok' => $profileOk,
+            'profile_refresh_failed' => $profileFail,
             'reinstate_ready' => $reinstated,
         ]);
 
