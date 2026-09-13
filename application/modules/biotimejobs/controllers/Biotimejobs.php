@@ -254,6 +254,7 @@ class Biotimejobs extends MX_Controller
     /**
      * Find an existing BioTime employee for this iHRIS staff (any matching emp_code).
      * Prefers person-id match, then one with biometrics, then first found.
+     * Matches card twins that differ only by leading zeros (10464879 ↔ 010464879).
      *
      * @param object $staff
      * @return object|null
@@ -267,7 +268,7 @@ class Biotimejobs extends MX_Controller
         $found = [];
         $seenIds = [];
         foreach ($codes as $code) {
-            $live = $this->fetch_biotime_employee_by_emp_code($code);
+            $live = $this->fetch_biotime_employee_by_emp_code_loose($code);
             if ($live && isset($live->id)) {
                 $id = (int) $live->id;
                 if ($id > 0 && !isset($seenIds[$id])) {
@@ -294,7 +295,13 @@ class Biotimejobs extends MX_Controller
             }
             $aBio = $self->_biotime_employee_has_biometrics($a) ? 1 : 0;
             $bBio = $self->_biotime_employee_has_biometrics($b) ? 1 : 0;
-            return $bBio - $aBio;
+            if ($aBio !== $bBio) {
+                return $bBio - $aBio;
+            }
+            // Prefer emp_code without leading zeros when otherwise equal
+            $aLead = (ctype_digit($aCode) && strpos($aCode, '0') === 0) ? 0 : 1;
+            $bLead = (ctype_digit($bCode) && strpos($bCode, '0') === 0) ? 0 : 1;
+            return $bLead - $aLead;
         });
         return $found[0];
     }
@@ -2862,17 +2869,15 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         }
 
         // Already enrolled locally under person / card / ipps (incl. zero-stripped card forms)
-        foreach ($this->_staff_possible_biotime_emp_codes($staff) as $aliasCode) {
-            $local = $this->db->get_where('biotime_enrollment', ['emp_code' => $aliasCode], 1)->row();
-            if ($local && !empty($local->biotime_emp_id)) {
-                $staff->biotime_emp_id = (string) $local->biotime_emp_id;
-                $staff->emp_code = !empty($local->emp_code) ? (string) $local->emp_code : $emp_code;
-                if (empty($staff->new_facility) && !empty($staff->facility_id)) {
-                    $staff->new_facility = $staff->facility_id;
-                }
-                $this->update_biotimeuser($staff);
-                return 'skipped';
+        $local = $this->_find_local_enrollment_for_staff($staff);
+        if ($local && !empty($local->biotime_emp_id)) {
+            $staff->biotime_emp_id = (string) $local->biotime_emp_id;
+            $staff->emp_code = !empty($local->emp_code) ? (string) $local->emp_code : $emp_code;
+            if (empty($staff->new_facility) && !empty($staff->facility_id)) {
+                $staff->new_facility = $staff->facility_id;
             }
+            $this->update_biotimeuser($staff);
+            return 'skipped';
         }
 
         // Already exists in BioTime under person / card / ipps — do NOT create a second ID
@@ -3725,6 +3730,105 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
+     * Look up a single BioTime employee by emp_code, including leading-zero twins.
+     * Tries exact/variants first, then emp_code_icontains on the zero-stripped form.
+     *
+     * @param string $emp_code
+     * @return object|null
+     */
+    public function fetch_biotime_employee_by_emp_code_loose($emp_code)
+    {
+        $emp_code = trim((string) $emp_code);
+        if ($emp_code === '') {
+            return null;
+        }
+        $exact = $this->fetch_biotime_employee_by_emp_code($emp_code);
+        if ($exact) {
+            return $exact;
+        }
+        if (!ctype_digit($emp_code)) {
+            return null;
+        }
+        $norm = $this->biotimejobs_mdl->strip_leading_zeros($emp_code);
+        if ($norm === '' || $norm === '0') {
+            return null;
+        }
+        // Also try common twin forms not already covered by the first call's filter
+        foreach ($this->biotimejobs_mdl->emp_code_variants($emp_code) as $v) {
+            if ($v === $emp_code) {
+                continue;
+            }
+            $hit = $this->fetch_biotime_employee_by_emp_code($v);
+            if ($hit) {
+                return $hit;
+            }
+        }
+        $token = $this->get_token();
+        if (empty($token)) {
+            return null;
+        }
+        $http = new HttpUtils();
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => 'JWT ' . $token,
+        ];
+        $endpoint = 'personnel/api/employees/?' . http_build_query([
+            'emp_code_icontains' => $norm,
+            'page' => 1,
+            'page_size' => 30,
+        ]);
+        $resp = $http->curlgetHttp($endpoint, $headers, []);
+        foreach ($this->_biotime_list_rows($resp) as $row) {
+            if (!is_object($row) || empty($row->emp_code)) {
+                continue;
+            }
+            if ($this->biotimejobs_mdl->emp_codes_zero_equivalent((string) $row->emp_code, $emp_code)) {
+                return $row;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Local biotime_enrollment row for this staff (exact aliases or zero-equivalent card).
+     *
+     * @param object $staff
+     * @return object|null
+     */
+    protected function _find_local_enrollment_for_staff($staff)
+    {
+        $codes = $this->_staff_possible_biotime_emp_codes($staff);
+        foreach ($codes as $aliasCode) {
+            $local = $this->db->get_where('biotime_enrollment', ['emp_code' => $aliasCode], 1)->row();
+            if ($local && !empty($local->biotime_emp_id)) {
+                return $local;
+            }
+        }
+        foreach ($codes as $aliasCode) {
+            if (!ctype_digit($aliasCode)) {
+                continue;
+            }
+            $norm = $this->biotimejobs_mdl->strip_leading_zeros($aliasCode);
+            if ($norm === '' || $norm === '0') {
+                continue;
+            }
+            $q = $this->db->query(
+                "SELECT * FROM biotime_enrollment
+                 WHERE emp_code REGEXP '^[0-9]+$'
+                   AND TRIM(LEADING '0' FROM emp_code) = ?
+                   AND biotime_emp_id IS NOT NULL AND TRIM(biotime_emp_id) <> ''
+                 LIMIT 1",
+                [$norm]
+            );
+            if ($q && $q->num_rows() > 0) {
+                return $q->row();
+            }
+        }
+        return null;
+    }
+
+    /**
      * Look up a single BioTime employee by exact emp_code.
      *
      * @param string $emp_code
@@ -3790,9 +3894,10 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      *
      * @param int         $biotime_emp_id
      * @param string|null $emp_code optional local cleanup key
+     * @param bool        $purge_bio_templates call del_bio_template first (skip when already known no-bio)
      * @return bool
      */
-    public function delete_biotime_employee($biotime_emp_id, $emp_code = null)
+    public function delete_biotime_employee($biotime_emp_id, $emp_code = null, $purge_bio_templates = true)
     {
         $id = (int) $biotime_emp_id;
         if ($id < 1) {
@@ -3816,20 +3921,22 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $headers = $this->_biotime_json_headers($token);
 
         // Ensure devices drop any residual templates before employee delete (no-op if none)
-        $delBioBody = [
-            'employees' => [$id],
-            'finger_print' => true,
-            'face' => true,
-            'finger_vein' => true,
-            'palm' => true,
-        ];
-        $delBioJson = json_encode($delBioBody);
-        $delBioResp = $http->curlsendHttpPost(
-            'personnel/api/employees/del_bio_template/',
-            $this->_biotime_json_headers($token, $delBioJson),
-            $delBioBody
-        );
-        $this->log(['del_bio_template_before_delete' => ['id' => $id, 'resp' => $delBioResp]]);
+        if ($purge_bio_templates) {
+            $delBioBody = [
+                'employees' => [$id],
+                'finger_print' => true,
+                'face' => true,
+                'finger_vein' => true,
+                'palm' => true,
+            ];
+            $delBioJson = json_encode($delBioBody);
+            $delBioResp = $http->curlsendHttpPost(
+                'personnel/api/employees/del_bio_template/',
+                $this->_biotime_json_headers($token, $delBioJson),
+                $delBioBody
+            );
+            $this->log(['del_bio_template_before_delete' => ['id' => $id, 'resp' => $delBioResp]]);
+        }
 
         // DELETE employee — BioTime pushes user deletion to machines in their areas
         $endpoint = 'personnel/api/employees/' . $id . '/';
@@ -3884,17 +3991,39 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      * Does NOT delete a sole no-bio person id with no card/ipps sibling (awaiting device enroll).
      * Does NOT delete any row that still has biometrics (fingerprints preserved).
      *
-     * @param int $max_deletes safety cap per run (default 300)
+     * CLI (full cleanup, chunked — does not hang on one giant batch):
+     *   php index.php biotimejobs/cleanup_biotime_employees
+     *   php index.php biotimejobs/cleanup_biotime_employees all
+     *   php index.php biotimejobs/cleanup_biotime_employees all 50
+     * Cron / capped:
+     *   cleanup_biotime_employees(300)
+     *
+     * @param string|int $max_deletes 'all'|0|'' = process everyone; numeric = safety cap
+     * @param int|string $chunk_size  deletes per chunk (default 40)
      * @return array
      */
-    public function cleanup_biotime_employees($max_deletes = 300)
+    public function cleanup_biotime_employees($max_deletes = 'all', $chunk_size = 40)
     {
         ignore_user_abort(true);
         @ini_set('max_execution_time', '0');
+        @ini_set('memory_limit', '512M');
 
-        $max_deletes = max(1, (int) $max_deletes);
+        $rawMax = is_string($max_deletes) ? strtolower(trim($max_deletes)) : $max_deletes;
+        $unlimited = ($rawMax === '' || $rawMax === 'all' || $rawMax === '0' || $rawMax === 0 || $rawMax === null);
+        $limit = $unlimited ? null : max(1, (int) $rawMax);
+        $chunkSize = (int) $chunk_size;
+        if ($chunkSize < 5) {
+            $chunkSize = 40;
+        } elseif ($chunkSize > 100) {
+            $chunkSize = 100;
+        }
+
+        $cli = is_cli();
         $stats = [
+            'mode' => $unlimited ? 'all' : ('cap:' . $limit),
+            'chunk_size' => $chunkSize,
             'scanned' => 0,
+            'candidates' => 0,
             'deleted' => 0,
             'preserved' => 0,
             'failed' => 0,
@@ -3903,8 +4032,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             'duplicate_deleted' => 0,
             'duplicates_kept_with_bio' => 0,
             'machine_purged' => 0,
+            'chunks' => 0,
             'local_fp_resync' => null,
         ];
+
+        if ($cli) {
+            echo "cleanup_biotime_employees: mode=" . $stats['mode']
+                . " chunk_size={$chunkSize}\n";
+        }
 
         $token = $this->get_token();
         if (empty($token)) {
@@ -3968,9 +4103,13 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         }
 
         $pages = $this->_biotime_list_pages($resp, $page_size);
+        if ($cli) {
+            echo "cleanup: scanning {$pages} page(s) of BioTime employees...\n";
+        }
         $alphaNoBio = [];
         $orphanNumeric = [];
         $byIhris = []; // ihris_pid => list of emp rows
+        $byNormDigit = []; // zero-stripped digits => rows (10464879 ↔ 010464879)
 
         for ($page = 1; $page <= $pages; $page++) {
             $response = ($page === 1) ? $resp : $this->fetch_biotime_employees($page, $page_size);
@@ -3981,7 +4120,8 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 }
                 $stats['scanned']++;
                 $code = isset($emp->emp_code) ? trim((string) $emp->emp_code) : '';
-                $hasBio = $this->_biotime_employee_has_biometrics($emp, true);
+                // Skip local FP DB hit during full scan (checked again before delete)
+                $hasBio = $this->_biotime_employee_has_biometrics($emp, false);
                 $row = [
                     'id' => (int) $emp->id,
                     'emp_code' => $code,
@@ -4005,97 +4145,32 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     }
                     $byIhris[$ihrisPid][] = $row;
                 }
+
+                // Same card with/without leading zero → one duplicate family
+                if ($code !== '' && ctype_digit($code)) {
+                    $norm = $this->biotimejobs_mdl->strip_leading_zeros($code);
+                    if ($norm !== '' && $norm !== '0' && strlen($norm) >= 4) {
+                        if (!isset($byNormDigit[$norm])) {
+                            $byNormDigit[$norm] = [];
+                        }
+                        $byNormDigit[$norm][] = $row;
+                    }
+                }
             }
+            if ($cli && ($page % 5 === 0 || $page === $pages)) {
+                echo "cleanup: scanned page {$page}/{$pages} (employees={$stats['scanned']})\n";
+                $this->_cleanup_flush_output();
+            }
+            unset($employees, $response);
         }
+        unset($resp);
 
         // Duplicate resolution: same iHRIS person → multiple BioTime emp_codes
         $dupNoBio = [];
-        foreach ($byIhris as $ihrisPid => $rows) {
-            // Unique by biotime id
-            $uniq = [];
-            foreach ($rows as $r) {
-                $uniq[$r['id']] = $r;
-            }
-            $rows = array_values($uniq);
-            if (count($rows) < 2) {
-                continue;
-            }
-            // Score keeper:
-            //   biometrics first (never delete FP rows)
-            //   person+bio next (canonical)
-            //   if person has NO bio but card/ipps enrollment exists → prefer card/ipps,
-            //     delete the empty person-id duplicate (Leticia-style case)
-            //   sole person no-bio (no card sibling) is kept for device enroll
-            $hasLegacy = false;
-            foreach ($rows as $r) {
-                if (empty($r['is_person'])) {
-                    $hasLegacy = true;
-                    break;
-                }
-            }
-            usort($rows, function ($a, $b) use ($hasLegacy) {
-                $score = function ($r) use ($hasLegacy) {
-                    $s = 0;
-                    if (!empty($r['has_bio'])) {
-                        $s += 100;
-                    }
-                    if (!empty($r['is_person'])) {
-                        if (!empty($r['has_bio'])) {
-                            $s += 50; // person + fingerprint wins
-                        } elseif ($hasLegacy) {
-                            $s += 0; // empty person-id loses to existing card/ipps
-                        } else {
-                            $s += 40; // only enrollment — keep awaiting fingerprints
-                        }
-                    } else {
-                        // card_number / ipps legacy enrollment
-                        $s += 25;
-                    }
-                    if (empty($r['is_alpha']) && !empty($r['emp_code']) && ctype_digit($r['emp_code'])) {
-                        $s += 5;
-                    }
-                    return $s;
-                };
-                return $score($b) - $score($a);
-            });
-            $keeper = $rows[0];
-            for ($i = 1; $i < count($rows); $i++) {
-                $loser = $rows[$i];
-                if (!empty($loser['has_bio'])) {
-                    // Never delete fingerprint-bearing duplicates
-                    $stats['duplicates_kept_with_bio']++;
-                    continue;
-                }
-                $dupNoBio[$loser['id']] = $loser;
-            }
-            // Mirror person + card/ipps aliases onto keeper so discovery/update use one BioTime id
-            if (!empty($keeper['id']) && !empty($keeper['emp_code'])) {
-                $personCode = null;
-                $aliasCodes = [$keeper['emp_code']];
-                foreach ($empToIhris as $ecode => $pid) {
-                    if ($pid !== $ihrisPid) {
-                        continue;
-                    }
-                    $aliasCodes[] = (string) $ecode;
-                    if (ctype_digit((string) $ecode) && !empty($activePersonCodes[$ecode])) {
-                        $personCode = (string) $ecode;
-                    }
-                }
-                $enr = $this->db->get_where('biotime_enrollment', ['biotime_emp_id' => (string) $keeper['id']], 1)->row();
-                $areaId = ($enr && !empty($enr->biotime_facility_id)) ? (int) $enr->biotime_facility_id : 0;
-                $fac = ($enr && !empty($enr->biotime_fac_id)) ? (string) $enr->biotime_fac_id : '';
-                foreach (array_unique($aliasCodes) as $alias) {
-                    if ($alias === '') {
-                        continue;
-                    }
-                    $this->_save_enrollment_row($alias, (int) $keeper['id'], $areaId, $fac, null);
-                }
-                // Prefer canonical person emp_code enrollment when we know it
-                if ($personCode !== null && $personCode !== $keeper['emp_code']) {
-                    $this->_save_enrollment_row($personCode, (int) $keeper['id'], $areaId, $fac, null);
-                }
-            }
-        }
+        $this->_cleanup_collect_duplicate_losers($byIhris, $dupNoBio, $stats, $empToIhris, $activePersonCodes, true);
+        // Also: same digits ignoring leading zeros (010464879 vs 10464879) even if iHRIS map missed one
+        $this->_cleanup_collect_duplicate_losers($byNormDigit, $dupNoBio, $stats, $empToIhris, $activePersonCodes, true);
+        unset($byIhris, $byNormDigit, $empToIhris, $activePersonCodes);
 
         // Prefer deleting alphanumeric no-bio, then duplicate no-bio, then orphan numeric
         $toDelete = [];
@@ -4105,34 +4180,61 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             if ($id < 1 || isset($seenIds[$id])) {
                 continue;
             }
-            // Final safety: never delete if local fingerprints appeared since scan
+            // Final safety: never delete if local fingerprints exist
             if (!empty($row['has_bio']) || $this->_local_emp_has_fingerprints($row['emp_code'])) {
                 $stats['preserved']++;
                 continue;
             }
             $seenIds[$id] = true;
             $toDelete[] = $row;
-            if (count($toDelete) >= $max_deletes) {
+            if ($limit !== null && count($toDelete) >= $limit) {
                 break;
             }
         }
+        unset($alphaNoBio, $orphanNumeric, $seenIds);
+        $stats['candidates'] = count($toDelete);
 
-        foreach ($toDelete as $row) {
-            $ok = $this->delete_biotime_employee($row['id'], $row['emp_code']);
-            if ($ok) {
-                $stats['deleted']++;
-                $stats['machine_purged']++;
-                if (!empty($row['is_alpha'])) {
-                    $stats['alphanumeric_deleted']++;
-                } elseif (isset($dupNoBio[$row['id']])) {
-                    $stats['duplicate_deleted']++;
+        if ($cli) {
+            echo "cleanup: {$stats['candidates']} candidate(s) to delete"
+                . ($limit !== null ? " (cap {$limit})" : ' (full run)')
+                . " in chunks of {$chunkSize}\n";
+            $this->_cleanup_flush_output();
+        }
+
+        $totalCandidates = count($toDelete);
+        for ($offset = 0; $offset < $totalCandidates; $offset += $chunkSize) {
+            $chunk = array_slice($toDelete, $offset, $chunkSize);
+            $stats['chunks']++;
+            foreach ($chunk as $row) {
+                // Skip bio-template purge — these candidates are already verified no-bio
+                $ok = $this->delete_biotime_employee($row['id'], $row['emp_code'], false);
+                if ($ok) {
+                    $stats['deleted']++;
+                    $stats['machine_purged']++;
+                    if (!empty($row['is_alpha'])) {
+                        $stats['alphanumeric_deleted']++;
+                    } elseif (isset($dupNoBio[$row['id']])) {
+                        $stats['duplicate_deleted']++;
+                    } else {
+                        $stats['orphan_numeric_deleted']++;
+                    }
                 } else {
-                    $stats['orphan_numeric_deleted']++;
+                    $stats['failed']++;
                 }
-            } else {
-                $stats['failed']++;
+            }
+            if ($cli) {
+                $done = min($offset + count($chunk), $totalCandidates);
+                echo "cleanup: chunk {$stats['chunks']} — progress {$done}/{$totalCandidates}"
+                    . " deleted={$stats['deleted']} failed={$stats['failed']}\n";
+                $this->_cleanup_flush_output();
+            }
+            // Brief pause so BioTime / DB / devices are not flooded
+            usleep(150000);
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
             }
         }
+        unset($toDelete, $dupNoBio);
 
         $status = ($stats['failed'] === 0) ? 'successful' : (($stats['deleted'] > 0) ? 'partial' : 'failed');
         if ($stats['deleted'] === 0 && $stats['failed'] === 0) {
@@ -4141,6 +4243,10 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $this->cronjob_register(8, 'bioitimejobs/cleanup_biotime_employees', $status);
 
         // Rebuild local fingerprints from BioTime biometric truth so server and local stay aligned
+        if ($cli) {
+            echo "cleanup: resyncing local fingerprints from BioTime...\n";
+            $this->_cleanup_flush_output();
+        }
         try {
             $stats['local_fp_resync'] = $this->saveEnrolled() ? 'ok' : 'failed';
         } catch (Throwable $e) {
@@ -4149,8 +4255,161 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         }
 
         $this->log(['cleanup_biotime_employees' => $stats, 'status' => $status]);
+        if ($cli) {
+            echo "cleanup: done — " . json_encode($stats) . "\n";
+        }
 
         return $stats;
+    }
+
+    /**
+     * Flush CLI progress so long cleanup runs do not look hung.
+     */
+    protected function _cleanup_flush_output()
+    {
+        if (!is_cli()) {
+            return;
+        }
+        if (function_exists('ob_flush')) {
+            @ob_flush();
+        }
+        @flush();
+    }
+
+    /**
+     * From a map of duplicate groups, pick keepers and queue no-bio losers for delete.
+     * Prefer: biometrics → person+bio → card without leading zeros → person awaiting enroll.
+     *
+     * @param array $groups groupKey => list of row arrays
+     * @param array $dupNoBio id => row (output)
+     * @param array $stats
+     * @param array $empToIhris
+     * @param array $activePersonCodes
+     * @param bool  $mirrorAliases save enrollment aliases for iHRIS-keyed groups
+     */
+    protected function _cleanup_collect_duplicate_losers(
+        array $groups,
+        array &$dupNoBio,
+        array &$stats,
+        array $empToIhris,
+        array $activePersonCodes,
+        $mirrorAliases = true
+    ) {
+        foreach ($groups as $groupKey => $rows) {
+            $uniq = [];
+            foreach ($rows as $r) {
+                $uniq[$r['id']] = $r;
+            }
+            $rows = array_values($uniq);
+            if (count($rows) < 2) {
+                continue;
+            }
+
+            $hasLegacy = false;
+            foreach ($rows as $r) {
+                if (empty($r['is_person'])) {
+                    $hasLegacy = true;
+                    break;
+                }
+            }
+
+            usort($rows, function ($a, $b) use ($hasLegacy) {
+                $score = function ($r) use ($hasLegacy) {
+                    $s = 0;
+                    $code = isset($r['emp_code']) ? (string) $r['emp_code'] : '';
+                    if (!empty($r['has_bio'])) {
+                        $s += 100;
+                    }
+                    if (!empty($r['is_person'])) {
+                        if (!empty($r['has_bio'])) {
+                            $s += 50;
+                        } elseif ($hasLegacy) {
+                            $s += 0; // empty person-id loses to card/ipps twin
+                        } else {
+                            $s += 40;
+                        }
+                    } else {
+                        $s += 25; // card/ipps
+                    }
+                    if (empty($r['is_alpha']) && $code !== '' && ctype_digit($code)) {
+                        $s += 5;
+                        // Prefer form without leading zeros (10464879 over 010464879)
+                        if ($code === ltrim($code, '0') || strpos($code, '0') !== 0) {
+                            $s += 3;
+                        }
+                    }
+                    return $s;
+                };
+                return $score($b) - $score($a);
+            });
+
+            $keeper = $rows[0];
+            for ($i = 1; $i < count($rows); $i++) {
+                $loser = $rows[$i];
+                if (!empty($loser['has_bio'])) {
+                    $stats['duplicates_kept_with_bio']++;
+                    continue;
+                }
+                // Already queued from another grouping
+                if (isset($dupNoBio[$loser['id']])) {
+                    continue;
+                }
+                // Never queue the keeper from a prior group
+                if ((int) $loser['id'] === (int) $keeper['id']) {
+                    continue;
+                }
+                $dupNoBio[$loser['id']] = $loser;
+            }
+
+            if (!$mirrorAliases || empty($keeper['id']) || empty($keeper['emp_code'])) {
+                continue;
+            }
+
+            $aliasCodes = [$keeper['emp_code']];
+            foreach ($this->biotimejobs_mdl->emp_code_variants($keeper['emp_code']) as $v) {
+                $aliasCodes[] = $v;
+            }
+            $personCode = null;
+            $ihrisPid = isset($empToIhris[$keeper['emp_code']]) ? $empToIhris[$keeper['emp_code']] : null;
+            if ($ihrisPid === null) {
+                foreach ($this->biotimejobs_mdl->emp_code_variants($keeper['emp_code']) as $v) {
+                    if (isset($empToIhris[$v])) {
+                        $ihrisPid = $empToIhris[$v];
+                        break;
+                    }
+                }
+            }
+            if ($ihrisPid !== null) {
+                foreach ($empToIhris as $ecode => $pid) {
+                    if ($pid !== $ihrisPid) {
+                        continue;
+                    }
+                    $aliasCodes[] = (string) $ecode;
+                    if (ctype_digit((string) $ecode) && !empty($activePersonCodes[$ecode])) {
+                        $personCode = (string) $ecode;
+                    }
+                }
+            }
+            // Always alias zero-pad twins onto keeper
+            foreach ($rows as $r) {
+                if (!empty($r['emp_code'])) {
+                    $aliasCodes[] = (string) $r['emp_code'];
+                }
+            }
+
+            $enr = $this->db->get_where('biotime_enrollment', ['biotime_emp_id' => (string) $keeper['id']], 1)->row();
+            $areaId = ($enr && !empty($enr->biotime_facility_id)) ? (int) $enr->biotime_facility_id : 0;
+            $fac = ($enr && !empty($enr->biotime_fac_id)) ? (string) $enr->biotime_fac_id : '';
+            foreach (array_unique($aliasCodes) as $alias) {
+                if ($alias === '') {
+                    continue;
+                }
+                $this->_save_enrollment_row($alias, (int) $keeper['id'], $areaId, $fac, null);
+            }
+            if ($personCode !== null && $personCode !== $keeper['emp_code']) {
+                $this->_save_enrollment_row($personCode, (int) $keeper['id'], $areaId, $fac, null);
+            }
+        }
     }
 
     /**

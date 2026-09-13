@@ -411,8 +411,9 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
-     * Strip leading zeros from a numeric emp/card code (BioTime often drops them).
-     * "003874135" → "3874135"; non-numeric codes returned trimmed unchanged.
+     * Strip ALL leading zeros from a numeric emp/card code.
+     * What matters is the significant digits: 00010464879 = 0010464879 = 010464879 = 10464879.
+     * Non-numeric codes returned trimmed unchanged.
      */
     public function strip_leading_zeros($code)
     {
@@ -426,7 +427,8 @@ class Biotimejobs_mdl extends CI_Model
 
     /**
      * All emp_code forms that may represent the same card/person on BioTime vs iHRIS.
-     * Includes raw, zero-stripped, and common zero-padded lengths (8–10).
+     * Matching key = digits with ALL leading zeros removed; variants re-pad to common widths.
+     * Example: 10464879 ↔ 010464879 ↔ 0010464879 ↔ 00010464879.
      *
      * @param string $code
      * @return string[]
@@ -441,7 +443,8 @@ class Biotimejobs_mdl extends CI_Model
         if (ctype_digit($code)) {
             $stripped = $this->strip_leading_zeros($code);
             $out[] = $stripped;
-            foreach ([8, 9, 10] as $len) {
+            // Common BioTime/iHRIS paddings (1+ leading zeros → same person)
+            foreach ([6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as $len) {
                 if (strlen($stripped) < $len) {
                     $out[] = str_pad($stripped, $len, '0', STR_PAD_LEFT);
                 }
@@ -450,6 +453,25 @@ class Biotimejobs_mdl extends CI_Model
         return array_values(array_unique(array_filter($out, function ($c) {
             return $c !== null && trim((string) $c) !== '';
         })));
+    }
+
+    /**
+     * True when two codes are the same card ignoring ANY number of leading zeros.
+     */
+    public function emp_codes_zero_equivalent($a, $b)
+    {
+        $a = trim((string) $a);
+        $b = trim((string) $b);
+        if ($a === '' || $b === '') {
+            return false;
+        }
+        if ($a === $b) {
+            return true;
+        }
+        if (!ctype_digit($a) || !ctype_digit($b)) {
+            return false;
+        }
+        return $this->strip_leading_zeros($a) === $this->strip_leading_zeros($b);
     }
 
     /**
