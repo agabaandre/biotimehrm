@@ -113,7 +113,7 @@ class Jobs extends MX_Controller {
 
         if (file_exists($this->lockFile)) {
             if ((time() - filemtime($this->lockFile)) > 1800) {
-                unlink($this->lockFile); // Remove stale lock
+                @unlink($this->lockFile); // Remove stale lock (ignore if already gone)
             } else {
                 log_message('info', 'Jobs master: heavy jobs locked, skipping scheduled tasks');
                 echo "Heavy jobs locked. Skipping heavy tasks.\n";
@@ -133,7 +133,9 @@ class Jobs extends MX_Controller {
                 $this->run($job);
             }
 
-            unlink($this->lockFile);
+            if (file_exists($this->lockFile)) {
+                @unlink($this->lockFile);
+            }
         } else {
             echo "No scheduled heavy jobs this minute.\n";
         }
