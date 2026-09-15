@@ -6132,18 +6132,46 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      * Uses only: fetch_time_history_streaming (model does clock-in/out + night + actuals per batch), then biotimeNightAndActualsOnly (actuals backfill + clear).
      * Does NOT use: biotimeClockin, biotimeClockinRange, biotimeSyncAttendanceUnified, or the old day-by-day fetch_time_history.
      *
+     * CLI examples:
+     *   php index.php biotimejobs/fetch_daily_attendance
+     *   php index.php biotimejobs/fetch_daily_attendance 2026-09-15 30 0 1 2026-09-09
+     *     → end=2026-09-15, max_days=30, all devices, console on, force start=2026-09-09
+     *
      * @param string|bool $end_date End date in Y-m-d format (default: FALSE = current date)
      * @param int $max_days Maximum number of days to sync per machine (default: 365)
      * @param string|bool $specific_device Specific device SN to sync (default: FALSE = all devices)
      * @param bool $output_console Whether to output console messages (default: true)
+     * @param string|bool $force_start Optional fixed start date Y-m-d (ignores last_activity when set)
      * @return array Result array with status, message, and statistics per machine
      */
-    public function fetch_daily_attendance($end_date = FALSE, $max_days = 365, $specific_device = FALSE, $output_console = TRUE)
+    public function fetch_daily_attendance($end_date = FALSE, $max_days = 365, $specific_device = FALSE, $output_console = TRUE, $force_start = FALSE)
     {
         ignore_user_abort(true);
         set_time_limit(0);
         ini_set('max_execution_time', 0);
         ini_set('memory_limit', '512M');
+
+        // CLI often passes "0" / "false" / empty for unused args
+        if ($specific_device === '0' || $specific_device === 'false' || $specific_device === '') {
+            $specific_device = FALSE;
+        }
+        if ($output_console === '0' || $output_console === 'false') {
+            $output_console = FALSE;
+        } else {
+            $output_console = TRUE;
+        }
+        if ($force_start === '0' || $force_start === 'false' || $force_start === '' || $force_start === FALSE) {
+            $force_start = FALSE;
+        } else {
+            $force_start = date('Y-m-d', strtotime((string) $force_start));
+            if ($force_start === '1970-01-01' || $force_start === false) {
+                $force_start = FALSE;
+            }
+        }
+        $max_days = (int) $max_days;
+        if ($max_days < 1) {
+            $max_days = 365;
+        }
         
         $result = array(
             'status' => 'error',
@@ -6185,8 +6213,10 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         
         try {
             // Set end date
-            if (empty($end_date)) {
-        $end_date = date('Y-m-d');
+            if (empty($end_date) || $end_date === '0' || $end_date === 'false') {
+                $end_date = date('Y-m-d');
+            } else {
+                $end_date = date('Y-m-d', strtotime((string) $end_date));
             }
             
             $console("═══════════════════════════════════════════════════════", 'info');
@@ -6194,6 +6224,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $console("═══════════════════════════════════════════════════════", 'info');
             $console("End Date: $end_date", 'info');
             $console("Max Days Per Area: $max_days", 'info');
+            if ($force_start) {
+                $console("Force Start Date: $force_start (ignores last_activity)", 'info');
+            }
             if ($specific_device) {
                 $console("Specific Device (filter to its area only): $specific_device", 'info');
             }
@@ -6261,8 +6294,10 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     } else {
                         $last_activity_date = NULL;
                     }
-                    
-                    if ($last_activity_date) {
+
+                    if ($force_start) {
+                        $start = $force_start;
+                    } elseif ($last_activity_date) {
                         $start_timestamp = strtotime($last_activity_date . ' -1 day');
                         $start = date('Y-m-d', $start_timestamp);
                     } else {
@@ -6272,11 +6307,12 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     $start_timestamp = strtotime($start);
                     $end_timestamp = strtotime($end_date);
                     $difference_seconds = $end_timestamp - $start_timestamp;
-            $difference_days = $difference_seconds / (60 * 60 * 24);
+                    $difference_days = $difference_seconds / (60 * 60 * 24);
                     
                     $last_activity_timestamp = $last_activity_date ? strtotime($last_activity_date) : 0;
                     $end_date_timestamp = strtotime($end_date);
-                    $is_already_synced = $last_activity_timestamp > $end_date_timestamp;
+                    // When force_start is set, never skip for "already up to date"
+                    $is_already_synced = (!$force_start) && ($last_activity_timestamp > $end_date_timestamp);
                     
                     $console("Date Range: $start to $end_date ($difference_days days)", 'info');
                     $console("Last Activity: " . ($last_activity ?: 'Never'), 'info');
