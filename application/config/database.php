@@ -41,7 +41,7 @@ $db['pg'] = array(
     'dbdriver' => 'postgre',
     'dbprefix' => '',
     'pconnect' => FALSE,
-    'db_debug' => TRUE, // Enable for debugging connection issues
+    'db_debug' => (ENVIRONMENT !== 'production'),
     'cache_on' => FALSE,
     'cachedir' => '',
     'char_set' => 'utf8',

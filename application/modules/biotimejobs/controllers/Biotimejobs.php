@@ -5832,8 +5832,8 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 $out('iclock_transaction_present=' . (($tr && (int) $tr['n'] > 0) ? 'yes' : 'no'));
                 @pg_close($conn);
             } else {
-                $out('Tip: set PG_DB_NAME to a dbname that printed OK above');
-                $out('Tip: quote password in .env: PG_PASS="Admin@moh@2026"');
+                $out('Tip: set PG_DB_NAME to a dbname that printed OK above (exact case)');
+                $out('Tip: quote special chars in .env, e.g. PG_PASS="your-password"');
             }
         } catch (\Throwable $e) {
             $out('FAIL: ' . $e->getMessage());
