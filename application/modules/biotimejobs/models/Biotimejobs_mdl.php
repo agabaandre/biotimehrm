@@ -618,45 +618,23 @@ class Biotimejobs_mdl extends CI_Model
             "SELECT TRIM(card_number) AS card_number, TRIM(ipps) AS ipps, TRIM(ihris_pid) AS ihris_pid, "
             . $dept_col . " AS dept FROM ihrisdata WHERE ihris_pid IS NOT NULL AND TRIM(ihris_pid) <> ''"
         );
-        if ($q && $q->num_rows() > 0) {
-            // Prefer unbuffered iteration when available (CI3) to reduce peak memory
-            $rowFn = method_exists($q, 'unbuffered_row') ? 'unbuffered_row' : null;
-            if ($rowFn) {
-                while ($r = $q->unbuffered_row()) {
-                    $pid = isset($r->ihris_pid) ? trim((string) $r->ihris_pid) : '';
-                    if ($pid === '') {
-                        continue;
-                    }
-                    if (!empty($r->card_number)) {
-                        $this->_index_emp_code_variants($emp_to_pid, (string) $r->card_number, $pid);
-                    }
-                    if (!empty($r->ipps)) {
-                        $this->_index_emp_code_variants($emp_to_pid, (string) $r->ipps, $pid);
-                    }
-                    $idOnly = $this->ihris_person_id_only($pid);
-                    if ($idOnly !== '') {
-                        $this->_index_emp_code_variants($emp_to_pid, $idOnly, $pid);
-                    }
-                    $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
+        if ($q) {
+            foreach ($q->result() as $r) {
+                $pid = isset($r->ihris_pid) ? trim((string) $r->ihris_pid) : '';
+                if ($pid === '') {
+                    continue;
                 }
-            } else {
-                foreach ($q->result() as $r) {
-                    $pid = isset($r->ihris_pid) ? trim((string) $r->ihris_pid) : '';
-                    if ($pid === '') {
-                        continue;
-                    }
-                    if (!empty($r->card_number)) {
-                        $this->_index_emp_code_variants($emp_to_pid, (string) $r->card_number, $pid);
-                    }
-                    if (!empty($r->ipps)) {
-                        $this->_index_emp_code_variants($emp_to_pid, (string) $r->ipps, $pid);
-                    }
-                    $idOnly = $this->ihris_person_id_only($pid);
-                    if ($idOnly !== '') {
-                        $this->_index_emp_code_variants($emp_to_pid, $idOnly, $pid);
-                    }
-                    $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
+                if (!empty($r->card_number)) {
+                    $this->_index_emp_code_variants($emp_to_pid, (string) $r->card_number, $pid);
                 }
+                if (!empty($r->ipps)) {
+                    $this->_index_emp_code_variants($emp_to_pid, (string) $r->ipps, $pid);
+                }
+                $idOnly = $this->ihris_person_id_only($pid);
+                if ($idOnly !== '') {
+                    $this->_index_emp_code_variants($emp_to_pid, $idOnly, $pid);
+                }
+                $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
             }
         }
 
