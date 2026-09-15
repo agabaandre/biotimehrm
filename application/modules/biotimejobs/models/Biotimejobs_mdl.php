@@ -570,7 +570,8 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
-     * Index every emp_code variant under $pid (card / IPPS / person / enrollment aliases).
+     * Index lean keys for a code under $pid: original, normalized, and zero-stripped.
+     * Do NOT pre-pad every width here — lookup expands the punch emp_code instead (much faster).
      *
      * @param array  $emp_to_pid
      * @param string $code
@@ -579,22 +580,25 @@ class Biotimejobs_mdl extends CI_Model
     protected function _index_emp_code_variants(&$emp_to_pid, $code, $pid)
     {
         $pid = trim((string) $pid);
-        if ($pid === '') {
+        $code = trim((string) $code);
+        if ($pid === '' || $code === '') {
             return;
         }
-        foreach ($this->emp_code_variants($code) as $v) {
-            $emp_to_pid[$v] = $pid;
-            $norm = $this->normalize_emp_code($v);
-            if ($norm !== '' && $norm !== $v) {
-                $emp_to_pid[$norm] = $pid;
-            }
+        $emp_to_pid[$code] = $pid;
+        $norm = $this->normalize_emp_code($code);
+        if ($norm !== '' && $norm !== $code) {
+            $emp_to_pid[$norm] = $pid;
+        }
+        $stripped = $this->strip_leading_zeros($code);
+        if ($stripped !== '' && $stripped !== $code && $stripped !== $norm) {
+            $emp_to_pid[$stripped] = $pid;
         }
     }
 
     /**
      * Build emp_code → ihris_pid map for clock-in / attendance.
-     * Keys: card_number, ipps, person emp_code (ihris_pid), plus biotime_enrollment.emp_code,
-     * each expanded with leading-zero variants so 003874135 = 3874135 = 0003874135.
+     * Lean keys only (raw + stripped card/ipps/person). Leading-zero pad variants are
+     * resolved at lookup time from the punch emp_code so map build stays fast.
      * Cached per request so fetch_daily_attendance does not rebuild for every area.
      *
      * @param bool $force Rebuild even if cached
@@ -609,56 +613,55 @@ class Biotimejobs_mdl extends CI_Model
         $emp_to_pid = array();
         $pid_to_department = array();
         $dept_col = $this->db->field_exists('department_id', 'ihrisdata') ? 'department_id' : 'department';
+        // Only columns needed for matching — keep query light
         $q = $this->db->query(
-            "SELECT card_number, ipps, ihris_pid, " . $dept_col . " AS dept FROM ihrisdata"
+            "SELECT TRIM(card_number) AS card_number, TRIM(ipps) AS ipps, TRIM(ihris_pid) AS ihris_pid, "
+            . $dept_col . " AS dept FROM ihrisdata WHERE ihris_pid IS NOT NULL AND TRIM(ihris_pid) <> ''"
         );
         if ($q && $q->num_rows() > 0) {
-            foreach ($q->result() as $r) {
-                $pid = isset($r->ihris_pid) ? trim((string) $r->ihris_pid) : '';
-                if ($pid === '') {
-                    continue;
+            // Prefer unbuffered iteration when available (CI3) to reduce peak memory
+            $rowFn = method_exists($q, 'unbuffered_row') ? 'unbuffered_row' : null;
+            if ($rowFn) {
+                while ($r = $q->unbuffered_row()) {
+                    $pid = isset($r->ihris_pid) ? trim((string) $r->ihris_pid) : '';
+                    if ($pid === '') {
+                        continue;
+                    }
+                    if (!empty($r->card_number)) {
+                        $this->_index_emp_code_variants($emp_to_pid, (string) $r->card_number, $pid);
+                    }
+                    if (!empty($r->ipps)) {
+                        $this->_index_emp_code_variants($emp_to_pid, (string) $r->ipps, $pid);
+                    }
+                    $idOnly = $this->ihris_person_id_only($pid);
+                    if ($idOnly !== '') {
+                        $this->_index_emp_code_variants($emp_to_pid, $idOnly, $pid);
+                    }
+                    $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
                 }
-                if (!empty($r->card_number)) {
-                    $this->_index_emp_code_variants($emp_to_pid, (string) $r->card_number, $pid);
+            } else {
+                foreach ($q->result() as $r) {
+                    $pid = isset($r->ihris_pid) ? trim((string) $r->ihris_pid) : '';
+                    if ($pid === '') {
+                        continue;
+                    }
+                    if (!empty($r->card_number)) {
+                        $this->_index_emp_code_variants($emp_to_pid, (string) $r->card_number, $pid);
+                    }
+                    if (!empty($r->ipps)) {
+                        $this->_index_emp_code_variants($emp_to_pid, (string) $r->ipps, $pid);
+                    }
+                    $idOnly = $this->ihris_person_id_only($pid);
+                    if ($idOnly !== '') {
+                        $this->_index_emp_code_variants($emp_to_pid, $idOnly, $pid);
+                    }
+                    $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
                 }
-                if (!empty($r->ipps)) {
-                    $this->_index_emp_code_variants($emp_to_pid, (string) $r->ipps, $pid);
-                }
-                $idOnly = $this->ihris_person_id_only($pid);
-                if ($idOnly !== '') {
-                    $this->_index_emp_code_variants($emp_to_pid, $idOnly, $pid);
-                }
-                $pid_to_department[$pid] = isset($r->dept) ? $r->dept : null;
             }
         }
 
-        // Enrollment aliases: exact emp_code match only (zero-variants indexed in PHP — avoid slow SQL JOIN)
-        if ($this->db->table_exists('biotime_enrollment')) {
-            $person = $this->sql_person_emp_code('i');
-            $eq = $this->db->query(
-                "SELECT be.emp_code, i.ihris_pid
-                 FROM biotime_enrollment be
-                 INNER JOIN ihrisdata i ON (
-                    be.emp_code = i.card_number
-                    OR be.emp_code = i.ipps
-                    OR be.emp_code = ({$person})
-                    OR i.ihris_pid = CONCAT('person|', be.emp_code)
-                    OR (be.emp_code LIKE '4253%' AND CHAR_LENGTH(be.emp_code) > 4
-                        AND i.ihris_pid = CONCAT('UCMB-person|', SUBSTRING(be.emp_code, 5)))
-                 )
-                 WHERE NULLIF(TRIM(be.emp_code), '') IS NOT NULL
-                   AND NULLIF(TRIM(i.ihris_pid), '') IS NOT NULL"
-            );
-            if ($eq && $eq->num_rows() > 0) {
-                foreach ($eq->result() as $r) {
-                    $this->_index_emp_code_variants(
-                        $emp_to_pid,
-                        (string) $r->emp_code,
-                        (string) $r->ihris_pid
-                    );
-                }
-            }
-        }
+        // Note: biotime_enrollment aliases intentionally omitted here for speed.
+        // Punch matching still covers card / ipps / person id (incl. leading zeros via lookup).
 
         $this->_emp_pid_map_cache = array(
             'emp_to_pid' => $emp_to_pid,

@@ -6132,44 +6132,18 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      * Uses only: fetch_time_history_streaming (model does clock-in/out + night + actuals per batch), then biotimeNightAndActualsOnly (actuals backfill + clear).
      * Does NOT use: biotimeClockin, biotimeClockinRange, biotimeSyncAttendanceUnified, or the old day-by-day fetch_time_history.
      *
-     * CLI examples:
-     *   php index.php biotimejobs/fetch_daily_attendance
-     *   php index.php biotimejobs/fetch_daily_attendance 2026-09-15
-     *   php index.php biotimejobs/fetch_daily_attendance 2026-09-15 365 0 1 2026-09-09
-     *     → end=2026-09-15, max_days=365, no device filter, console on, force start=2026-09-09
-     *
      * @param string|bool $end_date End date in Y-m-d format (default: FALSE = current date)
      * @param int $max_days Maximum number of days to sync per machine (default: 365)
      * @param string|bool $specific_device Specific device SN to sync (default: FALSE = all devices)
      * @param bool $output_console Whether to output console messages (default: true)
-     * @param string|bool $force_start Optional force start date Y-m-d (overrides last_activity per area)
      * @return array Result array with status, message, and statistics per machine
      */
-    public function fetch_daily_attendance($end_date = FALSE, $max_days = 365, $specific_device = FALSE, $output_console = TRUE, $force_start = FALSE)
+    public function fetch_daily_attendance($end_date = FALSE, $max_days = 365, $specific_device = FALSE, $output_console = TRUE)
     {
         ignore_user_abort(true);
         set_time_limit(0);
         ini_set('max_execution_time', 0);
         ini_set('memory_limit', '512M');
-
-        // CLI often passes "0"/"false"/"FALSE" as strings
-        if ($specific_device === '0' || $specific_device === 'false' || $specific_device === 'FALSE') {
-            $specific_device = FALSE;
-        }
-        if ($output_console === '0' || $output_console === 'false' || $output_console === 'FALSE') {
-            $output_console = false;
-        } else {
-            $output_console = true;
-        }
-        if ($force_start === '0' || $force_start === 'false' || $force_start === 'FALSE' || $force_start === '') {
-            $force_start = FALSE;
-        }
-        if (!empty($force_start)) {
-            $force_start = date('Y-m-d', strtotime((string) $force_start));
-            if ($force_start === '1970-01-01' || $force_start === false) {
-                $force_start = FALSE;
-            }
-        }
         
         $result = array(
             'status' => 'error',
@@ -6220,9 +6194,6 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $console("═══════════════════════════════════════════════════════", 'info');
             $console("End Date: $end_date", 'info');
             $console("Max Days Per Area: $max_days", 'info');
-            if (!empty($force_start)) {
-                $console("Force Start Date: $force_start (overrides last_activity)", 'info');
-            }
             if ($specific_device) {
                 $console("Specific Device (filter to its area only): $specific_device", 'info');
             }
@@ -6247,12 +6218,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $console("Found " . $result['machines_total'] . " area(s) to sync (area_name = area_alias in PG)", 'info');
             $console("", 'info');
 
-            // Warm emp map once (reused for all areas) so first area is not silent for minutes
-            $console("Preparing staff emp_code map (once for all areas)…", 'info');
+            // Warm lean emp map once (reused for all areas)
+            $console("Preparing staff lookup map (card/ipps/person, lean)…", 'info');
+            $tMap = microtime(true);
             $mapWarm = $this->biotimejobs_mdl->build_emp_code_to_ihris_pid_map();
             $console(
-                "Emp map ready: " . count($mapWarm['pid_to_department']) . " staff, "
-                . count($mapWarm['emp_to_pid']) . " lookup keys",
+                "Lookup map ready in " . round(microtime(true) - $tMap, 2) . "s: "
+                . count($mapWarm['pid_to_department']) . " staff, "
+                . count($mapWarm['emp_to_pid']) . " keys",
                 'info'
             );
             $console("", 'info');
@@ -6291,9 +6264,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                         $last_activity_date = NULL;
                     }
                     
-                    if (!empty($force_start)) {
-                        $start = $force_start;
-                    } elseif ($last_activity_date) {
+                    if ($last_activity_date) {
                         $start_timestamp = strtotime($last_activity_date . ' -1 day');
                         $start = date('Y-m-d', $start_timestamp);
                     } else {
@@ -6307,8 +6278,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     
                     $last_activity_timestamp = $last_activity_date ? strtotime($last_activity_date) : 0;
                     $end_date_timestamp = strtotime($end_date);
-                    // When force_start is set, always re-sync that range (ignore last_activity skip)
-                    $is_already_synced = empty($force_start) && ($last_activity_timestamp > $end_date_timestamp);
+                    $is_already_synced = $last_activity_timestamp > $end_date_timestamp;
                     
                     $console("Date Range: $start to $end_date ($difference_days days)", 'info');
                     $console("Last Activity: " . ($last_activity ?: 'Never'), 'info');
