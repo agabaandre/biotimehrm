@@ -1594,7 +1594,11 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         }
         $sql = "INSERT INTO clk_log (entry_id, ihris_pid, facility_id, time_in, time_out, date, location, source, facility) VALUES " . implode(', ', $values);
         $sql .= " ON DUPLICATE KEY UPDATE time_in = LEAST(time_in, VALUES(time_in)), time_out = GREATEST(COALESCE(time_out, time_in), COALESCE(VALUES(time_out), VALUES(time_in))), facility_id = IF(VALUES(time_in) < time_in, VALUES(facility_id), facility_id), location = IF(VALUES(time_in) < time_in, VALUES(location), location), facility = IF(VALUES(time_in) < time_in, VALUES(facility), facility), source = 'BIO-TIME'";
-        $this->db->query($sql, $params);
+        if (!$this->db->query($sql, $params)) {
+            $err = $this->db->error();
+            log_message('error', 'clk_log upsert failed: ' . (isset($err['message']) ? $err['message'] : 'unknown') . ' | sql_head=' . substr($sql, 0, 180));
+            throw new Exception('clk_log upsert failed: ' . (isset($err['message']) ? $err['message'] : 'unknown'));
+        }
         return count($rows);
     }
 

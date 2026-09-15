@@ -5286,6 +5286,18 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         // Night correction is applied per-batch in fetch_time_history_with_clocking; no separate night UPDATE here (avoids deadlocks)
 
         $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : 'NULL';
+        // ihrisdata may have department_id, department, or both — never reference a missing column
+        $hasDeptId = $this->db->field_exists('department_id', 'ihrisdata');
+        $hasDept = $this->db->field_exists('department', 'ihrisdata');
+        if ($hasDeptId && $hasDept) {
+            $dept_expr = 'COALESCE(id.department_id, id.department)';
+        } elseif ($hasDeptId) {
+            $dept_expr = 'id.department_id';
+        } elseif ($hasDept) {
+            $dept_expr = 'id.department';
+        } else {
+            $dept_expr = 'NULL';
+        }
         // Debug counters: candidate clock rows vs already-existing actuals vs pending inserts.
         $q1 = $this->db->query("SELECT COUNT(DISTINCT CONCAT(date, ihris_pid)) AS n FROM clk_log WHERE date BETWEEN ? AND ?", [$start_date, $end_date]);
         if ($q1 && $q1->num_rows() > 0) {
@@ -5313,7 +5325,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             SELECT DISTINCT
                 CONCAT(cl.date, id.ihris_pid),
                 cl.facility_id,
-                COALESCE(id.department_id, id.department),
+                {$dept_expr},
                 id.ihris_pid,
                 s.schedule_id,
                 s.color,
