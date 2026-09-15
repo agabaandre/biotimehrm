@@ -5479,13 +5479,24 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         |--------------------------------------------------------------------------
         */
         $stream_col = $this->db->field_exists('source', 'clk_log') ? 'cl.source' : 'NULL';
+        $hasDeptId = $this->db->field_exists('department_id', 'ihrisdata');
+        $hasDept = $this->db->field_exists('department', 'ihrisdata');
+        if ($hasDeptId && $hasDept) {
+            $dept_expr = 'COALESCE(id.department_id, id.department)';
+        } elseif ($hasDeptId) {
+            $dept_expr = 'id.department_id';
+        } elseif ($hasDept) {
+            $dept_expr = 'id.department';
+        } else {
+            $dept_expr = 'NULL';
+        }
         $this->db->trans_start();
         $this->db->query("
             INSERT INTO actuals (entry_id, facility_id, department_id, ihris_pid, schedule_id, color, date, end, stream)
             SELECT DISTINCT
                 CONCAT(cl.date, id.ihris_pid),
                 cl.facility_id,
-                COALESCE(id.department_id, id.department),
+                {$dept_expr},
                 id.ihris_pid,
                 s.schedule_id,
                 s.color,
