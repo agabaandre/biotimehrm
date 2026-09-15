@@ -444,7 +444,7 @@ class Biotimejobs_mdl extends CI_Model
      * Connect to BioTime Postgres using quoted conninfo (safe for @ in password / Biotime_2026).
      * Throws Exception with the real libpq error and target host/db/user (password never logged).
      *
-     * @return resource
+     * @return resource|\PgSql\Connection
      */
     public function pg_connect_biotime()
     {
@@ -460,17 +460,19 @@ class Biotimejobs_mdl extends CI_Model
             $this->pg_escape_conninfo_value($c['user']),
             $this->pg_escape_conninfo_value($c['password'])
         );
-        $conn = @pg_connect($conninfo);
+        $pgWarning = '';
+        set_error_handler(function ($errno, $errstr) use (&$pgWarning) {
+            $pgWarning = (string) $errstr;
+            return true;
+        });
+        $conn = pg_connect($conninfo);
+        restore_error_handler();
         if ($conn) {
             return $conn;
         }
-        $pgErr = '';
-        if (function_exists('pg_last_error')) {
-            $pgErr = (string) @pg_last_error();
-        }
-        if ($pgErr === '') {
+        if ($pgWarning === '') {
             $last = error_get_last();
-            $pgErr = $last ? (string) $last['message'] : 'Unknown (no libpq message)';
+            $pgWarning = $last ? (string) $last['message'] : 'Unknown (pg_connect returned false)';
         }
         throw new Exception(
             'PostgreSQL connection failed'
@@ -478,7 +480,7 @@ class Biotimejobs_mdl extends CI_Model
             . ' port=' . $c['port']
             . ' dbname=' . $c['dbname']
             . ' user=' . $c['user']
-            . ' error=' . $pgErr
+            . ' error=' . $pgWarning
         );
     }
 
