@@ -409,6 +409,80 @@ class Biotimejobs_mdl extends CI_Model
     }
 
     /**
+     * Escape a value for libpq keyword/value conninfo (passwords with @, mixed-case db names).
+     */
+    protected function pg_escape_conninfo_value($value)
+    {
+        $value = (string) $value;
+        return "'" . str_replace(array('\\', "'"), array('\\\\', "\\'"), $value) . "'";
+    }
+
+    /**
+     * Read BioTime Postgres settings from .env (with safe defaults).
+     *
+     * @return array{host:string,port:string,dbname:string,user:string,password:string}
+     */
+    public function pg_connection_config()
+    {
+        $get = function ($key, $default) {
+            if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
+                return (string) $_ENV[$key];
+            }
+            $v = getenv($key);
+            return ($v !== false && $v !== '') ? (string) $v : $default;
+        };
+        return array(
+            'host' => $get('PG_DB_HOST', '172.27.1.101'),
+            'port' => $get('PG_PORT', '7496'),
+            'dbname' => $get('PG_DB_NAME', 'biotime'),
+            'user' => $get('PG_USER', 'postgres'),
+            'password' => $get('PG_PASS', 'attendee@2020'),
+        );
+    }
+
+    /**
+     * Connect to BioTime Postgres using quoted conninfo (safe for @ in password / Biotime_2026).
+     * Throws Exception with the real libpq error and target host/db/user (password never logged).
+     *
+     * @return resource
+     */
+    public function pg_connect_biotime()
+    {
+        if (!function_exists('pg_connect')) {
+            throw new Exception('PHP pgsql extension is not loaded');
+        }
+        $c = $this->pg_connection_config();
+        $conninfo = sprintf(
+            'host=%s port=%s dbname=%s user=%s password=%s connect_timeout=10',
+            $this->pg_escape_conninfo_value($c['host']),
+            $this->pg_escape_conninfo_value($c['port']),
+            $this->pg_escape_conninfo_value($c['dbname']),
+            $this->pg_escape_conninfo_value($c['user']),
+            $this->pg_escape_conninfo_value($c['password'])
+        );
+        $conn = @pg_connect($conninfo);
+        if ($conn) {
+            return $conn;
+        }
+        $pgErr = '';
+        if (function_exists('pg_last_error')) {
+            $pgErr = (string) @pg_last_error();
+        }
+        if ($pgErr === '') {
+            $last = error_get_last();
+            $pgErr = $last ? (string) $last['message'] : 'Unknown (no libpq message)';
+        }
+        throw new Exception(
+            'PostgreSQL connection failed'
+            . ' host=' . $c['host']
+            . ' port=' . $c['port']
+            . ' dbname=' . $c['dbname']
+            . ' user=' . $c['user']
+            . ' error=' . $pgErr
+        );
+    }
+
+    /**
      * Normalize employee codes for robust matching between BioTime and iHRIS.
      * Handles whitespace/case/noise differences without changing source data.
      */
@@ -893,12 +967,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
 {
     // PostgreSQL connection details
     $batch_size = 500;
-    $pg_conn = pg_connect("host=172.27.1.101 port=7496 dbname=biotime user=postgres password=attendee@2020");
-
-    // Check PostgreSQL connection
-    if (!$pg_conn) {
-        throw new Exception("Connection to PostgreSQL failed!");
-    }
+    $pg_conn = $this->pg_connect_biotime();
 
     // Build dynamic conditions for the query
     $conditions = "DATE_TRUNC('day', punch_time) = '$date'"; // Fixed date condition
@@ -1010,25 +1079,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 $this->db->delete('biotime_data');
             }
 
-            // Get PostgreSQL connection details from environment or use defaults
-            // Try $_ENV first, then getenv() as fallback
-            $pg_host = isset($_ENV['PG_DB_HOST']) ? $_ENV['PG_DB_HOST'] : (getenv('PG_DB_HOST') ?: '172.27.1.101');
-            $pg_port = isset($_ENV['PG_PORT']) ? $_ENV['PG_PORT'] : (getenv('PG_PORT') ?: '7496');
-            $pg_db = isset($_ENV['PG_DB_NAME']) ? $_ENV['PG_DB_NAME'] : (getenv('PG_DB_NAME') ?: 'biotime');
-            $pg_user = isset($_ENV['PG_USER']) ? $_ENV['PG_USER'] : (getenv('PG_USER') ?: 'postgres');
-            $pg_pass = isset($_ENV['PG_PASS']) ? $_ENV['PG_PASS'] : (getenv('PG_PASS') ?: 'attendee@2020');
-            
-            // Build connection string (pg_connect handles escaping internally)
-            $pg_conn_string = "host=$pg_host port=$pg_port dbname=$pg_db user=$pg_user password=$pg_pass connect_timeout=10";
-            
-            // Connect to PostgreSQL
-            $pg_conn = @pg_connect($pg_conn_string);
-            
-            if (!$pg_conn) {
-                $error = error_get_last();
-                $error_msg = $error ? $error['message'] : 'Unknown connection error';
-                throw new Exception("Connection to PostgreSQL failed! Host: $pg_host, Port: $pg_port, DB: $pg_db. Error: $error_msg");
-            }
+            $pg_conn = $this->pg_connect_biotime();
             
             // Build query conditions
             $conditions = "punch_time >= '$start_date' AND punch_time <= '$end_date'";
@@ -1201,17 +1252,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         try {
             // Not writing to biotime_data; no delete needed. Data goes to biotime_data_history for archiving.
 
-            $pg_host = isset($_ENV['PG_DB_HOST']) ? $_ENV['PG_DB_HOST'] : (getenv('PG_DB_HOST') ?: '172.27.1.101');
-            $pg_port = isset($_ENV['PG_PORT']) ? $_ENV['PG_PORT'] : (getenv('PG_PORT') ?: '7496');
-            $pg_db   = isset($_ENV['PG_DB_NAME']) ? $_ENV['PG_DB_NAME'] : (getenv('PG_DB_NAME') ?: 'biotime');
-            $pg_user = isset($_ENV['PG_USER']) ? $_ENV['PG_USER'] : (getenv('PG_USER') ?: 'postgres');
-            $pg_pass = isset($_ENV['PG_PASS']) ? $_ENV['PG_PASS'] : (getenv('PG_PASS') ?: 'attendee@2020');
-            $pg_conn_string = "host=$pg_host port=$pg_port dbname=$pg_db user=$pg_user password=$pg_pass connect_timeout=10";
-            $pg_conn = @pg_connect($pg_conn_string);
-            if (!$pg_conn) {
-                $err = error_get_last();
-                throw new Exception("PostgreSQL connection failed: " . ($err ? $err['message'] : 'Unknown'));
-            }
+            $pg_conn = $this->pg_connect_biotime();
 
             $t0 = microtime(true);
             $conditions = "punch_time >= '$start_date' AND punch_time <= '$end_date'";

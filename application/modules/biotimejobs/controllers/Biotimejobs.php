@@ -5746,6 +5746,39 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $this->db->replace("cronjob_register", $data);
     }
     /**
+     * CLI: test BioTime Postgres connection using current .env (no password printed).
+     * Usage: php index.php biotimejobs/test_pg_connection
+     */
+    public function test_pg_connection()
+    {
+        $cfg = $this->biotimejobs_mdl->pg_connection_config();
+        echo "PG target: host={$cfg['host']} port={$cfg['port']} dbname={$cfg['dbname']} user={$cfg['user']}\n";
+        echo "password_len=" . strlen($cfg['password']) . " (value hidden)\n";
+        try {
+            $conn = $this->biotimejobs_mdl->pg_connect_biotime();
+            $r = pg_query($conn, 'SELECT current_database() AS db, current_user AS usr, version() AS ver');
+            $row = $r ? pg_fetch_assoc($r) : null;
+            pg_close($conn);
+            echo "OK connected\n";
+            if ($row) {
+                echo "current_database={$row['db']}\n";
+                echo "current_user={$row['usr']}\n";
+                echo "version=" . substr($row['ver'], 0, 80) . "\n";
+            }
+            // Confirm punch table exists in this DB
+            $conn2 = $this->biotimejobs_mdl->pg_connect_biotime();
+            $t = pg_query($conn2, "SELECT COUNT(*) AS n FROM information_schema.tables WHERE table_name = 'iclock_transaction'");
+            $tr = $t ? pg_fetch_assoc($t) : null;
+            pg_close($conn2);
+            echo "iclock_transaction_present=" . (($tr && (int) $tr['n'] > 0) ? 'yes' : 'no') . "\n";
+        } catch (Exception $e) {
+            echo "FAIL: " . $e->getMessage() . "\n";
+            echo "Tip: quote password in .env as PG_PASS=\"Admin@moh@2026\"\n";
+            echo "Tip: dbname must match exactly (Biotime_2026 vs biotime_2026)\n";
+        }
+    }
+
+    /**
      * Fetch time history with streaming: clock-in/clock-out merged into clk_log per batch as we fetch.
      * One call per device for the full range; no separate aggregation step. Run biotimeNightAndActualsOnly after all devices.
      *
