@@ -6151,22 +6151,127 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
+     * CLI: set biotime_devices.last_activity so the next fetch_daily_attendance
+     * backfills from a given date (inclusive).
+     *
+     * fetch_daily_attendance starts at (last_activity date − 1 day), so this job
+     * stores last_activity = $from_date + 1 day → sync begins on $from_date.
+     *
+     * Usage:
+     *   php index.php biotimejobs/set_last_activity 2026-09-01
+     *   php index.php biotimejobs/set_last_activity 2026-09-01 "ARUA Regional Referral"
+     *
+     * @param string      $from_date Sync-from date Y-m-d (required)
+     * @param string|bool $area_name Optional area_name filter (false/0/all = every device)
+     */
+    public function set_last_activity($from_date = FALSE, $area_name = FALSE)
+    {
+        if (empty($from_date) || $from_date === '0' || $from_date === 'false' || $from_date === 'FALSE') {
+            echo "Usage: php index.php biotimejobs/set_last_activity YYYY-MM-DD [area_name|all]\n";
+            echo "Example: php index.php biotimejobs/set_last_activity 2026-09-01\n";
+            echo "Then:    php index.php biotimejobs/fetch_daily_attendance\n";
+            return;
+        }
+
+        $from = date('Y-m-d', strtotime((string) $from_date));
+        if ($from === '1970-01-01' || $from === false) {
+            echo "Invalid date: {$from_date} (expected YYYY-MM-DD)\n";
+            return;
+        }
+
+        // last_activity is stored as from+1 day so fetch start = last_activity − 1 day = $from
+        $last_activity = date('Y-m-d H:i:s', strtotime($from . ' +1 day'));
+
+        if ($area_name === '0' || $area_name === 'false' || $area_name === 'FALSE'
+            || $area_name === 'all' || $area_name === 'ALL' || $area_name === '') {
+            $area_name = FALSE;
+        }
+
+        $before = $this->db->query(
+            "SELECT area_name, COUNT(*) AS devices, MIN(last_activity) AS min_la, MAX(last_activity) AS max_la
+             FROM biotime_devices
+             " . ($area_name ? "WHERE area_name = " . $this->db->escape($area_name) : "") . "
+             GROUP BY area_name
+             ORDER BY area_name"
+        );
+
+        if ($area_name) {
+            $this->db->where('area_name', $area_name);
+        }
+        $this->db->update('biotime_devices', array('last_activity' => $last_activity));
+        $affected = $this->db->affected_rows();
+
+        echo "═══════════════════════════════════════════════════════\n";
+        echo " SET DEVICE last_activity (backfill cursor)\n";
+        echo "═══════════════════════════════════════════════════════\n";
+        echo "Sync from (inclusive): {$from}\n";
+        echo "last_activity set to:  {$last_activity}\n";
+        echo "Area filter:           " . ($area_name ? $area_name : 'ALL devices') . "\n";
+        echo "Rows updated:          {$affected}\n";
+        echo "\n";
+
+        if ($before && $before->num_rows() > 0) {
+            echo "Areas touched:\n";
+            foreach ($before->result() as $r) {
+                echo "  - {$r->area_name} ({$r->devices} device(s))"
+                    . " was min={$r->min_la} max={$r->max_la}\n";
+            }
+            echo "\n";
+        }
+
+        echo "Next: php index.php biotimejobs/fetch_daily_attendance\n";
+        echo "  (or with end date) php index.php biotimejobs/fetch_daily_attendance " . date('Y-m-d') . "\n";
+        $this->log("set_last_activity from={$from} last_activity={$last_activity} area="
+            . ($area_name ? $area_name : 'ALL') . " rows={$affected}");
+    }
+
+    /**
      * Fetch daily attendance for all machines (canonical daily sync).
      * Uses only: fetch_time_history_streaming (model does clock-in/out + night + actuals per batch), then biotimeNightAndActualsOnly (actuals backfill + clear).
      * Does NOT use: biotimeClockin, biotimeClockinRange, biotimeSyncAttendanceUnified, or the old day-by-day fetch_time_history.
+     *
+     * CLI examples:
+     *   php index.php biotimejobs/fetch_daily_attendance
+     *   php index.php biotimejobs/fetch_daily_attendance 2026-09-15
+     *   php index.php biotimejobs/fetch_daily_attendance 2026-09-15 365 0 1 2026-09-09
+     *     → end=2026-09-15, max_days=365, all devices, console on, force start=2026-09-09
      *
      * @param string|bool $end_date End date in Y-m-d format (default: FALSE = current date)
      * @param int $max_days Maximum number of days to sync per machine (default: 365)
      * @param string|bool $specific_device Specific device SN to sync (default: FALSE = all devices)
      * @param bool $output_console Whether to output console messages (default: true)
+     * @param string|bool $force_start Optional force start Y-m-d (overrides last_activity per area)
      * @return array Result array with status, message, and statistics per machine
      */
-    public function fetch_daily_attendance($end_date = FALSE, $max_days = 365, $specific_device = FALSE, $output_console = TRUE)
+    public function fetch_daily_attendance($end_date = FALSE, $max_days = 365, $specific_device = FALSE, $output_console = TRUE, $force_start = FALSE)
     {
         ignore_user_abort(true);
         set_time_limit(0);
         ini_set('max_execution_time', 0);
         ini_set('memory_limit', '512M');
+
+        // CLI often passes "0"/"false" as strings
+        if ($specific_device === '0' || $specific_device === 'false' || $specific_device === 'FALSE' || $specific_device === '') {
+            $specific_device = FALSE;
+        }
+        if ($output_console === '0' || $output_console === 'false' || $output_console === 'FALSE') {
+            $output_console = false;
+        } else {
+            $output_console = true;
+        }
+        if ($force_start === '0' || $force_start === 'false' || $force_start === 'FALSE' || $force_start === '') {
+            $force_start = FALSE;
+        }
+        if (!empty($force_start)) {
+            $force_start = date('Y-m-d', strtotime((string) $force_start));
+            if ($force_start === '1970-01-01' || $force_start === false) {
+                $force_start = FALSE;
+            }
+        }
+        $max_days = (int) $max_days;
+        if ($max_days < 1) {
+            $max_days = 365;
+        }
         
         $result = array(
             'status' => 'error',
@@ -6208,8 +6313,13 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         
         try {
             // Set end date
-            if (empty($end_date)) {
-        $end_date = date('Y-m-d');
+            if (empty($end_date) || $end_date === '0' || $end_date === 'false' || $end_date === 'FALSE') {
+                $end_date = date('Y-m-d');
+            } else {
+                $end_date = date('Y-m-d', strtotime((string) $end_date));
+                if ($end_date === '1970-01-01' || $end_date === false) {
+                    $end_date = date('Y-m-d');
+                }
             }
             
             $console("═══════════════════════════════════════════════════════", 'info');
@@ -6217,6 +6327,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $console("═══════════════════════════════════════════════════════", 'info');
             $console("End Date: $end_date", 'info');
             $console("Max Days Per Area: $max_days", 'info');
+            if (!empty($force_start)) {
+                $console("Force Start: $force_start (overrides last_activity)", 'info');
+            }
             if ($specific_device) {
                 $console("Specific Device (filter to its area only): $specific_device", 'info');
             }
@@ -6287,7 +6400,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                         $last_activity_date = NULL;
                     }
                     
-                    if ($last_activity_date) {
+                    if (!empty($force_start)) {
+                        $start = $force_start;
+                    } elseif ($last_activity_date) {
                         $start_timestamp = strtotime($last_activity_date . ' -1 day');
                         $start = date('Y-m-d', $start_timestamp);
                     } else {
@@ -6301,7 +6416,8 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                     
                     $last_activity_timestamp = $last_activity_date ? strtotime($last_activity_date) : 0;
                     $end_date_timestamp = strtotime($end_date);
-                    $is_already_synced = $last_activity_timestamp > $end_date_timestamp;
+                    // When force_start is set, never skip as "already up to date"
+                    $is_already_synced = empty($force_start) && ($last_activity_timestamp > $end_date_timestamp);
                     
                     $console("Date Range: $start to $end_date ($difference_days days)", 'info');
                     $console("Last Activity: " . ($last_activity ?: 'Never'), 'info');
