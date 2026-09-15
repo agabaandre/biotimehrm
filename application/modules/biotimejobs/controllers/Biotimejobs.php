@@ -5746,12 +5746,15 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         $this->db->replace("cronjob_register", $data);
     }
     /**
-     * CLI: test BioTime Postgres connection using current .env (no password printed).
-     * Usage: php index.php biotimejobs/test_pg_connection
+     * CLI: test BioTime Postgres using ONLY current .env values (no alternate db names).
+     * Usage:
+     *   php index.php biotimejobs/test_pg_connection
+     *   php index.php biotimejobs/test_pg_connection all   # also try alternate db names
+     *
+     * @param string $mode omit or "env" = .env only; "all" = try common alternate db names too
      */
-    public function test_pg_connection()
+    public function test_pg_connection($mode = 'env')
     {
-        // Force visible diagnostics even when APP_ENV=production
         @ini_set('display_errors', '1');
         @error_reporting(E_ALL);
 
@@ -5776,11 +5779,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             return;
         }
 
-        $out("PG target: host={$cfg['host']} port={$cfg['port']} dbname={$cfg['dbname']} user={$cfg['user']}");
-        $out('password_len=' . strlen($cfg['password']) . ' (value hidden)');
-        $out('step=connecting…');
+        $out('Using .env values only' . (strtolower((string) $mode) === 'all' ? ' (+ alternate db probe)' : ''));
+        $out("PG_DB_HOST={$cfg['host']}");
+        $out("PG_PORT={$cfg['port']}");
+        $out("PG_DB_NAME={$cfg['dbname']}");
+        $out("PG_USER={$cfg['user']}");
+        $out('PG_PASS length=' . strlen($cfg['password']) . ' (hidden)');
+        $out('step=connecting with .env PG_DB_NAME…');
 
-        // Build quoted conninfo here so we can show the exact error even if model helper fails
         $esc = function ($v) {
             return "'" . str_replace(array('\\', "'"), array('\\\\', "\\'"), (string) $v) . "'";
         };
@@ -5817,12 +5823,14 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
 
         try {
             $primaryOk = $tryConnect($cfg['dbname']);
-            // Compare common alternate names to diagnose case / wrong DB
-            foreach (array('Biotime_2026', 'biotime_2026', 'biotime', 'Biotime') as $alt) {
-                if (strcasecmp($alt, $cfg['dbname']) === 0) {
-                    continue;
+
+            if (strtolower((string) $mode) === 'all') {
+                foreach (array('Biotime_2026', 'biotime_2026', 'biotime', 'Biotime') as $alt) {
+                    if (strcasecmp($alt, $cfg['dbname']) === 0) {
+                        continue;
+                    }
+                    $tryConnect($alt);
                 }
-                $tryConnect($alt);
             }
 
             if ($primaryOk) {
@@ -5832,8 +5840,9 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 $out('iclock_transaction_present=' . (($tr && (int) $tr['n'] > 0) ? 'yes' : 'no'));
                 @pg_close($conn);
             } else {
-                $out('Tip: set PG_DB_NAME to a dbname that printed OK above (exact case)');
-                $out('Tip: quote special chars in .env, e.g. PG_PASS="your-password"');
+                $out('Tip: fix PG_* in .env to match a reachable database');
+                $out('Tip: quote special chars: PG_PASS="your-password"');
+                $out('Tip: probe alternates with: php index.php biotimejobs/test_pg_connection all');
             }
         } catch (\Throwable $e) {
             $out('FAIL: ' . $e->getMessage());
@@ -6207,6 +6216,16 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $sync_date_range_start = null;
             
             $console("Found " . $result['machines_total'] . " area(s) to sync (area_name = area_alias in PG)", 'info');
+            $console("", 'info');
+
+            // Warm emp map once (reused for all areas) so first area is not silent for minutes
+            $console("Preparing staff emp_code map (once for all areas)…", 'info');
+            $mapWarm = $this->biotimejobs_mdl->build_emp_code_to_ihris_pid_map();
+            $console(
+                "Emp map ready: " . count($mapWarm['pid_to_department']) . " staff, "
+                . count($mapWarm['emp_to_pid']) . " lookup keys",
+                'info'
+            );
             $console("", 'info');
             
             foreach ($areas as $area_index => $area_row) {

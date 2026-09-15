@@ -6,6 +6,9 @@ class Biotimejobs_mdl extends CI_Model
 {
     protected $facility;
 
+    /** @var array|null Cached emp_code → ihris_pid map for this request */
+    protected $_emp_pid_map_cache = null;
+
     public  function __construct()
     {
         parent::__construct();
@@ -592,11 +595,17 @@ class Biotimejobs_mdl extends CI_Model
      * Build emp_code → ihris_pid map for clock-in / attendance.
      * Keys: card_number, ipps, person emp_code (ihris_pid), plus biotime_enrollment.emp_code,
      * each expanded with leading-zero variants so 003874135 = 3874135 = 0003874135.
+     * Cached per request so fetch_daily_attendance does not rebuild for every area.
      *
+     * @param bool $force Rebuild even if cached
      * @return array{emp_to_pid: array, pid_to_department: array}
      */
-    public function build_emp_code_to_ihris_pid_map()
+    public function build_emp_code_to_ihris_pid_map($force = false)
     {
+        if (!$force && is_array($this->_emp_pid_map_cache)) {
+            return $this->_emp_pid_map_cache;
+        }
+
         $emp_to_pid = array();
         $pid_to_department = array();
         $dept_col = $this->db->field_exists('department_id', 'ihrisdata') ? 'department_id' : 'department';
@@ -623,13 +632,20 @@ class Biotimejobs_mdl extends CI_Model
             }
         }
 
-        // Enrollment emp_code may differ from current card (legacy) — still map punches.
+        // Enrollment aliases: exact emp_code match only (zero-variants indexed in PHP — avoid slow SQL JOIN)
         if ($this->db->table_exists('biotime_enrollment')) {
-            $on = $this->sql_enrollment_to_ihris_on('be', 'i');
+            $person = $this->sql_person_emp_code('i');
             $eq = $this->db->query(
                 "SELECT be.emp_code, i.ihris_pid
                  FROM biotime_enrollment be
-                 INNER JOIN ihrisdata i ON {$on}
+                 INNER JOIN ihrisdata i ON (
+                    be.emp_code = i.card_number
+                    OR be.emp_code = i.ipps
+                    OR be.emp_code = ({$person})
+                    OR i.ihris_pid = CONCAT('person|', be.emp_code)
+                    OR (be.emp_code LIKE '4253%' AND CHAR_LENGTH(be.emp_code) > 4
+                        AND i.ihris_pid = CONCAT('UCMB-person|', SUBSTRING(be.emp_code, 5)))
+                 )
                  WHERE NULLIF(TRIM(be.emp_code), '') IS NOT NULL
                    AND NULLIF(TRIM(i.ihris_pid), '') IS NOT NULL"
             );
@@ -644,10 +660,11 @@ class Biotimejobs_mdl extends CI_Model
             }
         }
 
-        return array(
+        $this->_emp_pid_map_cache = array(
             'emp_to_pid' => $emp_to_pid,
             'pid_to_department' => $pid_to_department,
         );
+        return $this->_emp_pid_map_cache;
     }
 
     /**
@@ -1250,42 +1267,34 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             )
         );
         $time_total_start = microtime(true);
+        $cli = (php_sapi_name() === 'cli');
+        $progress = function ($msg) use ($cli) {
+            if ($cli) {
+                echo '[' . date('Y-m-d H:i:s') . "] → $msg\n";
+                if (ob_get_level() > 0) {
+                    @ob_flush();
+                }
+                @flush();
+            }
+        };
 
         try {
             // Not writing to biotime_data; no delete needed. Data goes to biotime_data_history for archiving.
 
+            $progress('Connecting to BioTime Postgres (.env)…');
             $pg_conn = $this->pg_connect_biotime();
+            @pg_query($pg_conn, "SET statement_timeout = '180000'");
 
-            $t0 = microtime(true);
-            $conditions = "punch_time >= '$start_date' AND punch_time <= '$end_date'";
-            if (!empty($area_alias)) {
-                $conditions .= " AND area_alias = '" . pg_escape_string($pg_conn, $area_alias) . "'";
-            }
-            if (!empty($empcode)) {
-                $conditions .= " AND emp_code = '" . pg_escape_string($pg_conn, $empcode) . "'";
-            }
-            $pg_result = pg_query($pg_conn, "SELECT emp_code, terminal_sn, area_alias, punch_time FROM iclock_transaction WHERE $conditions ORDER BY punch_time ASC");
-            if (!$pg_result) {
-                throw new Exception("PostgreSQL query failed: " . pg_last_error($pg_conn));
-            }
-            $total_rows = pg_num_rows($pg_result);
-            $result['timing']['pg_query_s'] = round(microtime(true) - $t0, 3);
-            $result['records_fetched'] = $total_rows;
-            if ($total_rows == 0) {
-                pg_close($pg_conn);
-                $result['status'] = 'success';
-                $result['message'] = 'No records for range';
-                $result['timing']['total_s'] = round(microtime(true) - $time_total_start, 3);
-                return $result;
-            }
-
+            // Build emp map BEFORE the PG punch scan (cached across areas in this request)
+            $progress('Building emp_code map (card/ipps/person)…');
             $t1 = microtime(true);
-            // Map punches via card_number, ipps, and ihris person emp_code (leading zeros ignored)
             $maps = $this->build_emp_code_to_ihris_pid_map();
             $emp_to_pid = $maps['emp_to_pid'];
             $pid_to_department = $maps['pid_to_department'];
             $result['debug']['lookup_ihris_rows'] = count($pid_to_department);
             $result['debug']['lookup_emp_map_keys'] = count($emp_to_pid);
+            $progress('Emp map ready: ' . count($pid_to_department) . ' staff, ' . count($emp_to_pid) . ' keys');
+
             $devices = array();
             $has_night_col = $this->db->field_exists('has_night', 'biotime_devices');
             $q2 = $this->db->query("SELECT sn, area_code, area_name" . ($has_night_col ? ", COALESCE(has_night, 0) AS has_night" : "") . " FROM biotime_devices");
@@ -1323,6 +1332,33 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             }
             $result['timing']['lookups_s'] = round(microtime(true) - $t1, 3);
 
+            $conditions = "punch_time >= '$start_date' AND punch_time <= '$end_date'";
+            if (!empty($area_alias)) {
+                $conditions .= " AND area_alias = '" . pg_escape_string($pg_conn, $area_alias) . "'";
+            }
+            if (!empty($empcode)) {
+                $conditions .= " AND emp_code = '" . pg_escape_string($pg_conn, $empcode) . "'";
+            }
+
+            $progress('Counting punches' . ($area_alias ? " for area \"$area_alias\"" : '') . '…');
+            $t0 = microtime(true);
+            $count_res = pg_query($pg_conn, "SELECT COUNT(*) AS n FROM iclock_transaction WHERE $conditions");
+            if (!$count_res) {
+                throw new Exception("PostgreSQL count failed: " . pg_last_error($pg_conn));
+            }
+            $count_row = pg_fetch_assoc($count_res);
+            $total_rows = $count_row ? (int) $count_row['n'] : 0;
+            $result['timing']['pg_query_s'] = round(microtime(true) - $t0, 3);
+            $result['records_fetched'] = $total_rows;
+            $progress("Punch count: $total_rows (count took " . $result['timing']['pg_query_s'] . 's)');
+            if ($total_rows == 0) {
+                pg_close($pg_conn);
+                $result['status'] = 'success';
+                $result['message'] = 'No records for range';
+                $result['timing']['total_s'] = round(microtime(true) - $time_total_start, 3);
+                return $result;
+            }
+
             $batch = array();
             $inserted_count = 0;
             $clock_merged = 0;
@@ -1336,8 +1372,30 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             $time_night = 0;
             $night_every_n = 5;
             $night_pending_times = array();
+            $page_size = 1000;
+            $offset = 0;
+            $fetched_so_far = 0;
+
+            while ($offset < $total_rows) {
+                $progress("Fetching punches offset=$offset / $total_rows…");
+                $tq = microtime(true);
+                $pg_result = pg_query(
+                    $pg_conn,
+                    "SELECT emp_code, terminal_sn, area_alias, punch_time
+                     FROM iclock_transaction
+                     WHERE $conditions
+                     ORDER BY punch_time ASC
+                     LIMIT $page_size OFFSET $offset"
+                );
+                if (!$pg_result) {
+                    throw new Exception("PostgreSQL query failed: " . pg_last_error($pg_conn));
+                }
+                $result['timing']['pg_query_s'] += round(microtime(true) - $tq, 3);
+                $page_rows = 0;
 
             while ($row = pg_fetch_assoc($pg_result)) {
+                $page_rows++;
+                $fetched_so_far++;
                 $datetime = date("Y-m-d H:i:s", strtotime($row['punch_time']));
                 $emp_code = isset($row['emp_code']) ? $row['emp_code'] : '';
                 $area_name = isset($row['area_alias']) ? $row['area_alias'] : '';
@@ -1408,6 +1466,13 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                     $batch = array();
                 }
             }
+                pg_free_result($pg_result);
+                if ($page_rows === 0) {
+                    break;
+                }
+                $offset += $page_size;
+            }
+            $progress("Processed $fetched_so_far punch rows");
 
             if (!empty($batch)) {
                 $this->db->trans_start();
