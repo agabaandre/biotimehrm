@@ -5751,30 +5751,91 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      */
     public function test_pg_connection()
     {
-        $cfg = $this->biotimejobs_mdl->pg_connection_config();
-        echo "PG target: host={$cfg['host']} port={$cfg['port']} dbname={$cfg['dbname']} user={$cfg['user']}\n";
-        echo "password_len=" . strlen($cfg['password']) . " (value hidden)\n";
-        try {
-            $conn = $this->biotimejobs_mdl->pg_connect_biotime();
-            $r = pg_query($conn, 'SELECT current_database() AS db, current_user AS usr, version() AS ver');
-            $row = $r ? pg_fetch_assoc($r) : null;
-            pg_close($conn);
-            echo "OK connected\n";
-            if ($row) {
-                echo "current_database={$row['db']}\n";
-                echo "current_user={$row['usr']}\n";
-                echo "version=" . substr($row['ver'], 0, 80) . "\n";
+        // Force visible diagnostics even when APP_ENV=production
+        @ini_set('display_errors', '1');
+        @error_reporting(E_ALL);
+
+        $out = function ($msg) {
+            echo $msg . "\n";
+            if (ob_get_level() > 0) {
+                @ob_flush();
             }
-            // Confirm punch table exists in this DB
-            $conn2 = $this->biotimejobs_mdl->pg_connect_biotime();
-            $t = pg_query($conn2, "SELECT COUNT(*) AS n FROM information_schema.tables WHERE table_name = 'iclock_transaction'");
-            $tr = $t ? pg_fetch_assoc($t) : null;
-            pg_close($conn2);
-            echo "iclock_transaction_present=" . (($tr && (int) $tr['n'] > 0) ? 'yes' : 'no') . "\n";
-        } catch (Exception $e) {
-            echo "FAIL: " . $e->getMessage() . "\n";
-            echo "Tip: quote password in .env as PG_PASS=\"Admin@moh@2026\"\n";
-            echo "Tip: dbname must match exactly (Biotime_2026 vs biotime_2026)\n";
+            @flush();
+        };
+
+        $out('pgsql_extension=' . (function_exists('pg_connect') ? 'yes' : 'NO — install php-pgsql'));
+        if (!function_exists('pg_connect')) {
+            $out('FAIL: PHP pgsql extension missing');
+            return;
+        }
+
+        try {
+            $cfg = $this->biotimejobs_mdl->pg_connection_config();
+        } catch (\Throwable $e) {
+            $out('FAIL reading config: ' . $e->getMessage());
+            return;
+        }
+
+        $out("PG target: host={$cfg['host']} port={$cfg['port']} dbname={$cfg['dbname']} user={$cfg['user']}");
+        $out('password_len=' . strlen($cfg['password']) . ' (value hidden)');
+        $out('step=connecting…');
+
+        // Build quoted conninfo here so we can show the exact error even if model helper fails
+        $esc = function ($v) {
+            return "'" . str_replace(array('\\', "'"), array('\\\\', "\\'"), (string) $v) . "'";
+        };
+        $tryConnect = function ($dbname) use ($cfg, $esc, $out) {
+            $conninfo = sprintf(
+                'host=%s port=%s dbname=%s user=%s password=%s connect_timeout=10',
+                $esc($cfg['host']),
+                $esc($cfg['port']),
+                $esc($dbname),
+                $esc($cfg['user']),
+                $esc($cfg['password'])
+            );
+            $conn = @pg_connect($conninfo);
+            if ($conn) {
+                $r = @pg_query($conn, 'SELECT current_database() AS db');
+                $row = $r ? pg_fetch_assoc($r) : null;
+                $out("OK dbname={$dbname} current_database=" . ($row ? $row['db'] : '?'));
+                @pg_close($conn);
+                return true;
+            }
+            $err = '';
+            if (function_exists('pg_last_error')) {
+                $err = (string) @pg_last_error();
+            }
+            if ($err === '') {
+                $last = error_get_last();
+                $err = $last ? (string) $last['message'] : 'no libpq message';
+            }
+            $out("FAIL dbname={$dbname} error={$err}");
+            return false;
+        };
+
+        try {
+            $primaryOk = $tryConnect($cfg['dbname']);
+            // Compare common alternate names to diagnose case / wrong DB
+            foreach (array('Biotime_2026', 'biotime_2026', 'biotime', 'Biotime') as $alt) {
+                if (strcasecmp($alt, $cfg['dbname']) === 0) {
+                    continue;
+                }
+                $tryConnect($alt);
+            }
+
+            if ($primaryOk) {
+                $conn = $this->biotimejobs_mdl->pg_connect_biotime();
+                $t = pg_query($conn, "SELECT COUNT(*) AS n FROM information_schema.tables WHERE table_name = 'iclock_transaction'");
+                $tr = $t ? pg_fetch_assoc($t) : null;
+                $out('iclock_transaction_present=' . (($tr && (int) $tr['n'] > 0) ? 'yes' : 'no'));
+                @pg_close($conn);
+            } else {
+                $out('Tip: set PG_DB_NAME to a dbname that printed OK above');
+                $out('Tip: quote password in .env: PG_PASS="Admin@moh@2026"');
+            }
+        } catch (\Throwable $e) {
+            $out('FAIL: ' . $e->getMessage());
+            $out('at ' . $e->getFile() . ':' . $e->getLine());
         }
     }
 
