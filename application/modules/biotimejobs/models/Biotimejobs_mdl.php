@@ -434,7 +434,7 @@ class Biotimejobs_mdl extends CI_Model
         return array(
             'host' => $get('PG_DB_HOST', '172.27.1.101'),
             'port' => $get('PG_PORT', '7496'),
-            'dbname' => $get('PG_DB_NAME', 'biotime'),
+            'dbname' => $get('PG_DB_NAME', 'Biotime_2026'),
             'user' => $get('PG_USER', 'postgres'),
             'password' => $get('PG_PASS', 'attendee@2020'),
         );
