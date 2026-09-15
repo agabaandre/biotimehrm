@@ -5793,7 +5793,13 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 $esc($cfg['user']),
                 $esc($cfg['password'])
             );
-            $conn = @pg_connect($conninfo);
+            $pgWarning = '';
+            set_error_handler(function ($errno, $errstr) use (&$pgWarning) {
+                $pgWarning = (string) $errstr;
+                return true;
+            });
+            $conn = pg_connect($conninfo);
+            restore_error_handler();
             if ($conn) {
                 $r = @pg_query($conn, 'SELECT current_database() AS db');
                 $row = $r ? pg_fetch_assoc($r) : null;
@@ -5801,15 +5807,11 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 @pg_close($conn);
                 return true;
             }
-            $err = '';
-            if (function_exists('pg_last_error')) {
-                $err = (string) @pg_last_error();
-            }
-            if ($err === '') {
+            if ($pgWarning === '') {
                 $last = error_get_last();
-                $err = $last ? (string) $last['message'] : 'no libpq message';
+                $pgWarning = $last ? (string) $last['message'] : 'pg_connect returned false';
             }
-            $out("FAIL dbname={$dbname} error={$err}");
+            $out("FAIL dbname={$dbname} error={$pgWarning}");
             return false;
         };
 
