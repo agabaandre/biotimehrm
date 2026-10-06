@@ -5271,11 +5271,20 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
      * Call after fetch_time_history_with_clocking for all devices. Night correction is done per-batch in the model to avoid deadlocks.
      * @param string $start_date Y-m-d
      * @param string $end_date Y-m-d (inclusive)
+     * CLI: php index.php biotimejobs/biotimeNightAndActualsOnly 2025-01-01 2026-10-06 0
+     * Third arg 0/false/no skips deleting biotime_data (use 0 for actuals-only backfill).
+     *
      * @param bool $clear_biotime_data If true, delete from biotime_data for this range (legacy cleanup; streaming writes to biotime_data_history only)
      * @return array [night_updated (0; done in model), actuals_updated]
      */
     public function biotimeNightAndActualsOnly($start_date, $end_date, $clear_biotime_data = true)
     {
+        if (is_string($clear_biotime_data)) {
+            $flag = strtolower(trim($clear_biotime_data));
+            $clear_biotime_data = !in_array($flag, ['0', 'false', 'no', 'off', ''], true);
+        } else {
+            $clear_biotime_data = (bool) $clear_biotime_data;
+        }
         $start_dt = $start_date . ' 00:00:00';
         $end_dt   = $end_date . ' 23:59:59';
         $actualsUpdated = 0;
