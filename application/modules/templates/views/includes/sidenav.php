@@ -278,9 +278,15 @@
 
                      <?php if (in_array('44', $permissions)) { ?>
                        <li class="nav-item">
-                         <a href="<?php echo base_url(); ?>svariables" class="nav-link">
+                         <a href="<?php echo base_url(); ?>svariables" class="nav-link <?php echo ($this->uri->segment(1) == 'svariables' && $this->uri->segment(2) != 'remote_clk') ? 'active' : ''; ?>">
                            <i class="far fa-circle nav-icon"></i>
                            <p>Constants & Variables</p>
+                         </a>
+                       </li>
+                       <li class="nav-item">
+                         <a href="<?php echo base_url(); ?>svariables/remote_clk" class="nav-link <?php echo ($this->uri->segment(2) == 'remote_clk') ? 'active' : ''; ?>">
+                           <i class="far fa-circle nav-icon"></i>
+                           <p>Remote Clock Sync</p>
                          </a>
                        </li>
                      <?php } ?>

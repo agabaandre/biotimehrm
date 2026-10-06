@@ -2128,4 +2128,58 @@ class Api extends REST_Controller
             'sanitized_id' => $sanitizedStaffId
         ];
     }
+
+    /**
+     * POST /api/clk_log_ingest
+     * Receive encrypted clk_log rows from a peer Attend instance.
+     * Decrypts with setting.remote_clk_private_key (same one-time key as the sender).
+     */
+    public function clk_log_ingest_post()
+    {
+        try {
+            $input = $this->post();
+            if (empty($input) || !is_array($input)) {
+                $raw = json_decode(file_get_contents('php://input'), true);
+                if (is_array($raw)) {
+                    $input = $raw;
+                }
+            }
+            if (!is_array($input)) {
+                $this->response(['status' => false, 'message' => 'JSON body required'], 400);
+                return;
+            }
+
+            $this->load->model('svariables/svariables_mdl');
+            $settings = $this->svariables_mdl->getSettings();
+            $privateKey = isset($settings->remote_clk_private_key) ? trim((string) $settings->remote_clk_private_key) : '';
+            if ($privateKey === '') {
+                $this->response([
+                    'status' => false,
+                    'message' => 'Receiving server has no remote_clk_private_key in svariables',
+                ], 503);
+                return;
+            }
+
+            $this->load->library('clk_log_remote');
+            $plain = $this->clk_log_remote->decrypt($input, $privateKey);
+            $decoded = json_decode($plain, true);
+            if (!is_array($decoded) || empty($decoded['rows']) || !is_array($decoded['rows'])) {
+                $this->response(['status' => false, 'message' => 'Decrypted payload has no rows'], 400);
+                return;
+            }
+
+            $stats = $this->mEmployee->ingestRemoteClkLogRows($decoded['rows']);
+            $this->response([
+                'status' => true,
+                'message' => 'clk_log ingested',
+                'stats' => $stats,
+            ], 200);
+        } catch (Exception $e) {
+            log_message('error', 'clk_log_ingest: ' . $e->getMessage());
+            $this->response([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
 }

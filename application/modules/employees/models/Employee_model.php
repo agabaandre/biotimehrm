@@ -1263,6 +1263,12 @@ class Employee_model extends CI_Model
             'time_out' => $userdata->time_out,
             'status' => $userdata->status
         );
+        if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+            $data['remote_sync_status'] = 'pending';
+            if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                $data['remote_sync_at'] = null;
+            }
+        }
         $entry_id = $userdata->date . $userdata->ihris_pid;
         $this->db->set($data);
         if ($this->department) {

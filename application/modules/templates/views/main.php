@@ -66,6 +66,7 @@ require_once("includes/sidenav.php");
                   $page_child_data['filter_options'] = $filter_options;
               }
               if (isset($setting)) $page_child_data['setting'] = $setting;
+              if (isset($sync_counts)) $page_child_data['sync_counts'] = $sync_counts;
               if (isset($districts)) $page_child_data['districts'] = $districts;
               if (isset($regions)) $page_child_data['regions'] = $regions;
               if (isset($import_template_headers)) $page_child_data['import_template_headers'] = $import_template_headers;

@@ -9,7 +9,8 @@ if (!function_exists('svariables_render_field')) {
     $label = ucwords(str_replace('_', ' ', $key));
     $value_esc = is_string($value) ? htmlspecialchars($value, ENT_QUOTES, 'UTF-8') : $value;
     $is_long = is_string($value) && strlen($value) > 80;
-    $is_password = stripos($key, 'password') !== false;
+    $is_password = stripos($key, 'password') !== false
+      || stripos($key, 'private_key') !== false;
     $field_id = 'var_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $key);
     $name_attr = htmlspecialchars($key, ENT_QUOTES, 'UTF-8');
     $label_esc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
@@ -41,12 +42,12 @@ if (!function_exists('svariables_render_field')) {
   }
 }
 
-// Collect visible fields (exclude id) and split into two columns
 $visible_fields = array();
 foreach ($setting_array as $key => $value) {
-  if ($key !== 'id') {
-    $visible_fields[$key] = $value;
+  if ($key === 'id' || strpos((string) $key, 'remote_clk_') === 0) {
+    continue;
   }
+  $visible_fields[$key] = $value;
 }
 $total = count($visible_fields);
 $half = (int) ceil($total / 2);

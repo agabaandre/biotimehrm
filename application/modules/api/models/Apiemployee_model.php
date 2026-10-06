@@ -209,6 +209,8 @@ class Apiemployee_model extends CI_Model
                     ];
                     
                     $this->db->update('mobileclk_log', $updateData);
+
+                    $this->upsertClkLogFromMobile(array_merge((array) $existingRecord, $data, $updateData));
                     
                     return [
                         'status' => true,
@@ -231,6 +233,7 @@ class Apiemployee_model extends CI_Model
                     if ($completedRecord) {
                         // Create a new record for this clock-out
                         if ($this->db->insert('mobileclk_log', $data)) {
+                            $this->upsertClkLogFromMobile($data);
                             return [
                                 'status' => true,
                                 'message' => 'Found complete record, created new clock-out record',
@@ -250,6 +253,7 @@ class Apiemployee_model extends CI_Model
                         log_message('warning', 'No matching CLOCK IN record found for user ' . $ihris_pid . ' on ' . $date);
                         
                         if ($this->db->insert('mobileclk_log', $data)) {
+                            $this->upsertClkLogFromMobile($data);
                             return [
                                 'status' => true,
                                 'message' => 'No matching clock-in found. Created new clock-out record.',
@@ -279,6 +283,7 @@ class Apiemployee_model extends CI_Model
                 if ($completedRecord) {
                     // User has completed a clock cycle today, create a new clock-in
                     if ($this->db->insert('mobileclk_log', $data)) {
+                        $this->upsertClkLogFromMobile($data);
                         $this->recordActualsFromMobileClockIn($data);
                         return [
                             'status' => true,
@@ -304,6 +309,7 @@ class Apiemployee_model extends CI_Model
                 $existingClockIn = $this->db->get('mobileclk_log')->row();
                 
                 if ($existingClockIn) {
+                    $this->upsertClkLogFromMobile(array_merge((array) $existingClockIn, $data));
                     // User is already clocked in and hasn't clocked out
                     return [
                         'status' => true,
@@ -315,6 +321,7 @@ class Apiemployee_model extends CI_Model
                 
                 // Insert new clock in record
                 if ($this->db->insert('mobileclk_log', $data)) {
+                    $this->upsertClkLogFromMobile($data);
                     $this->recordActualsFromMobileClockIn($data);
                     return [
                         'status' => true,
@@ -434,10 +441,10 @@ class Apiemployee_model extends CI_Model
 
     public function clock_user_mobile($data)
     {
-        $this->db->insert('clk_log', $data);
+        $this->upsertClkLogFromMobile($data);
         $insert_id = $this->db->insert_id();
 
-        if ($insert_id && !empty($data['time_in'])) {
+        if (!empty($data['time_in'])) {
             $this->recordActualsFromMobileClockIn($data);
         }
 
@@ -445,7 +452,14 @@ class Apiemployee_model extends CI_Model
     }
     public function clock_out_mobile($entry_id, $timeout)
     {
-        return $this->db->query("UPDATE clk_log set time_out='$timeout' WHERE entry_id='$entry_id'");
+        $update = ['time_out' => $timeout];
+        if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+            $update['remote_sync_status'] = 'pending';
+            if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                $update['remote_sync_at'] = null;
+            }
+        }
+        return (bool) $this->db->where('entry_id', $entry_id)->update('clk_log', $update);
     }
 
     public function enroll_user_mobile($data)
@@ -1097,6 +1111,199 @@ class Apiemployee_model extends CI_Model
     public function get_jobs()
     {
         return $this->db->select('job_title')->order_by('job_title', 'ASC')->get('employee_jobs')->result_array();
+    }
+
+    /**
+     * Upsert a mobile clock into clk_log using the canonical attendance key:
+     * entry_id = {YYYY-MM-DD}{ihris_pid} (same as BioTime / dashboard).
+     * Only writes columns that exist on clk_log.
+     *
+     * @param array<string, mixed> $data
+     * @return bool
+     */
+    public function upsertClkLogFromMobile(array $data)
+    {
+        if (!$this->db->table_exists('clk_log')) {
+            return false;
+        }
+
+        $ihris_pid = trim((string) ($data['ihris_pid'] ?? ''));
+        $date = $this->normalizeActualsDate($data['date'] ?? '');
+        if ($ihris_pid === '' || $date === '') {
+            return false;
+        }
+
+        $time_in = !empty($data['time_in']) ? $data['time_in'] : null;
+        $time_out = !empty($data['time_out']) ? $data['time_out'] : null;
+        if ($time_in === null && $time_out === null) {
+            return false;
+        }
+
+        $source = trim((string) ($data['source'] ?? ''));
+        if ($source === '' || strcasecmp($source, 'Mobile App') === 0) {
+            $source = 'mobile';
+        }
+
+        $row = [
+            'entry_id'    => $date . $ihris_pid,
+            'ihris_pid'   => $ihris_pid,
+            'facility_id' => $data['facility_id'] ?? '',
+            'time_in'     => $time_in,
+            'time_out'    => $time_out,
+            'date'        => $date,
+            'status'      => $data['status'] ?? null,
+            'shift'       => $data['shift'] ?? null,
+            'location'    => $data['location'] ?? ($data['facility'] ?? null),
+            'source'      => $source,
+            'facility'    => $data['facility'] ?? ($data['location'] ?? null),
+            'latitude'    => $data['latitude'] ?? null,
+            'longitude'   => $data['longitude'] ?? null,
+        ];
+
+        $filtered = [];
+        foreach ($row as $col => $val) {
+            if ($this->db->field_exists($col, 'clk_log')) {
+                $filtered[$col] = $val;
+            }
+        }
+
+        $existing = $this->db->get_where('clk_log', ['entry_id' => $filtered['entry_id']], 1)->row();
+        if ($existing) {
+            $update = [];
+            if (!empty($filtered['time_in'])) {
+                if (empty($existing->time_in) || strtotime((string) $filtered['time_in']) < strtotime((string) $existing->time_in)) {
+                    $update['time_in'] = $filtered['time_in'];
+                }
+            }
+            if (!empty($filtered['time_out'])) {
+                $prevOut = !empty($existing->time_out) ? $existing->time_out : ($existing->time_in ?? null);
+                if (empty($existing->time_out) || ($prevOut && strtotime((string) $filtered['time_out']) > strtotime((string) $prevOut))) {
+                    $update['time_out'] = $filtered['time_out'];
+                }
+            }
+            foreach (['facility_id', 'shift', 'location', 'source', 'facility', 'latitude', 'longitude', 'status'] as $c) {
+                if (!isset($filtered[$c]) || $filtered[$c] === null || $filtered[$c] === '') {
+                    continue;
+                }
+                if ($c === 'status' && !empty($filtered['time_out'])) {
+                    $update[$c] = $filtered[$c];
+                    continue;
+                }
+                if (empty($existing->$c)) {
+                    $update[$c] = $filtered[$c];
+                }
+            }
+            if (empty($update)) {
+                return true;
+            }
+            if ((isset($update['time_in']) || isset($update['time_out']))
+                && $this->db->field_exists('remote_sync_status', 'clk_log')) {
+                $update['remote_sync_status'] = 'pending';
+                if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                    $update['remote_sync_at'] = null;
+                }
+            }
+            $this->db->where('entry_id', $filtered['entry_id']);
+            return (bool) $this->db->update('clk_log', $update);
+        }
+
+        if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+            $filtered['remote_sync_status'] = 'pending';
+        }
+        return (bool) $this->db->insert('clk_log', $filtered);
+    }
+
+    /**
+     * Backfill clk_log from mobileclk_log (one row per date + person).
+     *
+     * @param int $limit Max source rows to scan this run (0 = all)
+     * @param int $offset
+     * @return array{scanned:int,upserted:int,skipped:int}
+     */
+    public function integrateMobileClkLogIntoClkLog($limit = 0, $offset = 0)
+    {
+        $stats = ['scanned' => 0, 'upserted' => 0, 'skipped' => 0];
+        if (!$this->db->table_exists('mobileclk_log') || !$this->db->table_exists('clk_log')) {
+            return $stats;
+        }
+
+        $cols = [
+            'ihris_pid' => 'ihris_pid',
+            'facility_id' => "MIN(NULLIF(TRIM(facility_id), '')) AS facility_id",
+            'time_in' => 'MIN(time_in) AS time_in',
+            'time_out' => 'MAX(time_out) AS time_out',
+            'date' => 'DATE(date) AS date',
+        ];
+        foreach (['status', 'shift', 'location', 'source', 'facility', 'latitude', 'longitude'] as $c) {
+            if ($this->db->field_exists($c, 'mobileclk_log')) {
+                if (in_array($c, ['latitude', 'longitude'], true)) {
+                    $cols[$c] = "MAX({$c}) AS {$c}";
+                } else {
+                    $cols[$c] = "MAX(NULLIF(TRIM({$c}), '')) AS {$c}";
+                }
+            }
+        }
+
+        $sql = "SELECT " . implode(', ', $cols)
+            . " FROM mobileclk_log
+                WHERE ihris_pid IS NOT NULL AND TRIM(ihris_pid) <> ''
+                  AND date IS NOT NULL
+                GROUP BY ihris_pid, DATE(date)
+                ORDER BY DATE(date) ASC, ihris_pid ASC";
+        $limit = (int) $limit;
+        $offset = (int) $offset;
+        if ($limit > 0) {
+            $sql .= " LIMIT " . $limit . " OFFSET " . max(0, $offset);
+        }
+
+        $q = $this->db->query($sql);
+        if (!$q) {
+            return $stats;
+        }
+        foreach ($q->result_array() as $row) {
+            $stats['scanned']++;
+            if ($this->upsertClkLogFromMobile($row)) {
+                $stats['upserted']++;
+            } else {
+                $stats['skipped']++;
+            }
+        }
+        return $stats;
+    }
+
+    /**
+     * Upsert already-mapped clk_log rows from a peer Attend server.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @return array{received:int,upserted:int,skipped:int}
+     */
+    public function ingestRemoteClkLogRows(array $rows)
+    {
+        $stats = ['received' => 0, 'upserted' => 0, 'skipped' => 0];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                $stats['skipped']++;
+                continue;
+            }
+            unset($row['id']);
+            unset($row['remote_sync_status']);
+            unset($row['remote_sync_at']);
+            $stats['received']++;
+            if ($this->upsertClkLogFromMobile($row)) {
+                $stats['upserted']++;
+                $entryId = $this->normalizeActualsDate($row['date'] ?? '') . trim((string) ($row['ihris_pid'] ?? ''));
+                if ($entryId !== '' && $this->db->field_exists('remote_sync_status', 'clk_log')) {
+                    $mark = ['remote_sync_status' => 'sent'];
+                    if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                        $mark['remote_sync_at'] = date('Y-m-d H:i:s');
+                    }
+                    $this->db->where('entry_id', $entryId)->update('clk_log', $mark);
+                }
+            } else {
+                $stats['skipped']++;
+            }
+        }
+        return $stats;
     }
 
     /**

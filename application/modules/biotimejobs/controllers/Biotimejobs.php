@@ -5427,7 +5427,7 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         |--------------------------------------------------------------------------
         */
         $this->db->trans_start();
-        $this->db->query("
+        $clkDup = "
             INSERT INTO clk_log (entry_id, ihris_pid, facility_id, time_in, time_out, date, location, source, facility)
             SELECT
                 CONCAT(a.log_date, a.ihris_pid),
@@ -5441,13 +5441,27 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
                 a.facility
             FROM _biotime_agg a
             ON DUPLICATE KEY UPDATE
+        ";
+        $timesChanged = "time_in <> VALUES(time_in) OR IFNULL(time_out, '') <> IFNULL(VALUES(time_out), '')";
+        if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+            $clkDup .= "
+                remote_sync_status = IF({$timesChanged}, 'pending', remote_sync_status),
+            ";
+            if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                $clkDup .= "
+                remote_sync_at = IF({$timesChanged}, NULL, remote_sync_at),
+                ";
+            }
+        }
+        $clkDup .= "
                 time_in = VALUES(time_in),
                 time_out = VALUES(time_out),
                 facility_id = VALUES(facility_id),
                 location = VALUES(location),
                 facility = VALUES(facility),
                 source = 'BIO-TIME'
-        ");
+        ";
+        $this->db->query($clkDup);
         $clockinInserted = $this->db->affected_rows();
         $this->db->trans_complete();
         $rc = $this->db->query("SELECT COUNT(*) AS n FROM _biotime_agg WHERE time_out > time_in");
@@ -5459,12 +5473,20 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         |--------------------------------------------------------------------------
         */
         $this->db->trans_start();
+        $nightSet = "SET cl.time_out = b.punch_time";
+        if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+            $nightSet = "SET cl.remote_sync_status = IF(IFNULL(cl.time_out, '') = IFNULL(b.punch_time, ''), cl.remote_sync_status, 'pending')";
+            if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                $nightSet .= ", cl.remote_sync_at = IF(IFNULL(cl.time_out, '') = IFNULL(b.punch_time, ''), cl.remote_sync_at, NULL)";
+            }
+            $nightSet .= ", cl.time_out = b.punch_time";
+        }
         $this->db->query("
             UPDATE clk_log cl
             JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date
             JOIN biotime_data b ON b.punch_time >= ? AND b.punch_time < DATE_ADD(?, INTERVAL 1 DAY)
             JOIN ihrisdata i ON {$empMatch} AND i.ihris_pid = cl.ihris_pid
-            SET cl.time_out = b.punch_time
+            {$nightSet}
             WHERE dr.schedule_id = '16'
             AND cl.date BETWEEN ? AND ?
             AND b.punch_time > cl.time_in
@@ -5548,6 +5570,12 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             $final_time = strtotime($entry->punch_time) / 3600;
             if ($final_time > 0):
                 $this->db->set('time_out', "$entry->punch_time");
+                if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+                    $this->db->set('remote_sync_status', 'pending');
+                    if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                        $this->db->set('remote_sync_at', null);
+                    }
+                }
                 $this->db->where("time_in <", "$entry->punch_time");
                 $this->db->where('entry_id', "$entry->entry_id");
                 $query = $this->db->update('clk_log');
@@ -5601,6 +5629,12 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             //echo $final_time;
             if (($final_time > 0) && ($hours_worked <= 15)):
                 $this->db->set('time_out', "$entry->punch_time");
+                if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+                    $this->db->set('remote_sync_status', 'pending');
+                    if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                        $this->db->set('remote_sync_at', null);
+                    }
+                }
                 //  $this->db->where("time_in <","$entry->punch_time");
                 //todays entry
                 $this->db->where('entry_id', "$nights");
@@ -5658,6 +5692,12 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
             //echo $final_time;
             if (($final_time > 0) && ($hours_worked <= 15)):
                 $this->db->set('time_out', "$entry->punch_time");
+                if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+                    $this->db->set('remote_sync_status', 'pending');
+                    if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                        $this->db->set('remote_sync_at', null);
+                    }
+                }
                 //  $this->db->where("time_in <","$entry->punch_time");
                 //todays entry
                 $this->db->where('entry_id', "$nights");
@@ -6223,6 +6263,37 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
         echo "  (or with end date) php index.php biotimejobs/fetch_daily_attendance " . date('Y-m-d') . "\n";
         $this->log("set_last_activity from={$from} last_activity={$last_activity} area="
             . ($area_name ? $area_name : 'ALL') . " rows={$affected}");
+    }
+
+    /**
+     * Copy historical mobileclk_log punches into clk_log (dashboard attendance).
+     * One clk_log row per person per day: earliest time_in, latest time_out.
+     *
+     * Usage:
+     *   php index.php biotimejobs/integrate_mobileclk_log
+     *   php index.php biotimejobs/integrate_mobileclk_log 2000 0
+     *
+     * @param int $limit  Max grouped rows this run (0 = all)
+     * @param int $offset Offset into grouped rows
+     */
+    public function integrate_mobileclk_log($limit = 0, $offset = 0)
+    {
+        ignore_user_abort(true);
+        set_time_limit(0);
+        $this->load->model('api/apiemployee_model', 'mEmployee');
+
+        $limit = (int) $limit;
+        $offset = (int) $offset;
+        echo "═══════════════════════════════════════════════════════\n";
+        echo " INTEGRATE mobileclk_log → clk_log\n";
+        echo "═══════════════════════════════════════════════════════\n";
+        echo "limit=" . ($limit > 0 ? $limit : 'all') . " offset={$offset}\n";
+
+        $stats = $this->mEmployee->integrateMobileClkLogIntoClkLog($limit, $offset);
+        echo "scanned:   {$stats['scanned']}\n";
+        echo "upserted:  {$stats['upserted']}\n";
+        echo "skipped:   {$stats['skipped']}\n";
+        $this->log("integrate_mobileclk_log scanned={$stats['scanned']} upserted={$stats['upserted']} skipped={$stats['skipped']}");
     }
 
     /**

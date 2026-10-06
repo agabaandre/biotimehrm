@@ -1593,7 +1593,21 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             $params[] = $r['facility'];
         }
         $sql = "INSERT INTO clk_log (entry_id, ihris_pid, facility_id, time_in, time_out, date, location, source, facility) VALUES " . implode(', ', $values);
-        $sql .= " ON DUPLICATE KEY UPDATE time_in = LEAST(time_in, VALUES(time_in)), time_out = GREATEST(COALESCE(time_out, time_in), COALESCE(VALUES(time_out), VALUES(time_in))), facility_id = IF(VALUES(time_in) < time_in, VALUES(facility_id), facility_id), location = IF(VALUES(time_in) < time_in, VALUES(location), location), facility = IF(VALUES(time_in) < time_in, VALUES(facility), facility), source = 'BIO-TIME'";
+        $dup = [];
+        $timesChanged = "time_in <> LEAST(time_in, VALUES(time_in)) OR IFNULL(time_out, '') <> IFNULL(GREATEST(COALESCE(time_out, time_in), COALESCE(VALUES(time_out), VALUES(time_in))), '')";
+        if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+            $dup[] = "remote_sync_status = IF({$timesChanged}, 'pending', remote_sync_status)";
+            if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                $dup[] = "remote_sync_at = IF({$timesChanged}, NULL, remote_sync_at)";
+            }
+        }
+        $dup[] = "time_in = LEAST(time_in, VALUES(time_in))";
+        $dup[] = "time_out = GREATEST(COALESCE(time_out, time_in), COALESCE(VALUES(time_out), VALUES(time_in)))";
+        $dup[] = "facility_id = IF(VALUES(time_in) < time_in, VALUES(facility_id), facility_id)";
+        $dup[] = "location = IF(VALUES(time_in) < time_in, VALUES(location), location)";
+        $dup[] = "facility = IF(VALUES(time_in) < time_in, VALUES(facility), facility)";
+        $dup[] = "source = 'BIO-TIME'";
+        $sql .= " ON DUPLICATE KEY UPDATE " . implode(', ', $dup);
         if (!$this->db->query($sql, $params)) {
             $err = $this->db->error();
             log_message('error', 'clk_log upsert failed: ' . (isset($err['message']) ? $err['message'] : 'unknown') . ' | sql_head=' . substr($sql, 0, 180));
@@ -1725,6 +1739,14 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
             }
         }
         $empMatch = $this->sql_emp_code_match('b', 'i');
+        $nightSet = "SET cl.time_out = sub.punch_time";
+        if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+            $nightSet = "SET cl.remote_sync_status = IF(IFNULL(cl.time_out, '') = IFNULL(sub.punch_time, ''), cl.remote_sync_status, 'pending')";
+            if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                $nightSet .= ", cl.remote_sync_at = IF(IFNULL(cl.time_out, '') = IFNULL(sub.punch_time, ''), cl.remote_sync_at, NULL)";
+            }
+            $nightSet .= ", cl.time_out = sub.punch_time";
+        }
         $this->db->query("
             UPDATE clk_log cl
             INNER JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date AND dr.schedule_id = '16'
@@ -1735,7 +1757,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 WHERE b.punch_time >= ? AND b.punch_time <= ?
                 GROUP BY i.ihris_pid, log_date
             ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date
-            SET cl.time_out = sub.punch_time
+            {$nightSet}
             WHERE sub.punch_time > cl.time_in
             AND TIMESTAMPDIFF(HOUR, cl.time_in, sub.punch_time) <= 15
         ", array($global_min, $global_max));
@@ -1755,6 +1777,14 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
         }
         $empMatch = $this->sql_emp_code_match('b', 'i');
         $this->db->trans_start();
+        $nightSet = "SET cl.time_out = sub.punch_time";
+        if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
+            $nightSet = "SET cl.remote_sync_status = IF(IFNULL(cl.time_out, '') = IFNULL(sub.punch_time, ''), cl.remote_sync_status, 'pending')";
+            if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                $nightSet .= ", cl.remote_sync_at = IF(IFNULL(cl.time_out, '') = IFNULL(sub.punch_time, ''), cl.remote_sync_at, NULL)";
+            }
+            $nightSet .= ", cl.time_out = sub.punch_time";
+        }
         $this->db->query("
             UPDATE clk_log cl
             INNER JOIN duty_rosta dr ON dr.ihris_pid = cl.ihris_pid AND dr.duty_date = cl.date AND dr.schedule_id = '16'
@@ -1765,7 +1795,7 @@ public function sync_attendance_data($date, $empcode = FALSE, $terminal_sn = FAL
                 WHERE b.punch_time >= ? AND b.punch_time <= ?
                 GROUP BY i.ihris_pid, log_date
             ) sub ON sub.ihris_pid = cl.ihris_pid AND sub.log_date = cl.date
-            SET cl.time_out = sub.punch_time
+            {$nightSet}
             WHERE sub.punch_time > cl.time_in
             AND TIMESTAMPDIFF(HOUR, cl.time_in, sub.punch_time) <= 15
         ", array($range['min'], $range['max']));
