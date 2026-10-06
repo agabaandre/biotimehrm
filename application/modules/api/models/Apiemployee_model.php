@@ -211,6 +211,7 @@ class Apiemployee_model extends CI_Model
                     $this->db->update('mobileclk_log', $updateData);
 
                     $this->upsertClkLogFromMobile(array_merge((array) $existingRecord, $data, $updateData));
+                    $this->markMobileClkIntegrated($existingRecord->id, 'done');
                     
                     return [
                         'status' => true,
@@ -233,11 +234,13 @@ class Apiemployee_model extends CI_Model
                     if ($completedRecord) {
                         // Create a new record for this clock-out
                         if ($this->db->insert('mobileclk_log', $data)) {
+                            $newId = $this->db->insert_id();
                             $this->upsertClkLogFromMobile($data);
+                            $this->markMobileClkIntegrated($newId, 'done');
                             return [
                                 'status' => true,
                                 'message' => 'Found complete record, created new clock-out record',
-                                'insert_id' => $this->db->insert_id(),
+                                'insert_id' => $newId,
                                 'is_update' => false,
                                 'is_new_after_complete' => true
                             ];
@@ -253,11 +256,13 @@ class Apiemployee_model extends CI_Model
                         log_message('warning', 'No matching CLOCK IN record found for user ' . $ihris_pid . ' on ' . $date);
                         
                         if ($this->db->insert('mobileclk_log', $data)) {
+                            $newId = $this->db->insert_id();
                             $this->upsertClkLogFromMobile($data);
+                            $this->markMobileClkIntegrated($newId, 'done');
                             return [
                                 'status' => true,
                                 'message' => 'No matching clock-in found. Created new clock-out record.',
-                                'insert_id' => $this->db->insert_id(),
+                                'insert_id' => $newId,
                                 'is_update' => false,
                                 'warning' => 'No matching clock-in record was found'
                             ];
@@ -283,12 +288,14 @@ class Apiemployee_model extends CI_Model
                 if ($completedRecord) {
                     // User has completed a clock cycle today, create a new clock-in
                     if ($this->db->insert('mobileclk_log', $data)) {
+                        $newId = $this->db->insert_id();
                         $this->upsertClkLogFromMobile($data);
+                        $this->markMobileClkIntegrated($newId, 'done');
                         $this->recordActualsFromMobileClockIn($data);
                         return [
                             'status' => true,
                             'message' => 'Created new clock-in after previous complete cycle',
-                            'insert_id' => $this->db->insert_id(),
+                            'insert_id' => $newId,
                             'is_duplicate' => false,
                             'is_new_after_complete' => true
                         ];
@@ -310,6 +317,7 @@ class Apiemployee_model extends CI_Model
                 
                 if ($existingClockIn) {
                     $this->upsertClkLogFromMobile(array_merge((array) $existingClockIn, $data));
+                    $this->markMobileClkIntegrated($existingClockIn->id, 'done');
                     // User is already clocked in and hasn't clocked out
                     return [
                         'status' => true,
@@ -321,12 +329,14 @@ class Apiemployee_model extends CI_Model
                 
                 // Insert new clock in record
                 if ($this->db->insert('mobileclk_log', $data)) {
+                    $newId = $this->db->insert_id();
                     $this->upsertClkLogFromMobile($data);
+                    $this->markMobileClkIntegrated($newId, 'done');
                     $this->recordActualsFromMobileClockIn($data);
                     return [
                         'status' => true,
                         'message' => 'Clock-in successful',
-                        'insert_id' => $this->db->insert_id(),
+                        'insert_id' => $newId,
                         'is_duplicate' => false
                     ];
                 } else {
@@ -1255,66 +1265,134 @@ class Apiemployee_model extends CI_Model
     }
 
     /**
-     * Backfill clk_log from mobileclk_log (one row per date + person).
-     *
-     * @param int $limit Max source rows to scan this run (0 = all)
-     * @param int $offset
-     * @return array{scanned:int,upserted:int,skipped:int}
+     * Add per-row flags so mobileclk_log is copied into clk_log only once.
      */
-    public function integrateMobileClkLogIntoClkLog($limit = 0, $offset = 0)
+    public function ensureMobileClkIntegratedColumn()
     {
-        $stats = ['scanned' => 0, 'upserted' => 0, 'skipped' => 0];
+        if (!$this->db->table_exists('mobileclk_log')) {
+            return;
+        }
+        if (!$this->db->field_exists('clk_integrated', 'mobileclk_log')) {
+            $this->db->query("ALTER TABLE `mobileclk_log` ADD `clk_integrated` VARCHAR(16) NULL DEFAULT 'pending' COMMENT 'pending|done|ignored'");
+        }
+        if (!$this->db->field_exists('clk_integrated_at', 'mobileclk_log')) {
+            $this->db->query("ALTER TABLE `mobileclk_log` ADD `clk_integrated_at` DATETIME NULL DEFAULT NULL");
+        }
+        $idx = $this->db->query("SHOW INDEX FROM `mobileclk_log` WHERE Key_name = 'idx_mobileclk_clk_integrated'");
+        if (!$idx || $idx->num_rows() === 0) {
+            $this->db->query("ALTER TABLE `mobileclk_log` ADD INDEX `idx_mobileclk_clk_integrated` (`clk_integrated`, `id`)");
+        }
+    }
+
+    /**
+     * Stream pending mobileclk_log rows into clk_log by id.
+     * Already-done rows are not selected again. Duplicates merge on entry_id.
+     *
+     * @param int $limit Max source rows this run (0 = all pending)
+     * @param int $afterId Continue after this mobileclk_log.id
+     * @return array{scanned:int,upserted:int,skipped:int,last_id:int,batches:int}
+     */
+    public function integrateMobileClkLogIntoClkLog($limit = 0, $afterId = 0)
+    {
+        $stats = ['scanned' => 0, 'upserted' => 0, 'skipped' => 0, 'last_id' => (int) $afterId, 'batches' => 0];
         if (!$this->db->table_exists('mobileclk_log') || !$this->db->table_exists('clk_log')) {
             return $stats;
         }
-
-        $cols = [
-            'ihris_pid' => 'ihris_pid',
-            'facility_id' => "MIN(NULLIF(TRIM(facility_id), '')) AS facility_id",
-            'time_in' => 'MIN(time_in) AS time_in',
-            'time_out' => 'MAX(time_out) AS time_out',
-            'date' => 'DATE(date) AS date',
-        ];
-        foreach (['status', 'shift', 'location', 'source', 'facility', 'latitude', 'longitude'] as $c) {
-            if ($this->db->field_exists($c, 'mobileclk_log')) {
-                if (in_array($c, ['latitude', 'longitude'], true)) {
-                    $cols[$c] = "MAX({$c}) AS {$c}";
-                } else {
-                    $cols[$c] = "MAX(NULLIF(TRIM({$c}), '')) AS {$c}";
-                }
-            }
-        }
-
-        $sql = "SELECT " . implode(', ', $cols)
-            . " FROM mobileclk_log
-                WHERE ihris_pid IS NOT NULL AND TRIM(ihris_pid) <> ''
-                  AND date IS NOT NULL
-                GROUP BY ihris_pid, DATE(date)
-                ORDER BY DATE(date) ASC, ihris_pid ASC";
-        $limit = (int) $limit;
-        $offset = (int) $offset;
-        if ($limit > 0) {
-            $sql .= " LIMIT " . $limit . " OFFSET " . max(0, $offset);
-        }
-
-        $q = $this->db->query($sql);
-        if (!$q) {
+        if (!$this->db->field_exists('id', 'mobileclk_log')) {
             return $stats;
         }
-        foreach ($q->result_array() as $row) {
-            $stats['scanned']++;
-            try {
-                if ($this->upsertClkLogFromMobile($row)) {
-                    $stats['upserted']++;
-                } else {
-                    $stats['skipped']++;
-                }
-            } catch (Exception $e) {
-                log_message('error', 'mobileclk integrate skipped: ' . $e->getMessage());
-                $stats['skipped']++;
+
+        $this->ensureMobileClkIntegratedColumn();
+
+        $select = ['id', 'ihris_pid', 'facility_id', 'time_in', 'time_out', 'date'];
+        foreach (['status', 'shift', 'location', 'source', 'facility', 'latitude', 'longitude'] as $c) {
+            if ($this->db->field_exists($c, 'mobileclk_log')) {
+                $select[] = $c;
             }
         }
+
+        $limit = (int) $limit;
+        $afterId = max(0, (int) $afterId);
+        $batchSize = 500;
+        $maxThisRun = $limit > 0 ? $limit : PHP_INT_MAX;
+
+        while ($stats['scanned'] < $maxThisRun) {
+            $take = (int) min($batchSize, $maxThisRun - $stats['scanned']);
+            $this->db->reset_query();
+            $this->db->select(implode(', ', $select));
+            $this->db->from('mobileclk_log');
+            $this->db->where('id >', $afterId);
+            if ($this->db->field_exists('clk_integrated', 'mobileclk_log')) {
+                $this->db->group_start();
+                $this->db->where('clk_integrated IS NULL', null, false);
+                $this->db->or_where('clk_integrated', '');
+                $this->db->or_where('clk_integrated', 'pending');
+                $this->db->group_end();
+            }
+            $rows = $this->db->order_by('id', 'ASC')->limit($take)->get()->result_array();
+            if (empty($rows)) {
+                break;
+            }
+
+            $stats['batches']++;
+            $doneIds = [];
+            $ignoredIds = [];
+            foreach ($rows as $row) {
+                $id = (int) $row['id'];
+                $afterId = $id;
+                $stats['last_id'] = $id;
+                $stats['scanned']++;
+                unset($row['id'], $row['clk_integrated'], $row['clk_integrated_at']);
+                try {
+                    if ($this->upsertClkLogFromMobile($row)) {
+                        $stats['upserted']++;
+                        $doneIds[] = $id;
+                    } else {
+                        $stats['skipped']++;
+                        $ignoredIds[] = $id;
+                    }
+                } catch (Exception $e) {
+                    log_message('error', 'mobileclk integrate skipped id=' . $id . ': ' . $e->getMessage());
+                    $stats['skipped']++;
+                    $ignoredIds[] = $id;
+                }
+            }
+            $this->markMobileClkIntegratedIds($doneIds, 'done');
+            $this->markMobileClkIntegratedIds($ignoredIds, 'ignored');
+            if (is_cli()) {
+                echo "  batch {$stats['batches']}: last_id={$afterId} scanned={$stats['scanned']} upserted={$stats['upserted']} skipped={$stats['skipped']}\n";
+            }
+        }
+
         return $stats;
+    }
+
+    /**
+     * @param array<int,int> $ids
+     * @param string $status done|ignored
+     */
+    public function markMobileClkIntegratedIds(array $ids, $status)
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+        if (empty($ids) || !$this->db->field_exists('clk_integrated', 'mobileclk_log')) {
+            return;
+        }
+        $update = ['clk_integrated' => $status];
+        if ($this->db->field_exists('clk_integrated_at', 'mobileclk_log')) {
+            $update['clk_integrated_at'] = date('Y-m-d H:i:s');
+        }
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $this->db->where_in('id', $chunk)->update('mobileclk_log', $update);
+        }
+    }
+
+    /**
+     * @param int $id
+     * @param string $status
+     */
+    public function markMobileClkIntegrated($id, $status)
+    {
+        $this->markMobileClkIntegratedIds([(int) $id], $status);
     }
 
     /**

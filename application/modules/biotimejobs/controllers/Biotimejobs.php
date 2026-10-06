@@ -6266,34 +6266,38 @@ private function _merge_ucmbdata($is_cli, $has_status, $has_is_active)
     }
 
     /**
-     * Copy historical mobileclk_log punches into clk_log (dashboard attendance).
-     * One clk_log row per person per day: earliest time_in, latest time_out.
+     * Copy pending mobileclk_log punches into clk_log (dashboard attendance).
+     * Streams by id; marks each source row done/ignored so it is not repeated.
+     * Duplicates merge on clk_log.entry_id.
      *
      * Usage:
      *   php index.php biotimejobs/integrate_mobileclk_log
-     *   php index.php biotimejobs/integrate_mobileclk_log 2000 0
+     *   php index.php biotimejobs/integrate_mobileclk_log 2000
+     *   php index.php biotimejobs/integrate_mobileclk_log 2000 12345
      *
-     * @param int $limit  Max grouped rows this run (0 = all)
-     * @param int $offset Offset into grouped rows
+     * @param int $limit   Max source rows this run (0 = all pending)
+     * @param int $afterId Continue after this mobileclk_log.id
      */
-    public function integrate_mobileclk_log($limit = 0, $offset = 0)
+    public function integrate_mobileclk_log($limit = 0, $afterId = 0)
     {
         ignore_user_abort(true);
         set_time_limit(0);
         $this->load->model('api/apiemployee_model', 'mEmployee');
 
         $limit = (int) $limit;
-        $offset = (int) $offset;
+        $afterId = (int) $afterId;
         echo "═══════════════════════════════════════════════════════\n";
-        echo " INTEGRATE mobileclk_log → clk_log\n";
+        echo " INTEGRATE mobileclk_log → clk_log (stream, skip done)\n";
         echo "═══════════════════════════════════════════════════════\n";
-        echo "limit=" . ($limit > 0 ? $limit : 'all') . " offset={$offset}\n";
+        echo "limit=" . ($limit > 0 ? $limit : 'all pending') . " after_id={$afterId}\n";
 
-        $stats = $this->mEmployee->integrateMobileClkLogIntoClkLog($limit, $offset);
+        $stats = $this->mEmployee->integrateMobileClkLogIntoClkLog($limit, $afterId);
         echo "scanned:   {$stats['scanned']}\n";
         echo "upserted:  {$stats['upserted']}\n";
         echo "skipped:   {$stats['skipped']}\n";
-        $this->log("integrate_mobileclk_log scanned={$stats['scanned']} upserted={$stats['upserted']} skipped={$stats['skipped']}");
+        echo "batches:   {$stats['batches']}\n";
+        echo "last_id:   {$stats['last_id']}\n";
+        $this->log("integrate_mobileclk_log scanned={$stats['scanned']} upserted={$stats['upserted']} skipped={$stats['skipped']} last_id={$stats['last_id']}");
     }
 
     /**
