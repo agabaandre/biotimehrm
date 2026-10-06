@@ -2171,7 +2171,7 @@ class Api extends REST_Controller
             $stats = $this->mEmployee->ingestRemoteClkLogRows($decoded['rows']);
             $this->response([
                 'status' => true,
-                'message' => 'clk_log ingested',
+                'message' => 'clk_log and actuals ingested',
                 'stats' => $stats,
             ], 200);
         } catch (Exception $e) {

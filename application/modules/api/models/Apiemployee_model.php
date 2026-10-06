@@ -318,6 +318,7 @@ class Apiemployee_model extends CI_Model
                 if ($existingClockIn) {
                     $this->upsertClkLogFromMobile(array_merge((array) $existingClockIn, $data));
                     $this->markMobileClkIntegrated($existingClockIn->id, 'done');
+                    $this->recordActualsFromMobileClockIn(array_merge((array) $existingClockIn, $data));
                     // User is already clocked in and hasn't clocked out
                     return [
                         'status' => true,
@@ -1204,6 +1205,15 @@ class Apiemployee_model extends CI_Model
                 }
             }
             if (empty($update)) {
+                // Still ensure Present in actuals when clk_log already has a clock-in.
+                if (!empty($existing->time_in) || $time_in !== null) {
+                    $this->recordActualsFromMobileClockIn(array_merge($filtered, [
+                        'time_in' => $time_in !== null ? $time_in : $existing->time_in,
+                        'facility_id' => !empty($filtered['facility_id'])
+                            ? $filtered['facility_id']
+                            : ($existing->facility_id ?? ''),
+                    ]));
+                }
                 return true;
             }
             if ((isset($update['time_in']) || isset($update['time_out']))
@@ -1214,9 +1224,18 @@ class Apiemployee_model extends CI_Model
                 }
             }
             $this->db->where('entry_id', $filtered['entry_id']);
-            return $this->clkLogWrite(function () use ($update) {
+            $ok = $this->clkLogWrite(function () use ($update) {
                 return (bool) $this->db->update('clk_log', $update);
             });
+            if ($ok && ($time_in !== null || !empty($existing->time_in))) {
+                $this->recordActualsFromMobileClockIn(array_merge($filtered, [
+                    'time_in' => $time_in !== null ? $time_in : $existing->time_in,
+                    'facility_id' => !empty($filtered['facility_id'])
+                        ? $filtered['facility_id']
+                        : ($existing->facility_id ?? ''),
+                ]));
+            }
+            return $ok;
         }
 
         if ($time_in === null) {
@@ -1225,9 +1244,13 @@ class Apiemployee_model extends CI_Model
         if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
             $filtered['remote_sync_status'] = 'pending';
         }
-        return $this->clkLogWrite(function () use ($filtered) {
+        $ok = $this->clkLogWrite(function () use ($filtered) {
             return (bool) $this->db->insert('clk_log', $filtered);
         });
+        if ($ok) {
+            $this->recordActualsFromMobileClockIn($filtered);
+        }
+        return $ok;
     }
 
     /**
@@ -1397,13 +1420,14 @@ class Apiemployee_model extends CI_Model
 
     /**
      * Upsert already-mapped clk_log rows from a peer Attend server.
+     * Also writes Present (schedule 22) into actuals so dashboards do not wait on later jobs.
      *
      * @param array<int,array<string,mixed>> $rows
-     * @return array{received:int,upserted:int,skipped:int}
+     * @return array{received:int,upserted:int,actuals:int,skipped:int}
      */
     public function ingestRemoteClkLogRows(array $rows)
     {
-        $stats = ['received' => 0, 'upserted' => 0, 'skipped' => 0];
+        $stats = ['received' => 0, 'upserted' => 0, 'actuals' => 0, 'skipped' => 0];
         foreach ($rows as $row) {
             if (!is_array($row)) {
                 $stats['skipped']++;
@@ -1428,6 +1452,13 @@ class Apiemployee_model extends CI_Model
                         }
                         $this->db->where('entry_id', $entryId)->update('clk_log', $mark);
                     }
+                    try {
+                        if ($this->recordActualsFromMobileClockIn($row)) {
+                            $stats['actuals']++;
+                        }
+                    } catch (Exception $ae) {
+                        log_message('error', 'clk_log ingest actuals skipped: ' . $ae->getMessage());
+                    }
                 } else {
                     $stats['skipped']++;
                 }
@@ -1442,17 +1473,43 @@ class Apiemployee_model extends CI_Model
     /**
      * Record a Present (schedule 22) actual after a successful mobile clock-in.
      * entry_id matches biotime sync: {YYYY-MM-DD}{ihris_pid}.
+     * INSERT IGNORE so duplicates are cheap and later attendance jobs can skip rebuild.
      *
      * @param array<string, mixed> $data
      * @return bool
      */
     public function recordActualsFromMobileClockIn(array $data)
     {
+        if (!$this->db->table_exists('actuals')) {
+            return false;
+        }
+
         $ihris_pid = trim((string) ($data['ihris_pid'] ?? ''));
         $facility_id = trim((string) ($data['facility_id'] ?? ''));
         $date = $this->normalizeActualsDate($data['date'] ?? '');
 
-        if ($ihris_pid === '' || $facility_id === '' || $date === '') {
+        if ($ihris_pid === '' || $date === '') {
+            return false;
+        }
+
+        $selectCols = ['facility_id'];
+        if ($this->db->field_exists('department_id', 'ihrisdata')) {
+            $selectCols[] = 'department_id';
+        }
+        if ($this->db->field_exists('department', 'ihrisdata')) {
+            $selectCols[] = 'department';
+        }
+        $employee = $this->db->select(implode(', ', $selectCols))
+            ->from('ihrisdata')
+            ->where('ihris_pid', $ihris_pid)
+            ->limit(1)
+            ->get()
+            ->row();
+
+        if ($facility_id === '' && $employee && !empty($employee->facility_id)) {
+            $facility_id = trim((string) $employee->facility_id);
+        }
+        if ($facility_id === '') {
             return false;
         }
 
@@ -1461,31 +1518,33 @@ class Apiemployee_model extends CI_Model
             return true;
         }
 
-        $employee = $this->db->select('department_id, department')
-            ->from('ihrisdata')
-            ->where('ihris_pid', $ihris_pid)
-            ->limit(1)
-            ->get()
-            ->row();
-
         $department_id = null;
         if ($employee) {
-            $department_id = !empty($employee->department_id)
-                ? $employee->department_id
-                : ($employee->department ?? null);
+            if (!empty($employee->department_id)) {
+                $department_id = $employee->department_id;
+            } elseif (!empty($employee->department)) {
+                $department_id = $employee->department;
+            }
         }
 
         $schedule_id = 22;
         $color = null;
-        $schedule = $this->db->select('schedule_id, color')
-            ->from('schedules')
-            ->where('schedule_id', 22)
-            ->limit(1)
-            ->get()
-            ->row();
-        if ($schedule) {
-            $schedule_id = (int) $schedule->schedule_id;
-            $color = $schedule->color ?? null;
+        if ($this->db->table_exists('schedules')) {
+            $schedule = $this->db->select('schedule_id, color')
+                ->from('schedules')
+                ->where('schedule_id', 22)
+                ->limit(1)
+                ->get()
+                ->row();
+            if ($schedule) {
+                $schedule_id = (int) $schedule->schedule_id;
+                $color = $schedule->color ?? null;
+            }
+        }
+
+        $stream = trim((string) ($data['source'] ?? 'mobile'));
+        if ($stream === '' || strcasecmp($stream, 'Mobile App') === 0) {
+            $stream = 'mobile';
         }
 
         $insert = [
@@ -1498,19 +1557,41 @@ class Apiemployee_model extends CI_Model
             'date'          => $date,
             'end'           => date('Y-m-d', strtotime($date . ' +1 day')),
             'allDay'        => 'true',
-            'stream'        => 'mobile',
+            'stream'        => $stream,
         ];
 
-        $this->db->insert('actuals', $insert);
+        $filtered = [];
+        foreach ($insert as $col => $val) {
+            if ($this->db->field_exists($col, 'actuals')) {
+                $filtered[$col] = $val;
+            }
+        }
+        if (empty($filtered['entry_id']) || empty($filtered['ihris_pid']) || empty($filtered['date'])) {
+            return false;
+        }
+
+        try {
+            $cols = array_keys($filtered);
+            $placeholders = implode(', ', array_fill(0, count($cols), '?'));
+            $sql = 'INSERT IGNORE INTO actuals (`' . implode('`, `', $cols) . '`) VALUES (' . $placeholders . ')';
+            $this->db->query($sql, array_values($filtered));
+        } catch (Exception $e) {
+            log_message('error', 'actuals Present insert skipped: ' . $e->getMessage());
+            return false;
+        }
 
         if ($this->db->affected_rows() > 0) {
-            $CI =& get_instance();
-            $CI->load->library('dashboard_cache_store', null, 'dash_cache');
-            $CI->dash_cache->invalidateFacility($facility_id);
+            try {
+                $CI =& get_instance();
+                $CI->load->library('dashboard_cache_store', null, 'dash_cache');
+                $CI->dash_cache->invalidateFacility($facility_id);
+            } catch (Exception $e) {
+                // Cache invalidate is best-effort.
+            }
             return true;
         }
 
-        return false;
+        return true;
     }
 
     /**
