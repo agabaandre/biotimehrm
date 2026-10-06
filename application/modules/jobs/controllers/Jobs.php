@@ -296,6 +296,8 @@ class Jobs extends MX_Controller {
 
         $this->db->select(implode(', ', $select));
         $this->db->from('clk_log');
+        $this->db->where('time_in IS NOT NULL', null, false);
+        $this->db->where("time_in NOT LIKE '0000-%'", null, false);
         if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
             $this->db->group_start();
             $this->db->where('remote_sync_status IS NULL', null, false);
@@ -319,11 +321,26 @@ class Jobs extends MX_Controller {
         $ids = [];
         $maxId = 0;
         $payloadRows = [];
+        $ignoredIds = [];
         foreach ($rows as $r) {
-            $ids[] = (int) $r['id'];
-            $maxId = max($maxId, (int) $r['id']);
+            $id = (int) $r['id'];
+            $timeIn = isset($r['time_in']) ? trim((string) $r['time_in']) : '';
+            if ($timeIn === '' || strpos($timeIn, '0000-00-00') === 0) {
+                $ignoredIds[] = $id;
+                continue;
+            }
+            $ids[] = $id;
+            $maxId = max($maxId, $id);
             unset($r['id'], $r['remote_sync_status'], $r['remote_sync_at']);
             $payloadRows[] = $r;
+        }
+        if (!empty($ignoredIds) && $this->db->field_exists('remote_sync_status', 'clk_log')) {
+            $this->db->where_in('id', $ignoredIds)->update('clk_log', ['remote_sync_status' => 'ignored']);
+            echo "Ignored " . count($ignoredIds) . " rows with empty time_in.\n";
+        }
+        if (empty($payloadRows)) {
+            echo "No valid clk_log rows to send after skipping empty time_in.\n";
+            return;
         }
 
         $plain = json_encode([

@@ -1133,8 +1133,8 @@ class Apiemployee_model extends CI_Model
             return false;
         }
 
-        $time_in = !empty($data['time_in']) ? $data['time_in'] : null;
-        $time_out = !empty($data['time_out']) ? $data['time_out'] : null;
+        $time_in = $this->clkLogTimeOrNull($data['time_in'] ?? null);
+        $time_out = $this->clkLogTimeOrNull($data['time_out'] ?? null);
         if ($time_in === null && $time_out === null) {
             return false;
         }
@@ -1204,13 +1204,54 @@ class Apiemployee_model extends CI_Model
                 }
             }
             $this->db->where('entry_id', $filtered['entry_id']);
-            return (bool) $this->db->update('clk_log', $update);
+            return $this->clkLogWrite(function () use ($update) {
+                return (bool) $this->db->update('clk_log', $update);
+            });
         }
 
+        if ($time_in === null) {
+            return false;
+        }
         if ($this->db->field_exists('remote_sync_status', 'clk_log')) {
             $filtered['remote_sync_status'] = 'pending';
         }
-        return (bool) $this->db->insert('clk_log', $filtered);
+        return $this->clkLogWrite(function () use ($filtered) {
+            return (bool) $this->db->insert('clk_log', $filtered);
+        });
+    }
+
+    /**
+     * Treat empty / zero datetime values as missing.
+     *
+     * @param mixed $value
+     * @return string|null
+     */
+    protected function clkLogTimeOrNull($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = trim((string) $value);
+        if ($value === '' || strpos($value, '0000-00-00') === 0) {
+            return null;
+        }
+        return $value;
+    }
+
+    /**
+     * Run a clk_log write and skip the row if MySQL rejects it.
+     *
+     * @param callable $write
+     * @return bool
+     */
+    protected function clkLogWrite($write)
+    {
+        try {
+            return (bool) $write();
+        } catch (Exception $e) {
+            log_message('error', 'clk_log write skipped: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -1262,9 +1303,14 @@ class Apiemployee_model extends CI_Model
         }
         foreach ($q->result_array() as $row) {
             $stats['scanned']++;
-            if ($this->upsertClkLogFromMobile($row)) {
-                $stats['upserted']++;
-            } else {
+            try {
+                if ($this->upsertClkLogFromMobile($row)) {
+                    $stats['upserted']++;
+                } else {
+                    $stats['skipped']++;
+                }
+            } catch (Exception $e) {
+                log_message('error', 'mobileclk integrate skipped: ' . $e->getMessage());
                 $stats['skipped']++;
             }
         }
@@ -1288,18 +1334,27 @@ class Apiemployee_model extends CI_Model
             unset($row['id']);
             unset($row['remote_sync_status']);
             unset($row['remote_sync_at']);
+            if ($this->clkLogTimeOrNull($row['time_in'] ?? null) === null) {
+                $stats['skipped']++;
+                continue;
+            }
             $stats['received']++;
-            if ($this->upsertClkLogFromMobile($row)) {
-                $stats['upserted']++;
-                $entryId = $this->normalizeActualsDate($row['date'] ?? '') . trim((string) ($row['ihris_pid'] ?? ''));
-                if ($entryId !== '' && $this->db->field_exists('remote_sync_status', 'clk_log')) {
-                    $mark = ['remote_sync_status' => 'sent'];
-                    if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
-                        $mark['remote_sync_at'] = date('Y-m-d H:i:s');
+            try {
+                if ($this->upsertClkLogFromMobile($row)) {
+                    $stats['upserted']++;
+                    $entryId = $this->normalizeActualsDate($row['date'] ?? '') . trim((string) ($row['ihris_pid'] ?? ''));
+                    if ($entryId !== '' && $this->db->field_exists('remote_sync_status', 'clk_log')) {
+                        $mark = ['remote_sync_status' => 'sent'];
+                        if ($this->db->field_exists('remote_sync_at', 'clk_log')) {
+                            $mark['remote_sync_at'] = date('Y-m-d H:i:s');
+                        }
+                        $this->db->where('entry_id', $entryId)->update('clk_log', $mark);
                     }
-                    $this->db->where('entry_id', $entryId)->update('clk_log', $mark);
+                } else {
+                    $stats['skipped']++;
                 }
-            } else {
+            } catch (Exception $e) {
+                log_message('error', 'clk_log ingest skipped: ' . $e->getMessage());
                 $stats['skipped']++;
             }
         }
