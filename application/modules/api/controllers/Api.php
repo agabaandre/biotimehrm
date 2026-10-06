@@ -389,8 +389,17 @@ class Api extends REST_Controller
     // Enroll Users
     public function enroll_user_post() 
 	{
-	    // Get the JSON input
+	    // Get the JSON input (form post or raw JSON body from mobile sync)
 	    $input = $this->post();
+	    if (empty($input) || !is_array($input)) {
+	        $raw = json_decode(file_get_contents('php://input'), true);
+	        if (is_array($raw)) {
+	            $input = $raw;
+	        }
+	    }
+	    if (!is_array($input)) {
+	        $input = array();
+	    }
 	
 	    // Validate and sanitize fingerprint data
 	    $fingerprintData = $input['fingerprint_data'] ?? null;
@@ -414,16 +423,28 @@ class Api extends REST_Controller
 	    $faceEnrolled = !empty($faceData);
 	    $fingerprintEnrolled = !empty($fingerprintData);
 	    $enrolled = ($faceEnrolled || $fingerprintEnrolled) ? 1 : 0;
+
+	    $ihrisPid = trim((string) ($input['ihris_pid'] ?? $input['ihrisPid'] ?? ''));
+	    $facilityId = trim((string) ($input['facility_id'] ?? $input['facilityId'] ?? ''));
+	    if ($facilityId === '' && $ihrisPid !== '') {
+	        $row = $this->db->query(
+	            "SELECT facility_id FROM ihrisdata WHERE ihris_pid = ? LIMIT 1",
+	            [$ihrisPid]
+	        )->row();
+	        if ($row && !empty($row->facility_id)) {
+	            $facilityId = $row->facility_id;
+	        }
+	    }
 	
 	    // Construct sanitized user record
 	    $userRecord = [
 	        'face_data' => $faceData,
 	        'fingerprint_data' => $fingerprintData,
-	        'ihris_pid' => trim($input['ihris_pid']),
-	        'facility_id' => trim($input['facility_id']),
-	        'firstname' => trim($input['firstname']),
-	        'surname' => trim($input['surname']),
-	        'job' => trim($input['job']),
+	        'ihris_pid' => $ihrisPid,
+	        'facility_id' => $facilityId,
+	        'firstname' => trim((string) ($input['firstname'] ?? '')),
+	        'surname' => trim((string) ($input['surname'] ?? '')),
+	        'job' => trim((string) ($input['job'] ?? '')),
 	        'synced' => $input['synced'] ?? 0,
 	        'template_id' => $input['template_id'] ?? null,
 	        'face_enrolled' => $faceEnrolled ? 1 : 0,
@@ -464,8 +485,17 @@ class Api extends REST_Controller
     public function clock_user_post()
     {
         try {
-            // Get the JSON input
+            // Get the JSON input (form post or raw JSON body from mobile sync)
             $input = $this->post();
+            if (empty($input) || !is_array($input)) {
+                $raw = json_decode(file_get_contents('php://input'), true);
+                if (is_array($raw)) {
+                    $input = $raw;
+                }
+            }
+            if (!is_array($input)) {
+                $input = array();
+            }
 
             $userRecord = array();
 
@@ -474,19 +504,76 @@ class Api extends REST_Controller
             $currentDate = date('Y-m-d');
             $currentTime = date('Y-m-d H:i:s');
 
+            // Align mobile sync aliases → canonical fields
+            $ihrisPid = '';
+            if (!empty($input['ihris_pid'])) {
+                $ihrisPid = trim((string) $input['ihris_pid']);
+            } elseif (!empty($input['ihrisPid'])) {
+                $ihrisPid = trim((string) $input['ihrisPid']);
+            } elseif (!empty($input['employee_number'])) {
+                $ihrisPid = trim((string) $input['employee_number']);
+            }
+            if ($ihrisPid === '') {
+                $this->response([
+                    'status' => false,
+                    'message' => 'ihris_pid is required',
+                ], 400);
+                return;
+            }
+
+            // facility_id may be omitted on sync; accept aliases and resolve from ihrisdata
+            $facilityId = '';
+            if (!empty($input['facility_id'])) {
+                $facilityId = trim((string) $input['facility_id']);
+            } elseif (!empty($input['facilityId'])) {
+                $facilityId = trim((string) $input['facilityId']);
+            } elseif (!empty($input['facility'])) {
+                // Some clients send facility code/name under "facility"
+                $maybe = trim((string) $input['facility']);
+                if (strpos($maybe, 'facility|') === 0 || preg_match('/^\d+$/', $maybe)) {
+                    $facilityId = $maybe;
+                }
+            }
+            if ($facilityId === '') {
+                $row = $this->db->query(
+                    "SELECT facility_id FROM ihrisdata WHERE ihris_pid = ? LIMIT 1",
+                    [$ihrisPid]
+                )->row();
+                if ($row && !empty($row->facility_id)) {
+                    $facilityId = $row->facility_id;
+                }
+            }
+            if ($facilityId === '') {
+                $this->response([
+                    'status' => false,
+                    'message' => 'facility_id is required and could not be resolved from ihrisdata',
+                ], 400);
+                return;
+            }
+
             // Construct the entry_id: {timestamp}|{ihris_pid}
             // For Clock OUT, we'll find the matching clock-in record instead of creating a new entry_id
-            $userRecord['ihris_pid'] = $input['ihris_pid'];
-            $userRecord['facility_id'] = $input['facility_id'];
+            $userRecord['ihris_pid'] = $ihrisPid;
+            $userRecord['facility_id'] = $facilityId;
             $userRecord['source'] = 'mobile';
-            $userRecord['latitude'] = $input['latitude'];
-            $userRecord['longitude'] = $input['longitude'];
+            $userRecord['latitude'] = isset($input['latitude']) ? $input['latitude'] : null;
+            $userRecord['longitude'] = isset($input['longitude']) ? $input['longitude'] : null;
 
             // Set the current date
             $userRecord['date'] = $currentDate;
 
-            // Normalize clock status to handle various formats
-            $clockStatus = strtoupper(trim($input['clock_status']));
+            // Normalize clock status (clock_status / clockStatus / clock_type / status)
+            $clockStatusRaw = '';
+            if (isset($input['clock_status'])) {
+                $clockStatusRaw = (string) $input['clock_status'];
+            } elseif (isset($input['clockStatus'])) {
+                $clockStatusRaw = (string) $input['clockStatus'];
+            } elseif (isset($input['clock_type'])) {
+                $clockStatusRaw = (string) $input['clock_type'];
+            } elseif (isset($input['status'])) {
+                $clockStatusRaw = (string) $input['status'];
+            }
+            $clockStatus = strtoupper(trim($clockStatusRaw));
             
             // Log the value for debugging
             log_message('debug', 'Clock status received: ' . $clockStatus);
@@ -494,20 +581,24 @@ class Api extends REST_Controller
             // More flexible validation that accepts variations
             if ($clockStatus == "IN" || $clockStatus == "CLOCK_IN" || $clockStatus == "CLOCKED_IN" || $clockStatus == "CLOCKIN") {
                 // For clock-in, generate a new entry_id
-                $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
+                $userRecord['entry_id'] = !empty($input['entry_id'])
+                    ? (string) $input['entry_id']
+                    : (time() . '|' . $ihrisPid);
                 $userRecord['time_in'] = $currentTime;
                 $userRecord['time_out'] = null;
                 $userRecord['status'] = "CLOCKED_IN";
             } elseif ($clockStatus == "OUT" || $clockStatus == "CLOCK_OUT" || $clockStatus == "CLOCKED_OUT" || $clockStatus == "CLOCKOUT") {
                 // For clock-out, we'll update the existing record, but still need entry_id for API compatibility
-                $userRecord['entry_id'] = time() . '|' . $input['ihris_pid'];
+                $userRecord['entry_id'] = !empty($input['entry_id'])
+                    ? (string) $input['entry_id']
+                    : (time() . '|' . $ihrisPid);
                 $userRecord['time_out'] = $currentTime;
                 $userRecord['time_in'] = null; // This won't be used when updating
                 $userRecord['status'] = "CLOCKED_OUT";
             } else {
                 $this->response([
                     'status' => false,
-                    'message' => 'Invalid clock status: "' . $input['clock_status'] . '". Expected "IN" or "OUT"',
+                    'message' => 'Invalid clock status: "' . $clockStatusRaw . '". Expected "IN" or "OUT"',
                 ], 400);
                 return;
             }
@@ -522,8 +613,11 @@ class Api extends REST_Controller
                 $userRecord["shift"] = "Night";
             }
 
-            // Get Facility Name
+            // Get Facility Name (fallback to payload facility name when lookup empty)
             $facilityName = $this->mEmployee->get_facility_name($userRecord["facility_id"]);
+            if (empty($facilityName) && !empty($input['facility']) && strpos((string) $input['facility'], 'facility|') !== 0) {
+                $facilityName = trim((string) $input['facility']);
+            }
             $userRecord["location"] = $facilityName;
             $userRecord["facility"] = $facilityName;
 
@@ -1271,7 +1365,31 @@ class Api extends REST_Controller
             // Extract data from the request
 
             $ihris_pid = $this->post('ihris_pid');
-            $facility_id = $this->db->query("SELECT  facility_id from  ihrisdata  where ihris_pid='$ihris_pid'")->row()->facility_id;
+            if (empty($ihris_pid)) {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'ihris_pid is required'
+                ], 400);
+                return;
+            }
+            $facility_id = '';
+            $facRow = $this->db->query(
+                "SELECT facility_id FROM ihrisdata WHERE ihris_pid = ? LIMIT 1",
+                [$ihris_pid]
+            )->row();
+            if ($facRow && !empty($facRow->facility_id)) {
+                $facility_id = $facRow->facility_id;
+            }
+            if ($facility_id === '') {
+                $facility_id = trim((string) ($this->post('facility_id') ?: $this->post('facilityId') ?: ''));
+            }
+            if ($facility_id === '') {
+                $this->response([
+                    'status' => 'FAILED',
+                    'message' => 'facility_id could not be resolved for this staff'
+                ], 400);
+                return;
+            }
 
             $tin = $this->post('time_in');
 
