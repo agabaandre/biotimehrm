@@ -1607,8 +1607,21 @@ class Api extends REST_Controller
             }
 
             $input = $this->post();
-            if (empty($input)) {
+            if (empty($input) || !is_array($input)) {
                 $input = json_decode(file_get_contents('php://input'), true);
+            }
+            if (!is_array($input)) {
+                $input = array();
+            }
+
+            if (empty($input['ihris_pid']) && !empty($input['ihrisPid'])) {
+                $input['ihris_pid'] = $input['ihrisPid'];
+            }
+            if (empty($input['facility_id']) && !empty($input['facilityId'])) {
+                $input['facility_id'] = $input['facilityId'];
+            }
+            if (empty($input['birth_date']) && !empty($input['dob'])) {
+                $input['birth_date'] = $input['dob'];
             }
 
             if (empty($input['ihris_pid'])) {
@@ -1666,16 +1679,41 @@ class Api extends REST_Controller
                 return;
             }
 
-            // Remove fields that don't belong in the database tables
-            $fieldsToRemove = ['id', 'template_id', 'fingerprint_path', 'face_path',
+            // Remove mobile-only / non-ihrisdata fields (dob is mapped in the model → birth_date)
+            $fieldsToRemove = [
+                'id', 'template_id', 'fingerprint_path', 'face_path',
                 'fingerprint_synced', 'embedding_synced', 'synced', 'is_deleted',
-                'location', 'fingerprint_data', 'face_data'];
+                'location', 'fingerprint_data', 'face_data',
+                'fingerprint_enrolled', 'face_enrolled', 'enrolled',
+                'created_at', 'updated_at', 'local_id',
+            ];
             foreach ($fieldsToRemove as $field) {
                 unset($input[$field]);
             }
 
+            // Align aliases from mobile app
+            if (empty($input['facility_id']) && !empty($input['facilityId'])) {
+                $input['facility_id'] = $input['facilityId'];
+            }
+            unset($input['facilityId']);
+            if (empty($input['birth_date']) && !empty($input['dob'])) {
+                $input['birth_date'] = $input['dob'];
+            }
+            // Keep dob in payload so model can map it; it will not be written as column "dob"
+
             // Ensure ihris_pid from URL is used as source of truth
             $input['ihris_pid'] = $ihris_pid;
+
+            // Resolve facility_id from existing staff when app omits it
+            if (empty($input['facility_id'])) {
+                $row = $this->db->query(
+                    "SELECT facility_id FROM ihrisdata WHERE ihris_pid = ? LIMIT 1",
+                    [$ihris_pid]
+                )->row();
+                if ($row && !empty($row->facility_id)) {
+                    $input['facility_id'] = $row->facility_id;
+                }
+            }
 
             $result = $this->mEmployee->update_staff_by_pid($ihris_pid, $input);
 

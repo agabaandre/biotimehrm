@@ -578,24 +578,80 @@ class Apiemployee_model extends CI_Model
     // STAFF CRUD (mobile app sync: create, update, delete)
     // =========================================================================
 
-    public function create_staff($data)
+    /**
+     * Map mobile staff payload → ihrisdata columns that actually exist.
+     * App may send dob / facilityId; DB uses birth_date / facility_id.
+     */
+    protected function staff_payload_to_ihrisdata($data, $includePid = false)
     {
-        $ihris_pid = $data['ihris_pid'] ?? null;
+        // Canonical + mobile aliases
+        $facilityId = null;
+        if (isset($data['facility_id']) && $data['facility_id'] !== '' && $data['facility_id'] !== null) {
+            $facilityId = $data['facility_id'];
+        } elseif (isset($data['facilityId']) && $data['facilityId'] !== '' && $data['facilityId'] !== null) {
+            $facilityId = $data['facilityId'];
+        }
 
-        // Insert into ihrisdata
-        $ihrisData = array_filter([
-            'ihris_pid' => $ihris_pid,
+        $birthDate = null;
+        if (!empty($data['birth_date'])) {
+            $birthDate = $data['birth_date'];
+        } elseif (!empty($data['dob'])) {
+            $birthDate = $data['dob'];
+        } elseif (!empty($data['date_of_birth'])) {
+            $birthDate = $data['date_of_birth'];
+        }
+        if ($birthDate !== null) {
+            $ts = strtotime((string) $birthDate);
+            $birthDate = ($ts !== false) ? date('Y-m-d', $ts) : null;
+            if ($birthDate === '1970-01-01') {
+                $birthDate = null;
+            }
+        }
+
+        $candidate = [
             'surname' => $data['surname'] ?? null,
             'firstname' => $data['firstname'] ?? null,
             'othername' => $data['othername'] ?? null,
             'job' => $data['job'] ?? null,
-            'facility_id' => $data['facility_id'] ?? null,
+            'facility_id' => $facilityId,
             'facility' => $data['facility'] ?? null,
             'gender' => $data['gender'] ?? null,
             'district' => $data['district'] ?? null,
-            'dob' => $data['dob'] ?? null,
+            'district_id' => $data['district_id'] ?? null,
+            'birth_date' => $birthDate,
             'cadre' => $data['cadre'] ?? null,
-        ], function ($v) { return $v !== null; });
+            'nin' => $data['nin'] ?? null,
+            'card_number' => $data['card_number'] ?? null,
+            'ipps' => $data['ipps'] ?? null,
+            'mobile' => $data['mobile'] ?? ($data['telephone'] ?? null),
+            'telephone' => $data['telephone'] ?? null,
+            'email' => $data['email'] ?? null,
+            'department' => $data['department'] ?? null,
+            'department_id' => $data['department_id'] ?? null,
+        ];
+        if ($includePid && !empty($data['ihris_pid'])) {
+            $candidate['ihris_pid'] = $data['ihris_pid'];
+        }
+
+        $out = [];
+        foreach ($candidate as $col => $val) {
+            if ($val === null || $val === '') {
+                continue;
+            }
+            // Only write columns that exist on this deployment's ihrisdata
+            if ($this->db->field_exists($col, 'ihrisdata')) {
+                $out[$col] = $val;
+            }
+        }
+        return $out;
+    }
+
+    public function create_staff($data)
+    {
+        $ihris_pid = $data['ihris_pid'] ?? null;
+
+        // Insert into ihrisdata (aligned to real columns; dob → birth_date)
+        $ihrisData = $this->staff_payload_to_ihrisdata($data, true);
 
         $this->db->trans_begin();
 
@@ -609,14 +665,15 @@ class Apiemployee_model extends CI_Model
         }
 
         // Handle enrollment data if present
+        $enrollFacility = $ihrisData['facility_id'] ?? ($data['facility_id'] ?? ($data['facilityId'] ?? null));
         $enrollData = array_filter([
             'ihris_pid' => $ihris_pid,
             'fingerprint_data' => $data['fingerprint_data'] ?? null,
             'face_data' => $data['face_data'] ?? null,
-            'enrolled' => ($data['face_enrolled'] || $data['fingerprint_enrolled']) ? 1 : 0,
+            'enrolled' => (!empty($data['face_enrolled']) || !empty($data['fingerprint_enrolled'])) ? 1 : 0,
             'face_enrolled' => !empty($data['face_enrolled']) ? 1 : 0,
             'fingerprint_enrolled' => !empty($data['fingerprint_enrolled']) ? 1 : 0,
-            'facility_id' => $data['facility_id'] ?? null,
+            'facility_id' => $enrollFacility,
         ], function ($v) { return $v !== null; });
 
         $existingEnroll = $this->db->get_where('mobile_enroll', ['ihris_pid' => $ihris_pid])->row();
@@ -640,18 +697,8 @@ class Apiemployee_model extends CI_Model
     {
         $ihris_pid = $data['ihris_pid'] ?? null;
 
-        $ihrisData = array_filter([
-            'surname' => $data['surname'] ?? null,
-            'firstname' => $data['firstname'] ?? null,
-            'othername' => $data['othername'] ?? null,
-            'job' => $data['job'] ?? null,
-            'facility_id' => $data['facility_id'] ?? null,
-            'facility' => $data['facility'] ?? null,
-            'gender' => $data['gender'] ?? null,
-            'district' => $data['district'] ?? null,
-            'dob' => $data['dob'] ?? null,
-            'cadre' => $data['cadre'] ?? null,
-        ], function ($v) { return $v !== null; });
+        // Align mobile fields to real ihrisdata columns (dob → birth_date; skip unknown cols)
+        $ihrisData = $this->staff_payload_to_ihrisdata($data, false);
 
         $this->db->trans_begin();
 
