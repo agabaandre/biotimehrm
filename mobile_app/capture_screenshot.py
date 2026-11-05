@@ -6,7 +6,8 @@ from PIL import Image
 import shutil
 
 def capture_screenshot(filename):
-    subprocess.run(["adb", "exec-out", "screencap", "-p", ">", filename], shell=True, check=True)
+    with open(filename, "wb") as f:
+        subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=f, check=True)
 
 def compare_images(image1, image2, threshold):
     # Open images and convert to grayscale
